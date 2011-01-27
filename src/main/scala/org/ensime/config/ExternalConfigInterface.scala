@@ -181,10 +181,11 @@ object ExternalConfigInterface {
     testDeps ++= info.testDeps
     srcPaths ++= info.srcPaths
 
-    if (isSubProject) {
-      println("Adding subproject dependencies..")
+    val hasSubProjects = deps.size > 0
+    if (hasSubProjects) {
       for (proj <- deps) {
-        val dir = new File(baseDir, "../" + proj)
+        val dir = new File(baseDir, proj)
+        println("Adding subproject dependencies from: " + dir.getCanonicalPath)
         val info = getSbtProjectInfo(dir, v)
         compileDeps ++= info.compileDeps
         runtimeDeps ++= info.runtimeDeps

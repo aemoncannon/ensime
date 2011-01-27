@@ -107,7 +107,7 @@ object ProjectConfig {
 
     if (conf.useSbt) {
       val depDirs = conf.sbtSubprojectDeps
-      println("Using sbt configuration..")
+      println("Using sbt configuration. Subproject dependencies: " + depDirs.mkString(","))
       val ext = getSbtConfig(rootDir, depDirs)
       projectName = ext.projectName
       sourceRoots ++= ext.sourceRoots
