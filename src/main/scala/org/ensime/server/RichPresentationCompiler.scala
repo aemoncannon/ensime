@@ -52,6 +52,9 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl { self
     val x = new Response[Unit]()
     askReload(files.toList, x)
     x.get
+    // TODO This is not the right spot for this. But I can't find anywhere better to put it yet. 
+    //      And it appears to work for the momemt.
+    parent ! FullTypeCheckCompleteEvent()
   }
 
   def askRemoveAllDeleted() = askOr(removeAllDeleted(), t => ())
@@ -60,7 +63,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl { self
 
   def askReloadAllFiles() = {
     val all = ((config.sourceFilenames.map(getSourceFile(_))) ++
-      firsts).toSet.toList
+      allSources).toSet.toList
     askReloadFiles(all)
   }
 
@@ -68,7 +71,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl { self
     typeById(id).map{ t => inspectType(t) }, t => None)
 
   def askInspectTypeAt(p: Position): Option[TypeInspectInfo] = askOr({
-    reloadSources(List(p.source))
+    wrapReloadSources(List(p.source))
     inspectTypeAt(p)
   }, t => None)
 
@@ -77,12 +80,12 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl { self
   }, t => List())
 
   def askCompleteSymbolAt(p: Position, prefix: String, constructor: Boolean): List[SymbolInfoLight] = askOr({
-    reloadSources(List(p.source))
+    wrapReloadSources(List(p.source))
     completeSymbolAt(p, prefix, constructor)
   }, t => List())
 
   def askCompleteMemberAt(p: Position, prefix: String): List[NamedTypeMemberInfoLight] = askOr({
-    reloadSources(List(p.source))
+    wrapReloadSources(List(p.source))
     completeMemberAt(p, prefix)
   }, t => List())
 
@@ -135,7 +138,7 @@ class RichPresentationCompiler(
    * never be reloaded again.
    */
   def removeAllDeleted() {
-    firsts = firsts.filter { _.file.exists }
+    allSources = allSources.filter { _.file.exists }
     val deleted = symsByFile.keys.filter { !_.exists }
     for (f <- deleted) {
       removeDeleted(f)
@@ -196,10 +199,9 @@ class RichPresentationCompiler(
         if (isNoParamArrowType(tpe)) {
           typePublicMembers(typeOrArrowTypeResult(tpe))
         } else {
-          val members: Iterable[TypeMember] = try {
+          val members: Iterable[Member] = try {
 
-            // TODO: We throw away the Stream here...
-            typeMembers(p).flatten
+            wrapTypeMembers(p)
 
           } catch {
             case e => {
@@ -210,7 +212,7 @@ class RichPresentationCompiler(
           }
           // Remove duplicates
           // Filter out synthetic things
-          val bySym = new mutable.LinkedHashMap[Symbol, TypeMember]
+          val bySym = new mutable.LinkedHashMap[Symbol, Member]
           for (m <- (members ++ typePublicMembers(tpe))) {
             if (!m.sym.nameString.contains("$")) {
               bySym(m.sym) = m
@@ -279,7 +281,7 @@ class RichPresentationCompiler(
     try {
 
       // typedTree may throw Fatal Error...
-      val t = typedTreeAt(p)
+      val t = wrapTypedTreeAt(p)
 
       // don't return this tree unless it has a type..
       typeOfTree(t) match {
@@ -291,7 +293,7 @@ class RichPresentationCompiler(
       case e: FatalError =>
         {
           println("typedTreeAt threw FatalError: " + e + ", falling back to typedTree... ")
-          typedTree(p.source, true)
+          wrapTypedTree(p.source, true)
           locateTree(p)
         }
     }
@@ -340,7 +342,7 @@ class RichPresentationCompiler(
 
   protected def symbolAt(p: Position): Either[Symbol, Throwable] = {
     p.source.file
-    val tree = typedTreeAt(p)
+    val tree = wrapTypedTreeAt(p)
     if (tree.symbol != null) {
       Left(tree.symbol)
     } else {
@@ -496,20 +498,11 @@ class RichPresentationCompiler(
       }
       case Right(e) => List()
     }
-
-  }
-
-  /**
-   * Override so we send a notification to compiler actor when finished..
-   */
-  override def recompile(units: List[RichCompilationUnit]) {
-    super.recompile(units)
-    parent ! FullTypeCheckCompleteEvent()
   }
 
   protected def reloadAndTypeFiles(sources: Iterable[SourceFile]) = {
     sources.foreach { s =>
-      typedTree(s, true)
+      wrapTypedTree(s, true)
     }
   }
 
@@ -523,5 +516,42 @@ class RichPresentationCompiler(
     System.out.println("Finalizing Global instance.")
   }
 
-}
+  /*
+   * The following functions wrap up operations that interact with
+   * the presentation compiler. The wrapping just helps with the
+   * create response / compute / get result pattern.
+   *
+   * These units of work should probably be wrapped up into a
+   * Work monad that will make it easier to compose the operations.
+   */
 
+  def wrap[A](compute: Response[A] => Unit, handle: Throwable => A): A = {
+    val result = new Response[A]
+    compute(result)
+    result.get.fold(o => o, handle)
+  }
+
+  def wrapReloadPosition(p: Position): Unit =
+    wrapReloadSource(p.source)
+
+  def wrapReloadSource(source: SourceFile): Unit = 
+    wrapReloadSources(List(source))
+
+  def wrapReloadSources(sources: List[SourceFile]): Unit = {
+    val superseeded = scheduler.dequeueAll {
+      case ri: ReloadItem if ri.sources == sources => Some(ri)
+      case _ => None 
+    }
+    superseeded.foreach(_.response.set())
+    wrap[Unit](r => new ReloadItem(sources, r).apply(), _ => ())
+  }
+
+  def wrapTypeMembers(p: Position): List[Member] = 
+    wrap[List[Member]](r => new AskTypeCompletionItem(p, r).apply(), _ => List())
+
+  def wrapTypedTree(source: SourceFile, forceReload: Boolean): Tree =
+    wrap[Tree](r => new AskTypeItem(source, forceReload, r).apply(), t => throw t)
+
+  def wrapTypedTreeAt(position: Position): Tree =
+    wrap[Tree](r => new AskTypeAtItem(position, r).apply(), t => throw t)
+}
