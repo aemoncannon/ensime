@@ -164,33 +164,36 @@ trait Helpers { self: Global =>
     }
   }
 
-  import scala.tools.nsc.symtab.Flags._
-
-  /* See source at root/scala/trunk/src/compiler/scala/tools/nsc/symtab/Symbols.scala  
-    for details on various symbol predicates. */
+  /*
+   * See source at root/scala/trunk/src/compiler/scala/tools/nsc/symtab/Symbols.scala
+   * for details on various symbol predicates.
+   * 
+   * This is split out to work around scala bug 4560.
+   * 
+   * https://issues.scala-lang.org/browse/SI-4560
+   */
   def declaredAs(sym: Symbol): scala.Symbol = {
     if (sym.isMethod)
-      'method
+      SymbolHelpers.Method
     else if (sym.isTrait)
-      'trait
+      SymbolHelpers.Trait
     else if (sym.isTrait && sym.hasFlag(JAVA))
-      'interface
+      SymbolHelpers.Interface
     else if (sym.isInterface)
-      'interface
+      SymbolHelpers.Interface
     else if (sym.isModule)
-      'object
+      SymbolHelpers.Object
     else if (sym.isModuleClass)
-      'object
+      SymbolHelpers.Object
     else if (sym.isClass)
-      'class
+      SymbolHelpers.Class
     else if (sym.isPackageClass)
-      'class
+      SymbolHelpers.Class
 
     // check this last so objects are not
     // classified as fields
     else if (sym.isValue || sym.isVariable)
-      'field
-    else 'nil
+      SymbolHelpers.Field
+    else SymbolHelpers.Nil
   }
-
 }
