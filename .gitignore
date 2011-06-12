@@ -12,7 +12,9 @@ target/
 lib_managed/
 src_managed/
 project/boot/
+project.old/boot/
 project/build/target
+project.old/build/target
 test_data
 one_offs
 dist
