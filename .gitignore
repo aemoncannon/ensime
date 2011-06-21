@@ -21,6 +21,7 @@ dist
 .ensime
 .ensime.bak
 .emacs_clean.el
+.history
 etc/pres_compiler.txt
 etc/_region_.tex
 scratch
