@@ -12,13 +12,16 @@ target/
 lib_managed/
 src_managed/
 project/boot/
+project.old/boot/
 project/build/target
+project.old/build/target
 test_data
 one_offs
 dist
 .ensime
 .ensime.bak
 .emacs_clean.el
+.history
 etc/pres_compiler.txt
 etc/_region_.tex
 scratch
