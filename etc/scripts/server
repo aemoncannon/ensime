@@ -1,6 +1,10 @@
 #!/bin/bash
 set -f
 
+ENSIME_BIN="`dirname \"$0\"`"              # relative bin path
+ENSIME_HOME="`( cd \"$ENSIME_BIN/../\" && pwd )`"  # absolutized and normalized
+ENSIME_LIB="$ENSIME_HOME/lib"
+ 
 case "$1" in
   -h|--help|"")
     echo "$0 should be run by emacs plugin. M-x ensime should start the server for you"

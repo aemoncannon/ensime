@@ -12,7 +12,7 @@ import java.net.URLClassLoader
 object BuildSettings {
   val buildOrganization = "ensime"
   val buildScalaVersion = "2.9.0-1"
-  val buildVersion = "0.5.0"
+  val buildVersion = "0.6.0"
 
   val buildSettings = Defaults.defaultSettings ++ Seq (
     organization := buildOrganization,
@@ -51,7 +51,7 @@ object ShellPrompt {
 
 object Resolvers {
   val scalaToolsSnapshots = "Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots"
-  val jbossRepo = "JBoss Maven 2 Repo" at "http://repository.jboss.org/maven2"
+  val mavenCentral = "Maven Central @JBoss" at "https://repository.jboss.org/nexus/content/repositories/central"
 
   val sunrepo    = "Sun Maven2 Repo" at "http://download.java.net/maven/2"
   val sunrepoGF  = "Sun GF Maven2 Repo" at "http://download.java.net/maven/glassfish" 
@@ -59,7 +59,7 @@ object Resolvers {
 
   val oracleResolvers = Seq (sunrepo, sunrepoGF, oraclerepo)
 
-  val scalaResolvers = Seq (scalaToolsSnapshots, jbossRepo)
+  val scalaResolvers = Seq (scalaToolsSnapshots, mavenCentral)
 }
 
 object Dependencies {
@@ -68,8 +68,8 @@ object Dependencies {
   val ivy = "org.apache.ivy" % "ivy" % "2.1.0" % "compile;runtime;test"
   val maven = "org.apache.maven" % "maven-ant-tasks" % "2.1.0" % "compile;runtime;test"
   val scalatest = "org.scalatest" % "scalatest" % "1.2" % "test"
-  val jdt = "org.eclipse.jdt" % "core" % "3.4.2.v_883_R34x" % "compile;runtime;test"
-  val scalariform = "org.scalariform" % "scalariform_2.9.0-SNAPSHOT" % "0.0.9" % "compile;runtime;test"
+  val jdt = "org.sonatype.tycho" % "org.eclipse.jdt.core" % "3.6.0.v_A58" % "compile;runtime;test"
+  val scalariform = "org.scalariform" %% "scalariform" % "0.1.1-SNAPSHOT" % "compile;runtime;test"
 //  val refactoring = "org.scala-refactoring" % "org.scala-refactoring.library" % "0.2.0-SNAPSHOT"%"compile;runtime;test"
 
   val asm = "asm" % "asm" % "3.2"
@@ -178,8 +178,8 @@ object EnsimeBuild extends Build {
 
       // Grab all jars..
       val cpLibs = (distLib ** "*.jar").get
-      val cpUnix = cpLibs.mkString(":").replace("\\", "/")
-      val cpWindows = "\"" + cpLibs.mkString(";").replace("/", "\\") + "\""
+      val cpUnix = cpLibs.map("$ENSIME_LIB/" + _.name).mkString(":").replace("\\", "/")
+      val cpWindows = "\"" + cpLibs.map("%ENSIME_LIB%/" + _.name).mkString(";").replace("/", "\\") + "\""
 
       copyWithLineProcessing(srcScripts / "server", distBin, 
                              _.replace("<RUNTIME_CLASSPATH>", cpUnix)) match {
