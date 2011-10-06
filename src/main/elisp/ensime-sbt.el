@@ -169,7 +169,8 @@
 
 (defun ensime-sbt-project-dir-p (path)
   "Does a project/build.properties exists in the given path."
-  (file-exists-p (concat path "/project/build.properties")))
+  (or (file-exists-p (concat path "/project/build.properties"))
+      (file-exists-p (concat path "/build.sbt"))))
 
 (defun ensime-sbt-at-root (path)
   "Determine if the given path is root."
