@@ -339,7 +339,7 @@ object Sbt extends ExternalConfigurator {
       }
       case None => {
 	println("No project/build.properties found. Guessing sbt-11...")
-	(new Sbt10Style()).getConfig(baseDir, conf)
+	sbt11.getConfig(baseDir, conf)
       }
     }
   }
