@@ -71,6 +71,37 @@
   :group 'ensime-sbt
   :type 'boolean)
 
+(defun ensime-sbt-notify (string)
+  "Message minibuffer and notify if available given message"
+  (message (concat "SBT Build: " string))
+  (if (functionp 'notify) (notify "SBT Build" string)))
+
+(defun ensime-sbt-notify-build (string)
+  "Watch output and growl on success or failure"
+  (cond ((string-match "success.*Successful" string)
+         (ensime-sbt-notify "Success!"))
+        ((string-match "error.*Error running test-compile" string)
+         (ensime-sbt-notify "Test Compile Failed"))
+        ((string-match "error.*Error running test.*" string)
+         (ensime-sbt-notify "Test Failed"))
+        ((string-match "error.*Error running compile" string)
+         (ensime-sbt-notify "Compile Failed"))))
+
+(defvar ensime-sbt-mode-hook nil
+  "Hook to run after installing scala mode")
+
+(defconst sbt-stack-regexp "^.+?\\(org.specs\\|sbt\\|scala.Option\\|scala.collection\\).+?
+"
+  "Regexp that matches useless sbt stack traces")
+
+(defun ensime-sbt-stack-cleanup (string)
+  (interactive)
+  (let ((pmark (process-mark (get-buffer-process (current-buffer)))))
+    (save-excursion
+      (goto-char (max (point-min) (- pmark 2000)))
+      (while (re-search-forward sbt-stack-regexp pmark t)
+	(replace-match "")))))
+
 (defun ensime-sbt ()
   "Setup and launch sbt."
   (interactive)
@@ -107,7 +138,7 @@
     (set (make-local-variable 'comint-scroll-to-bottom-on-output) t)
     (set (make-local-variable 'comint-prompt-read-only) t)
     (set (make-local-variable 'comint-output-filter-functions)
-	 '(ansi-color-process-output comint-postoutput-scroll-to-bottom))
+	 '(ensime-sbt-stack-cleanup ensime-sbt-notify-build ansi-color-process-output comint-postoutput-scroll-to-bottom))
 
     (if ensime-sbt-comint-ansi-support
 	(set (make-local-variable 'ansi-color-for-comint-mode) t)
@@ -122,7 +153,10 @@
 		 nil nil)
 
     (let ((proc (get-buffer-process (current-buffer))))
-      (ensime-set-query-on-exit-flag proc))))
+      (ensime-set-query-on-exit-flag proc))
+
+    (if ensime-sbt-mode-hook
+        (run-hooks 'ensime-sbt-mode-hook))))
 
 (defun ensime-sbt-switch ()
   "Switch to the sbt shell (create if necessary) if or if already there, back.
