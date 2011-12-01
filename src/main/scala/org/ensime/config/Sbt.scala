@@ -72,12 +72,15 @@ object Sbt extends ExternalConfigurator {
       import scala.collection.JavaConversions._
       val expectinator = new ExpectJ()
       val pathToSbtJar = (new File(".", "bin/" + jarName)).getCanonicalPath()
+      val possiblyOverridden = Option(System getenv "SBT_JAR") getOrElse pathToSbtJar
+      // provided by default in the server.bat
+      val jLineTerm = Option(System getenv "JLINE_TERM") getOrElse ""    
       expectinator.spawn(new Executor(){
 	  def execute():Process = {
 	    val reqArgs = Vector(
-//	      "-Djline.terminal=scala.UnixTerminal",
+	      jLineTerm,
 	      "-Dsbt.log.noformat=true",
-	      "-jar", pathToSbtJar)
+	      "-jar", possiblyOverridden)
 	    val args = (Vector("java") ++ jvmArgs ++ reqArgs ++ appArgs) filter { _.trim().length > 0 }
 	    println("Starting sbt with command line: " + args.mkString(" "))
 	    val pb = new ProcessBuilder(args)
@@ -195,18 +198,19 @@ object Sbt extends ExternalConfigurator {
 
     def jarName:String = "sbt-launch-0.10.1.jar"
 
-    override def appArgs:List[String] = List("console-project")
+    override def appArgs:List[String] = List()//"console-project")
 
     def getConfig(baseDir: File, conf: FormatHandler): Either[Throwable, ExternalConfig] = {
       try{
 
 	implicit val shell = spawn(baseDir)
+	shell.send(ln("console-project"))
 
 	shell.expect(prompt)
 
 	conf.sbtActiveSubproject match {
 	  case Some(sub) => {
-	    evalUnit("val x = Extracted(structure, session, ProjectRef(new File(\"" + baseDir + "\"),\"" + sub.name + "\"))")
+	    evalUnit("val x = Extracted(structure, session, ProjectRef(new File(\"" + (baseDir.getCanonicalPath.replaceAll("\\\\","/")) + "\"),\"" + sub.name + "\"))")
 	  }
 	  case None =>
 	    evalUnit("val x = Project.extract(currentState)")
@@ -245,13 +249,14 @@ object Sbt extends ExternalConfigurator {
 	  taskResultAsList("exportedProducts in Runtime")
 	)
 
-	val sourceRoots =  (
+	val sourceRoots = (
 	  settingAsList("sourceDirectories in Compile") ++
 	  settingAsList("sourceDirectories in Test")
 	)
 	val target = CanonFile(getSetting("classDirectory in Compile").getOrElse("./classes"))
 
-	shell.send(":quit\n")
+	shell.send(":quit\n") // from console
+	shell.send("exit\n") // from sbt
 	shell.expectClose()
 	shell.stop()
 
