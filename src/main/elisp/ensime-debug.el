@@ -84,7 +84,7 @@ server."
     ("Not found: breakpoint \\(.+\\):\\([0-9]+\\)\n[^ ]" .
      ensime-db-handle-not-found-breakpoint)
 
-    ("Breakpoints set:\\(?:[ \t\n]+breakpoint \\(.+\\):\\([0-9]+\\)\\)*\n[^ ]" . 
+    ("Breakpoints set:\\(?:[ \t\n]+breakpoint \\(.+\\):\\([0-9]+\\)\\)*\n[^ ]" .
      ensime-db-handle-breakpoints-list)
 
     ("No breakpoints set.\n[^ ]" .

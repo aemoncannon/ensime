@@ -928,7 +928,7 @@
     ((:return-value val)
      (ensime-test-with-proj
       (proj src-files)
-      
+
       ;; Don't check source immediately cause it might not be rendered in buffer..."
       (ensime-typecheck-current-file)))
 
@@ -1238,8 +1238,8 @@
       (proj src-files)
       (let ((check-sym-is (lambda (sym-type)
 			    (ensime-assert
-			     (memq 
-			      sym-type 
+			     (memq
+			      sym-type
 			      (ensime-sem-high-sym-types-at-point))))
 			  ))
 	(goto-char (ensime-test-after-label "1"))
@@ -1374,7 +1374,7 @@
   "Run a signle test selected by title."
   (interactive)
   (catch 'done
-    (let ((key (read-string 
+    (let ((key (read-string
 		"Enter a regex matching a test's title: "))
 	  (tests (append ensime-fast-suite ensime-slow-suite)))
       (dolist (test tests)

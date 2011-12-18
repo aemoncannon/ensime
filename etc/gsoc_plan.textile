@@ -41,7 +41,7 @@ h3. Show implicit parameters for methods in Auto-Completion results
 
 h3. Incremental Building
 ** Probably use nsc.interactive.BuildManager
-** Depends on completion of #1 
+** Depends on completion of #1
 ** Duplicates some SBT behaviour, but many folks don't use SBT
 ** Time Estimate: 1.5 weeks
 ** Priority: M
@@ -56,7 +56,7 @@ h3. Provide commands for jumping to next or prev problem
 ** Priority: C
 
 h3. Embedded Scala REPL
-** Depends on completion of #1 
+** Depends on completion of #1
 ** Use exiting code for running Scala REPL as inferior process
 ** Time Estimate: 2 days
 ** Priority: M
@@ -89,14 +89,14 @@ h3. A framework for automated refactorings.
 ** Time Estimate: 1.5 weeks
 ** Priority: S+
 
-h3. Stability 
+h3. Stability
 ** Address issue in compiler back-end where type tree is sometimes not returned
 ** Should make every effort to return a reasonable answer to user
 ** Possibly cache last good tree
 ** Time Estimate: 1 week
 ** Priority: S
 
-h3. Documentation 
+h3. Documentation
 ** Improve the installation, startup guide.
 ** Describe all user configuration options
 ** Document all Scala and Elisp code and generate API docs for Scala

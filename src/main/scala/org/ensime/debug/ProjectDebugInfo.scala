@@ -1,7 +1,7 @@
 /**
 *  Copyright (c) 2010, Aemon Cannon
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
 *      * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 *      * Neither the name of ENSIME nor the
 *        names of its contributors may be used to endorse or promote products
 *        derived from this software without specific prior written permission.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -188,14 +188,14 @@ class ProjectDebugInfo(projectConfig: ProjectConfig) {
 
             // Notice that a single name may resolve to many units.
             // This is either due to many classes/objects declared in one file,
-            // or the fact that the mapping from source name to source path is 
+            // or the fact that the mapping from source name to source path is
             // one to many.
             val units = sourceNameToUnits(sourceName)
             val newU = new DebugUnit(startLine, endLine, f,
               sourceName, packageName, qualName)
             units += newU
 
-            // Sort in descending order of startLine, so first unit found will also be 
+            // Sort in descending order of startLine, so first unit found will also be
             // the most deeply nested.
             val sortedUnits = units.sortWith { (a, b) => a.startLine > b.startLine }
 

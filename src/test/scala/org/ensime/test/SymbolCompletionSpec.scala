@@ -100,7 +100,7 @@ class SymbolCompletionSpec extends Spec with ShouldMatchers{
 	}
       }
     }
-    
+
     it("should complete an explicitely imported class-name") {
       withPresCompiler{ cc =>
 	val src = srcFile("Test1.scala", contents(

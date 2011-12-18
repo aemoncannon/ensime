@@ -64,7 +64,7 @@ Download the latest ENSIME distribution from github.com at \begin{verbatim}http:
 ;; if you're not using the standard scala mode.
 (add-hook 'scala-mode-hook 'ensime-scala-mode-hook)
 
-;; MINI HOWTO: 
+;; MINI HOWTO:
 ;; Open .scala file. M-x ensime (once per project)
 \end{verbatim}
 \end{mylisting}
@@ -229,7 +229,7 @@ Specify the names of dependency profiles to be used for compilation and runtime 
 
 \noindent
 {\bf :project-package} "...."\\
-The main scala package for your project. Used by ENSIME to populate the project outline view. 
+The main scala package for your project. Used by ENSIME to populate the project outline view.
 \vspace{1 cm}
 
 
@@ -322,7 +322,7 @@ Customize the behavior of the source formatter. All Scalariform preferences are 
   {\bf :spaceBeforeColon} & t or nil  \\ \hline
   {\bf :spaceInsideBrackets} & t or nil  \\ \hline
   {\bf :spaceInsideParentheses} & t or nil  \\ \hline
-  {\bf :spacesWithinPatternBinders} & t or nil  \\ \hline 
+  {\bf :spacesWithinPatternBinders} & t or nil  \\ \hline
 \end{tabular}
 
 \vspace{5 mm}
@@ -368,7 +368,7 @@ First, ensure that you've set the :target directive in your config file. The REP
 
 Incremental building allows for fast turn-around in the running/testing of your application. The building/rebuilding support in ENSIME is intended for those who are not already using the sbt build system, as sbt users will probably wish to continue using the sbt shell's support for incremental building (it may still be worth a try though, as the build-manager included in ENSIME uses a finer grained check for modifications).
 
-First, ensure that you've set the :target directive in your config file. The :target directory is where the classes will be written by the incremental builder. Then, type \emph{C-c C-b b} to start building your project. When the build is finished, a window will appear listing the result of the build. After subsequent source changes, you may type \emph{C-c C-b r} to rebuild only those parts of the project that depend on things you've changed. 
+First, ensure that you've set the :target directive in your config file. The :target directory is where the classes will be written by the incremental builder. Then, type \emph{C-c C-b b} to start building your project. When the build is finished, a window will appear listing the result of the build. After subsequent source changes, you may type \emph{C-c C-b r} to rebuild only those parts of the project that depend on things you've changed.
 
 \subsection{Debugging}
 
@@ -421,10 +421,10 @@ ENSIME uses the Scalariform library to format Scala sources. Type \emph{C-c C-v 
 
 \subsection{Semantic Highlighting}
 
-Normally syntax highlighting is based on the \emph{syntactic} aspects of the source code. Semantic Highlighting adds color-coding based on semantic properties of the source. For example: a syntax highlighter can't tell whether a given identifier is a var or a val or a method call. Semantic Highlighting on the other hand can color vars differently to warn of their mutability. 
+Normally syntax highlighting is based on the \emph{syntactic} aspects of the source code. Semantic Highlighting adds color-coding based on semantic properties of the source. For example: a syntax highlighter can't tell whether a given identifier is a var or a val or a method call. Semantic Highlighting on the other hand can color vars differently to warn of their mutability.
 
 
-Semantic Highlighting is \emph{disabled} by default. People use a wide variety of color schemes in Emacs; it would have been difficult to arrive at coloring scheme that worked well for everyone. 
+Semantic Highlighting is \emph{disabled} by default. People use a wide variety of color schemes in Emacs; it would have been difficult to arrive at coloring scheme that worked well for everyone.
 
 Enabling Semantic Highlighting is as simple as changing the value of the variable ensime-sem-high-faces, which stores a list of (symbolType . face) associations. A ``face'' can be a reference to an existing Emacs face, such as font-lock-keyword-face, or a list of the form (:foreground ``color''), where ``color'' is either a standard Emacs color (such as ``slate gray'') or a hex value like ``\#ff0000''. For example, you might add the following to your .emacs file:
 \begin{mylisting}
@@ -445,7 +445,7 @@ Enabling Semantic Highlighting is as simple as changing the value of the variabl
 \end{verbatim}
 \end{mylisting}
 Once the value of ensime-sem-high-faces has changed, the next time you save a file, the designated symbol types will be highlighted.
-By the way, the symbol types in the example above are all that are currently supported. 
+By the way, the symbol types in the example above are all that are currently supported.
 
 \subsection{Scaladoc and Javadoc Browsing (customizing)}
 
@@ -455,7 +455,7 @@ If ENSIME cannot find the source for a type or member, it will instead try to br
 \begin{verbatim}
 
 (defun make-example-doc-url (type &optional member)
-  (ensime-make-java-doc-url-helper 
+  (ensime-make-java-doc-url-helper
     "http://developer.example.com/apidocs/" type member))
 
 (add-to-list 'ensime-doc-lookup-map '("^com\\.example\\." . make-example-doc-url))
@@ -596,7 +596,7 @@ Go to the previous compilation note in the current buffer.
 {\bf C-c C-d \emph{x}}\\
 Where \emph{x} is one of:
 \begin{itemize}
-\item {\bf d}  Start the debugger. 
+\item {\bf d}  Start the debugger.
 \item {\bf b}  Set a breakpoint.
 \item {\bf u}  Clear a breakpoint.
 \item {\bf r}  Run the debugged class.
@@ -612,11 +612,11 @@ Where \emph{x} is one of:
 {\bf C-c C-r \emph{x}}\\
 Where \emph{x} is one of:
 \begin{itemize}
-\item {\bf r}  Rename the symbol at point. 
-\item {\bf o}  Organize imports. 
-\item {\bf l}  Extract local. 
-\item {\bf m}  Extract method. 
-\item {\bf i}  Inline local. 
+\item {\bf r}  Rename the symbol at point.
+\item {\bf o}  Organize imports.
+\item {\bf l}  Extract local.
+\item {\bf m}  Extract method.
+\item {\bf i}  Inline local.
 \item {\bf t}  Add import for type at point.
 \end{itemize}
 \vspace{5 mm}
@@ -625,8 +625,8 @@ Where \emph{x} is one of:
 {\bf C-c C-b \emph{x}}\\
 Where \emph{x} is one of:
 \begin{itemize}
-\item {\bf b}  Build the entire project. 
-\item {\bf r}  Rebuild the project, incrementally. 
+\item {\bf b}  Build the entire project.
+\item {\bf r}  Rebuild the project, incrementally.
 \end{itemize}
 \vspace{5 mm}
 
@@ -644,7 +644,7 @@ Start the automatic configuration file generator.
 \section{Troubleshooting}
 
 \subsection{Diagnosing Issues}
-You may want to examine the contents of the \emph{*inferior-ensime-server*} buffer. This buffer collects the stdout and stderr of the server process, which is useful for debugging. If the compiler is in a broken state, you can restart it with M-x ensime-reload. Otherwise, if things are irreparably b0rked, you can always kill the \emph{*inferior-ensime-server*} buffer (which kills the server process) and restart ensime with M-x ensime. 
+You may want to examine the contents of the \emph{*inferior-ensime-server*} buffer. This buffer collects the stdout and stderr of the server process, which is useful for debugging. If the compiler is in a broken state, you can restart it with M-x ensime-reload. Otherwise, if things are irreparably b0rked, you can always kill the \emph{*inferior-ensime-server*} buffer (which kills the server process) and restart ensime with M-x ensime.
 
 If you've hit a recurring bug, please post an issue to github.com/aemoncannon/ensime. Please include your OS, Emacs version, ENSIME version, and the contents of \emph{*inferior-ensime-server*}.
 
@@ -698,7 +698,7 @@ The ENSIME server is intentionally editor agnostic. It is our hope that it may b
 
 \subsection{Starting the Server}
 
-Emacs starts the ENSIME server using the server.sh script in the \emph{bin} folder of the ENSIME distribution. Rather than tell the server explicitely what tcp port it should bind to,we instead pass the filename of a temporary file to the script. The first thing the server does on startup is choose a random, open port, and write the number to the given file. Emacs then reads this file and connects to the server. 
+Emacs starts the ENSIME server using the server.sh script in the \emph{bin} folder of the ENSIME distribution. Rather than tell the server explicitely what tcp port it should bind to,we instead pass the filename of a temporary file to the script. The first thing the server does on startup is choose a random, open port, and write the number to the given file. Emacs then reads this file and connects to the server.
 
 
 \subsection{The Swank Protocol}
@@ -706,13 +706,13 @@ The Emacs ENSIME client communicates with the server using the Swank protocol. T
 
 To send an s-expression, determine its ASCII length and then encode that integer as a padded six-digit hexadecimal value.  Write this value to the output socket first, then followed by the ASCII form of the s-expression.  On the receiving side, the reader loop should read six ASCII characters into a buffer and convert that into an integer, then read that number of ASCII characters from the socket, parsing the result into an s-expression.\\
 
-\vspace{5 mm} 
+\vspace{5 mm}
 
 \includegraphics{wire_protocol.png} \\
 
-\vspace{7 mm} 
+\vspace{7 mm}
 
-See the E-Lisp function \emph{ensime-net-send} in ensime.el for details on how messages are sent from Emacs, and the function \emph{ensime-net-encode-length} for the implementation of the header encoding. See the functions readMessage and writeMessage in org.ensime.protocol.SwankProtocol to see how the messaging is handled in Scala. 
+See the E-Lisp function \emph{ensime-net-send} in ensime.el for details on how messages are sent from Emacs, and the function \emph{ensime-net-encode-length} for the implementation of the header encoding. See the functions readMessage and writeMessage in org.ensime.protocol.SwankProtocol to see how the messaging is handled in Scala.
 
 At the application level, the s-expressions encode RPC calls, RPC responses, and events. RPC calls are used to make requests of the server. Events are generally used for the server to communicate un-prompted, asynchronous activity to the client -- such as an error or warning generated during compilation. What follows is a commented excerpt from the initialization of an ENSIME session. These s-expressions were copied from the \emph{*ensime-events*} buffer in Emacs which logs all protocol events (useful for learning the application protocol!). Server messages are indented. Comments prefixed with \#.
 
@@ -723,7 +723,7 @@ At the application level, the s-expressions encode RPC calls, RPC responses, and
 (:swank-rpc
  (swank:connection-info) 1)
 
-# Server responds. Note the numbering scheme for RPC calls: call & response 
+# Server responds. Note the numbering scheme for RPC calls: call & response
 # have the same call id (1 in this case).
 (:return
  (:ok
@@ -731,31 +731,31 @@ At the application level, the s-expressions encode RPC calls, RPC responses, and
 	(:name "ENSIMEserver")
 	:machine nil :features nil :version "0.0.1")) 1)
 
-# The client initializes the session by sending the configuration. 
+# The client initializes the session by sending the configuration.
 # This is read from the .ensime file.
 (:swank-rpc
  (swank:init-project
-  (:project-package "org.ensime" :use-sbt t 
+  (:project-package "org.ensime" :use-sbt t
    :root-dir "/home/aemon/src/misc/ensime/")) 2)
 
-# The acknowledges the message and sends some useful project info 
+# The acknowledges the message and sends some useful project info
 # back to the client.
 (:return
  (:ok
   (:project-name "ensime" :source-roots
-		 ("/home/aemon/src/misc/ensime/src/main/scala" 
-		 "/home/aemon/src/misc/ensime/src/main/java" 
+		 ("/home/aemon/src/misc/ensime/src/main/scala"
+		 "/home/aemon/src/misc/ensime/src/main/java"
 		 "/home/aemon/src/misc/ensime/src/test/scala"))) 2)
 
 
-# Server asks client to display a user message. 
+# Server asks client to display a user message.
 # Note: this is not part of any RPC call - it's just an event from the server.
 (:background-message "Initializing Analyzer. Please wait...")
 
 # Server alerts client that the analyzer is now ready for RPC requests.
 (:compiler-ready t)
 
-# Server tells client the result of the last full compilation 
+# Server tells client the result of the last full compilation
 # (nil means 0 notes (errors or warnings))
 (:typecheck-result
  (:lang :scala :is-full t :notes nil))

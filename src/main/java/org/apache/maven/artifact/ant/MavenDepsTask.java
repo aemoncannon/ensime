@@ -1,9 +1,9 @@
 /*
  *  This file is a modified version of:
  *  org/apache/maven/artifact/ant/DependenciesTask.java
- *  
+ *
  *  Modifications are Copyright (C) 2010 Aemon Cannon
- * 
+ *
  *  Licensed to the Apache Software Foundation (ASF) under one
  *  or more contributor license agreements.  See the NOTICE file
  *  distributed with this work for additional information
@@ -11,9 +11,9 @@
  *  to you under the Apache License, Version 2.0 (the
  *  "License"); you may not use this file except in compliance
  *  with the License.  You may obtain a copy of the License at
- *  
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *  Unless required by applicable law or agreed to in writing,
  *  software distributed under the License is distributed on an
  *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -48,7 +48,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set; 
+import java.util.Set;
 
 
 public class MavenDepsTask extends AbstractArtifactWithRepositoryTask{
@@ -56,44 +56,44 @@ public class MavenDepsTask extends AbstractArtifactWithRepositoryTask{
 	public List<File> deps = new ArrayList<File>();
 
 	private List<?> dependencies = new ArrayList<Object>();
-  
+
 	/**
 	 * A specific maven scope used to determine which dependencies are resolved.
 	 * This takes only a single scope and uses the standard maven ScopeArtifactFilter.
 	 */
 	private String useScope;
-  
+
 	/**
 	 * A comma separated list of dependency scopes to include, in the resulting path and fileset.
 	 */
 	private String scopes;
-  
+
 	/**
 	 * A comma separated list of dependency types to include in the resulting set of artifacts.
 	 */
 	private String type;
-  
+
 	/**
 	 * Main task execution. Called by parent execute().
 	 */
 	protected void doExecute(){
-    
+
 		if ( useScope != null && scopes != null ){
 			throw new BuildException( "You cannot specify both useScope and scopes in the dependencies task." );
 		}
-    
+
 		if ( getPom() != null && !this.dependencies.isEmpty() ){
 			throw new BuildException( "You cannot specify both dependencies and a pom in the dependencies task" );
 		}
-    
+
 		ArtifactRepository localRepo = createLocalArtifactRepository();
 		log( "Using local repository: " + localRepo.getBasedir(), Project.MSG_VERBOSE );
-    
+
 		// Look up required resources from the plexus container
 		ArtifactResolver resolver = (ArtifactResolver) lookup( ArtifactResolver.ROLE );
 		ArtifactFactory artifactFactory = (ArtifactFactory) lookup( ArtifactFactory.ROLE );
 		MavenMetadataSource metadataSource = (MavenMetadataSource) lookup( ArtifactMetadataSource.ROLE );
-    
+
 		Pom pom = initializePom( localRepo );
 		if ( pom != null ){
 			dependencies = pom.getDependencies();
@@ -104,29 +104,29 @@ public class MavenDepsTask extends AbstractArtifactWithRepositoryTask{
 				// originating Artifact below...
 				pom = createDummyPom( localRepo );
 			}
-    
+
 		if ( dependencies.isEmpty() ){
 			log( "There were no dependencies specified", Project.MSG_WARN );
 		}
-    
+
 		log( "Resolving dependencies...", Project.MSG_VERBOSE );
-    
+
 		ArtifactResolutionResult result;
 		Set<?> artifacts;
-    
+
 		List<?> remoteArtifactRepositories = createRemoteArtifactRepositories( pom.getRepositories() );
-    
+
 		try
 			{
 				artifacts = MavenMetadataSource.createArtifacts( artifactFactory, dependencies, null, null, null );
-      
+
 				Artifact pomArtifact = artifactFactory.createBuildArtifact( pom.getGroupId(), pom.getArtifactId(),
 																			pom.getVersion(), pom.getPackaging() );
-      
+
 				List<?> listeners = Collections.singletonList( new AntResolutionListener( getProject() ) );
-      
+
 				Map<?,?> managedDependencies = pom.getMavenProject().getManagedVersionMap();
-      
+
 				ArtifactFilter filter = null;
 				if ( useScope != null )
 					{
@@ -151,7 +151,7 @@ public class MavenDepsTask extends AbstractArtifactWithRepositoryTask{
 								filter = typeArtifactFilter;
 							}
 					}
-      
+
 				result = resolver.resolveTransitively( artifacts, pomArtifact, managedDependencies, localRepo,
 													   remoteArtifactRepositories, metadataSource, filter, listeners );
 			}
@@ -167,19 +167,19 @@ public class MavenDepsTask extends AbstractArtifactWithRepositoryTask{
 			{
 				throw new BuildException( "Invalid dependency version: " + e.getMessage(), e );
 			}
-    
+
 		Path dependencyPath = new Path(getProject());
 		Set<String> versions = new HashSet<String>();
-    
+
 		for (Iterator<?> i = result.getArtifacts().iterator(); i.hasNext(); ){
 			Artifact artifact = (Artifact) i.next();
 			addArtifactToResult( localRepo, artifact, dependencyPath );
 			versions.add( artifact.getVersion() );
 		}
-    
+
 
 	}
-  
+
 	private void addArtifactToResult( ArtifactRepository localRepo, Artifact artifact, Path path ){
 		File baseDir = new File(localRepo.getBasedir());
 		if(baseDir.exists()){
@@ -191,8 +191,8 @@ public class MavenDepsTask extends AbstractArtifactWithRepositoryTask{
 			}
 		}
 	}
-  
-  
+
+
 	/**
 	 * Use the maven artifact filtering for a particular scope. This
 	 * uses the standard maven ScopeArtifactFilter.
@@ -203,17 +203,17 @@ public class MavenDepsTask extends AbstractArtifactWithRepositoryTask{
 	{
 		this.useScope = useScope;
 	}
-  
+
 	public void setType( String type )
 	{
 		this.type = type;
 	}
-  
+
 	public String getScopes()
 	{
 		return scopes;
 	}
-  
+
 	/**
 	 * Only include artifacts that fall under one of the specified scopes.
 	 *
@@ -223,6 +223,6 @@ public class MavenDepsTask extends AbstractArtifactWithRepositoryTask{
 	{
 		this.scopes = scopes;
 	}
-  
 
-} 
+
+}

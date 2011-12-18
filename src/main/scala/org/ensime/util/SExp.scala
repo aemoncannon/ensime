@@ -1,7 +1,7 @@
 /**
 *  Copyright (c) 2010, Aemon Cannon
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
 *      * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 *      * Neither the name of ENSIME nor the
 *        names of its contributors may be used to endorse or promote products
 *        derived from this software without specific prior written permission.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -117,10 +117,10 @@ object SExp extends RegexParsers {
 
   import scala.util.matching.Regex
 
-  lazy val string = regexGroups("""\"((?:[^\"\\]|\\.)*)\"""".r) ^^ { m => 
-    StringAtom(m.group(1).replace("\\\\", "\\")) 
+  lazy val string = regexGroups("""\"((?:[^\"\\]|\\.)*)\"""".r) ^^ { m =>
+    StringAtom(m.group(1).replace("\\\\", "\\"))
   }
-  lazy val sym = regex("[a-zA-Z][a-zA-Z0-9-:]*".r) ^^ { s => 
+  lazy val sym = regex("[a-zA-Z][a-zA-Z0-9-:]*".r) ^^ { s =>
     if(s == "nil") NilAtom()
     else if(s == "t") TruthAtom()
     else SymbolAtom(s)
@@ -234,7 +234,7 @@ object SExp extends RegexParsers {
       val chars = new Array[Char](s.length)
       s.getChars(0, s.length, chars, 0)
       val r = new input.CharArrayReader(chars)
-      SExp.read(r)      
+      SExp.read(r)
     }
     def check(s:String, r:String) {
       assert(readStr(s).toString() == r, "Failed at: " + s)

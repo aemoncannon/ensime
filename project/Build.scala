@@ -1,7 +1,7 @@
 /**
 *  Copyright (c) 2010, Aemon Cannon
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
 *      * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 *      * Neither the name of ENSIME nor the
 *        names of its contributors may be used to endorse or promote products
 *        derived from this software without specific prior written permission.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -55,21 +55,21 @@ object EnsimeBuild extends Build {
     libraryDependencies <++= (scalaVersion) { scalaVersion =>
       val compilerVersion = scalaVersion
       val scalatest = scalaVersion match {
-	case v if v == TwoEightVersion => 
+	case v if v == TwoEightVersion =>
 	"org.scalatest" % "scalatest_2.8.2" % "1.5.1" % "test"
-	case v if v == TwoNineVersion => 
+	case v if v == TwoNineVersion =>
 	"org.scalatest" % "scalatest_2.9.1" % "1.6.1" % "test"
       }
       val scalariform = scalaVersion match {
-	case v if v == TwoEightVersion => 
+	case v if v == TwoEightVersion =>
 	"org.scalariform" % "scalariform_2.8.3-SNAPSHOT" % "0.1.1" % "compile;runtime;test"
-	case v if v == TwoNineVersion => 
+	case v if v == TwoNineVersion =>
 	"org.scalariform" % "scalariform_2.9.1" % "0.1.1" % "compile;runtime;test"
       }
       val scalaRefactoring = scalaVersion match {
-	case v if v == TwoEightVersion => 
+	case v if v == TwoEightVersion =>
 	"org.scala-refactoring" % "org.scala-refactoring_2.8.2-SNAPSHOT" % "0.3.0-SNAPSHOT" from "http://scala.ifs.hsr.ch/hudson/job/Scala-Refactoring-2.8.2-SNAPSHOT/ws/org.scala-refactoring.library/target/org.scala-refactoring_2.8.2-SNAPSHOT-0.3.0-SNAPSHOT.jar"
-	case v if v == TwoNineVersion => 
+	case v if v == TwoNineVersion =>
 	"org.scala-refactoring" % "org.scala-refactoring_2.9.2-SNAPSHOT" % "0.3.0-SNAPSHOT" from "http://scala.ifs.hsr.ch/hudson/job/Scala-Refactoring-2.9.2-SNAPSHOT/ws/org.scala-refactoring.library/target/org.scala-refactoring_2.9.2-SNAPSHOT-0.3.0-SNAPSHOT.jar"
       }
       Seq(
@@ -97,9 +97,9 @@ object EnsimeBuild extends Build {
 
   val log = LogManager.defaultScreen
 
-  var stage = TaskKey[Unit]("stage", 
+  var stage = TaskKey[Unit]("stage",
     "Copy files into staging directory for a release.")
-  lazy val stageTask:Setting[sbt.Task[Unit]] = 
+  lazy val stageTask:Setting[sbt.Task[Unit]] =
   stage <<= (
     dependencyClasspath in Runtime,
     exportedProducts in Runtime,
@@ -111,7 +111,7 @@ object EnsimeBuild extends Build {
 
     log.info("Copying runtime environment to ./" + distDir + "....")
     createDirectories(List(
-	file(distDir), 
+	file(distDir),
 	file(distDir + "/bin"),
 	file(distDir + "/lib"),
 	file(distDir + "/elisp")))
@@ -161,7 +161,7 @@ object EnsimeBuild extends Build {
 
 
   var release = TaskKey[Unit]("release", "Create the release package and tag the current commit.")
-  lazy val releaseTask:Setting[sbt.Task[Unit]] = 
+  lazy val releaseTask:Setting[sbt.Task[Unit]] =
   release <<= (stage,version,scalaVersion) map {
     (_,version,scalaBuildVersion) =>
 
@@ -169,7 +169,7 @@ object EnsimeBuild extends Build {
     val modName = "ensime_" + scalaBuildVersion + "-" + version
     val tagName = scalaBuildVersion + "-" + version
 
-    doSh("git tag -s v" + tagName + 
+    doSh("git tag -s v" + tagName +
       " -m 'Tag for release " + modName + "'") !! (log)
 
     val initialDir = new File(".")
@@ -177,12 +177,12 @@ object EnsimeBuild extends Build {
       modName + ".tar.gz").getCanonicalPath
     withTemporaryDirectory{ f =>
       val releaseDir = new File(
-	f.getAbsolutePath + "/" + 
+	f.getAbsolutePath + "/" +
 	modName)
       log.info("Copying ./" + distDir + " to temp directory: " + releaseDir)
       doSh("cp -r ./" + distDir + " " + releaseDir)!!(log)
       log.info("Compressing temp directory to " + archiveFile + "...")
-      doSh("tar -pcvzf " + archiveFile + " " + 
+      doSh("tar -pcvzf " + archiveFile + " " +
 	modName, Some(f)) !! (log)
       None
     }
@@ -202,7 +202,7 @@ object EnsimeBuild extends Build {
     log.info("Publishing manual to web...")
     doSh("scp " + target + " www@aemon.com:~/public/aemon/file_dump/", cwd)!!(log)
     doSh("scp wire_protocol.png www@aemon.com:~/public/aemon/file_dump/", cwd)!!(log)
-    None     
+    None
   }
 
 

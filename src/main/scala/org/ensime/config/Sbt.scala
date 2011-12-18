@@ -1,7 +1,7 @@
 /**
 *  Copyright (c) 2010, Aemon Cannon
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
 *      * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 *      * Neither the name of ENSIME nor the
 *        names of its contributors may be used to endorse or promote products
 *        derived from this software without specific prior written permission.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -54,14 +54,14 @@ object Sbt extends ExternalConfigurator {
     def jarName:String
     def appArgs:Seq[String] = List()
 
-    // TODO: 
+    // TODO:
     // We want JVM args passed via the environment to supercede default args,
     // but the handling of duplicate arguments is JVM implementation specific.
     // It seems they generally prefer the later arguments. We're just gonna go
     // with that assumption for now.
-    // 
+    //
     // To do this right we need to parse the argument strings.
-    // 
+    //
     def jvmArgs:Seq[String] = List("-Xmx512M") ++ (
       Option(System getenv "SBT_OPTS") map { _ split "\\s+" } map { arr => Vector(arr: _*) } getOrElse Vector())
 
@@ -228,20 +228,20 @@ object Sbt extends ExternalConfigurator {
 	val buildScalaVersion = getSetting("scalaVersion").getOrElse("2.9.1")
 
 	val compileDeps = (
-	  taskResultAsList("unmanagedClasspath in Compile") ++ 
-	  taskResultAsList("managedClasspath in Compile") ++ 
+	  taskResultAsList("unmanagedClasspath in Compile") ++
+	  taskResultAsList("managedClasspath in Compile") ++
 	  taskResultAsList("internalDependencyClasspath in Compile")
 	)
 	val testDeps = (
 	  taskResultAsList("unmanagedClasspath in Test") ++
-	  taskResultAsList("managedClasspath in Test") ++ 
-	  taskResultAsList("internalDependencyClasspath in Test") ++ 
+	  taskResultAsList("managedClasspath in Test") ++
+	  taskResultAsList("internalDependencyClasspath in Test") ++
 	  taskResultAsList("exportedProducts in Test")
 	)
 	val runtimeDeps = (
 	  taskResultAsList("unmanagedClasspath in Runtime") ++
 	  taskResultAsList("managedClasspath in Runtime") ++
-	  taskResultAsList("internalDependencyClasspath in Runtime") ++ 
+	  taskResultAsList("internalDependencyClasspath in Runtime") ++
 	  taskResultAsList("exportedProducts in Runtime")
 	)
 

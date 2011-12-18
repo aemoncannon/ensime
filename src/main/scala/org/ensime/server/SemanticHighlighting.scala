@@ -155,9 +155,9 @@ trait SemanticHighlighting { self: Global with Helpers =>
 
                 // TODO:
                 // Unfotunately t.symbol.pos returns a RangePosition
-                // that covers the entire declaration. 
+                // that covers the entire declaration.
                 //
-                // This is brittle, but I don't know a better 
+                // This is brittle, but I don't know a better
                 // way to get the position of just the name.
 
                 val start = if (mods.positions.isEmpty) t.pos.start
@@ -192,9 +192,9 @@ trait SemanticHighlighting { self: Global with Helpers =>
                 addAt(start, end, 'object)
               } else if (t.tpe != null) {
                 // TODO:
-                // This case occurs when 
-                // pattern matching on 
-                // case classes. 
+                // This case occurs when
+                // pattern matching on
+                // case classes.
                 // As in:
                 // case MyClass(a:Int,b:Int)
                 //
@@ -224,7 +224,7 @@ trait SemanticHighlighting { self: Global with Helpers =>
     typed.get.left.toOption match {
       case Some(tree) => {
 
-	// TODO: Disable designations for 
+	// TODO: Disable designations for
 	// regions with errors?
 
         //        val cu = unitOf(p.source)

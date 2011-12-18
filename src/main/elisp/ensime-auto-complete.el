@@ -265,7 +265,7 @@ be used later to give contextual help when entering arguments."
 	    (save-excursion
 	      (let* ((is-operator
 		      (and (= 1 (length param-sections))
-			   (= 1 (length (plist-get 
+			   (= 1 (length (plist-get
 					 (car param-sections) :params)))
 			   (null (string-match "[A-z]" name)))))
 		(if ensime-ac-enable-argument-placeholders
@@ -353,7 +353,7 @@ be used later to give contextual help when entering arguments."
 				       'face font-lock-type-face)
 			   ))
 			params ", ") (if is-operator "" ")"))))
-	 (if is-implicit 
+	 (if is-implicit
 	     (propertize result 'face font-lock-comment-face)
 	   result)
 	 ))

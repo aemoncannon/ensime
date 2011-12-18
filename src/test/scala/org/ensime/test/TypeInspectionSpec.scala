@@ -23,7 +23,7 @@ class TypeInspectionSpec extends Spec with ShouldMatchers{
 	info.name should equal("Int")
       }
     }
-    
+
     it("should get type of usage of local var ") {
       withPresCompiler{ cc =>
     	val src = srcFile("Test2.scala", contents(

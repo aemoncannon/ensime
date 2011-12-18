@@ -218,7 +218,7 @@ class RichPresentationCompiler(
     super.syncTopLevelSyms(unit)
     unindexTopLevelSyms(deletedTopLevelSyms)
     indexTopLevelSyms(newTopLevelSyms)
-    //    WARNING: Clearing the set here makes 
+    //    WARNING: Clearing the set here makes
     //    recentlyDeleted useless.
     deletedTopLevelSyms.clear()
     newTopLevelSyms.clear()
@@ -438,9 +438,9 @@ class RichPresentationCompiler(
     }
   }
 
-  // TODO: 
+  // TODO:
   // This hides the core implementation is Contexts.scala, which
-  // has been patched. Once this bug is fixed, we can get rid of 
+  // has been patched. Once this bug is fixed, we can get rid of
   // this workaround.
   private def transformImport(selectors: List[ImportSelector], sym: Symbol): List[Symbol] = selectors match {
     case List() => List()

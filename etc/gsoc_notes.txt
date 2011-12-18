@@ -18,7 +18,7 @@ Licensing issues?
 
 
 Integration with SBT
-  -Incremental compilation 
+  -Incremental compilation
   -REPL support - Paul Phillips
 
 

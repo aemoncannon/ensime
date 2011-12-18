@@ -24,7 +24,7 @@ class PackageInspectionSpec extends Spec with ShouldMatchers{
 	info.members.exists(m => m.name == "List") should be(true)
       }
     }
-    
+
 
   }
 }

@@ -1,7 +1,7 @@
 /**
 *  Copyright (c) 2010, Aemon Cannon
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
 *      * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 *      * Neither the name of ENSIME nor the
 *        names of its contributors may be used to endorse or promote products
 *        derived from this software without specific prior written permission.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -39,7 +39,7 @@ object Ivy extends ExternalConfigurator {
   import FileUtils._
 
   def getConfig(baseDir: File, conf: FormatHandler): Either[Throwable, ExternalConfig] = {
-    
+
     val ivyFile = conf.ivyFile.map { new File(_) }
     val runtimeConf = conf.ivyRuntimeConf
     val compileConf = conf.ivyCompileConf
@@ -58,7 +58,7 @@ object Ivy extends ExternalConfigurator {
     val compileDeps = compileConf.map(resolve(_)).getOrElse(defaultDeps)
     val testDeps = testConf.map(resolve(_)).getOrElse(defaultDeps)
 
-    Right(ExternalConfig(None, srcPaths, runtimeDeps, 
+    Right(ExternalConfig(None, srcPaths, runtimeDeps,
 	compileDeps, testDeps, None))
   }
 

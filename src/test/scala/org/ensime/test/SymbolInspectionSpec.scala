@@ -5,7 +5,7 @@ import org.scalatest.matchers.ShouldMatchers
 import util.Helpers._
 
 class SymbolInspectionSpec extends Spec with ShouldMatchers{
-  
+
   describe("Symbol Info") {
 
     it("should see local variable declaration") {
@@ -23,7 +23,7 @@ class SymbolInspectionSpec extends Spec with ShouldMatchers{
 	info.name should equal("dude")
       }
     }
-    
+
     it("should find local declaration position ") {
       withPresCompiler{ cc =>
     	val src = srcFile("Test2.scala", contents(
