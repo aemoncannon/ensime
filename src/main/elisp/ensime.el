@@ -113,7 +113,7 @@
   :type 'string
   :group 'ensime-server)
 
-(defcustom ensime-default-port 9999
+(defcustom ensime-default-port 0
   "Port to use as the default for `ensime-connect'."
   :type 'integer
   :group 'ensime-server)
@@ -607,7 +607,9 @@ Do not show 'Writing..' message."
 	     (dir (or (plist-get config :server-root)
 		      ensime-default-server-root))
 	     (buffer ensime-server-buffer-name)
-	     (args (list (ensime-swank-port-file))))
+	     (server-host (or (plist-get config :server-host) ensime-default-server-host))
+	     (server-port (number-to-string (or (plist-get config :server-port) ensime-default-port)))
+	     (args (list (ensime-swank-port-file) server-host server-port)))
 
 	(ensime-delete-swank-port-file 'quiet)
 	(let ((server-proc (ensime-maybe-start-server cmd args env dir buffer)))
