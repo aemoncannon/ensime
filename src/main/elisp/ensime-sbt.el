@@ -179,13 +179,19 @@
       (erase-buffer)
       (comint-send-input t))))
 
+(defun ensime-sbt-compile-on-save-command ()
+  "Gets the command to issue when sbt-compiling on save"
+  (if (plist-get (ensime-config) :sbt-compile-on-save-command)
+    (plist-get (ensime-config) :sbt-compile-on-save-command)
+    "compile"))
+
 (defun ensime-sbt-maybe-auto-compile ()
   "Compile the code."
   (interactive)
   (when (and
 	 (ensime-connected-p)
 	 ensime-sbt-compile-on-save)
-    (ensime-sbt-action "compile")))
+    (ensime-sbt-action (ensime-sbt-compile-on-save-command))))
 
 (defun ensime-sbt-complete ()
   "Complete input at point"
@@ -208,6 +214,15 @@
     (with-current-buffer buf (goto-char (point-max)))
     (comint-send-string buf (concat action "\n"))))
 
+(defvar ensime-sbt-command-history nil
+  "History of commands passed to sbt.")
+
+(defun ensime-sbt-do (sbt-command)
+  (interactive (list (read-string "Sbt command: " ensime-sbt-command-history)))
+  (setq ensime-sbt-command-history sbt-command)
+  (ensime-sbt-switch)
+  (ensime-sbt-action sbt-command))
+
 (defun ensime-sbt-do-compile ()
   (interactive)
   (ensime-sbt-switch)
@@ -222,7 +237,6 @@
   (interactive)
   (ensime-sbt-switch)
   (ensime-sbt-action "package"))
-
 
 (defun ensime-sbt-project-dir-p (path)
   "Is path an sbt project?"
