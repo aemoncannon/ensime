@@ -35,7 +35,7 @@ import org.ensime.server._
 import org.ensime.util._
 import org.ensime.util.SExp._
 import scala.actors._
-import scala.tools.nsc.util.{ Position, RangePosition }
+import scala.reflect.internal.util.{ Position, RangePosition }
 import scala.util.parsing.input
 
 object SwankProtocol extends SwankProtocol {}

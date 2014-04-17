@@ -29,7 +29,7 @@ package org.ensime.server
 import org.ensime.model.{ Helpers, SymbolDesignation, SymbolDesignations }
 import scala.collection.mutable.ListBuffer
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
-import scala.tools.nsc.util.RangePosition
+import scala.reflect.internal.util.RangePosition
 import scala.tools.nsc.symtab.Flags._
 import scala.math
 
@@ -80,7 +80,7 @@ trait SemanticHighlighting { self: Global with Helpers =>
                   add('param)
                 } else if (sym.isMethod) {
                   add('functionCall)
-                } else if (sym.isPackage) {
+                } else if (sym.hasPackageFlag) {
                   add('package)
                 } else if (sym.isTrait) {
                   add('trait)
@@ -88,9 +88,9 @@ trait SemanticHighlighting { self: Global with Helpers =>
                   add('class)
                 } else if (sym.isModule) {
                   add('object)
-                } else if (sym.isVariable && sym.isLocal) {
+                } else if (sym.isVariable && sym.isLocalToBlock) {
                   add('var)
-                } else if (sym.isValue && sym.isLocal) {
+                } else if (sym.isValue && sym.isLocalToBlock) {
                   add('val)
                 } else if (sym.isVariable) {
                   add('varField)
@@ -135,7 +135,7 @@ trait SemanticHighlighting { self: Global with Helpers =>
                 } else {
                   addAt(start, end, 'functionCall)
                 }
-              } else if (sym.isPackage) {
+              } else if (sym.hasPackageFlag) {
                 addAt(start, end, 'package)
               } else if (sym.isTrait) {
                 addAt(start, end, 'trait)
@@ -220,7 +220,7 @@ trait SemanticHighlighting { self: Global with Helpers =>
     tpes: List[scala.Symbol]): SymbolDesignations = {
     val tpeSet = Set[scala.Symbol]() ++ tpes
     val typed: Response[Tree] = new Response[Tree]
-    askType(p.source, false, typed)
+    askLoadedTyped(p.source, false, typed)
     typed.get.left.toOption match {
       case Some(tree) => {
 

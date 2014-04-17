@@ -30,7 +30,7 @@ package org.ensime.util
 import scala.collection.mutable.{ HashEntry, HashMap, HashSet, SynchronizedMap }
 import scala.tools.nsc.interactive.CompilerControl
 import scala.tools.nsc.reporters.{ ConsoleReporter, Reporter }
-import scala.tools.nsc.util.{ OffsetPosition, Position, SourceFile }
+import scala.reflect.internal.util.{ Position, OffsetPosition, SourceFile }
 
 trait ReportHandler {
   def messageUser(str: String) {}
@@ -81,8 +81,8 @@ class PresentationReporter(handler: ReportHandler) extends Reporter {
             f,
             formatMessage(msg),
             severity.id,
-            pos.startOrPoint,
-            pos.endOrPoint,
+            pos.start,
+            pos.end,
             pos.line,
             pos.column)
           handler.reportScalaNotes(List(note))

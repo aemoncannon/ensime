@@ -1,7 +1,7 @@
 /**
 *  Copyright (c) 2010, Aemon Cannon
 *  All rights reserved.
-*  
+*
 *  Redistribution and use in source and binary forms, with or without
 *  modification, are permitted provided that the following conditions are met:
 *      * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 *      * Neither the name of ENSIME nor the
 *        names of its contributors may be used to endorse or promote products
 *        derived from this software without specific prior written permission.
-*  
+*
 *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,7 +30,6 @@ import scala.tools.nsc.interactive.{CompilerControl, Global}
 
 trait Helpers { self: Global =>
 
-  import definitions.{ ObjectClass, RootPackage, EmptyPackage, NothingClass, AnyClass, AnyRefClass }
   import scala.tools.nsc.symtab.Flags._
 
 
@@ -176,8 +175,8 @@ trait Helpers { self: Global =>
   }
 
   def packageSymFromPath(path: String): Option[Symbol] = {
-    val candidates = symsAtQualifiedPath(path, RootPackage)
-    candidates.find { s => s.isPackage }
+    val candidates = symsAtQualifiedPath(path, self.rootMirror.RootPackage)
+    candidates.find { s => s.hasPackageFlag }
   }
 
   // Where path is the qualified name of a symbol that is a direct or
@@ -185,7 +184,7 @@ trait Helpers { self: Global =>
   def symsAtQualifiedPath(path: String, rootSym: Symbol): List[Symbol] = {
     def memberSymsNamed(sym: Symbol, name: String) = {
       (sym.info.members ++ sym.info.decls).filter { s =>
-        s.nameString == name && s != EmptyPackage && s != RootPackage
+        s.nameString == name && s != self.rootMirror.EmptyPackage && s != self.rootMirror.RootPackage
       }
     }
     if (path == "") List(rootSym)
@@ -208,7 +207,7 @@ trait Helpers { self: Global =>
 
     def filterAndSort(symbols: Iterable[Symbol]) = {
       val validSyms = symbols.filter { s =>
-        s != EmptyPackage && !isRoot(s) &&
+        s != self.rootMirror.EmptyPackage && !isRoot(s) &&
         // This check is necessary to prevent infinite looping..
         ((isRoot(s.owner) && isRoot(parent)) || (s.owner.fullName == parent.fullName))
       }
@@ -216,7 +215,7 @@ trait Helpers { self: Global =>
     }
 
     if (isRoot(parent)) {
-      filterAndSort(parent.info.members ++ EmptyPackage.info.members)
+      filterAndSort(parent.info.members ++ self.rootMirror.EmptyPackage.info.members)
     } else {
       filterAndSort(parent.info.members)
     }
@@ -256,7 +255,7 @@ trait Helpers { self: Global =>
       "name" -> sym.toString(),
       "  isMethod" -> sym.isMethod,
       "  isAbstractClass" -> sym.isAbstractClass,
-      "  isPackage" -> sym.isPackage,
+      "  isPackage" -> sym.hasPackageFlag,
       "  isValue" -> sym.isValue,
       "  isVariable" -> sym.isVariable,
       "  isClass" -> sym.isClass,

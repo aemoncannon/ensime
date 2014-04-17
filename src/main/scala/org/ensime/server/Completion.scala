@@ -28,7 +28,7 @@
 package org.ensime.server
 import org.ensime.model.CompletionInfoList
 import scala.collection.mutable.HashMap
-import scala.tools.nsc.util.{ Position, RangePosition, SourceFile, BatchSourceFile }
+import scala.reflect.internal.util.{ Position, RangePosition, SourceFile, BatchSourceFile }
 import org.ensime.util.Arrays
 import scala.tools.nsc.interactive.{ Response, CompilerControl, Global }
 import scala.collection.mutable.{ ListBuffer, LinkedHashSet }
@@ -48,7 +48,7 @@ trait CompletionControl {
     var score = 0
     if (sym.nameString.startsWith(prefix)) score += 10
     if (!inherited) score += 10
-    if (!sym.isPackage) score += 10
+    if (!sym.hasPackageFlag) score += 10
     if (!sym.isType) score += 10
     if (sym.isLocal) score += 10
     if (sym.isPublic) score += 10
@@ -318,7 +318,7 @@ trait Completion { self: RichPresentationCompiler =>
           s == NoSymbol || s.nameString.contains("$")
         }
         memberSyms.flatMap { s =>
-          val name = if (s.isPackage) { s.nameString } else { typeShortName(s) }
+          val name = if (s.hasPackageFlag) { s.nameString } else { typeShortName(s) }
           if (name.startsWith(prefix)) {
             Some(CompletionInfo(name, CompletionSignature(List(),""), -1, false, 50, None))
           } else None

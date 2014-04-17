@@ -38,6 +38,8 @@ object EnsimeBuild extends Build {
 
   private def file(str:String) = new File(str)
 
+  private def stripMilestone(version: String) = version.split('-')(0)
+
   private lazy val toolsJarCandidates: List[File] = {
     val jdkHome = Option(System.getenv("JAVA_HOME")).getOrElse("/tmp")
     val jreHome = new File(System.getProperty("java.home"))
@@ -54,7 +56,8 @@ object EnsimeBuild extends Build {
 
   val TwoNineVersion = "2.9.2"
   val TwoTenVersion = "2.10.2"
-  val supportedScalaVersions = Seq(TwoNineVersion, TwoTenVersion)
+  val TwoElevenVersion = "2.11.0-RC3"
+  val supportedScalaVersions = Seq(TwoNineVersion, TwoTenVersion, TwoElevenVersion)
   def unsupportedScalaVersion(scalaVersion: String): Nothing =
     sys.error(
       "Unsupported scala version: " + scalaVersion + ". " +
@@ -68,8 +71,8 @@ object EnsimeBuild extends Build {
       Seq(
         version := "0.9.8.10",
         organization := "org.ensime",
-        scalaVersion := TwoTenVersion,
-        crossScalaVersions := Seq(TwoNineVersion, TwoTenVersion),
+        scalaVersion := TwoElevenVersion,
+        crossScalaVersions := Seq(TwoNineVersion, TwoTenVersion, TwoElevenVersion),
         resolvers <++= (scalaVersion) { scalaVersion =>
           Seq("Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots",
               "Sonatype OSS Repository" at "https://oss.sonatype.org/service/local/staging/deploy/maven2",
@@ -86,7 +89,16 @@ object EnsimeBuild extends Build {
               "asm" % "asm-util" % "3.3",
               "com.googlecode.json-simple" % "json-simple" % "1.1"
       ) ++
-          (if (scalaVersion == TwoTenVersion)
+          (if (scalaVersion == TwoElevenVersion)
+            Seq(
+                "org.scalatest" % "scalatest_2.11.0-RC3" % "2.1.2" % "test",
+                "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
+                "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
+                "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
+                "org.scala-lang" % "scala-actors" % "2.11.0-RC1" % "compile;runtime;test",
+                "com.typesafe.zinc" % "zinc" % "0.3.2-M1" % "compile;runtime;test"
+            )
+          else if (scalaVersion == TwoTenVersion)
             Seq(
                 "org.scalatest" % "scalatest_2.10.0" % "1.8" % "test",
                 "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
@@ -100,7 +112,7 @@ object EnsimeBuild extends Build {
           else unsupportedScalaVersion(scalaVersion))
         },
         unmanagedJars in Compile <++= (scalaVersion, baseDirectory) map { (scalaVersion, base) =>
-          (((base / "lib") +++ (base / ("lib_" + scalaVersion))) ** "*.jar").classpath
+          (((base / "lib") +++ (base / ("lib_" + stripMilestone(scalaVersion)))) ** "*.jar").classpath
         },
         unmanagedClasspath in Compile ++= toolsJar.toList,
         scalacOptions ++= Seq("-g:vars","-deprecation"),

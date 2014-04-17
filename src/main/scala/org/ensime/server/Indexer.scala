@@ -139,7 +139,7 @@ class Indexer(
                 {
                   System.err.println("Error handling RPC: " +
                     e + " :\n" +
-                    e.getStackTraceString)
+                    e.getStackTrace)
                   project.sendRPCError(ErrExceptionInIndexer,
                     Some("Error occurred in indexer. Check the server log."),
                     callId)
@@ -155,7 +155,7 @@ class Indexer(
       } catch {
         case e: Exception => {
           System.err.println("Error at Indexer message loop: " +
-            e + " :\n" + e.getStackTraceString)
+            e + " :\n" + e.getStackTrace)
         }
       }
     }
@@ -206,7 +206,7 @@ trait IndexerInterface { self: RichPresentationCompiler =>
     val keys = new ArrayBuffer[String]
     for (sym <- syms) {
       keys += lookupKey(sym)
-      for (mem <- try { sym.tpe.members } catch { case e => List() }) {
+      for (mem <- try { sym.tpe.members } catch { case e: Throwable => List() }) {
         keys += lookupKey(mem)
       }
     }
@@ -240,7 +240,7 @@ trait IndexerInterface { self: RichPresentationCompiler =>
       if (Indexer.isValidType(typeSymName(sym))) {
         val key = lookupKey(sym)
         infos += sym
-        for (mem <- try { sym.tpe.members } catch { case e => { List() } }) {
+        for (mem <- try { sym.tpe.members } catch { case e: Throwable => { List() } }) {
           if (Indexer.isValidMethod(mem.nameString)) {
             val key = lookupKey(mem)
             infos += mem
