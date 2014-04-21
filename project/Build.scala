@@ -95,8 +95,10 @@ object EnsimeBuild extends Build {
                 "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
                 "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
+                // "org.scala-lang" %% "scala-compiler" % "compile;runtime;test",
+                // "org.scala-lang" %% "scala-reflect" % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % "2.11.0-RC1" % "compile;runtime;test",
-                "com.typesafe.zinc" % "zinc" % "0.3.2-M1" % "compile;runtime;test"
+                "com.typesafe.zinc" % "zinc" % "0.3.5-M3" % "compile;runtime;test"
             )
           else if (scalaVersion == TwoTenVersion)
             Seq(

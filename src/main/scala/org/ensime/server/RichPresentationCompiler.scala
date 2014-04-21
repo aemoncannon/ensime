@@ -532,7 +532,7 @@ class RichPresentationCompiler(
       case ri: ReloadItem if ri.sources == sources => Some(ri)
       case _ => None
     }
-    superseeded.foreach(_.response.set())
+    superseeded.foreach(_.response.set(()))
     wrap[Unit](r => new ReloadItem(sources, r).apply(), _ => ())
   }
 

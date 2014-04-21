@@ -60,6 +60,7 @@ class IncrementalBuilder(project: Project, protocol: ProtocolConversions, config
   // this and figure out a way to use Zinc. Until then the Ensime
   // build/rebuild feature won't work.
 
+  val zincBuilder = new ZincBuilder(config)
 
   private val reporter = new PresentationReporter(new ReportHandler {
     override def messageUser(str: String) {
@@ -83,9 +84,9 @@ class IncrementalBuilder(project: Project, protocol: ProtocolConversions, config
                 case RebuildAllReq() => {
                   project ! AsyncEvent(toWF(SendBackgroundMessageEvent(
                     MsgBuildingEntireProject, Some("Building entire project. Please wait..."))))
-                  val files = config.sourceFilenames.map(f => new BatchSourceFile(AbstractFile.getFile(f))).toList
+                  val files = config.sourceFilenames.map(new File(_)).toList
                   reporter.reset
-                  // TODO: Compile
+                  zincBuilder.compile(files)
                   project ! AsyncEvent(toWF(SendBackgroundMessageEvent(
                     MsgBuildComplete, Some("Build complete."))))
                   val result = toWF(reporter.allNotes.map(toWF))
