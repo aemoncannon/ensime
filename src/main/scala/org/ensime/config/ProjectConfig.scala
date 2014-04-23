@@ -648,6 +648,7 @@ object ProjectConfig {
       println("Including compile jars: " + jars.mkString(","))
       compileDeps ++= jars
       val moreDeps = canonicalizeFiles(conf.compileDeps, rootDir)
+      println("DEBUG: compileDeps: " + conf.compileDeps.mkString(","))
       println("Including compile deps: " + moreDeps.mkString(","))
       compileDeps ++= moreDeps
     }

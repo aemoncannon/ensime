@@ -38,6 +38,8 @@ import org.ensime.config.ProjectConfig
 class ZincBuilder(config: ProjectConfig) {
   import Util._
 
+  println(s"ZindBuilder(init): compileDeps = ${config.compileDeps}")
+  println(s"ZindBuilder(init): compilerClasspath = ${config.compilerClasspath}")
   val Parsed(rawSettings, residual, errors) = Settings.parse(config.builderArgs)
   val settings = Settings.normalise(rawSettings, Some(config.root))
   val baseInputs = Inputs(settings)
