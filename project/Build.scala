@@ -69,10 +69,10 @@ object EnsimeBuild extends Build {
       base = file ("."),
       settings = Project.defaultSettings ++
       Seq(
-        version := "0.9.8.10",
+        version := "0.10.0.0",
         organization := "org.ensime",
         scalaVersion := TwoElevenVersion,
-        crossScalaVersions := Seq(TwoNineVersion, TwoTenVersion, TwoElevenVersion),
+        crossScalaVersions := Seq(TwoTenVersion, TwoElevenVersion),
         resolvers <++= (scalaVersion) { scalaVersion =>
           Seq("Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots",
               "Sonatype OSS Repository" at "https://oss.sonatype.org/service/local/staging/deploy/maven2",
@@ -95,10 +95,9 @@ object EnsimeBuild extends Build {
                 "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
                 "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
-                // "org.scala-lang" %% "scala-compiler" % "compile;runtime;test",
-                // "org.scala-lang" %% "scala-reflect" % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test",
-                "com.typesafe.zinc" % "zinc" % "0.3.5-M3" % "compile;runtime;test"
+                "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
+                "com.typesafe.zinc" % "zinc" % "0.3.5-SNAPSHOT" % "compile;runtime;test"
             )
           else if (scalaVersion == TwoTenVersion)
             Seq(
@@ -106,6 +105,8 @@ object EnsimeBuild extends Build {
                 "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
                 "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
+                "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
+                "com.typesafe.zinc" % "zinc" % "0.3.5-SNAPSHOT" % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test")
           else if (scalaVersion == TwoNineVersion)
             Seq("org.scalariform" % "scalariform_2.9.1" % "0.1.1" % "compile;runtime;test",

@@ -88,9 +88,9 @@ trait SemanticHighlighting { self: Global with Helpers =>
                   add('class)
                 } else if (sym.isModule) {
                   add('object)
-                } else if (sym.isVariable && sym.isLocalToBlock) {
+                } else if (sym.isVariable && sym.isLocal) {
                   add('var)
-                } else if (sym.isValue && sym.isLocalToBlock) {
+                } else if (sym.isValue && sym.isLocal) {
                   add('val)
                 } else if (sym.isVariable) {
                   add('varField)
