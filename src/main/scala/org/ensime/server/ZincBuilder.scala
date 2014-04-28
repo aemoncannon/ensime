@@ -53,12 +53,22 @@ class ZincBuilder(config: ProjectConfig) {
   val compilerInterface = locateJar("""(.*compiler-interface.*\.jar)""".r)
 
   val target = config.target.map(_.toString).getOrElse(".")
-  val compilerArgs = List("-scala-compiler", scalaCompiler.toString, "-scala-library", scalaLibrary.toString, "-scala-extra", scalaExtra.mkString(","), "-sbt-interface", sbtInterface.toString, "-compiler-interface", compilerInterface.toString, "-classpath", compilerClasspath.mkString(":"), "-d", target)
+  val compilerArgs = List(
+    "-scala-compiler", scalaCompiler.toString,
+    "-scala-library", scalaLibrary.toString,
+    "-scala-extra", scalaExtra.mkString(","),
+    "-sbt-interface", sbtInterface.toString,
+    "-compiler-interface", compilerInterface.toString,
+    "-classpath", compilerClasspath.mkString(":"),
+    "-d", target)
+
+  val zincLibDir = new File(config.zincLibDir.getOrElse("/home/msaegeser/work/ensime-dev/dist/2.10/lib"))
+  val zincClasspath = zincLibDir.listFiles().filter(_.getName.endsWith(".jar"))
 
   val zincClient =
     try {
       val z = new ZincClient(8888)
-      if (z.requireServer(Seq.empty[String], classpathFiles, "30000")) Some(z)
+      if (z.requireServer(Seq.empty[String], zincClasspath, "30000")) Some(z)
       else None
     } catch {
       case t: Throwable =>
@@ -88,5 +98,4 @@ class ZincBuilder(config: ProjectConfig) {
     }
     println("compile:  OUT")
   }
-
 }
