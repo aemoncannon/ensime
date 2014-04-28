@@ -62,12 +62,12 @@ class ZincBuilder(config: ProjectConfig) {
     "-classpath", compilerClasspath.mkString(":"),
     "-d", target)
 
-  val zincLibDir = new File(config.zincLibDir.getOrElse("/home/msaegeser/work/ensime-dev/dist/2.10/lib"))
-  val zincClasspath = zincLibDir.listFiles().filter(_.getName.endsWith(".jar"))
 
   val zincClient =
     try {
-      val z = new ZincClient(8888)
+      val zincLibDir = new File(config.zincLibDir.getOrElse(findDefaultZincDir))
+      val zincClasspath = zincLibDir.listFiles().filter(_.getName.endsWith(".jar"))
+      val z = new ZincClient()
       if (z.requireServer(Seq.empty[String], zincClasspath, "30000")) Some(z)
       else None
     } catch {
@@ -97,5 +97,10 @@ class ZincBuilder(config: ProjectConfig) {
         println(s"Error:  Error running compile.  $t\n$sw")
     }
     println("compile:  OUT")
+  }
+
+  private def findDefaultZincDir(): String = {
+    val ensimeLibDir = locateJar("""ensime_.*\.jar""".r)
+    new File(new File(ensimeLibDir.getParentFile.getParentFile.getParentFile, "2.10"), "lib").getPath
   }
 }
