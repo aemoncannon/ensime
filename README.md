@@ -1,3 +1,7 @@
+NOTE:  This is a work in progress. This branch includes changes to allow Ensime to work with
+both Scala 2.10 and 2.11 projects. This work is not yet complete and I do not recommend using
+this yet.
+
 # ENSIME
 the ENhanced Scala Interaction Mode for Emacs
 
