@@ -38,7 +38,10 @@ object EnsimeBuild extends Build {
 
   private def file(str:String) = new File(str)
 
-  private def stripMilestone(version: String) = version.split('-')(0)
+  private def majorMinorVersion(version: String) = {
+    val fields = version.split('.')
+    s"${fields(0)}.${fields(1)}"
+  }
 
   private lazy val toolsJarCandidates: List[File] = {
     val jdkHome = Option(System.getenv("JAVA_HOME")).getOrElse("/tmp")
@@ -54,10 +57,9 @@ object EnsimeBuild extends Build {
 
   val root = Path(".")
 
-  val TwoNineVersion = "2.9.2"
-  val TwoTenVersion = "2.10.2"
+  val TwoTenVersion = "2.10.4"
   val TwoElevenVersion = "2.11.0"
-  val supportedScalaVersions = Seq(TwoNineVersion, TwoTenVersion, TwoElevenVersion)
+  val supportedScalaVersions = Seq(TwoTenVersion, TwoElevenVersion)
   def unsupportedScalaVersion(scalaVersion: String): Nothing =
     sys.error(
       "Unsupported scala version: " + scalaVersion + ". " +
@@ -69,10 +71,10 @@ object EnsimeBuild extends Build {
       base = file ("."),
       settings = Project.defaultSettings ++
       Seq(
-        version := "0.9.8.10",
+        version := "0.10.0.0",
         organization := "org.ensime",
         scalaVersion := TwoElevenVersion,
-        crossScalaVersions := Seq(TwoNineVersion, TwoTenVersion, TwoElevenVersion),
+        crossScalaVersions := Seq(TwoTenVersion, TwoElevenVersion),
         resolvers <++= (scalaVersion) { scalaVersion =>
           Seq("Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots",
               "Sonatype OSS Repository" at "https://oss.sonatype.org/service/local/staging/deploy/maven2",
@@ -95,10 +97,9 @@ object EnsimeBuild extends Build {
                 "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
                 "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
-                // "org.scala-lang" %% "scala-compiler" % "compile;runtime;test",
-                // "org.scala-lang" %% "scala-reflect" % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test",
-                "com.typesafe.zinc" % "zinc" % "0.3.5-M3" % "compile;runtime;test"
+                "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
+                "com.typesafe.zinc" % "zinc" % "0.3.5-SNAPSHOT" % "compile;runtime;test"
             )
           else if (scalaVersion == TwoTenVersion)
             Seq(
@@ -106,15 +107,13 @@ object EnsimeBuild extends Build {
                 "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
                 "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
+                "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
+                "com.typesafe.zinc" % "zinc" % "0.3.5-SNAPSHOT" % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test")
-          else if (scalaVersion == TwoNineVersion)
-            Seq("org.scalariform" % "scalariform_2.9.1" % "0.1.1" % "compile;runtime;test",
-                "org.scalatest" % "scalatest_2.9.1" % "1.6.1" % "test",
-                "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test" withSources())
           else unsupportedScalaVersion(scalaVersion))
         },
         unmanagedJars in Compile <++= (scalaVersion, baseDirectory) map { (scalaVersion, base) =>
-          (((base / "lib") +++ (base / ("lib_" + stripMilestone(scalaVersion)))) ** "*.jar").classpath
+          (((base / "lib") +++ (base / ("lib_" + majorMinorVersion(scalaVersion)))) ** "*.jar").classpath
         },
         unmanagedClasspath in Compile ++= toolsJar.toList,
         scalacOptions ++= Seq("-g:vars","-deprecation"),
@@ -144,24 +143,21 @@ object EnsimeBuild extends Build {
     exportedProducts in Runtime,
     scalaVersion) map { (depCP, exportedCP, scalaBuildVersion) =>
 
-    val distDir = "dist_" + scalaBuildVersion
+    val distDir = "dist/"
+    val scalaDistDir = "dist/" + majorMinorVersion(scalaBuildVersion)
 
-    delete(file(distDir))
+    delete(file(scalaDistDir))
 
-    log.info("Copying runtime environment to ./" + distDir + "....")
+    log.info("Copying runtime environment to ./" + scalaDistDir + "....")
     createDirectories(List(
       file(distDir),
-      file(distDir + "/bin"),
-      file(distDir + "/lib"),
-      file(distDir + "/elisp")))
+      file(distDir + "/elisp"),
+      file(scalaDistDir),
+      file(scalaDistDir + "/bin"),
+      file(scalaDistDir + "/lib")))
 
     // Scalac components
-    val scalaComponents = if(scalaBuildVersion == TwoTenVersion) {
-      List("library", "reflect", "compiler", "actors")
-    } else {
-      List("library", "compiler")
-    }
-
+    val scalaComponents = List("library", "reflect", "compiler", "actors")
     val jars = scalaComponents map (c => "scala-" + c + ".jar")
     val scala = jars
 
@@ -172,21 +168,21 @@ object EnsimeBuild extends Build {
 
     // Copy the runtime jars
     val deps = (depCP ++ exportedCP).map(_.data)
-    copy(deps x flat(root / distDir / "lib"))
+    copy(deps x flat(root / scalaDistDir / "lib"))
 
     if(scalaBuildVersion == TwoTenVersion) {
       // todo. fixup scala-reflect.jar, don't know why it gets its version appended
       // I think that's because sbt treats scala-library and scala-compiler specially
       // but the version we use (0.11.3) doesn't yet know about scala-reflect
       // would be lovely to update to 0.12, but I'm afraid it will break in new fancy ways
-      val scalaReflectWeirdJar = root / distDir / "lib" / "scala-reflect-2.10.0-SNAPSHOT.jar"
-      val scalaReflectJar = root / distDir / "lib" / "scala-reflect.jar"
+      val scalaReflectWeirdJar = root / scalaDistDir / "lib" / "scala-reflect-2.10.0-SNAPSHOT.jar"
+      val scalaReflectJar = root / scalaDistDir / "lib" / "scala-reflect.jar"
       scalaReflectWeirdJar.renameTo(scalaReflectJar)
       scalaReflectWeirdJar.delete()
     }
 
     // Grab all jars..
-    val cpLibs = (root / distDir / "lib" ** "*.jar").get.flatMap(
+    val cpLibs = (root / scalaDistDir / "lib" ** "*.jar").get.flatMap(
       _.relativeTo(root / distDir))
 
     def writeScript(bootclasspath:String, classpath:String, from:String, to:String){
@@ -208,7 +204,7 @@ object EnsimeBuild extends Build {
         nix_wrap(scala),
         nix_wrap(runtimeLibs),
         "./etc/scripts/server",
-        "./" + distDir + "/bin/server")
+        "./" + scalaDistDir + "/bin/server")
     }
 
     {
@@ -221,16 +217,11 @@ object EnsimeBuild extends Build {
         win_wrap(scala),
         win_wrap(runtimeLibs),
         "./etc/scripts/server.bat",
-        "./" + distDir + "/bin/server.bat")
+        "./" + scalaDistDir + "/bin/server.bat")
     }
 
-    copyFile(root / "README.md", root / distDir / "README.md")
-    copyFile(root / "LICENSE", root / distDir / "LICENSE")
-
-    val distCommon = "dist"
-    delete(file(distCommon))
-    log.info("Symlinking to ./" + distCommon + "....")
-    doSh("ln -s  " + distDir + " " + distCommon)!!(log)
+    copyFile(root / "README.md", root / "dist" / "README.md")
+    copyFile(root / "LICENSE", root / "dist" / "LICENSE")
   }
 
 

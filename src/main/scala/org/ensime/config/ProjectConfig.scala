@@ -65,6 +65,9 @@ trait FormatHandler {
   def extraBuilderArgs(): List[String]
   def javaCompilerArgs(): List[String]
   def javaCompilerVersion(): Option[String]
+
+  def scalaVersion(): Option[String]
+  def zincLibDir(): Option[String]
 }
 
 object ProjectConfig {
@@ -219,6 +222,30 @@ object ProjectConfig {
     lazy val rootDir_ = new OptionalStringProp(":root-dir", None)
     props += rootDir_
     def rootDir = rootDir_(m)
+
+    /**
+     * Doc Property:
+     *   :zinc-lib-dir
+     * Summary:
+     *   The directory where the Zinc jar files cna be found.
+     * Arguments:
+     *   String: a directory
+     */
+    lazy val zincLibDir_ = new OptionalStringProp(":zinc-lib-dir", None)
+    props += zincLibDir_
+    def zincLibDir = zincLibDir_(m)
+
+    /**
+     * Doc Property:
+     *   :scala-version
+     * Summary:
+     *   The version of scala to use. The major and minor version numbers are used to select which version of Ensime to load.
+     * Arguments:
+     *   String: a string
+     */
+    lazy val scalaVersion_ = new OptionalStringProp(":scala-version", None)
+    props += scalaVersion_
+    def scalaVersion = scalaVersion_(m)
 
     /**
      * Doc Property:
@@ -668,6 +695,7 @@ object ProjectConfig {
       println("Including test deps: " + moreDeps.mkString(","))
       compileDeps ++= moreDeps
       runtimeDeps ++= moreDeps
+      println("DEBUG: runtimeDeps: " + conf.runtimeDeps.mkString(","))
     }
 
     val sourceRoots = canonicalizeDirs(conf.sourceRoots, rootDir).toSet
@@ -706,7 +734,9 @@ object ProjectConfig {
       conf.extraCompilerArgs,
       conf.extraBuilderArgs,
       conf.javaCompilerArgs,
-      conf.javaCompilerVersion)
+      conf.javaCompilerVersion,
+      conf.scalaVersion,
+      conf.zincLibDir)
   }
 
   def ensureDirectory(dir: Option[String], root: File): Option[CanonFile] = {
@@ -742,7 +772,9 @@ object ProjectConfig {
     extraCompilerArgs = List(),
     extraBuilderArgs = List(),
     javaCompilerArgs = List(),
-    javaCompilerVersion = None)
+    javaCompilerVersion = None,
+    scalaVersion = None,
+    zincLibDir = None)
 
   def getJavaHome(): Option[File] = {
     val javaHome: String = System.getProperty("java.home");
@@ -811,7 +843,9 @@ class ProjectConfig(
   val extraCompilerArgs: Iterable[String],
   val extraBuilderArgs: Iterable[String],
   val javaCompilerArgs: Iterable[String],
-  val javaCompilerVersion: Option[String]) {
+  val javaCompilerVersion: Option[String],
+  val scalaVersion: Option[String],
+  val zincLibDir: Option[String]) {
 
   val formattingPrefs = formattingPrefsMap.
     foldLeft(FormattingPreferences()) { (fp, p) =>

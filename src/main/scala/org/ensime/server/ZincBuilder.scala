@@ -30,58 +30,66 @@ package org.ensime.server
 import java.io.File
 import java.net.URLClassLoader
 import scala.util.matching.Regex
-import com.typesafe.zinc.{ Settings, Setup, Inputs, Parsed, Compiler, Util }
-import xsbti.{ F0, Logger }
+import com.typesafe.zinc.{ ZincClient }
 import xsbti.api.Compilation
 import org.ensime.config.ProjectConfig
 
 class ZincBuilder(config: ProjectConfig) {
-  import Util._
+  println(s"ZincBuilder(init): compileDeps = ${config.compileDeps}")
+  println(s"ZincBuilder(init): compilerClasspath = ${config.compilerClasspath}")
 
-  println(s"ZindBuilder(init): compileDeps = ${config.compileDeps}")
-  println(s"ZindBuilder(init): compilerClasspath = ${config.compilerClasspath}")
-  val Parsed(rawSettings, residual, errors) = Settings.parse(config.builderArgs)
-  val settings = Settings.normalise(rawSettings, Some(config.root))
-  val baseInputs = Inputs(settings)
-  val logger = new Logger {
-    def error(arg: F0[String]): Unit = println(s"Error: ${arg()}")
-    def warn(arg: F0[String]): Unit = println(s"Warn: ${arg()}")
-    def info(arg: F0[String]): Unit = println(s"Info: ${arg()}")
-    def debug(arg: F0[String]): Unit = println(s"Debug: ${arg()}")
-    def trace(arg: F0[Throwable]): Unit = println(s"Trace: ${arg()}")
-  }
-
-  val classpathURLs = Thread.currentThread.getContextClassLoader.asInstanceOf[URLClassLoader].getURLs
-  def locateJar(regex: Regex): File =
-    classpathURLs
-      .find(url => regex.findFirstMatchIn(url.toString).isDefined)
-      .map(url => new File(url.toURI))
+  val classpathFiles = Thread.currentThread.getContextClassLoader.asInstanceOf[URLClassLoader].getURLs map (url => new File(url.toURI))
+  private def locateJar(regex: Regex): File =
+    classpathFiles
+      .find(f => regex.findFirstMatchIn(f.toString).isDefined)
       .getOrElse(throw new Exception(s"Error locating $regex in classpath"))
 
-  val compiler = try {
+  val cwd = config.root
+  val compilerClasspath = config.compilerClasspath.split(File.pathSeparator) map (new File(_)) toSeq
+  val scalaCompiler = config.scalaCompilerJar.getOrElse(locateJar("""(.*scala-compiler.*\.jar)""".r))
+  val scalaLibrary = config.scalaLibraryJar.getOrElse(locateJar("""(.*scala-library.*\.jar)""".r))
+  val scalaExtra = List(config.scalaReflectJar.getOrElse(locateJar("""(.*scala-reflect.*\.jar)""".r)))
+  val sbtInterface = new File(classOf[Compilation].getProtectionDomain.getCodeSource.getLocation.toURI)
+  val compilerInterface = locateJar("""(.*compiler-interface.*\.jar)""".r)
 
-    val setup =
-      Setup.setup(
-        scalaCompiler = config.scalaCompilerJar.getOrElse(locateJar("""(.*scala-compiler.*\.jar)""".r)),
-        scalaLibrary = config.scalaLibraryJar.getOrElse(locateJar("""(.*scala-library.*\.jar)""".r)),
-        scalaExtra = List(config.scalaReflectJar.getOrElse(locateJar("""(.*scala-reflect.*\.jar)""".r))),
-        sbtInterface = new File(classOf[Compilation].getProtectionDomain.getCodeSource.getLocation.toURI),
-        compilerInterfaceSrc = locateJar("""(.*compiler-interface.*\.jar)""".r),
-        javaHomeDir = None,
-        forkJava = false)
+  val target = config.target.map(_.toString).getOrElse(".")
+  val compilerArgs = List(
+    "-scala-compiler", scalaCompiler.toString,
+    "-scala-library", scalaLibrary.toString,
+    "-scala-extra", scalaExtra.mkString(","),
+    "-sbt-interface", sbtInterface.toString,
+    "-compiler-interface", compilerInterface.toString,
+    "-classpath", compilerClasspath.mkString(":"),
+    "-d", target)
 
-    Some(Compiler(setup, logger))
-  } catch {
-    case t: Throwable =>
-      println("Error creating Zinc compiler.  " + t.getStackTrace.mkString("\n"))
-      None
-  }
 
-  def compile(sources: List[File]) = {
+  val zincClient =
+    try {
+      val zincLibDir = new File(config.zincLibDir.getOrElse(findDefaultZincDir))
+      val zincClasspath = zincLibDir.listFiles().filter(_.getName.endsWith(".jar"))
+      val z = new ZincClient()
+      if (z.requireServer(Seq.empty[String], zincClasspath, "30000")) Some(z)
+      else None
+    } catch {
+      case t: Throwable =>
+        val sw = new java.io.StringWriter()
+        t.printStackTrace(new java.io.PrintWriter(sw, true))
+        println(s"Error:  Error creating Zinc server.  $t\n$sw")
+        None
+    }
+
+  println(s"ZincBuilder(init): zincClient=$zincClient")
+
+  def compile(sourceFiles: List[File]) = {
     println("compile:  IN")
     try {
-      val inputs = baseInputs.copy(sources = sources)
-      compiler foreach { _.compile(inputs, Some(config.root))(logger) }
+      val sources = sourceFiles map ( _.getPath )
+      val args = compilerArgs ++ sources
+      println(s"args=${args.mkString(" ")}")
+      zincClient match {
+        case Some(z) => z.run(compilerArgs ++ sources, cwd, Console.out, Console.err)
+        case None => 1 // Report error to front end
+      }
     } catch {
       case t: Throwable =>
         val sw = new java.io.StringWriter()
@@ -89,5 +97,10 @@ class ZincBuilder(config: ProjectConfig) {
         println(s"Error:  Error running compile.  $t\n$sw")
     }
     println("compile:  OUT")
+  }
+
+  private def findDefaultZincDir(): String = {
+    val ensimeLibDir = locateJar("""ensime_.*\.jar""".r)
+    new File(new File(ensimeLibDir.getParentFile.getParentFile.getParentFile, "2.10"), "lib").getPath
   }
 }

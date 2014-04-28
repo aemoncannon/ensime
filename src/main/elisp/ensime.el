@@ -118,7 +118,7 @@
   :type 'integer
   :group 'ensime-server)
 
-(defcustom ensime-default-server-cmd "bin/server"
+(defcustom ensime-default-server-cmd "2.11/bin/server"
   "Command to launch server process."
   :type 'string
   :group 'ensime-server)
@@ -137,6 +137,11 @@
   "The prefix key for ensime-mode commands."
   :group 'ensime-mode
   :type 'sexp)
+
+(defcustom ensime-default-zinc-libs "2.10/lib"
+  "The default directory for the Zinc jars"
+  :type 'string
+  :group 'ensime-server)
 
 (defvar ensime-protocol-version "0.7")
 
