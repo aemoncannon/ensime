@@ -94,7 +94,7 @@ object EnsimeBuild extends Build {
           (if (scalaVersion == TwoElevenVersion)
             Seq(
                 "org.scalatest" % "scalatest_2.11" % "2.1.3" % "test",
-                "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
+                "org.scalariform" % "scalariform_2.11" % "0.1.5-SNAPSHOT" % "compile;runtime;test",
                 "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test",
