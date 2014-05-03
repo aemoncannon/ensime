@@ -611,7 +611,8 @@ Do not show 'Writing..' message."
   (let* ((config (ensime-config-find-and-load)))
 
     (when (not (null config))
-      (let* ((ver (or (plist-get config :scala-version)
+      (let* ((ver (or (plist-get config :active-scala-version)
+                      (plist-get config :scala-version)
                       ensime-default-scala-version))
              (cmd (or (plist-get config :server-cmd)
 		       (format "%s/%s" ver ensime-default-server-cmd)))
@@ -621,6 +622,7 @@ Do not show 'Writing..' message."
 	     (buffer ensime-server-buffer-name)
 	     (args (list (ensime-swank-port-file))))
 
+        (message (format ":active-scala-version %s" (plist-get config :active-scala-version)))
         (message (format ":scala-version %s" (plist-get config :scala-version)))
         (message (format "ver %s" ver))
 	(ensime-delete-swank-port-file 'quiet)
