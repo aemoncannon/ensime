@@ -121,9 +121,9 @@
 (defcustom ensime-default-scala-version "2.10"
   "Default Scala version to use for Ensime."
   :type 'string
-  :grouop 'ensime-server)
+  :group 'ensime-server)
 
-(defcustom ensime-default-server-cmd "2.10/bin/server"
+(defcustom ensime-default-server-cmd "bin/server"
   "Command to launch server process."
   :type 'string
   :group 'ensime-server)
@@ -611,7 +611,7 @@ Do not show 'Writing..' message."
   (let* ((config (ensime-config-find-and-load)))
 
     (when (not (null config))
-      (let* ((ver (or (plist-get-config :scala-version)
+      (let* ((ver (or (plist-get config :scala-version)
                       ensime-default-scala-version))
              (cmd (or (plist-get config :server-cmd)
 		       (format "%s/%s" ver ensime-default-server-cmd)))
@@ -621,6 +621,8 @@ Do not show 'Writing..' message."
 	     (buffer ensime-server-buffer-name)
 	     (args (list (ensime-swank-port-file))))
 
+        (message (format ":scala-version %s" (plist-get config :scala-version)))
+        (message (format "ver %s" ver))
 	(ensime-delete-swank-port-file 'quiet)
 	(let ((server-proc (ensime-maybe-start-server cmd args env dir buffer)))
 	  (ensime-inferior-connect config server-proc)))

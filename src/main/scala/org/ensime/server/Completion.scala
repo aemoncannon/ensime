@@ -50,7 +50,7 @@ trait CompletionControl {
     if (!inherited) score += 10
     if (!sym.hasPackageFlag) score += 10
     if (!sym.isType) score += 10
-    if (sym.isLocalToBlock) score += 10
+    if (sym.isLocal) score += 10
     if (sym.isPublic) score += 10
     if (viaView == NoSymbol) score += 10
     if (sym.owner != definitions.AnyClass &&
@@ -284,8 +284,8 @@ trait CompletionControl {
           " ()")
 
         // Move point back to target of method selection.
-//        val newP = p.withSource(src, 0).withPoint(p.point - prefix.length - dot.length)
-        val newP = p.withSource(src).withShift(p.point - prefix.length - dot.length)
+        val newP = p.withSource(src, 0).withPoint(p.point - prefix.length - dot.length)
+//        val newP = p.withSource(src).withShift(p.point - prefix.length - dot.length)
 
         Some(MemberContext(newP, prefix, constructing))
       }
