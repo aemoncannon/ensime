@@ -54,6 +54,8 @@ class ZincBuilder(config: ProjectConfig) {
 
   val target = config.target.map(_.toString).getOrElse(".")
   val compilerArgs = List(
+    "-compile-order", "scala-then-java",
+//    "-S", config.extraCompilerArgs.mkString("\"", " ", "\""),
     "-scala-compiler", scalaCompiler.toString,
     "-scala-library", scalaLibrary.toString,
     "-scala-extra", scalaExtra.mkString(","),
@@ -61,7 +63,6 @@ class ZincBuilder(config: ProjectConfig) {
     "-compiler-interface", compilerInterface.toString,
     "-classpath", compilerClasspath.mkString(":"),
     "-d", target)
-
 
   val zincClient =
     try {
@@ -83,7 +84,7 @@ class ZincBuilder(config: ProjectConfig) {
   def compile(sourceFiles: List[File]) = {
     println("compile:  IN")
     try {
-      val sources = sourceFiles map ( _.getPath )
+      val sources = sourceFiles map (_.getPath)
       val args = compilerArgs ++ sources
       println(s"args=${args.mkString(" ")}")
       zincClient match {

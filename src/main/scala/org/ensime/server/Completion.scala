@@ -285,7 +285,6 @@ trait CompletionControl {
 
         // Move point back to target of method selection.
         val newP = p.withSource(src, 0).withPoint(p.point - prefix.length - dot.length)
-//        val newP = p.withSource(src).withShift(p.point - prefix.length - dot.length)
 
         Some(MemberContext(newP, prefix, constructing))
       }
