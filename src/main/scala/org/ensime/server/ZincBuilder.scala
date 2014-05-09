@@ -80,6 +80,8 @@ class ZincBuilder(config: ProjectConfig) {
     }
 
   println(s"ZincBuilder(init): zincClient=$zincClient")
+  val reporter = new CompilerReportHandler { def report(report: CompilerReport) = println(report.toString) }
+  val logParser = new CompilerLogParser(reporter, Some(Console.out))
 
   def compile(sourceFiles: List[File]) = {
     println("compile:  IN")
@@ -88,7 +90,7 @@ class ZincBuilder(config: ProjectConfig) {
       val args = compilerArgs ++ sources
       println(s"args=${args.mkString(" ")}")
       zincClient match {
-        case Some(z) => z.run(compilerArgs ++ sources, cwd, Console.out, Console.err)
+        case Some(z) => z.run(compilerArgs ++ sources, cwd, logParser, Console.out)
         case None => 1 // Report error to front end
       }
     } catch {
