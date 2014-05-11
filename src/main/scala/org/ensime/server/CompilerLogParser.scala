@@ -46,6 +46,7 @@ class CompilerLogParser(reporter: CompilerReportHandler, out: Option[OutputStrea
 
   override def write(b: Array[Byte], off: Int, len: Int) = {
     synchronized {
+      out foreach { _.write(b, off, len) }
       val input = new String(b, off, len) // TODO: Support different encodings
       val (r, s) = process(remainingInput + input, currentState)
       remainingInput = r
@@ -55,6 +56,7 @@ class CompilerLogParser(reporter: CompilerReportHandler, out: Option[OutputStrea
 
   override def write(b: Int) = {
     synchronized {
+      out foreach { _.write(b) }
       val input = b.toChar
       if(input == '\n') {
         val (r, s) = process(remainingInput + input, currentState)
@@ -82,7 +84,7 @@ class CompilerLogParser(reporter: CompilerReportHandler, out: Option[OutputStrea
           case SourceLine(s, f, l, m) =>
             line match {
               case CarretLineR(sev, spaces) if s == sev =>
-                val report = CompilerReport(s, f, l, spaces.length-1, m)
+                val report = CompilerReport(s, f, l, spaces.length-2, m)
                 reporter.report(report)
                 Initial
               case MessageLineR(sev, msg) if s == sev => MessageLine(s, f, l, m + msg)
@@ -92,7 +94,7 @@ class CompilerLogParser(reporter: CompilerReportHandler, out: Option[OutputStrea
           case MessageLine(s, f, l, m) =>
             line match {
               case CarretLineR(sev, spaces) if s == sev =>
-                val report = CompilerReport(s, f, l, spaces.length-1, m + spaces)
+                val report = CompilerReport(s, f, l, spaces.length-2, m + spaces)
                 reporter.report(report)
                 Initial
               case MessageLineR(sev, msg) if s == sev => MessageLine(s, f, l, m + msg)
