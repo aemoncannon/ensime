@@ -95,7 +95,7 @@ class Analyzer(
   import scalaCompiler._
 
   def act() {
-    project.bgMessage("Initializing Analyzer(DEV). Please wait...")
+    project.bgMessage("Initializing Analyzer. Please wait...")
     initTime = System.currentTimeMillis()
 
     if (!config.disableSourceLoadOnStartup) {

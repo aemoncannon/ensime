@@ -99,7 +99,7 @@ object EnsimeBuild extends Build {
                 "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test",
                 "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
-                "com.typesafe.zinc" % "zinc" % "0.3.5-SNAPSHOT" % "compile;runtime;test",
+                "com.typesafe.zinc" % "zinc" % "0.3.5-M3" % "compile;runtime;test",
                 "org.scalamock" %% "scalamock-scalatest-support" % "3.1.1" % "test"
             )
           else if (scalaVersion == TwoTenVersion)
@@ -109,7 +109,7 @@ object EnsimeBuild extends Build {
                 "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
                 "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
                 "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
-                "com.typesafe.zinc" % "zinc" % "0.3.5-SNAPSHOT" % "compile;runtime;test",
+                "com.typesafe.zinc" % "zinc" % "0.3.5-M3" % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test",
                 "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test")
           else unsupportedScalaVersion(scalaVersion))
