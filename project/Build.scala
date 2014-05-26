@@ -211,7 +211,7 @@ object EnsimeBuild extends Build {
     {
       val runtimeLibs = cpLibs ++ Seq("%JAVA_HOME%/lib/tools.jar")
       def win_wrap[T](cpEntries: Traversable[T]): String = {
-        def ensureAbsPath(p: String) = if ((p contains ":") || (p contains "%")) p else ("%~dp0\\..\\" + p)
+        def ensureAbsPath(p: String) = if ((p contains ":") || (p contains "%")) p else ("%~dp0\\..\\..\\" + p)
         "\"" + (cpEntries map (_.toString) map (c => ensureAbsPath(c)) mkString ";").replace("/", "\\") + "\""
       }
       writeScript(
