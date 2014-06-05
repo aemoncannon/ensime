@@ -1,7 +1,6 @@
 package org.ensime.test
 
 import org.scalatest.WordSpec
-//import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Matchers
 import org.scalamock.scalatest.MockFactory
 import org.ensime.server._
@@ -13,7 +12,7 @@ class CompilerLogParserTests extends WordSpec with Matchers with MockFactory {
 [warn] a line of code
 [warn]   ^
 """
-      val expected = CompilerReport("warn", "/path/to/file/source.scala", 123, 3, "A warning message\na line of code\n  ^\n")
+      val expected = CompilerReport("warn", "/path/to/file/source.scala", 123, 2, "A warning message\na line of code\n  ^\n")
       val handler = mock[CompilerReportHandler]
       (handler.report _) expects(expected)
       val parser = new CompilerLogParser(handler, None)
@@ -31,8 +30,8 @@ class CompilerLogParserTests extends WordSpec with Matchers with MockFactory {
 [error] some scala code
 [error]      ^
 """
-      val expected1 = CompilerReport("warn", "/path/to/file/source.scala", 123, 3, "A warning message\na line of code\n  ^\n")
-      val expected2 = CompilerReport("error", "/path/to/file/source2.scala", 456, 6, "An error message\n  Error detail line 1\n  Error detail line 2\nsome scala code\n     ^\n")
+      val expected1 = CompilerReport("warn", "/path/to/file/source.scala", 123, 2, "A warning message\na line of code\n  ^\n")
+      val expected2 = CompilerReport("error", "/path/to/file/source2.scala", 456, 5, "An error message\n  Error detail line 1\n  Error detail line 2\nsome scala code\n     ^\n")
       val handler = mock[CompilerReportHandler]
       (handler.report _) expects(expected1)
       (handler.report _) expects(expected2)
@@ -51,8 +50,8 @@ class CompilerLogParserTests extends WordSpec with Matchers with MockFactory {
 [error] some scala code
 [error]      ^
 """
-      val expected1 = CompilerReport("warn", "/path/to/file/source.scala", 123, 3, "A warning message\na line of code\n  ^\n")
-      val expected2 = CompilerReport("error", "/path/to/file/source2.scala", 456, 6, "An error message\n  Error detail line 1\n  Error detail line 2\nsome scala code\n     ^\n")
+      val expected1 = CompilerReport("warn", "/path/to/file/source.scala", 123, 2, "A warning message\na line of code\n  ^\n")
+      val expected2 = CompilerReport("error", "/path/to/file/source2.scala", 456, 5, "An error message\n  Error detail line 1\n  Error detail line 2\nsome scala code\n     ^\n")
       val handler = mock[CompilerReportHandler]
       (handler.report _) expects(expected1)
       (handler.report _) expects(expected2)

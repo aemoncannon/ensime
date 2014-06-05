@@ -110,7 +110,7 @@ object EnsimeBuild extends Build {
                 "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
                 "com.typesafe.zinc" % "zinc" % "0.3.5-M3" % "compile;runtime;test",
                 "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test",
-                "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test")
+                "org.scalamock" %% "scalamock-scalatest-support" % "3.1.RC1" % "test")
           else unsupportedScalaVersion(scalaVersion))
         },
         unmanagedJars in Compile <++= (scalaVersion, baseDirectory) map { (scalaVersion, base) =>
