@@ -1,4 +1,5 @@
 package org.ensime.test
+
 import org.scalatest.FunSpec
 import org.scalatest.matchers.ShouldMatchers
 import org.ensime.config.ProjectConfig
@@ -25,6 +26,10 @@ class ProjectConfigSpec extends FunSpec with ShouldMatchers{
 
     it("should parse a simple name correctly") {
       assert(parse("(:name \"dude\")").name.get == "dude")
+    }
+
+    it("should parse a name with backslashes and quotes") {
+      assert(parse("""(:name "d\\u\"d\e")""").name.get == "d\\u\"d\\e")
     }
 
     it("should parse name's synonym") {

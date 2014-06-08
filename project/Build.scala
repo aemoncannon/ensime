@@ -39,8 +39,10 @@ object EnsimeBuild extends Build {
   private def file(str:String) = new File(str)
 
   private def majorMinorVersion(version: String) = {
-    val fields = version.split('.')
-    s"${fields(0)}.${fields(1)}"
+    // val fields = version.split('.')
+    CrossVersion.partialVersion(version)
+      .map ( v => s"${v._1}.${v._2}")
+      .getOrElse(sys.error(s"Invalid Scala version:  $version"))
   }
 
   private lazy val toolsJarCandidates: List[File] = {
@@ -71,45 +73,44 @@ object EnsimeBuild extends Build {
       base = file ("."),
       settings = Project.defaultSettings ++
       Seq(
-        version := "0.10.0.0",
+        version := "0.10.0.0-SNAPSHOT",
         organization := "org.ensime",
         scalaVersion := TwoElevenVersion,
         crossScalaVersions := Seq(TwoTenVersion, TwoElevenVersion),
-        resolvers <++= (scalaVersion) { scalaVersion =>
-          Seq("Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots",
-              "Sonatype OSS Repository" at "https://oss.sonatype.org/service/local/staging/deploy/maven2",
-              "Sonatype OSS Repository 2" at "https://oss.sonatype.org/content/groups/scala-tools/",
-              "Sonatype OSS Snapshot Repository" at "https://oss.sonatype.org/content/repositories/snapshots",
-              "JBoss Maven 2 Repo" at "http://repository.jboss.org/maven2",
-              "repo.codahale.com" at "http://repo.codahale.com")
-        },
-        libraryDependencies <++= (scalaVersion) { scalaVersion =>
-          Seq("org.apache.lucene" % "lucene-core" % "3.5.0",
-              "org.sonatype.tycho" % "org.eclipse.jdt.core" % "3.6.0.v_A58" % "compile;runtime;test",
-              "asm" % "asm" % "3.3",
-              "asm" % "asm-commons" % "3.3",
-              "asm" % "asm-util" % "3.3",
-              "com.googlecode.json-simple" % "json-simple" % "1.1"
+        resolvers ++= Seq(
+          Resolver.mavenLocal,
+          Resolver.typesafeRepo("releases"),
+          Resolver.sonatypeRepo("snapshots"),
+          // are the following really needed?
+          "Scala-Tools Maven2 Snapshots Repository" at "http://scala-tools.org/repo-snapshots",
+          "Sonatype OSS Repository" at "https://oss.sonatype.org/service/local/staging/deploy/maven2",
+          "Sonatype OSS Repository 2" at "https://oss.sonatype.org/content/groups/scala-tools/",
+          "Sonatype OSS Snapshot Repository" at "https://oss.sonatype.org/content/repositories/snapshots",
+          "JBoss Maven 2 Repo" at "http://repository.jboss.org/maven2",
+          "repo.codahale.com" at "http://repo.codahale.com"
+        )
+          ,
+        libraryDependencies <++= (scalaVersion) { scalaVersion => Seq(
+          "org.apache.lucene"          %  "lucene-core"          % "3.5.0",
+          "org.sonatype.tycho"         %  "org.eclipse.jdt.core" % "3.6.0.v_A58" % "compile;runtime;test",
+          "asm"                        %  "asm"                  % "3.3",
+          "asm"                        %  "asm-commons"          % "3.3",
+          "asm"                        %  "asm-util"             % "3.3",
+          "com.googlecode.json-simple" %  "json-simple"          % "1.1",
+          "com.martiansoftware"        %  "nailgun-server"       % "0.9.1"       % "compile;runtime;test",
+          "com.typesafe.zinc"          %  "zinc"                 % "0.3.5-M3"    % "compile;runtime;test",
+          "org.scala-lang"             %  "scala-compiler"       % scalaVersion  % "compile;runtime;test",
+          "org.scala-lang"             %  "scala-reflect"        % scalaVersion  % "compile;runtime;test",
+          "org.scala-lang"             %  "scala-actors"         % scalaVersion  % "compile;runtime;test",
+          "org.scalatest"              %% "scalatest"            % "2.1.6"       % "test"
       ) ++
           (if (scalaVersion == TwoElevenVersion)
             Seq(
-                "org.scalatest" % "scalatest_2.11" % "2.1.6" % "test",
-                "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
-                "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
-                "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test",
-                "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
-                "com.typesafe.zinc" % "zinc" % "0.3.5-M3" % "compile;runtime;test",
                 "org.scalamock" %% "scalamock-scalatest-support" % "3.1.1" % "test"
             )
           else if (scalaVersion == TwoTenVersion)
             Seq(
-                "org.scalatest" % "scalatest_2.10" % "2.1.6" % "test",
                 "org.scalariform" % "scalariform_2.10" % "0.1.4" % "compile;runtime;test",
-                "org.scala-lang" % "scala-compiler" % scalaVersion % "compile;runtime;test",
-                "org.scala-lang" % "scala-reflect" % scalaVersion % "compile;runtime;test",
-                "com.martiansoftware" % "nailgun-server" % "0.9.1" % "compile;runtime;test",
-                "com.typesafe.zinc" % "zinc" % "0.3.5-M3" % "compile;runtime;test",
-                "org.scala-lang" % "scala-actors" % scalaVersion % "compile;runtime;test",
                 "org.scalamock" %% "scalamock-scalatest-support" % "3.1.RC1" % "test")
           else unsupportedScalaVersion(scalaVersion))
         },
@@ -165,7 +166,7 @@ object EnsimeBuild extends Build {
     // Copy the emacs lisp to dist
     val elisp_base = root / "src" / "main" / "elisp"
     val elisp = ( elisp_base ** "*.el" ) +++ ( elisp_base ** "Makefile" )
-    copy(elisp x flat(root / distDir / "elisp"))
+    copy(elisp x flat(root / distDir / "elisp" ))
 
     // Copy the runtime jars
     val deps = (depCP ++ exportedCP).map(_.data)

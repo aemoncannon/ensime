@@ -107,3 +107,4 @@ class ZincBuilder(config: ProjectConfig) {
     new File(new File(ensimeLibDir.getParentFile.getParentFile.getParentFile, "2.10"), "lib").getPath
   }
 }
+

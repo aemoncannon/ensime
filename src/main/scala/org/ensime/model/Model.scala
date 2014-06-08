@@ -39,6 +39,12 @@ abstract class EntityInfo(val name: String, val members: Iterable[EntityInfo]) {
 
 case class SourcePosition(file: CanonFile, line: Int)
 
+case class SourceFileInfo(file: File, contents: Option[String]) { }
+object SourceFileInfo {
+  def apply(file: String) = new SourceFileInfo(new File(file), None)
+  def apply(file: File) = new SourceFileInfo(file, None)
+}
+
 class PackageInfo(
   override val name: String,
   val fullname: String,
@@ -259,10 +265,10 @@ trait ModelBuilders { self: RichPresentationCompiler =>
       val name = if (sym.owner.isPackageObjectClass) "package$.class"
       else top.name + (if (top.isModuleClass) "$" else "")
       indexer !? (1000, SourceFileCandidatesReq(pack, name)) match {
-        case Some(files: Set[File]) => {
+        case Some(files: Set[AbstractFile]) => {
           files.flatMap { f =>
 	    println("Linking:" + (sym, f))
-            askLinkPos(sym, f.getAbsolutePath)
+            askLinkPos(sym, f)
           }.filter(_.isDefined).headOption.getOrElse(NoPosition)
         }
         case _ => NoPosition

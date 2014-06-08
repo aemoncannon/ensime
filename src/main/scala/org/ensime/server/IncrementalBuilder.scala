@@ -33,6 +33,7 @@ import org.ensime.protocol.ProtocolConst._
 import org.ensime.util._
 import scala.actors._
 import scala.actors.Actor._
+import scala.collection.mutable.{ HashSet, SynchronizedSet }
 import scala.collection.{ Iterable, Map }
 import scala.reflect.internal.util.{SourceFile, BatchSourceFile}
 import scala.tools.nsc.{ Settings }
@@ -62,12 +63,22 @@ class IncrementalBuilder(project: Project, protocol: ProtocolConversions, config
 
   val zincBuilder = new ZincBuilder(config)
 
-  private val reporter = new PresentationReporter(new ReportHandler {
-    override def messageUser(str: String) {
+  private val reportHandler = new ReportHandler {
+    override def messageUser(str:String){
       project ! AsyncEvent(toWF(
-        SendBackgroundMessageEvent(MsgCompilerUnexpectedError, Some(str))))
+	SendBackgroundMessageEvent(MsgCompilerUnexpectedError, Some(str))))
     }
-  })
+    private val notes = new HashSet[Note] with SynchronizedSet[Note]
+    def allNotes: Iterable[Note] = notes.toList
+    override def reportScalaNotes(n: List[Note]) {
+      notes ++= n
+    }
+    override def clearAllScalaNotes() {
+      notes.clear()
+    }
+  }
+
+  private val reporter = new PresentationReporter(reportHandler)
 
   def act() {
 
@@ -89,13 +100,13 @@ class IncrementalBuilder(project: Project, protocol: ProtocolConversions, config
                   zincBuilder.compile(files)
                   project ! AsyncEvent(toWF(SendBackgroundMessageEvent(
                     MsgBuildComplete, Some("Build complete."))))
-                  val result = toWF(reporter.allNotes.map(toWF))
+                  val result = toWF(reportHandler.allNotes.map(toWF))
                   project ! RPCResultEvent(result, callId)
                 }
                 case AddSourceFilesReq(files: Iterable[File]) => {
                   val added = files.map(f => new BatchSourceFile(AbstractFile.getFile(f))).toList
                   // TODO: Compile
-                  val result = toWF(reporter.allNotes.map(toWF))
+                  val result = toWF(reportHandler.allNotes.map(toWF))
                   project ! RPCResultEvent(result, callId)
                 }
                 case RemoveSourceFilesReq(files: Iterable[File]) => {
@@ -103,14 +114,14 @@ class IncrementalBuilder(project: Project, protocol: ProtocolConversions, config
                   project ! RPCResultEvent(toWF(true), callId)
                   reporter.reset
                   // TODO: Compile
-                  val result = toWF(reporter.allNotes.map(toWF))
+                  val result = toWF(reportHandler.allNotes.map(toWF))
                   project ! RPCResultEvent(result, callId)
                 }
                 case UpdateSourceFilesReq(files: Iterable[File]) => {
                   val updated = files.map(f => new BatchSourceFile(AbstractFile.getFile(f))).toList
                   reporter.reset
                   // TODO: Compile
-                  val result = toWF(reporter.allNotes.map(toWF))
+                  val result = toWF(reportHandler.allNotes.map(toWF))
                   project ! RPCResultEvent(result, callId)
                 }
 
