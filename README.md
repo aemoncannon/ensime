@@ -48,7 +48,7 @@ Best, Aemon
 - Emacs 22 or later.
 - Linux, Mac OSX, Windows
 - Java Runtime
-- A Scala 2.8.x or 2.9.x project
+- A Scala 2.10.x or 2.11.x project
 
 
 ## Documentation
