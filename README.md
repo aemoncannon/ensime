@@ -1,32 +1,3 @@
-NOTE:  This is an experimental version of Ensime that supports both Scala 2.10 and 2.11. To use this version
-you will need sbt 0.13.2 and follow the following instructions.
-
-__1) Clone this repository__
-
-    git clone git://github.com/marcsaegesser/ensime
-
-__2) Check out the 2.11-Dev brach__
-
-    cd ensime
-    git checkout 2.11-Dev
-
-__3) Build the distribution__
-
-    sbt
-    > + stage
-
-__4) Update Emacs configuration__
-The previous step will have created a dist directory under the ensime root directory.
-Change your Emacs Ensime configuration to put the <ensime>/dist/elisp in your load-path.
-
-__5) Update .ensime project file__
-If you are building a Scala 2.11 project edit your .ensime file and add
-
-    :scala-version "2.11"
-
-to each subproject. 
-
-
 # ENSIME
 the ENhanced Scala Interaction Mode for Emacs
 
