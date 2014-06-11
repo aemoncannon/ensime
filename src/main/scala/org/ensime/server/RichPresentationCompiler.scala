@@ -76,7 +76,7 @@ import scala.tools.nsc.interactive.{ FreshRunReq, CompilerControl, Global, Missi
 import scala.tools.nsc.util._
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.reporters.Reporter
-import scala.tools.nsc.util.{ Position, RangePosition, SourceFile }
+import scala.reflect.internal.util.{ Position, RangePosition, SourceFile }
 import scala.tools.nsc.Settings
 import scala.tools.refactoring.analysis.GlobalIndexes
 
@@ -383,9 +383,9 @@ class RichPresentationCompiler(
     }
     try {
       if (name.endsWith("$")) {
-        maybeType(definitions.getModule(newTermName(name.substring(0, name.length - 1))))
+        maybeType(rootMirror.getModuleByName(newTermName(name.substring(0, name.length - 1))))
       } else {
-        maybeType(definitions.getClass(newTypeName(name)))
+        maybeType(rootMirror.getClassByName(newTypeName(name)))
       }
     } catch {
       case e: Throwable => None
@@ -537,7 +537,7 @@ class RichPresentationCompiler(
       case ri: ReloadItem if ri.sources == sources => Some(ri)
       case _ => None
     }
-    superseeded.foreach(_.response.set())
+    superseeded.foreach(_.response.set(()))
     wrap[Unit](r => new ReloadItem(sources, r).apply(), _ => ())
   }
 

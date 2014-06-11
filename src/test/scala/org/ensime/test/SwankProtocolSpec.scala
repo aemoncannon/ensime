@@ -6,7 +6,8 @@ import org.ensime.util.SExp
 import org.ensime.protocol.SwankProtocol
 import scala.tools.nsc.util.RangePosition
 import scala.tools.nsc.util.{ BatchSourceFile }
-import scala.tools.nsc.io.{ VirtualFile, PlainFile, AbstractFile, ZipArchive }
+import scala.reflect.io.{ ZipArchive }
+import scala.tools.nsc.io.{ VirtualFile, PlainFile, AbstractFile }
 
 
 class SwankProtocolSpec extends FunSpec with ShouldMatchers{
@@ -26,7 +27,7 @@ class SwankProtocolSpec extends FunSpec with ShouldMatchers{
     }
 
     it("can convert a Position in a ZipArchive entry") {
-      val a = ZipArchive.fromPath("stuff.zip")
+      val a = ZipArchive.fromFile(new File("stuff.zip"))
       val f = new BatchSourceFile(new MockZipEntry("stuff", a), "ABCDEF")
       val p = f.position(2)
       val s = SwankProtocol.SExpConversion.posToSExp(p)
@@ -45,7 +46,7 @@ class SwankProtocolSpec extends FunSpec with ShouldMatchers{
     }
 
     it("can convert a RangePosition in a ZipArchive entry") {
-      val a = ZipArchive.fromPath("stuff.zip")
+      val a = ZipArchive.fromFile(new File("stuff.zip"))
       val f = new BatchSourceFile(new MockZipEntry("stuff", a), "ABCDEF")
       val p = new RangePosition(f, 1, 2, 3)
       val s = SwankProtocol.SExpConversion.posToSExp(p)

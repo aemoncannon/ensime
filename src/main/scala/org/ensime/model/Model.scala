@@ -29,7 +29,7 @@ package org.ensime.model
 import java.io.File
 import scala.collection.mutable.{ HashMap, ArrayBuffer }
 import scala.tools.nsc.interactive.{ Global, CompilerControl }
-import scala.tools.nsc.util.{ NoPosition, Position }
+import scala.reflect.internal.util.{ NoPosition, Position }
 import scala.tools.nsc.io.{ AbstractFile }
 import org.ensime.util.CanonFile
 import org.ensime.server.RichPresentationCompiler
@@ -235,7 +235,6 @@ class TypeInspectInfo(val tpe: TypeInfo, val companionId: Option[Int], val super
 trait ModelBuilders { self: RichPresentationCompiler =>
 
   import self._
-  import definitions.{ ObjectClass, RootPackage, EmptyPackage, NothingClass, AnyClass, AnyRefClass }
 
   private val typeCache = new HashMap[Int, Type]
   private val typeCacheReverse = new HashMap[Type, Int]
@@ -262,7 +261,7 @@ trait ModelBuilders { self: RichPresentationCompiler =>
     if (sym.pos != NoPosition) sym.pos
     else {
       val pack = sym.enclosingPackage.fullName
-      val top = sym.toplevelClass
+      val top = sym.enclosingTopLevelClass
       val name = if (sym.owner.isPackageObjectClass) "package$.class"
       else top.name + (if (top.isModuleClass) "$" else "")
       indexer !? (1000, SourceFileCandidatesReq(pack, name)) match {
@@ -348,7 +347,7 @@ trait ModelBuilders { self: RichPresentationCompiler =>
 
   object PackageInfo {
 
-    def root: PackageInfo = fromSymbol(RootPackage)
+    def root: PackageInfo = fromSymbol(self.rootMirror.RootPackage)
 
     def fromPath(path: String): PackageInfo = {
       val pack = packageSymFromPath(path)
@@ -378,9 +377,9 @@ trait ModelBuilders { self: RichPresentationCompiler =>
 
     def packageMemberInfoFromSym(sym: Symbol): Option[EntityInfo] = {
       try {
-        if (sym == RootPackage) {
+        if (sym == self.rootMirror.RootPackage) {
           Some(root)
-        } else if (sym.isPackage) {
+        } else if (sym.hasPackageFlag) {
           Some(fromSymbol(sym))
         } else if (!(sym.nameString.contains("$")) && (sym != NoSymbol) && (sym.tpe != NoType)) {
           if (sym.isClass || sym.isTrait || sym.isModule ||

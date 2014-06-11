@@ -140,7 +140,7 @@ class Project(val protocol: Protocol) extends Actor with RPCTarget {
         }
       } catch {
         case e: Exception => {
-          println("Error at Project message loop: " + e + " :\n" + e.getStackTraceString)
+          println("Error at Project message loop: " + e + " :\n" + e.getStackTrace)
         }
       }
     }

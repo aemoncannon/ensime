@@ -35,7 +35,8 @@ import java.nio.charset.Charset
 import java.security.MessageDigest
 import scala.collection.Seq
 import scala.collection.mutable
-import scala.tools.nsc.io.{ AbstractFile, ZipArchive }
+import scala.reflect.io.ZipArchive
+import scala.tools.nsc.io.{ AbstractFile/*, ZipArchive*/ }
 
 // This routine copied from http://rosettacode.org/wiki/Walk_a_directory/Recursively#Scala
 
@@ -128,7 +129,7 @@ object FileUtils {
   def expandRecursively(rootDir: File, fileList: Iterable[File], isValid: (File => Boolean)): Set[CanonFile] = {
     (for (
       f <- fileList;
-      val files = if (f.isAbsolute) f.andTree else (new File(rootDir, f.getPath)).andTree;
+      files = if (f.isAbsolute) f.andTree else (new File(rootDir, f.getPath)).andTree;
       file <- files if isValid(file)
     ) yield { toCanonFile(file) }).toSet
   }
@@ -136,17 +137,25 @@ object FileUtils {
   def expand(rootDir: File, fileList: Iterable[File], isValid: (File => Boolean)): Set[CanonFile] = {
     (for (
       f <- fileList;
-      val files = List(if (f.isAbsolute) f else (new File(rootDir, f.getPath)));
+      files = List(if (f.isAbsolute) f else (new File(rootDir, f.getPath)));
       file <- files if isValid(file)
     ) yield {
       toCanonFile(file)
     }).toSet
   }
 
+  private def walkIterator(its: Iterator[AbstractFile]): Iterator[AbstractFile] = {
+    its flatMap { f =>
+      if (f.isDirectory) walkIterator(f.iterator)
+      else Iterator(f)
+    }
+  }
+
   def expandSourceJars(fileList: Iterable[CanonFile]): Iterable[AbstractFile] = {
     fileList.flatMap { f =>
       if (isValidJar(f)) {
-        ZipArchive.fromFile(f).deepIterator.filter(f => isValidSourceName(f.name))
+        walkIterator(ZipArchive.fromFile(f).iterator).filter(f => isValidSourceName(f.name))
+//        ZipArchive.fromFile(f).deepIterator.filter(f => isValidSourceName(f.name))
       } else {
         Seq(AbstractFile.getFile(f))
       }

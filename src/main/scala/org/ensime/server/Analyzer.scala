@@ -40,10 +40,10 @@ import scala.actors._
 import scala.actors.Actor._
 import scala.collection.{ Iterable }
 import scala.collection.mutable.{ ListBuffer }
-import scala.tools.nsc.util.RangePosition
+import scala.reflect.internal.util.RangePosition
 import scala.tools.nsc.{ Settings }
 import scala.tools.nsc.ast._
-import scala.tools.nsc.util.{ OffsetPosition }
+import scala.reflect.internal.util.{ OffsetPosition }
 
 case class FullTypeCheckCompleteEvent()
 case class CompilerFatalError(e: Throwable)
@@ -326,7 +326,7 @@ class Analyzer(
             } catch {
               case e => {
                 System.err.println("Error handling RPC: " + e + " :\n" +
-                  e.getStackTraceString)
+                  e.getStackTrace)
                 project.sendRPCError(ErrExceptionInAnalyzer,
                   Some("Error occurred in Analyzer. Check the server log."), callId)
               }
@@ -339,7 +339,7 @@ class Analyzer(
 
       } catch {
         case e: Exception => {
-          System.err.println("Error at Compiler message loop: " + e + " :\n" + e.getStackTraceString)
+          System.err.println("Error at Compiler message loop: " + e + " :\n" + e.getStackTrace)
         }
       }
     }

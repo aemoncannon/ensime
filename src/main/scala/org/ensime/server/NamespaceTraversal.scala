@@ -30,6 +30,7 @@ import org.ensime.util._
 import scala.collection.{ immutable, mutable }
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.interactive.{ Global }
+import scala.reflect.api.Mirror
 import org.ardverk.collection._
 import scala.collection.JavaConversions._
 
@@ -40,11 +41,9 @@ trait NamespaceTraversal { self: RichPresentationCompiler =>
     def visitType(sym: Symbol)
   }
 
-  import definitions.{ RootPackage, EmptyPackage }
-
   def traverse(v: NamespaceVisitor, sym: Symbol) {
     try {
-      if (sym.isPackage) {
+      if (sym.hasPackageFlag) {
         v.visitPackage(sym)
         traverseMembers(v, sym)
       } else if (!(sym.nameString.contains("$")) && (sym != NoSymbol) && (sym.tpe != NoType)) {
@@ -61,14 +60,14 @@ trait NamespaceTraversal { self: RichPresentationCompiler =>
   def traverseMembers(v: NamespaceVisitor, sym: Symbol) {
     def isRoot(s: Symbol) = s.isRoot || s.isRootPackage
     def iter(s: Symbol) {
-      if (s != EmptyPackage && !isRoot(s) &&
+      if (s != rootMirror.EmptyPackage && !isRoot(s) &&
         // This check is necessary to prevent infinite looping..
         ((isRoot(s.owner) && isRoot(sym)) || (s.owner.fullName == sym.fullName))) {
         traverse(v, s)
       }
     }
     if (isRoot(sym)) {
-      EmptyPackage.info.members.foreach(iter)
+      rootMirror.EmptyPackage.info.members.foreach(iter)
     }
     sym.info.members.foreach(iter)
   }

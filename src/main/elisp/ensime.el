@@ -128,14 +128,22 @@
   :type 'integer
   :group 'ensime-server)
 
+(defcustom ensime-default-scala-version "2.10"
+  "Default Scala version to use for Ensime."
+  :type 'string
+  :group 'ensime-server)
+
 (defcustom ensime-default-server-cmd "bin/server"
   "Command to launch server process."
   :type 'string
   :group 'ensime-server)
 
 (defcustom ensime-default-server-root
+  (file-name-directory
+   (file-name-directory
+    (directory-file-name
      (file-name-directory
-      (locate-library "ensime"))
+      (locate-library "ensime")))))
   "Location of ENSIME server library."
   :type 'string
   :group 'ensime-server)
@@ -144,6 +152,11 @@
   "The prefix key for ensime-mode commands."
   :group 'ensime-mode
   :type 'sexp)
+
+(defcustom ensime-default-zinc-libs "2.10/lib"
+  "The default directory for the Zinc jars"
+  :type 'string
+  :group 'ensime-server)
 
 (defvar ensime-protocol-version "0.7")
 
@@ -718,14 +731,20 @@ argument is supplied) is a .scala or .java file."
   (let* ((config (ensime-config-find-and-load)))
 
     (when (not (null config))
-      (let* ((cmd (or (plist-get config :server-cmd)
-		      ensime-default-server-cmd))
+      (let* ((ver (or (plist-get config :active-scala-version)
+                      (plist-get config :scala-version)
+                      ensime-default-scala-version))
+             (cmd (or (plist-get config :server-cmd)
+		       (format "%s/%s" ver ensime-default-server-cmd)))
 	     (env (plist-get config :server-env))
 	     (dir (or (plist-get config :server-root)
 		      ensime-default-server-root))
 	     (buffer ensime-server-buffer-name)
 	     (args (list (ensime-swank-port-file))))
 
+        (message (format ":active-scala-version %s" (plist-get config :active-scala-version)))
+        (message (format ":scala-version %s" (plist-get config :scala-version)))
+        (message (format "ver %s" ver))
 	(ensime-delete-swank-port-file 'quiet)
 	(let ((server-proc (ensime-maybe-start-server cmd args env dir buffer)))
 	  (ensime-inferior-connect config server-proc)))

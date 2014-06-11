@@ -31,7 +31,8 @@ import org.eclipse.jdt.core.compiler.IProblem
 import scala.collection.mutable.{HashEntry, SynchronizedMap}
 import scala.tools.nsc.interactive.CompilerControl
 import scala.tools.nsc.reporters.{ConsoleReporter, Reporter}
-import scala.tools.nsc.util.{OffsetPosition, SourceFile}
+import scala.tools.nsc.util.SourceFile
+import scala.reflect.internal.util.OffsetPosition
 
 case class NoteList(full: Boolean, notes: Iterable[Note])
 
