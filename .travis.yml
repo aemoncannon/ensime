@@ -1,3 +1,14 @@
 language: scala
+jdk:
+- openjdk6
 scala:
-  - "2.9.3"
+- 2.9.3
+before_script:
+- "./bintray.sh"
+after_success:
+- sbt publish
+env:
+  global:
+    # to generate this (when in the correct branch of the correct repo):
+    # travis encrypt BINTRAY_TOKEN=<YOUR PRIVATE API KEY> --add
+    secure: "JM+m1zL424L7WvnpwwZHBOUIR+rjrJ0zAVXuybb0Q/yLeqUQfLTx+Tv9TKpK60uSKgmpQzVfEB3Cxw+nd9Fg9F0nvOg+cTNNBAJN5gmCJsY4f3DbcwtnRy7qQlClUf4Dt/qafo8KFSFfBT3SMmpeH7ZDDWMpF3BK7uYpBpJn1I4="
