@@ -51,7 +51,7 @@ object Note {
 
 class Note(val file: String, val msg: String, val severity: Int, val beg: Int, val end: Int, val line: Int, val col: Int) {
 
-  private val tmp = "" + file + msg + severity + beg + end + line + col;
+  private val tmp = "" + file + msg + severity + beg + end + line + col
   override val hashCode = tmp.hashCode
 
   override def equals(other: Any): Boolean = {

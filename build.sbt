@@ -34,7 +34,7 @@ val JavaTools = {
   List[File](
     new File(Option(System.getenv("JAVA_HOME")).getOrElse("/tmp") + "/lib/tools.jar"),
     new File(new File(System.getProperty("java.home")).getParent + "/lib/tools.jar")
-  ).filter(_.exists).headOption.getOrElse(
+  ).find(_.exists).getOrElse(
     throw new FileNotFoundException("tools.jar")
   )
 }
@@ -42,7 +42,7 @@ val JavaTools = {
 internalDependencyClasspath in Compile += { Attributed.blank(JavaTools)}
 
 scalacOptions in Compile ++= Seq(
-  "-encoding", "UTF-8" //, "-Xfatal-warnings"
+  "-encoding", "UTF-8", "-unchecked" //, "-Xfatal-warnings"
 )
 
 javacOptions in (Compile, compile) ++= Seq (
