@@ -27,9 +27,8 @@
 
 package org.ensime.util
 
-import scala.tools.nsc.interactive.CompilerControl
-import scala.tools.nsc.reporters.{ ConsoleReporter, Reporter }
-import scala.tools.nsc.util.{ OffsetPosition, Position }
+import scala.tools.nsc.reporters.Reporter
+import scala.tools.nsc.util.Position
 
 trait ReportHandler {
   def messageUser(str: String) {}
@@ -47,8 +46,8 @@ class PresentationReporter(handler: ReportHandler) extends Reporter {
   def enable() { enabled = true }
   def disable() { enabled = false }
 
-  override def reset {
-    super.reset
+  override def reset() {
+    super.reset()
     if (enabled) {
       handler.clearAllScalaNotes()
     }
@@ -81,7 +80,7 @@ class PresentationReporter(handler: ReportHandler) extends Reporter {
         }
       }
     } catch {
-      case ex: UnsupportedOperationException => {}
+      case ex: UnsupportedOperationException =>
     }
   }
 

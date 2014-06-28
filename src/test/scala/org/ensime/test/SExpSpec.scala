@@ -7,7 +7,7 @@ class SExpSpec extends FunSpec with ShouldMatchers {
 
   describe("SExpSpec") {
     def check(s: String, r: String) {
-      val res = SExp.read(s).toString()
+      val res = SExp.read(s).toString
       assert(res == r, "expected " + r + " got " + res)
     }
 

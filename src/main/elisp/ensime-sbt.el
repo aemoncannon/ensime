@@ -9,7 +9,7 @@
 ;;     Authors: Luke Amdor, Raymond Racine, Aemon Cannon
 ;;
 ;;     This file includes code from slime.el of the SLIME project
-;;     (also licensend under the GNU General Public License.) The
+;;     (also licensed under the GNU General Public License.) The
 ;;     following copyrights therefore apply:
 ;;
 ;;     Copyright (C) 2003  Eric Marsden, Luke Gorrie, Helmut Eller
