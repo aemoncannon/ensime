@@ -11,4 +11,4 @@ env:
   global:
     # to generate this (when in the correct branch of the correct repo):
     # travis encrypt BINTRAY_TOKEN=<YOUR PRIVATE API KEY> --add
-    secure: "JM+m1zL424L7WvnpwwZHBOUIR+rjrJ0zAVXuybb0Q/yLeqUQfLTx+Tv9TKpK60uSKgmpQzVfEB3Cxw+nd9Fg9F0nvOg+cTNNBAJN5gmCJsY4f3DbcwtnRy7qQlClUf4Dt/qafo8KFSFfBT3SMmpeH7ZDDWMpF3BK7uYpBpJn1I4="
+    secure: "Lqm0xJdy9ZVNAS4rKhzCKtzd0UXSVcg1APME+md4s8GH4rcWVxlz6RQvFbj1Rt/60lckI5JDgalKrvvOV8yIXyRAhxUt4KoJ1Kf6Pl+gHu7g0tRz3F0Ew50XTtxJfcuGe0T3OAg8nxzOGlR+bDCCuT1kkSE1E+LCFxY7LDqJcLc="
