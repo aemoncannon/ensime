@@ -1,30 +1,3 @@
-/**
- *  Copyright (c) 2010, Aemon Cannon
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *      * Redistributions of source code must retain the above copyright
- *        notice, this list of conditions and the following disclaimer.
- *      * Redistributions in binary form must reproduce the above copyright
- *        notice, this list of conditions and the following disclaimer in the
- *        documentation and/or other materials provided with the distribution.
- *      * Neither the name of ENSIME nor the
- *        names of its contributors may be used to endorse or promote products
- *        derived from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *  DISCLAIMED. IN NO EVENT SHALL Aemon Cannon BE LIABLE FOR ANY
- *  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- *  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package org.ensime.protocol
 
 import java.io._
@@ -96,7 +69,6 @@ trait SwankProtocol extends Protocol {
    *     Rename swank:perform-refactor to swank:prepare-refactor.
    *     Include status flag in return of swank:exec-refactor.
    */
-
 
   import SwankProtocol._
   import ProtocolConst._
@@ -192,8 +164,6 @@ trait SwankProtocol extends Protocol {
       }
     }
   }
-
-
 
   ////////////////////
   // Datastructures //
@@ -866,7 +836,7 @@ trait SwankProtocol extends Protocol {
       case "swank:typecheck-files" => {
         form match {
           case SExpList(head :: SExpList(strings) :: body) => {
-	    val filenames = strings.collect{case StringAtom(s) => SourceFileInfo(s)}.toList
+            val filenames = strings.collect { case StringAtom(s) => SourceFileInfo(s) }.toList
             rpcTarget.rpcTypecheckFiles(filenames, callId)
           }
           case _ => oops
@@ -1232,7 +1202,7 @@ trait SwankProtocol extends Protocol {
       case "swank:type-at-point" => {
         form match {
           case SExpList(head :: StringAtom(file) ::
-              OffsetRangeExtractor(range) :: body) => {
+            OffsetRangeExtractor(range) :: body) => {
             rpcTarget.rpcTypeAtPoint(file, range, callId)
           }
           case _ => oops
@@ -1260,7 +1230,7 @@ trait SwankProtocol extends Protocol {
       case "swank:inspect-type-at-point" => {
         form match {
           case SExpList(head :: StringAtom(file) ::
-              OffsetRangeExtractor(range) :: body) => {
+            OffsetRangeExtractor(range) :: body) => {
             rpcTarget.rpcInspectTypeAtPoint(file, range, callId)
           }
           case _ => oops
@@ -1918,7 +1888,6 @@ trait SwankProtocol extends Protocol {
         }
       }
 
-
       /**
        * Doc RPC:
        *   swank:debug-set-value
@@ -1944,7 +1913,6 @@ trait SwankProtocol extends Protocol {
           case _ => oops
         }
       }
-
 
       /**
        * Doc RPC:
@@ -2054,9 +2022,9 @@ trait SwankProtocol extends Protocol {
       if (pos.isDefined) {
         val underlying = pos.source.file.underlyingSource.getOrElse(null)
         val archive: SExp = underlying match {
-          case a: ZipArchive if a !=  pos.source.file => a.path
+          case a: ZipArchive if a != pos.source.file => a.path
           case _ => 'nil
-      }
+        }
         SExp.propList(
           (":file", pos.source.path),
           (":archive", archive),
@@ -2070,7 +2038,7 @@ trait SwankProtocol extends Protocol {
       if (pos.isDefined) {
         val underlying = pos.source.file.underlyingSource.getOrElse(null)
         val archive: SExp = underlying match {
-          case a: ZipArchive if a !=  pos.source.file => a.path
+          case a: ZipArchive if a != pos.source.file => a.path
           case _ => 'nil
         }
         SExp.propList(
@@ -2091,7 +2059,7 @@ trait SwankProtocol extends Protocol {
   object OffsetRangeExtractor {
     def unapply(sexp: SExp): Option[OffsetRange] = sexp match {
       case IntAtom(a) => Some(OffsetRange(a, a))
-      case SExpList(IntAtom(a)::IntAtom(b)::Nil) => Some(OffsetRange(a, b))
+      case SExpList(IntAtom(a) :: IntAtom(b) :: Nil) => Some(OffsetRange(a, b))
       case _ => None
     }
   }
@@ -2100,31 +2068,37 @@ trait SwankProtocol extends Protocol {
     def unapply(sexp: SExpList): Option[DebugLocation] = {
       val m = sexp.toKeywordMap()
       m.get(key(":type")).flatMap {
-	case SymbolAtom("reference") => {
-	  for(StringAtom(id) <- m.get(key(":object-id"))) yield {
-	    DebugObjectReference(id.toLong)
-	  }
-	}
-	case SymbolAtom("field") => {
-	  for(StringAtom(id) <- m.get(key(":object-id"));
-	    StringAtom(field) <- m.get(key(":field"))) yield {
-	    DebugObjectField(id.toLong, field)
-	  }
-	}
-	case SymbolAtom("element") => {
-	  for(StringAtom(id) <- m.get(key(":object-id"));
-	    IntAtom(index) <- m.get(key(":index"))) yield {
-	    DebugArrayElement(id.toLong, index)
-	  }
-	}
-	case SymbolAtom("slot") => {
-	  for(StringAtom(id) <- m.get(key(":thread-id"));
-	    IntAtom(frame) <- m.get(key(":frame"));
-	    IntAtom(offset) <- m.get(key(":offset"))) yield {
-	    DebugStackSlot(id.toLong, frame, offset)
-	  }
-	}
-	case _ => None
+        case SymbolAtom("reference") => {
+          for (StringAtom(id) <- m.get(key(":object-id"))) yield {
+            DebugObjectReference(id.toLong)
+          }
+        }
+        case SymbolAtom("field") => {
+          for (
+            StringAtom(id) <- m.get(key(":object-id"));
+            StringAtom(field) <- m.get(key(":field"))
+          ) yield {
+            DebugObjectField(id.toLong, field)
+          }
+        }
+        case SymbolAtom("element") => {
+          for (
+            StringAtom(id) <- m.get(key(":object-id"));
+            IntAtom(index) <- m.get(key(":index"))
+          ) yield {
+            DebugArrayElement(id.toLong, index)
+          }
+        }
+        case SymbolAtom("slot") => {
+          for (
+            StringAtom(id) <- m.get(key(":thread-id"));
+            IntAtom(frame) <- m.get(key(":frame"));
+            IntAtom(offset) <- m.get(key(":offset"))
+          ) yield {
+            DebugStackSlot(id.toLong, frame, offset)
+          }
+        }
+        case _ => None
       }
     }
   }
