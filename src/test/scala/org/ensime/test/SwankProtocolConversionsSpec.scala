@@ -5,6 +5,7 @@ import java.io.File
 import org.ensime.config.{ ProjectConfig, ReplConfig }
 import org.ensime.indexer.{ Op, MethodBytecode }
 import org.ensime.model._
+import org.ensime.protocol.SwankProtocol
 import org.ensime.server._
 import org.scalatest.FunSpec
 import org.scalatest.matchers.ShouldMatchers
@@ -45,7 +46,8 @@ class SwankProtocolConversionsSpec extends FunSpec with ShouldMatchers {
 
   describe("SwankProtocolConversionsSpec") {
 
-    import org.ensime.protocol.SwankProtocol._
+    val protocol = new SwankProtocol
+    import protocol.conversions._
     it("should encode all message types correctly") {
       assert(toWF(SendBackgroundMessageEvent(1, Some("ABCDEF"))).toWireString === """(:background-message 1 "ABCDEF")""")
       assert(toWF(SendBackgroundMessageEvent(1, None)).toWireString === "(:background-message 1 nil)")

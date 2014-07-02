@@ -1,9 +1,9 @@
 package org.ensime.server
 
 import java.io.File
+import akka.actor.ActorRef
 import org.ensime.config.ProjectConfig
 import org.ensime.model._
-import scala.actors.Actor
 import scala.collection.mutable
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
 import scala.tools.nsc.util._
@@ -144,8 +144,8 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 class RichPresentationCompiler(
   settings: Settings,
   val richReporter: Reporter,
-  var parent: Actor,
-  var indexer: Actor,
+  var parent: ActorRef,
+  var indexer: ActorRef,
   val config: ProjectConfig) extends Global(settings, richReporter)
     with NamespaceTraversal with ModelBuilders with RichCompilerControl
     with RefactoringImpl with IndexerInterface with SemanticHighlighting with Completion with Helpers {

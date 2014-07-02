@@ -19,6 +19,10 @@ libraryDependencies <<= scalaVersion { scalaVersion => Seq(
   "org.scalatest"              %% "scalatest"            % "1.9.2" % "test",
   "org.scalariform"            %% "scalariform"          % "0.1.4",
   "org.scala-lang"             %  "scala-compiler"       % scalaVersion,
+  "com.typesafe.akka" %% "akka-actor" % "2.0.5",
+  "com.typesafe.akka" %% "akka-slf4j" % "2.0.5",
+  "com.typesafe.akka" %% "akka-testkit" % "2.0.5" % "test",
+  "ch.qos.logback" % "logback-classic" % "1.0.13",
   "org.scala-refactoring"      %% "org.scala-refactoring.library" % "0.6.2"
 )}
 

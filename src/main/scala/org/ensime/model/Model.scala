@@ -1,18 +1,23 @@
 package org.ensime.model
 
 import java.io.File
+import akka.pattern.Patterns
+import akka.util.Timeout
+
 import scala.collection.mutable
+import scala.concurrent.Await
 import scala.tools.nsc.util.{ NoPosition, Position }
-import scala.tools.nsc.io.AbstractFile
 import org.ensime.util.CanonFile
 import org.ensime.server.RichPresentationCompiler
 import org.ensime.server.SourceFileCandidatesReq
+import org.ensime.server.AbstractFiles
+import scala.concurrent.duration._
 
 abstract class EntityInfo(val name: String, val members: Iterable[EntityInfo]) {}
 
 case class SourcePosition(file: CanonFile, line: Int)
 
-case class SourceFileInfo(file: File, contents: Option[String]) {}
+case class SourceFileInfo(file: File, contents: Option[String])
 object SourceFileInfo {
   def apply(file: String) = new SourceFileInfo(new File(file), None)
   def apply(file: File) = new SourceFileInfo(file, None)
@@ -21,7 +26,7 @@ object SourceFileInfo {
 class PackageInfo(
   override val name: String,
   val fullname: String,
-  override val members: Iterable[EntityInfo]) extends EntityInfo(name, members) {}
+  override val members: Iterable[EntityInfo]) extends EntityInfo(name, members)
 
 trait SymbolSearchResult {
   val name: String
@@ -61,11 +66,11 @@ class SymbolInfo(
   val declPos: Position,
   val tpe: TypeInfo,
   val isCallable: Boolean,
-  val ownerTypeId: Option[Int]) {}
+  val ownerTypeId: Option[Int])
 
 case class CompletionSignature(
   sections: List[List[(String, String)]],
-  result: String) {}
+  result: String)
 
 case class CompletionInfo(
   name: String,
@@ -73,11 +78,11 @@ case class CompletionInfo(
   tpeId: Int,
   isCallable: Boolean,
   relevance: Int,
-  toInsert: Option[String]) {}
+  toInsert: Option[String])
 
 case class CompletionInfoList(
   prefix: String,
-  completions: List[CompletionInfo]) {}
+  completions: List[CompletionInfo])
 
 trait PatchOp {
   val start: Int
@@ -101,7 +106,7 @@ case class BreakpointList(active: List[Breakpoint], pending: List[Breakpoint])
 
 case class OffsetRange(from: Int, to: Int)
 
-sealed trait DebugLocation {}
+sealed trait DebugLocation
 
 case class DebugObjectReference(
   objectId: Long) extends DebugLocation
@@ -170,11 +175,17 @@ case class DebugBacktrace(
   threadId: Long,
   threadName: String)
 
-class NamedTypeMemberInfo(override val name: String, val tpe: TypeInfo, val pos: Position, val declaredAs: scala.Symbol) extends EntityInfo(name, List()) {}
+class NamedTypeMemberInfo(override val name: String,
+  val tpe: TypeInfo,
+  val pos: Position,
+  val declaredAs: scala.Symbol) extends EntityInfo(name, List())
 
-class NamedTypeMemberInfoLight(override val name: String, val tpeSig: String, val tpeId: Int, val isCallable: Boolean) extends EntityInfo(name, List()) {}
+class NamedTypeMemberInfoLight(override val name: String,
+  val tpeSig: String,
+  val tpeId: Int,
+  val isCallable: Boolean) extends EntityInfo(name, List())
 
-class PackageMemberInfoLight(val name: String) {}
+class PackageMemberInfoLight(val name: String)
 
 class TypeInfo(
   name: String,
@@ -184,25 +195,25 @@ class TypeInfo(
   val args: Iterable[TypeInfo],
   members: Iterable[EntityInfo],
   val pos: Position,
-  val outerTypeId: Option[Int]) extends EntityInfo(name, members) {}
+  val outerTypeId: Option[Int]) extends EntityInfo(name, members)
 
 class ArrowTypeInfo(
   override val name: String,
   override val id: Int,
   val resultType: TypeInfo,
-  val paramSections: Iterable[ParamSectionInfo]) extends TypeInfo(name, id, 'nil, name, List(), List(), NoPosition, None) {}
+  val paramSections: Iterable[ParamSectionInfo]) extends TypeInfo(name, id, 'nil, name, List(), List(), NoPosition, None)
 
 class CallCompletionInfo(
   val resultType: TypeInfo,
-  val paramSections: Iterable[ParamSectionInfo]) {}
+  val paramSections: Iterable[ParamSectionInfo])
 
 class ParamSectionInfo(
   val params: Iterable[(String, TypeInfo)],
   val isImplicit: Boolean)
 
-class InterfaceInfo(val tpe: TypeInfo, val viaView: Option[String]) {}
+class InterfaceInfo(val tpe: TypeInfo, val viaView: Option[String])
 
-class TypeInspectInfo(val tpe: TypeInfo, val companionId: Option[Int], val supers: Iterable[InterfaceInfo]) {}
+class TypeInspectInfo(val tpe: TypeInfo, val companionId: Option[Int], val supers: Iterable[InterfaceInfo])
 
 trait ModelBuilders { self: RichPresentationCompiler =>
 
@@ -237,13 +248,20 @@ trait ModelBuilders { self: RichPresentationCompiler =>
       val top = sym.toplevelClass
       val name = if (sym.owner.isPackageObjectClass) "package$.class"
       else top.name + (if (top.isModuleClass) "$" else "")
-      indexer !? (1000, SourceFileCandidatesReq(pack, name)) match {
-        case Some(files: Set[AbstractFile]) =>
-          files.flatMap { f =>
+
+      import scala.concurrent.ExecutionContext.Implicits.global
+      val askRes = Patterns.ask(indexer, SourceFileCandidatesReq(pack, name), Timeout(1000.milliseconds))
+      val optFut = askRes map (Some(_)) recover { case _ => None }
+      val result = Await.result(askRes, Duration.Inf)
+      result match {
+        case Some(f: AbstractFiles) =>
+          f.files.flatMap { f =>
             println("Linking:" + (sym, f))
             askLinkPos(sym, f)
           }.find(_.isDefined).getOrElse(NoPosition)
-        case _ => NoPosition
+        case _ =>
+          println("WARNING - locateSymbolPos " + sym + " timed out")
+          NoPosition
       }
     }
   }
