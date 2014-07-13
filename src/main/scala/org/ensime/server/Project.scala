@@ -96,7 +96,7 @@ class Project(val protocol: Protocol, actorSystem: ActorSystem) extends ProjectR
           process(x)
         } catch {
           case e: Exception =>
-            println("Error at Project message loop: " + e + " :\n" + e.getStackTraceString)
+            log.error("Error at Project message loop: ", e)
         }
 
     }
@@ -161,7 +161,7 @@ class Project(val protocol: Protocol, actorSystem: ActorSystem) extends ProjectR
       ea ! IndexerShutdownReq()
     }
     val newIndexer = actorSystem.actorOf(Props(new Indexer(this, protocol.conversions, config)), "indexer")
-    println("Initing Indexer...")
+    log.info("Initing Indexer...")
     if (!config.disableIndexOnStartup) {
       newIndexer ! RebuildStaticIndexReq()
     }
@@ -200,8 +200,7 @@ class Project(val protocol: Protocol, actorSystem: ActorSystem) extends ProjectR
   }
 
   protected def shutdownServer() {
-    System.out.println("Server is exiting...")
-    System.out.flush()
+    log.info("Server is exiting...")
     System.exit(0)
   }
 
