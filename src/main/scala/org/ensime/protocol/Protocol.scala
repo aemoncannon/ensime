@@ -1,8 +1,8 @@
 package org.ensime.protocol
 
 import java.io._
+
 import akka.actor.ActorRef
-import org.ensime.server._
 import org.ensime.util._
 
 case class IncomingMessageEvent(obj: Any)
@@ -70,7 +70,10 @@ trait Protocol {
    * @param  o  The message to send.
    */
   def sendMessage(o: WireFormat): Unit = {
-    peer ! OutgoingMessageEvent(o)
+    if (peer != null)
+      peer ! OutgoingMessageEvent(o)
+    else
+      println("Failing to send " + o + " as peer is not up")
   }
 
   /**
@@ -120,9 +123,9 @@ trait Protocol {
   /**
    * Send an event.
    *
-   * @param  value  The event value.
+   * @param  event  The event value.
    */
-  def sendEvent(value: WireFormat): Unit
+  def sendEvent(event: SwankEvent): Unit
 
   /**
    * Notify the client that the RPC call could not
