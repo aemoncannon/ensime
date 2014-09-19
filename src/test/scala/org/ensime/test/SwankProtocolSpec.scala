@@ -7,15 +7,15 @@ import akka.actor.TypedActor.MethodCall
 import akka.actor.{ ActorSystem, TypedActor, TypedProps }
 import akka.testkit.TestProbe
 import org.ensime.model._
-import org.ensime.protocol.{ RPCTarget, SwankProtocol }
+import org.ensime.protocol.{ ReportingMessageTracker, RPCTarget, SwankProtocol }
 import org.ensime.server._
 import org.ensime.util._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ BeforeAndAfterAll, FunSpec, ShouldMatchers }
 
-import scala.reflect.internal.util.{ RangePosition, BatchSourceFile }
 import scala.reflect.io.ZipArchive
-import scala.tools.nsc.io.{ PlainFile, VirtualFile }
+import scala.tools.nsc.io.VirtualFile
+import scala.concurrent.duration._
 
 class SwankProtocolSpec extends FunSpec with ShouldMatchers with BeforeAndAfterAll with MockFactory {
 
@@ -33,7 +33,8 @@ class SwankProtocolSpec extends FunSpec with ShouldMatchers with BeforeAndAfterA
       val outputProbe = TestProbe()
       val rpcProxy = typedSystem.typedActorOf(TypedProps[RPCTarget], rpcTargetProbe.ref)
 
-      val protocol = new SwankProtocol()
+      val msgTracker = new ReportingMessageTracker(actorSystem, 1 minute)
+      val protocol = new SwankProtocol(msgTracker)
       protocol.setRPCTarget(rpcProxy)
       protocol.setOutputActor(outputProbe.ref)
 
@@ -68,7 +69,7 @@ class SwankProtocolSpec extends FunSpec with ShouldMatchers with BeforeAndAfterA
 
     it("can encode and decode sexp to wire") {
       val msg = SExpParser.read("""(:XXXX "abc") """)
-      val protocol = new SwankProtocol()
+      val protocol = new SwankProtocol(new NoOpMessageTracker)
 
       val os = new ByteArrayOutputStream()
       protocol.writeMessage(msg, os)
@@ -89,7 +90,7 @@ class SwankProtocolSpec extends FunSpec with ShouldMatchers with BeforeAndAfterA
       val t = mock[RPCTarget]
       val out = mock[MsgHandler]
 
-      val prot = new SwankProtocol() {
+      val prot = new SwankProtocol(new NoOpMessageTracker) {
         override def sendMessage(o: WireFormat) {
           out.send(o.toString)
         }

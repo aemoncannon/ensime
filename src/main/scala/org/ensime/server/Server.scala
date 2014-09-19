@@ -13,6 +13,7 @@ import org.slf4j.bridge.SLF4JBridgeHandler
 import scala.io.Source
 import scala.util.Properties
 import scala.util.Properties._
+import scala.concurrent.duration._
 
 object Server {
   SLF4JBridgeHandler.removeHandlersForRootLogger()
@@ -87,7 +88,8 @@ class Server(config: EnsimeConfig, host: String, requestedPort: Int) {
 
   writePort(config.cacheDir, actualPort)
 
-  val protocol = new SwankProtocol
+  val msgTracker = new ReportingMessageTracker(actorSystem, 1 minute)
+  val protocol = new SwankProtocol(msgTracker)
   val project = new Project(config, protocol, actorSystem)
 
   def start() {
@@ -99,7 +101,7 @@ class Server(config: EnsimeConfig, host: String, requestedPort: Int) {
     val t = new Thread(new Runnable() {
       def run() {
         try {
-          while (true) {
+          while (!listener.isClosed) {
             try {
               val socket = listener.accept()
               log.info("Got connection, creating handler...")
