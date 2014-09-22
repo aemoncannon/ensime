@@ -11,10 +11,8 @@ import org.apache.commons.io.{ FileUtils => IOFileUtils }
 import org.ensime.config.EnsimeConfig
 import org.ensime.protocol.{ IncomingMessageEvent, OutgoingMessageEvent }
 import org.ensime.server.Server
-import org.ensime.test.TestUtil
 import org.ensime.util._
 import org.scalatest.Assertions
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

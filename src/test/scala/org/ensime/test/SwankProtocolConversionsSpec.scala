@@ -1,6 +1,5 @@
 package org.ensime.test
 
-import org.ensime.config._
 import org.ensime.model._
 import org.ensime.protocol._
 import org.ensime.server._
@@ -8,12 +7,10 @@ import org.scalatest.FunSpec
 import org.scalatest.Matchers
 import org.ensime.util._
 
-import scala.reflect.internal.util._
 import scala.tools.nsc.io.{ Path, PlainFile }
-import scala.reflect.internal.util.{ RangePosition, OffsetPosition, BatchSourceFile }
+import scala.reflect.internal.util.{ RangePosition, BatchSourceFile }
 
 import pimpathon.file._
-import org.ensime.util.RichFile._
 
 object SwankProtocolConversionsSpec {
 
@@ -73,8 +70,8 @@ class SwankProtocolConversionsSpec extends FunSpec with Matchers {
 
   describe("SwankProtocolConversionsSpec") {
 
-    val protocol = new SwankProtocol
-    import protocol.conversions._
+    val conversions = new SwankProtocolConversions
+    import conversions._
     it("should encode all message types correctly") {
       assert(toWF(SendBackgroundMessageEvent(1, Some("ABCDEF"))).toWireString === """(:background-message 1 "ABCDEF")""")
       assert(toWF(SendBackgroundMessageEvent(1, None)).toWireString === "(:background-message 1 nil)")

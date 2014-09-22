@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 
 import scala.util.parsing.input
 
-class SwankProtocol extends Protocol {
+class SwankProtocol(messageTracker: MessageTracker) extends Protocol {
   import SwankProtocol._
 
   /**
@@ -150,6 +150,7 @@ class SwankProtocol extends Protocol {
     form match {
       case l @ SExpList(SymbolAtom(name) :: rest) =>
         try {
+          messageTracker.call(form, callId)
           handleRPCRequest(name, l.items.drop(1), l, callId)
         } catch {
           case e: Throwable =>
@@ -1559,6 +1560,7 @@ class SwankProtocol extends Protocol {
   def sendRPCReturn(value: WireFormat, callId: Int): Unit = {
     value match {
       case sexp: SExp =>
+        messageTracker.result(sexp, callId)
         sendMessage(SExp(key(":return"), SExp(key(":ok"), sexp), callId))
       case _ => throw new IllegalStateException("Not a SExp: " + value)
     }
@@ -1569,6 +1571,7 @@ class SwankProtocol extends Protocol {
   }
 
   def sendRPCError(code: Int, detail: String, callId: Int): Unit = {
+    messageTracker.error(detail, callId)
     sendMessage(SExp(key(":return"), SExp(key(":abort"), code, detail), callId))
   }
 
