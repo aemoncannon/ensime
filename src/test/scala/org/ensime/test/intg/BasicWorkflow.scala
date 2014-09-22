@@ -95,7 +95,7 @@ class BasicWorkflow extends FunSpec with Matchers {
 
         // C-c C-v p Inspect source of current package
         interactor.expectRPC(30 seconds, s"""(swank:inspect-package-by-path "org.example")""",
-          s"""(:ok (:name "example" :info-type package :full-name "org.example" :members ((:name "Foo$$" :type-id 131 :full-name "org.example.Foo$$" :decl-as object :pos (:file $fooFile :offset 28 :line 3)))))""")
+          s"""(:ok (:name "example" :info-type package :full-name "org.example" :members ((:name "Foo" :type-id 131 :full-name "org.example.Foo" :decl-as class :pos (:file $fooFile :offset 0 :line 0)) (:name "Foo$$" :type-id 132 :full-name "org.example.Foo$$" :decl-as object :pos (:file $fooFile :offset 28 :line 3)))))""")
       }
     }
   }
