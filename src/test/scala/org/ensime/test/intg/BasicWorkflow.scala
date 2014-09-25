@@ -50,7 +50,7 @@ class BasicWorkflow extends FunSpec with Matchers {
             val typeMap = typeInfo.toKeywordMap(KeywordAtom(":type")).asInstanceOf[SExpList].toKeywordMap
 
             assert(typeMap(KeywordAtom(":name")) == StringAtom("Int"))
-            assert(typeMap(KeywordAtom(":full-name")) == StringAtom("scala.Int"))
+            assert(typeMap(KeywordAtom(":full-name")) == StringAtom("Int"))
             assert(typeMap(KeywordAtom(":decl-as")) == SymbolAtom("class"))
             // short cut - decoding the structure is painful right now - lets just look for bits that must be there
             // I (@rorygraves) promise to clean this up with the protocol refactor

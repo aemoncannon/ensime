@@ -408,7 +408,7 @@ trait ModelBuilders { self: RichPresentationCompiler =>
             typeShortName(tpe),
             cacheType(tpe),
             declaredAs(typeSym),
-            typeFullName(tpe),
+            tpe.toString,
             args,
             members,
             symPos,
@@ -459,7 +459,7 @@ trait ModelBuilders { self: RichPresentationCompiler =>
       }
       val name = if (sym.isClass || sym.isTrait || sym.isModule ||
         sym.isModuleClass || sym.isPackageClass) {
-        typeFullName(tpe)
+        tpe.toString
       } else {
         sym.nameString
       }
