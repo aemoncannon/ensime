@@ -83,25 +83,6 @@ trait Helpers { self: Global =>
     } else { "" })
   }
 
-  /**
-   * Generate qualified name, without args postfix.
-   */
-  def typeFullName(tpe: Type): String = {
-    def nestedClassName(sym: Symbol): String = {
-      outerClass(sym) match {
-        case Some(outerSym) =>
-          nestedClassName(outerSym) + "$" + typeShortName(sym)
-        case None => typeShortName(sym)
-      }
-    }
-    val typeSym = tpe.typeSymbol
-    if (typeSym.isNestedClass) {
-      typeSym.enclosingPackage.fullName + "." + nestedClassName(typeSym)
-    } else {
-      typeSym.enclosingPackage.fullName + "." + typeShortName(typeSym)
-    }
-  }
-
   def typeShortName(tpe: Type): String = {
     if (tpe.typeSymbol != NoSymbol) typeShortName(tpe.typeSymbol)
     else tpe.toString()

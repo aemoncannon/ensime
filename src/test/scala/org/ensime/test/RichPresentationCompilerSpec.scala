@@ -38,7 +38,7 @@ class RichPresentationCompilerSpec extends FunSpec with Matchers with SLF4JLoggi
         val info = cc.askTypeInfoByName("com.example.A$").get
         assert(info.declaredAs == 'object)
         assert(info.name == "A$")
-        assert(info.fullName == "com.example.A$")
+        assert(info.fullName == "com.example.A.type")
         assert(info.pos.get.line == 2)
       }
     }
