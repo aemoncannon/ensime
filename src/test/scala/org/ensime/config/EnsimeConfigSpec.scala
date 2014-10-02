@@ -1,7 +1,7 @@
 package org.ensime.config
 
+import org.ensime.TestUtil
 import org.ensime.server.Server
-import org.ensime.test.TestUtil
 import org.scalatest.{ Matchers, FunSpec }
 
 import pimpathon.file._

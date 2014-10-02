@@ -2,9 +2,9 @@ package org.ensime.util
 
 import akka.event.slf4j.SLF4JLogging
 import java.io.{ File }
+import org.ensime.TestUtil
 import org.slf4j.LoggerFactory
 import scala.tools.nsc.io.Path
-import org.ensime.test.TestUtil
 import org.scalatest.{ Matchers, FunSpec }
 import pimpathon.file._
 

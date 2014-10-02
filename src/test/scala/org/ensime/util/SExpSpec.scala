@@ -1,7 +1,6 @@
-package org.ensime.test
-import org.scalatest.FunSpec
-import org.scalatest.Matchers
-import org.ensime.util.{ SExpList, StringAtom, SExpParser, BooleanAtom }
+package org.ensime.util
+
+import org.scalatest.{ FunSpec, Matchers }
 
 class SExpSpec extends FunSpec with Matchers {
 

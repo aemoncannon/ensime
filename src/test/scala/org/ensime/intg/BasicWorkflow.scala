@@ -1,12 +1,13 @@
-package org.ensime.test.intg
+package org.ensime.intg
 
-import org.ensime.test.TestUtil
+import org.ensime.TestUtil
+import TestUtil.SlowTest
 import org.ensime.util._
 import org.scalatest.{ FunSpec, Matchers }
 import org.slf4j.LoggerFactory
-import scala.concurrent.duration._
-import TestUtil.SlowTest
 import pimpathon.file._
+
+import scala.concurrent.duration._
 
 class BasicWorkflow extends FunSpec with Matchers {
 
