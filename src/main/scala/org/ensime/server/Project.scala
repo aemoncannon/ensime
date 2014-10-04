@@ -111,8 +111,8 @@ class Project(
   class ProjectActor extends Actor {
     case object Retypecheck
 
-    val typecheckDelay = 1000 millis
-    val typecheckCooldown = 5000 millis
+    val typecheckDelay = 1000.millis
+    val typecheckCooldown = 5000.millis
     private var tick: Option[Cancellable] = None
 
     private var earliestRetypecheck = Deadline.now
@@ -133,7 +133,7 @@ class Project(
             protocol.sendEvent(value)
         }
         asyncs = Nil
-        context.become(connected, true)
+        context.become(connected, discardOld = true)
 
       case e: AsyncEvent =>
         asyncs ::= e

@@ -120,7 +120,7 @@ class Analyzer(
       case ReloadExistingFilesEvent => if (allFilesLoaded) {
         presCompLog.warn("Skipping reload, in all-files mode")
       } else {
-        restartCompiler(true)
+        restartCompiler(keepLoaded = true)
       }
 
       case FullTypeCheckCompleteEvent =>

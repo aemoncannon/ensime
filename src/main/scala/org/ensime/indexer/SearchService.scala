@@ -1,10 +1,10 @@
 package org.ensime.indexer
 
+import java.util
+
 import DatabaseService._
 import akka.event.slf4j.SLF4JLogging
 import java.sql.SQLException
-import java.util.ArrayList
-import java.util.concurrent.BlockingQueue
 import java.util.concurrent.Executors
 import com.google.common.io.ByteStreams
 import java.util.concurrent.LinkedBlockingQueue
@@ -12,7 +12,6 @@ import org.apache.commons.vfs2._
 import org.ensime.config.EnsimeConfig
 import pimpathon.file._
 import scala.concurrent.Future
-import scala.util.Properties
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
@@ -153,6 +152,25 @@ class SearchService(
         val source = resolver.resolve(clazz.name.pack, clazz.source)
         val sourceUri = source.map(_.getName.getURI)
 
+        // very expensive. we'd like to remove the need for offsets in the
+        // swank protocol to avoid doing this. Doing it on the fly is far
+        // too expensive for end users.
+        val lineOffsets = source.map { fo =>
+          val data = ByteStreams.toByteArray(fo.getContent.getInputStream)
+          val nl = '\n'.toInt // should count only once even on windows
+          var i = 0
+          var offsets: List[Int] = 0 :: 0 :: Nil
+          while (i < data.length) {
+            if (data(i) == nl) offsets ::= i
+            i += 1
+          }
+          offsets.reverse
+        }
+        def offset(lineOpt: Option[Int]) = for {
+          line <- lineOpt
+          offsets <- lineOffsets
+        } yield offsets.lift(line).getOrElse(0)
+
         // TODO: other types of visibility when we get more sophisticated
         if (clazz.access != Public) Nil
         else FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
@@ -197,7 +215,7 @@ class SearchService(
     override def run(): Unit = {
       while (true) {
         val head = backlog.take() // blocks until something appears
-        val buffer = new ArrayList[(FileObject, List[FqnSymbol])]()
+        val buffer = new util.ArrayList[(FileObject, List[FqnSymbol])]()
         backlog.drainTo(buffer, 999) // 1000 at a time to avoid blow-ups
         val tail = buffer.asScala.toList
 

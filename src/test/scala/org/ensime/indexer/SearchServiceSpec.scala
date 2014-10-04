@@ -1,21 +1,16 @@
 package org.ensime.indexer
 
 import java.io.File
-import org.apache.commons.io.FileUtils
 import org.ensime.TestUtil
 import org.scalatest.FunSpec
 import org.scalatest.Matchers
 import akka.event.slf4j.SLF4JLogging
 import org.ensime.config._
-import org.ensime.util.FileUtils._
 import TestUtil._
-import org.scalatest.Sequential
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scala.util.Properties
 import pimpathon.file._
 import pimpathon.any._
-import scalariform.formatter.preferences.FormattingPreferences
 
 class SearchServiceSpec extends FunSpec with Matchers with SLF4JLogging {
 

@@ -4,7 +4,7 @@ import akka.event.slf4j.SLF4JLogging
 import org.scalatest.FunSpec
 import org.scalatest.Matchers
 
-class ClassfileIndexerTest extends FunSpec with Matchers with ClassfileIndexer with SLF4JLogging {
+class ClassfileIndexerSpec extends FunSpec with Matchers with ClassfileIndexer with SLF4JLogging {
 
   // TODO: some assertions (currently we're just checking that no exceptions are raised!)
 
@@ -20,7 +20,7 @@ class ClassfileIndexerTest extends FunSpec with Matchers with ClassfileIndexer w
     }
 
     it("should support typical J2SE classes") {
-      val (clazz, refs) = indexClassfile(vres("java/lang/String.class"))
+      val (clazz, _) = indexClassfile(vres("java/lang/String.class"))
       assert(clazz.access === Public)
     }
 

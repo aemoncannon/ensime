@@ -43,9 +43,7 @@ object Server {
    * ******************************************************************************
    * Read a new style config from the given files.
    * @param ensimeFile The base ensime file.
-   * @param rootDir The project root directory
-   * @param cacheDir The
-   * @return
+   * @return The parsed ensime config
    */
   def readEnsimeConfig(ensimeFile: File): EnsimeConfig = {
     val configSrc = Source.fromFile(ensimeFile)

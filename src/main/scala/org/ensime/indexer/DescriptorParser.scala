@@ -36,7 +36,7 @@ object DescriptorParser extends Parser {
   } ~~> { (params, ret) => Descriptor(params, ret) }
 
   private def Type: Rule1[DescriptorType] = rule("Type") {
-    (Class | Primitive | Array)
+    Class | Primitive | Array
   }
 
   private def Array: Rule1[DescriptorType] = rule("Array") {
@@ -53,7 +53,7 @@ object DescriptorParser extends Parser {
 
   private def Name: Rule1[String] = rule("Name") {
     oneOrMore(noneOf(";/()"))
-  } save
+  }.save
 
   private def Primitive: Rule1[DescriptorType] = rule("Primitive") {
     Boolean | Byte | Char | Short | Int | Long | Float | Double | Void

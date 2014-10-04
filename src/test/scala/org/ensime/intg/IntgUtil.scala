@@ -173,7 +173,7 @@ object IntgUtil extends Assertions with SLF4JLogging {
 
   /**
    * Run an integration test based on the given project
-   * @param projectSource The directory containing the test project (will not be modified)
+   * @param path The directory containing the test project (will not be modified)
    * @param f The test function to run
    */
   def withTestProject(path: String)(f: (EnsimeConfig, InteractorHelper) => Unit): Unit = {

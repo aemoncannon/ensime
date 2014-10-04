@@ -76,7 +76,7 @@ object EnsimeConfig extends SLF4JLogging {
     // NOTE: we use 'canon' to obtain the canonical form of the
     //       configuration files. But canon may fail to resolve if
     //       the file/directory does not exist, so we force create all
-    //       directories, which is - admitedly - a weird side-effect.
+    //       directories, which is - admittedly - a weird side-effect.
 
     val rootMap = SExpExplorer(configExp).asMap
     val root = file(rootMap.getString(":root-dir")).canon
@@ -177,8 +177,8 @@ object EnsimeConfig extends SLF4JLogging {
           fp.setPreference(SpacesWithinPatternBinders, value)
         case ('rewriteArrowSymbols, value: Boolean) =>
           fp.setPreference(RewriteArrowSymbols, value)
-        case (name, _) =>
-          log.warn("unrecognized formatting option: " + name)
+        case (prefName, _) =>
+          log.warn("unrecognized formatting option: " + prefName)
           fp
       }
     }
