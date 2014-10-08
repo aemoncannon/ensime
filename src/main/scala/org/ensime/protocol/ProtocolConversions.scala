@@ -1,8 +1,10 @@
 package org.ensime.protocol
 
 import org.ensime.config._
+import org.ensime.server.debug.DebugVmStatus
 import org.ensime.model._
 import org.ensime.server._
+import org.ensime.server.refactoring.{ RefactorResult, RefactorEffect, RefactorFailure }
 import org.ensime.util.{ FileRange, NoteList, Note, WireFormat }
 
 import scala.reflect.internal.util.RangePosition

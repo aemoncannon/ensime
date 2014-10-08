@@ -1,4 +1,4 @@
-package org.ensime.server
+package org.ensime.server.refactoring
 
 import java.io.File
 
@@ -10,6 +10,7 @@ import scala.tools.refactoring._
 import scala.tools.refactoring.analysis.GlobalIndexes
 import scala.tools.refactoring.common.CompilerAccess
 import scala.tools.refactoring.implementations._
+import org.ensime.server._
 
 case class RefactorFailure(procedureId: Int, message: String)
 case class RefactorPrepareReq(procedureId: Int, refactor: RefactorDesc, interactive: Boolean)

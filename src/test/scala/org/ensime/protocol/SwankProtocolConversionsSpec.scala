@@ -1,8 +1,10 @@
 package org.ensime.protocol
 
 import org.ensime.TestUtil
+import org.ensime.server.debug.{ DebugVmError, DebugVmSuccess }
 import org.ensime.model._
 import org.ensime.server._
+import org.ensime.server.refactoring._
 import org.ensime.util._
 import org.scalatest.{ FunSpec, Matchers }
 import pimpathon.file._

@@ -1,7 +1,7 @@
 package org.ensime.protocol
 
 import org.ensime.model._
-import org.ensime.server.RefactorDesc
+import org.ensime.server.refactoring.RefactorDesc
 import org.ensime.util.SExp
 
 trait RPCTarget {

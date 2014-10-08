@@ -4,7 +4,7 @@ import java.io._
 
 import akka.actor.ActorRef
 import org.ensime.model._
-import org.ensime.server._
+import org.ensime.server.refactoring._
 import org.ensime.util.SExp._
 import org.ensime.util._
 import org.slf4j.LoggerFactory

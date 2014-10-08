@@ -6,7 +6,6 @@ import java.net.URI
 import org.apache.commons.vfs2.FileObject
 import org.ensime.config.EnsimeConfig
 import org.ensime.indexer.DatabaseService.FqnSymbol
-import org.ensime.indexer.MemberName
 import org.ensime.indexer.SearchService
 import org.ensime.model._
 import org.ensime.protocol.ProtocolConst._

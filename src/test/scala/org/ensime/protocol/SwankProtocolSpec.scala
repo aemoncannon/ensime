@@ -7,7 +7,7 @@ import akka.actor.TypedActor.MethodCall
 import akka.actor.{ ActorSystem, TypedActor, TypedProps }
 import akka.testkit.TestProbe
 import org.ensime.model._
-import org.ensime.server._
+import org.ensime.server.refactoring._
 import org.ensime.util._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ BeforeAndAfterAll, FunSpec, ShouldMatchers }

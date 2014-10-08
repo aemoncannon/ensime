@@ -8,6 +8,7 @@ import org.ensime.model._
 import org.ensime.protocol._
 import org.ensime.protocol.ProtocolConst._
 import org.ensime.util._
+import org.ensime.server.refactoring._
 import org.slf4j.LoggerFactory
 import scala.concurrent.Future
 import scala.reflect.internal.util.RangePosition
@@ -92,8 +93,7 @@ class Analyzer(
       }
   }
 
-  protected def makeScalaCompiler() = new RichPresentationCompiler(
-    config, settings, reporter, self, indexer, search)
+  protected def makeScalaCompiler() = new RichPresentationCompiler(config, settings, reporter, self, indexer, search)
 
   protected def restartCompiler(keepLoaded: Boolean): Unit = {
     val files = scalaCompiler.loadedFiles
