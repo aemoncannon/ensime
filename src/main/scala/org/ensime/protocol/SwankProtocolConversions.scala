@@ -2,8 +2,10 @@ package org.ensime.protocol
 
 import java.io.File
 import org.ensime.config._
+import org.ensime.server.debug.{ DebugVmError, DebugVmSuccess, DebugVmStatus }
 import org.ensime.model._
 import org.ensime.server._
+import org.ensime.server.refactoring._
 import org.ensime.util._
 import org.ensime.util.SExp._
 

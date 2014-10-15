@@ -1,11 +1,13 @@
 package org.ensime.server
 
 import java.io.File
+import org.ensime.server.debug._
 import org.ensime.model._
 import org.ensime.protocol._
 import org.ensime.protocol.ProtocolConst._
 import org.ensime.protocol.{ ConnectionInfo, RPCTarget }
 import org.ensime.util._
+import org.ensime.server.refactoring._
 
 import scalariform.astselect.AstSelector
 import scalariform.formatter.ScalaFormatter

@@ -1,12 +1,10 @@
 package org.ensime.util
 
 import akka.event.slf4j.SLF4JLogging
-import java.io.{ File }
-import org.slf4j.LoggerFactory
-import scala.tools.nsc.io.Path
-import org.ensime.test.TestUtil
+import java.io.File
 import org.scalatest.{ Matchers, FunSpec }
 import pimpathon.file._
+import org.ensime.util.RichFile._
 
 class FileUtilSpec extends FunSpec with Matchers with SLF4JLogging {
   describe("FileUtils") {
@@ -29,7 +27,8 @@ class FileUtilSpec extends FunSpec with Matchers with SLF4JLogging {
 
     // bug in upstream pimpathon
     ignore("should expand recursively with non-readable directories") {
-      withTempDirectory { dir =>
+      withTempDirectory { dirRaw =>
+        val dir = dirRaw.canon
         val dir1 = new File(dir, "dir1")
         dir1.mkdir()
         val dir2 = new File(dir, "dir2")

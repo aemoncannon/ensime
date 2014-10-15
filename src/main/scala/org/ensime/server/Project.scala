@@ -4,6 +4,7 @@ import java.io.File
 import akka.actor.{ Actor, ActorRef, Props, ActorSystem, Cancellable }
 import org.apache.commons.vfs2.FileObject
 import org.ensime.config._
+import org.ensime.server.debug.{ DebuggerShutdownEvent, DebugManager }
 import org.ensime.indexer._
 import org.ensime.model._
 import org.ensime.protocol._
@@ -95,6 +96,7 @@ class Project(
   def getAnalyzer: ActorRef = {
     analyzer.getOrElse(throw new RuntimeException("Analyzer unavailable."))
   }
+
   def getIndexer: ActorRef = indexer
 
   private var undoCounter = 0
@@ -111,8 +113,8 @@ class Project(
   class ProjectActor extends Actor {
     case object Retypecheck
 
-    val typecheckDelay = 1000 millis
-    val typecheckCooldown = 5000 millis
+    val typecheckDelay = 1000.millis
+    val typecheckCooldown = 5000.millis
     private var tick: Option[Cancellable] = None
 
     private var earliestRetypecheck = Deadline.now
@@ -126,19 +128,6 @@ class Project(
     // buffer until the client connects
     private var asyncs: List[AsyncEvent] = Nil
 
-    private val waiting: Receive = {
-      case ClientConnectedEvent =>
-        asyncs foreach {
-          case AsyncEvent(value) =>
-            protocol.sendEvent(value)
-        }
-        asyncs = Nil
-        context.become(connected, true)
-
-      case e: AsyncEvent =>
-        asyncs ::= e
-    }
-
     private val connected: Receive = {
       case Retypecheck =>
         log.warn("Re-typecheck needed")
@@ -151,14 +140,27 @@ class Project(
 
       case IncomingMessageEvent(msg: WireFormat) =>
         protocol.handleIncomingMessage(msg)
-      case AddUndo(sum, changes) =>
-        addUndo(sum, changes)
+      case AddUndo(summary, changes) =>
+        addUndo(summary, changes)
       case RPCResultEvent(value, callId) =>
         protocol.sendRPCReturn(value, callId)
       case AsyncEvent(value) =>
         protocol.sendEvent(value)
       case RPCErrorEvent(code, detail, callId) =>
         protocol.sendRPCError(code, detail, callId)
+    }
+
+    private val waiting: Receive = {
+      case ClientConnectedEvent =>
+        asyncs foreach {
+          case AsyncEvent(value) =>
+            protocol.sendEvent(value)
+        }
+        asyncs = Nil
+        context.become(connected, discardOld = true)
+
+      case e: AsyncEvent =>
+        asyncs ::= e
     }
   }
 
@@ -205,8 +207,8 @@ class Project(
   protected def acquireDebugger(): ActorRef = {
     (debugger, indexer) match {
       case (Some(b), _) => b
-      case (None, indexer) =>
-        val b = actorSystem.actorOf(Props(new DebugManager(this, indexer, protocol.conversions, config)))
+      case (None, indexerRef) =>
+        val b = actorSystem.actorOf(Props(new DebugManager(this, indexerRef, protocol.conversions, config)))
         debugger = Some(b)
         b
     }

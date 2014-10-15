@@ -1,21 +1,19 @@
-package org.ensime.test
+package org.ensime.protocol
 
-import java.io.{ InputStreamReader, ByteArrayInputStream, ByteArrayOutputStream, File }
+import java.io.{ ByteArrayInputStream, ByteArrayOutputStream, File, InputStreamReader }
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.TypedActor.MethodCall
 import akka.actor.{ ActorSystem, TypedActor, TypedProps }
 import akka.testkit.TestProbe
 import org.ensime.model._
-import org.ensime.protocol.{ RPCTarget, SwankProtocol }
-import org.ensime.server._
+import org.ensime.server.refactoring._
 import org.ensime.util._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ BeforeAndAfterAll, FunSpec, ShouldMatchers }
 
-import scala.reflect.internal.util.{ RangePosition, BatchSourceFile }
 import scala.reflect.io.ZipArchive
-import scala.tools.nsc.io.{ PlainFile, VirtualFile }
+import scala.tools.nsc.io.VirtualFile
 
 class SwankProtocolSpec extends FunSpec with ShouldMatchers with BeforeAndAfterAll with MockFactory {
 

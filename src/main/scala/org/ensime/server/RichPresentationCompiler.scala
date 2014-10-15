@@ -6,6 +6,7 @@ import org.ensime.config._
 import org.ensime.indexer.SearchService
 import org.ensime.model._
 import org.ensime.protocol.FullTypeCheckCompleteEvent
+import org.ensime.server.refactoring.{ RefactoringImpl, RefactoringControl }
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
@@ -96,7 +97,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def askInvalidateTargets(): Unit = for {
     m <- config.modules.values
-    dir <- (m.targets ++ m.testTargets)
+    dir <- m.targets ++ m.testTargets
   } {
     askOption(invalidatePackage(dir))
   }
@@ -113,11 +114,11 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
         file <- config.sourceFiles
         source = getSourceFile(file.getAbsolutePath)
       } yield source
-    }.toSet ++ activeUnits.map(_.source)
+    }.toSet ++ activeUnits().map(_.source)
     askReloadFiles(all)
   }
 
-  def loadedFiles: List[SourceFile] = activeUnits.map(_.source)
+  def loadedFiles: List[SourceFile] = activeUnits().map(_.source)
 
   def askReloadExistingFiles() =
     askReloadFiles(loadedFiles)
@@ -147,12 +148,12 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     askOption(
       new SemanticHighlighting(this).symbolDesignationsInRegion(p, tpes)).getOrElse(SymbolDesignations("", List.empty))
 
-  def askClearTypeCache() = clearTypeCache()
+  def askClearTypeCache(): Unit = clearTypeCache()
 
-  def askNotifyWhenReady() = ask(setNotifyWhenReady)
+  def askNotifyWhenReady(): Unit = ask(setNotifyWhenReady)
 
-  def createSourceFile(path: String) = getSourceFile(path)
-  def createSourceFile(file: AbstractFile) = getSourceFile(file)
+  def createSourceFile(path: String): SourceFile = getSourceFile(path)
+  def createSourceFile(file: AbstractFile): SourceFile = getSourceFile(file)
   def createSourceFile(file: SourceFileInfo) = file match {
     case SourceFileInfo(f: File, None) => getSourceFile(f.getCanonicalPath)
     case SourceFileInfo(f: File, Some(contents)) => new BatchSourceFile(AbstractFile.getFile(f.getCanonicalPath), contents)
@@ -197,11 +198,11 @@ class RichPresentationCompiler(
   }
 
   def invalidatePackage(f: File): Unit = {
-    invalidateClassPathEntries(f.getCanonicalPath())
+    invalidateClassPathEntries(f.getCanonicalPath)
   }
 
   def unloadAllFiles(): Unit = {
-    allSources.foreach(removeUnitOf(_))
+    allSources.foreach(removeUnitOf)
   }
 
   /**
@@ -310,8 +311,8 @@ class RichPresentationCompiler(
         t.tpt
       case t: ValOrDefDef if t.rhs != null =>
         t.rhs
-      case t =>
-        t
+      case other =>
+        other
     }
 
     Option(tree.tpe)
@@ -368,7 +369,7 @@ class RichPresentationCompiler(
               case Select(qualifier, name) =>
                 if (qualifier.pos.includes(p)) locate(p, qualifier)
                 else inExpr.symbol
-              case tree => tree.symbol
+              case otherTree => otherTree.symbol
             }
             List(locate(p, expr))
           } else {

@@ -1,14 +1,13 @@
-package org.ensime.util
+package org.ensime.model
 
-import org.ensime.model.{ PatchInsert, PatchDelete, PatchReplace }
-import org.scalatest.{ Matchers, FunSpec }
+import org.scalatest.{ FunSpec, Matchers }
 
 class PatchSourceSpec extends FunSpec with Matchers {
 
   describe("PatchSource") {
 
     it("should apply patches correctly") {
-      import PatchSource._
+      import org.ensime.util.PatchSource._
       assert(applyOperations("abc", List(PatchReplace(0, 1, ""))) == "bc")
       assert(applyOperations("abc", List(PatchDelete(0, 1))) == "bc")
       assert(applyOperations("abc", List(

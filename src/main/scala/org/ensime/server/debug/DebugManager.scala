@@ -1,4 +1,4 @@
-package org.ensime.server
+package org.ensime.server.debug
 
 import akka.actor.{ ActorLogging, Actor, ActorRef }
 import com.sun.jdi.request.{ EventRequestManager, EventRequest, StepRequest }
@@ -9,6 +9,7 @@ import org.ensime.config._
 import org.ensime.model._
 import org.ensime.protocol._
 import org.ensime.protocol.ProtocolConst._
+import org.ensime.server.{ RPCRequestEvent, RPCResultEvent, AsyncEvent, Project }
 import org.ensime.util._
 import scala.collection.mutable.ListBuffer
 import scala.collection.{ mutable, Iterable }

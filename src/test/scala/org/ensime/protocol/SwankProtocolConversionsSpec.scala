@@ -1,19 +1,16 @@
-package org.ensime.test
+package org.ensime.protocol
 
-import org.ensime.config._
+import org.ensime.TestUtil
+import org.ensime.server.debug.{ DebugVmError, DebugVmSuccess }
 import org.ensime.model._
-import org.ensime.protocol._
 import org.ensime.server._
-import org.scalatest.FunSpec
-import org.scalatest.Matchers
+import org.ensime.server.refactoring._
 import org.ensime.util._
-
-import scala.reflect.internal.util._
-import scala.tools.nsc.io.{ Path, PlainFile }
-import scala.reflect.internal.util.{ RangePosition, OffsetPosition, BatchSourceFile }
-
+import org.scalatest.{ FunSpec, Matchers }
 import pimpathon.file._
-import org.ensime.util.RichFile._
+
+import scala.reflect.internal.util.{ BatchSourceFile, RangePosition }
+import scala.tools.nsc.io.{ Path, PlainFile }
 
 object SwankProtocolConversionsSpec {
 
@@ -72,7 +69,7 @@ object SwankProtocolConversionsSpec {
 
 class SwankProtocolConversionsSpec extends FunSpec with Matchers {
 
-  import SwankProtocolConversionsSpec._
+  import org.ensime.protocol.SwankProtocolConversionsSpec._
 
   describe("SwankProtocolConversionsSpec") {
 

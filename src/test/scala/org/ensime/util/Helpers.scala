@@ -1,28 +1,28 @@
-package org.ensime.test.util
+package org.ensime.util
+
+import java.io.File
 
 import akka.actor.ActorSystem
-import akka.event.slf4j.SLF4JLogging
 import akka.testkit.TestProbe
-import java.io.File
-import org.slf4j.LoggerFactory
-
-import scala.tools.nsc.Settings
-import scala.tools.nsc.reporters.StoreReporter
-import scala.reflect.internal.util.BatchSourceFile
-import org.ensime.server._
+import org.ensime.TestUtil
 import org.ensime.indexer._
-import org.ensime.config._
-import org.ensime.test.TestUtil
-import org.scalatest.exceptions.TestFailedException
-import scala.tools.nsc.interactive.Global
-
-import pimpathon.file._
+import org.ensime.server._
 import TestUtil._
+import org.scalatest.exceptions.TestFailedException
+import org.slf4j.LoggerFactory
+import pimpathon.file._
+import org.ensime.util.RichFile._
+
+import scala.reflect.internal.util.BatchSourceFile
+import scala.tools.nsc.Settings
+import scala.tools.nsc.interactive.Global
+import scala.tools.nsc.reporters.StoreReporter
 
 object Helpers {
 
   def withPresCompiler(action: (File, RichCompilerControl) => Any) =
-    withTempDirectory { tmp =>
+    withTempDirectory { tmpRaw =>
+      val tmp = tmpRaw.canon
       require(tmp.isDirectory)
       implicit val actorSystem = ActorSystem.create()
 

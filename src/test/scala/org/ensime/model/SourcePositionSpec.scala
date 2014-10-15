@@ -1,7 +1,7 @@
 package org.ensime.model
 
+import org.ensime.TestUtil
 import org.ensime.indexer.DatabaseService.FqnSymbol
-import org.ensime.test.TestUtil
 import org.scalatest.FunSpec
 import org.scalatest.Matchers
 import org.apache.commons.vfs2._

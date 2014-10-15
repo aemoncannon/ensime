@@ -227,10 +227,8 @@ trait CompletionControl {
     if (mo.isDefined) {
       val m = mo.get
 
-      // Check that we're actually inside the control structure's
-      // parens.
+      // Check that we're actually inside the control structure's parens.
       if (parenBalanced(m.group(1))) {
-
         logger.info("Matched sym following control structure context.")
         return Some(SymbolContext(p, m.group(2), constructing = false))
       }

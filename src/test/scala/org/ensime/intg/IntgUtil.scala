@@ -1,28 +1,26 @@
-package org.ensime.test.intg
+package org.ensime.intg
 
-import akka.event.slf4j.SLF4JLogging
 import java.io.{ File => JFile }
 import java.util.concurrent.TimeoutException
 
 import akka.actor._
+import akka.event.slf4j.SLF4JLogging
 import akka.pattern.Patterns
 import org.apache.commons.io.filefilter.TrueFileFilter
 import org.apache.commons.io.{ FileUtils => IOFileUtils }
+import org.ensime.TestUtil
 import org.ensime.config.EnsimeConfig
 import org.ensime.protocol.{ IncomingMessageEvent, OutgoingMessageEvent }
 import org.ensime.server.Server
-import org.ensime.test.TestUtil
+import org.ensime.util.RichFile._
 import org.ensime.util._
 import org.scalatest.Assertions
-import org.slf4j.LoggerFactory
+import pimpathon.file._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.io.Source
-import scala.reflect.io.{ File => SFile, Path }
-
-import RichFile._
-import pimpathon.file._
+import scala.reflect.io.{ Path, File => SFile }
 
 /**
  * Utility class to support integration level tests.
@@ -175,7 +173,7 @@ object IntgUtil extends Assertions with SLF4JLogging {
 
   /**
    * Run an integration test based on the given project
-   * @param projectSource The directory containing the test project (will not be modified)
+   * @param path The directory containing the test project (will not be modified)
    * @param f The test function to run
    */
   def withTestProject(path: String)(f: (EnsimeConfig, InteractorHelper) => Unit): Unit = {
