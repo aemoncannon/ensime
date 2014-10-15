@@ -11,6 +11,7 @@ import TestUtil._
 import org.scalatest.exceptions.TestFailedException
 import org.slf4j.LoggerFactory
 import pimpathon.file._
+import org.ensime.util.RichFile._
 
 import scala.reflect.internal.util.BatchSourceFile
 import scala.tools.nsc.Settings
@@ -20,7 +21,8 @@ import scala.tools.nsc.reporters.StoreReporter
 object Helpers {
 
   def withPresCompiler(action: (File, RichCompilerControl) => Any) =
-    withTempDirectory { tmp =>
+    withTempDirectory { tmpRaw =>
+      val tmp = tmpRaw.canon
       require(tmp.isDirectory)
       implicit val actorSystem = ActorSystem.create()
 
