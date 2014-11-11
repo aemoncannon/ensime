@@ -46,8 +46,7 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"             %  "logback-classic"      % "1.1.2",
   "org.slf4j"                  %  "jul-to-slf4j"         % "1.7.7",
   "org.slf4j"                  %  "jcl-over-slf4j"       % "1.7.7",
-  "org.scala-refactoring"      %% "org.scala-refactoring.library" % "0.6.2",
-  "com.chuusai"                %% "shapeless"            % "2.0.0"
+  "org.scala-refactoring"      %% "org.scala-refactoring.library" % "0.6.2"
 )
 
 // WORKAROUND: https://github.com/typelevel/scala/issues/75
@@ -147,7 +146,7 @@ scalariformSettings
 instrumentSettings
 
 // let's bump this every time we get more tests
-ScoverageKeys.minimumCoverage := 64
+ScoverageKeys.minimumCoverage := 73
 
 // might be buggy
 ScoverageKeys.highlighting := true
