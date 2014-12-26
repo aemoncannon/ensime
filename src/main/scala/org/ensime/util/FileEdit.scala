@@ -11,9 +11,12 @@ trait FileEdit extends Ordered[FileEdit] {
   // Required as of Scala 2.11 for reasons unknown - the companion to Ordered
   // should already be in implicit scope
   import scala.math.Ordered.orderingToOrdered
+  import scala.math.Ordering.Implicits._
 
   def compare(that: FileEdit): Int =
-    (this.file, this.from, this.to, this.text) compare (that.file, that.from, that.to, that.text)
+    implicitly[Ordering[(File, Int, Int, String)]].compare(
+      (this.file, this.from, this.to, this.text), (that.file, that.from, that.to, that.text)
+    )
 }
 
 case class TextEdit(file: File, from: Int, to: Int, text: String) extends FileEdit

@@ -31,10 +31,12 @@ class DebugWorkflow extends FunSpec with Matchers {
         val backtraceRes = project.rpcDebugBacktrace(1, 0, 3)
         backtraceRes match {
           case DebugBacktrace(List(
-            DebugStackFrame(0, List(), 0, "org.example.Foo$", "delayedEndpoint$org$example$Foo$1", LineSourcePosition(`fooFile`, 14), _),
-            DebugStackFrame(1, List(), 0, "org.example.Foo$delayedInit$body", "apply", LineSourcePosition(`fooFile`, 3), _),
-            DebugStackFrame(2, List(DebugStackLocal(0, "$this", "scala.Function0", "Instance of Foo$delayedInit$body")),
-              1, "scala.Function0$class", "apply$mcV$sp", LineSourcePosition(function0SourceFile, 40), _)), 1, "main") =>
+            DebugStackFrame(0, List(), 0, "org.example.Foo$delayedInit$body", "apply", LineSourcePosition(`fooFile`, 14), _),
+            DebugStackFrame(1, List(DebugStackLocal(0, "$this", "scala.Function0", "Instance of Foo$delayedInit$body")),
+              1, "scala.Function0$class", "apply$mcV$sp", LineSourcePosition(function0SourceFile, 40), _),
+            DebugStackFrame(2, Nil,
+              0, "scala.runtime.AbstractFunction0", "apply$mcV$sp", LineSourcePosition(_, _), _)
+            ), 1, "main") =>
             // TODO function0SourceFile  looks broken
             log.warn("FunctionSourceFile looks borked: " + function0SourceFile)
           case _ => fail("Unexpected result for backtrace: " + backtraceRes)
