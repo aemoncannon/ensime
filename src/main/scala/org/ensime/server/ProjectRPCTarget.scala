@@ -6,14 +6,9 @@ import org.ensime.config.EnsimeConfig
 import org.ensime.model._
 import org.ensime.protocol._
 import org.ensime.protocol.ProtocolConst._
+import org.ensime.protocol.swank.ReplConfig
 import org.ensime.protocol.{ ConnectionInfo, RPCTarget }
 import org.ensime.util._
-
-import scala.reflect.internal.util.RangePosition
-import scalariform.astselect.AstSelector
-import scalariform.formatter.ScalaFormatter
-import scalariform.parser.ScalaParserException
-import scalariform.utils.Range
 
 import scala.concurrent.Await
 import akka.pattern.ask
@@ -24,6 +19,7 @@ import shapeless.Typeable
 trait ProjectRPCTarget extends RPCTarget { self: Project =>
 
   val defaultMaxWait: FiniteDuration = 30.seconds
+
   def callVoidRPC(target: ActorRef, request: RPCRequest, maxWait: FiniteDuration = defaultMaxWait): Unit = {
     callRPC[VoidResponse.type](target, request, maxWait)
   }
@@ -55,13 +51,12 @@ trait ProjectRPCTarget extends RPCTarget { self: Project =>
     shutdownServer()
   }
 
-  override def rcpInitProject(confSExp: SExp): EnsimeConfig = {
-    // bit of a hack - simply return the init string right now until it goes away
-    self.config
+  override def rpcNotifyClientReady(): Unit = {
+    actor ! ClientReadyEvent
   }
 
-  override def rpcNotifyClientConnected(): Unit = {
-    actor ! ClientConnectedEvent
+  override def rpcSubscribeAsync(handler: ProtocolEvent => Unit): Boolean = {
+    callRPC[Boolean](actor, SubscribeAsync(handler))
   }
 
   override def rpcPeekUndo(): Either[String, Undo] = {
@@ -102,20 +97,20 @@ trait ProjectRPCTarget extends RPCTarget { self: Project =>
     callRPC[Boolean](acquireDebugger, DebugContinueReq(threadId))
   }
 
-  override def rpcDebugBreak(file: String, line: Int): Unit = {
-    callVoidRPC(acquireDebugger, DebugBreakReq(file, line))
+  override def rpcDebugSetBreakpoint(file: String, line: Int): Unit = {
+    callVoidRPC(acquireDebugger, DebugSetBreakpointReq(file, line))
   }
 
-  override def rpcDebugClearBreak(file: String, line: Int): Unit = {
-    callVoidRPC(acquireDebugger, DebugClearBreakReq(file, line))
+  override def rpcDebugClearBreakpoint(file: String, line: Int): Unit = {
+    callVoidRPC(acquireDebugger, DebugClearBreakpointReq(file, line))
   }
 
-  override def rpcDebugClearAllBreaks(): Unit = {
-    callVoidRPC(acquireDebugger, DebugClearAllBreaksReq)
+  override def rpcDebugClearAllBreakpoints(): Unit = {
+    callVoidRPC(acquireDebugger, DebugClearAllBreakpointsReq)
   }
 
-  override def rpcDebugListBreaks(): BreakpointList = {
-    callRPC[BreakpointList](acquireDebugger, DebugListBreaksReq)
+  override def rpcDebugListBreakpoints(): BreakpointList = {
+    callRPC[BreakpointList](acquireDebugger, DebugListBreakpointsReq)
   }
 
   override def rpcDebugNext(threadId: Long): Boolean = {
@@ -225,15 +220,15 @@ trait ProjectRPCTarget extends RPCTarget { self: Project =>
   }
 
   override def rpcImportSuggestions(f: String, point: Int, names: List[String], maxResults: Int): ImportSuggestions = {
-    callRPC[ImportSuggestions](getIndexer, ImportSuggestionsReq(new File(f), point, names, maxResults))
+    callRPC[ImportSuggestions](indexer, ImportSuggestionsReq(new File(f), point, names, maxResults))
   }
 
   override def rpcPublicSymbolSearch(names: List[String], maxResults: Int): SymbolSearchResults = {
-    callRPC[SymbolSearchResults](getIndexer, PublicSymbolSearchReq(names, maxResults))
+    callRPC[SymbolSearchResults](indexer, PublicSymbolSearchReq(names, maxResults))
   }
 
-  override def rpcUsesOfSymAtPoint(f: String, point: Int): List[RangePosition] = {
-    callRPC[List[RangePosition]](getAnalyzer, UsesOfSymAtPointReq(new File(f), point))
+  override def rpcUsesOfSymAtPoint(f: String, point: Int): List[ERangePosition] = {
+    callRPC[List[ERangePosition]](getAnalyzer, UsesOfSymAtPointReq(new File(f), point))
   }
 
   override def rpcTypeAtPoint(f: String, range: OffsetRange): Option[TypeInfo] = {
@@ -257,44 +252,11 @@ trait ProjectRPCTarget extends RPCTarget { self: Project =>
   }
 
   override def rpcExpandSelection(filename: String, start: Int, stop: Int): FileRange = {
-    try {
-      FileUtils.readFile(new File(filename)) match {
-        case Right(contents) =>
-          val selectionRange = Range(start, stop - start)
-          AstSelector.expandSelection(contents, selectionRange) match {
-            case Some(range) => FileRange(filename, range.offset, range.offset + range.length)
-            case _ =>
-              FileRange(filename, start, stop)
-          }
-        case Left(e) => throw e
-      }
-    } catch {
-      case e: ScalaParserException =>
-        throw RPCError(ErrFormatFailed, "Could not parse broken syntax: " + e)
-    }
+    callRPC[FileRange](getAnalyzer, ExpandSelectionReq(filename, start, stop))
   }
 
   override def rpcFormatFiles(filenames: List[String]): Unit = {
-    val files = filenames.map { new File(_) }
-    try {
-      val changeList = files.map { f =>
-        FileUtils.readFile(f) match {
-          case Right(contents) =>
-            val formatted = ScalaFormatter.format(contents, config.formattingPrefs)
-            TextEdit(f, 0, contents.length, formatted)
-          case Left(e) => throw e
-        }
-      }
-      addUndo("Formatted source of " + filenames.mkString(", ") + ".", FileUtils.inverseEdits(changeList))
-      FileUtils.writeChanges(changeList) match {
-        case Right(_) =>
-        // do nothing - returning signals success
-        case Left(e) =>
-          throw RPCError(ErrFormatFailed, "Could not write any formatting changes: " + e)
-      }
-    } catch {
-      case e: ScalaParserException =>
-        throw RPCError(ErrFormatFailed, "Cannot format broken syntax: " + e)
-    }
+    callVoidRPC(getAnalyzer, FormatFilesReq(filenames))
   }
+
 }

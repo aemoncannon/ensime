@@ -5,16 +5,12 @@ import java.util
 import DatabaseService._
 import akka.event.slf4j.SLF4JLogging
 import java.sql.SQLException
-import java.util.ArrayList
-import java.util.concurrent.BlockingQueue
 import java.util.concurrent.Executors
-import com.google.common.io.ByteStreams
 import java.util.concurrent.LinkedBlockingQueue
 import org.apache.commons.vfs2._
 import org.ensime.config.EnsimeConfig
 import pimpathon.file._
 import scala.concurrent.Future
-import scala.util.Properties
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
@@ -130,6 +126,8 @@ class SearchService(
     } yield (r, i)
   }
 
+  def refreshResolver(): Unit = resolver.update()
+
   private def persist(check: FileCheck, symbols: List[FqnSymbol]): Unit = try {
     index.persist(check, symbols)
     db.persist(check, symbols)
@@ -140,7 +138,7 @@ class SearchService(
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
-  private val ignore = Set("$$anonfun$", "$worker$")
+  private val ignore = Set("$$anon$", "$$anonfun$", "$worker$")
   import org.ensime.util.RichFileObject._
   private def extractSymbols(container: FileObject, f: FileObject): List[FqnSymbol] = {
     f.pathWithinArchive match {

@@ -23,7 +23,8 @@ libraryDependencies ++= Seq(
   "com.chuusai"                % ("shapeless_" + scalaVersion.value) % "2.0.0",
   "com.github.stacycurl"       %% "pimpathon-core"       % "1.2.0",
   "org.parboiled"              %% "parboiled-scala"      % "1.1.6",
-  "com.h2database"             %  "h2"                   % "1.4.183",
+  // h2 1.4.183 is bad https://github.com/ensime/ensime-server/issues/717
+  "com.h2database"             %  "h2"                   % "1.4.182",
   "com.typesafe.slick"         %% "slick"                % "2.1.0",
   "com.jolbox"                 %  "bonecp"               % "0.8.0.RELEASE",
   "org.apache.commons"         %  "commons-vfs2"         % "2.0" intransitive(),
@@ -144,7 +145,7 @@ graphSettings
 scalariformSettings
 
 // let's bump this every time we get more tests
-ScoverageKeys.coverageMinimum := 68
+ScoverageKeys.coverageMinimum :=73
 
 ScoverageKeys.coverageFailOnMinimum := true
 
