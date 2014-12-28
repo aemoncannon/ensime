@@ -1,6 +1,7 @@
 package org.ensime.server
 
 import java.io.File
+import java.nio.charset.Charset
 import akka.actor.ActorRef
 import org.ensime.config._
 import org.ensime.indexer.SearchService
@@ -19,6 +20,8 @@ import scala.tools.refactoring.analysis.GlobalIndexes
 
 trait RichCompilerControl extends CompilerControl with RefactoringControl with CompletionControl {
   self: RichPresentationCompiler =>
+
+  def charset: Charset = Charset.forName(settings.encoding.value)
 
   def askOption[A](op: => A): Option[A] =
     try {
@@ -160,7 +163,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
 class RichPresentationCompiler(
   val config: EnsimeConfig,
-  settings: Settings,
+  override val settings: Settings,
   val richReporter: Reporter,
   var parent: ActorRef,
   var indexer: ActorRef,
@@ -291,16 +294,16 @@ class RichPresentationCompiler(
 
   private def typeOfTree(t: Tree): Option[Type] = {
     val tree = t match {
-      case Select(qual, name) if t.tpe == ErrorType =>
-        qual
+      case Select(qualifier, name) if t.tpe == ErrorType =>
+        qualifier
       case t: ImplDef if t.impl != null =>
         t.impl
       case t: ValOrDefDef if t.tpt != null =>
         t.tpt
       case t: ValOrDefDef if t.rhs != null =>
         t.rhs
-      case t =>
-        t
+      case otherTree =>
+        otherTree
     }
 
     Option(tree.tpe)
@@ -455,11 +458,11 @@ class RichPresentationCompiler(
     wrapReloadSources(List(source))
 
   def wrapReloadSources(sources: List[SourceFile]): Unit = {
-    val superseeded = scheduler.dequeueAll {
+    val superseded = scheduler.dequeueAll {
       case ri: ReloadItem if ri.sources == sources => Some(ri)
       case _ => None
     }
-    superseeded.foreach(_.response.set(()))
+    superseded.foreach(_.response.set(()))
     wrap[Unit](r => new ReloadItem(sources, r).apply(), _ => ())
   }
 
