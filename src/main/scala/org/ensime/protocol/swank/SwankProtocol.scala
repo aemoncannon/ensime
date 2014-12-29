@@ -10,7 +10,7 @@ import org.ensime.util.SExp._
 import org.ensime.util._
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
+import scala.concurrent.backport.Future
 
 class SwankProtocol(actorSystem: ActorSystem,
     val peer: ActorRef,

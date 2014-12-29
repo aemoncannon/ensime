@@ -64,8 +64,8 @@ class SexpFormatUtilsSpec extends FormatSpec with SexpFormats {
         }
       )
 
-      assert(foo.convertTo[Try[SexpString]](safe) === Success(foo))
-      assert(bar.convertTo[Try[SexpString]](safe).isInstanceOf[Failure[_]])
+      assert(foo.convertTo[Option[SexpString]](safe) === Some(foo))
+      assert(bar.convertTo[Option[SexpString]](safe) === None)
     }
   }
 }

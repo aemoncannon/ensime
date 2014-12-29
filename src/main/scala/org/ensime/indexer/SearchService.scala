@@ -10,8 +10,8 @@ import java.util.concurrent.LinkedBlockingQueue
 import org.apache.commons.vfs2._
 import org.ensime.config.EnsimeConfig
 import pimpathon.file._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.backport.Future
+import scala.concurrent.backport.ExecutionContext.Implicits.global
 
 /**
  * Provides methods to perform ENSIME-specific indexing tasks,
@@ -34,7 +34,7 @@ class SearchService(
 
   // don't use Global because it stalls trivial tasks
   private object worker {
-    implicit val context = concurrent.ExecutionContext.fromExecutor(
+    implicit val context = concurrent.backport.ExecutionContext.fromExecutor(
       Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors)
     )
   }
@@ -71,12 +71,10 @@ class SearchService(
         (name.endsWith(".jar") && !jarUris(name))
     } yield f
 
-    log.info(s"removing ${stale.size} stale files from the index")
-    if (log.isTraceEnabled)
-      log.trace(s"STALE = $stale")
+    log.info("removing " + stale.size + " stale files from the index")
 
     // individual DELETEs in H2 are really slow
-    val removing = stale.grouped(1000).map { files =>
+    val removing = stale.grouped(1000).toSeq.map { files =>
       Future {
         index.remove(files)
         db.removeFiles(files)
@@ -104,7 +102,7 @@ class SearchService(
         }(worker.context)
 
         case jar => Future[Unit] {
-          log.debug(s"indexing $jar")
+          log.debug("indexing " + jar)
           val check = FileCheck(jar)
           val symbols = scan(vjar(jar)) flatMap (extractSymbols(jar, _))
           persist(check, symbols)
@@ -134,7 +132,7 @@ class SearchService(
   } catch {
     case e: SQLException =>
       // likely a timing issue or corner-case dupe FQNs
-      log.warn(s"failed to insert $symbols ${e.getClass}: ${e.getMessage}")
+      log.warn("failed to insert " + symbols + " " + e.getClass + ": " + e.getMessage)
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
@@ -208,7 +206,7 @@ class SearchService(
           }
         }.toList
 
-        log.info(s"Indexing ${work.size} classfiles")
+        log.info("Indexing " + work.size + " classfiles")
 
         delete(work.map(_._1))
 

@@ -132,8 +132,8 @@ object EnsimeConfig {
     with ScalariformFormat
   import Protocol._
 
-  private implicit val moduleFormat = SexpFormat[EnsimeModule]
-  private implicit val configFormat = SexpFormat[EnsimeConfig]
+  private implicit val moduleFormat = productFormat11(EnsimeModule.apply)
+  private implicit val configFormat = productFormat10(EnsimeConfig.apply)
 
   def parse(config: String): EnsimeConfig = {
     val raw = config.parseSexp.convertTo[EnsimeConfig]

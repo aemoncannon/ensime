@@ -20,15 +20,8 @@ class ProductFormatsSpec extends FormatSpec
     )
 
     it("should support primitive types") {
-      // will create the marshaller every time assertFormat is called
-      assertFormat(foo, fooexpect)
-      assertFormat(foo, fooexpect)
-      assertFormat(foo, fooexpect)
-    }
+      implicit val FooFormat = productFormat2(Foo)
 
-    it("should support 'fast' case classes") {
-      // can't really test - its a side effect optimisation
-      implicit val FastFooFormat = SexpFormat[Foo]
       assertFormat(foo, fooexpect)
       assertFormat(foo, fooexpect)
       assertFormat(foo, fooexpect)
@@ -40,17 +33,21 @@ class ProductFormatsSpec extends FormatSpec
         SexpSymbol(":foo") -> fooexpect
       )
 
-      // WORKAROUND http://stackoverflow.com/questions/25923974
-      implicit val FastFooFormat = SexpFormat[Foo]
+      implicit val FooFormat = productFormat2(Foo)
+      implicit val BarFormat = productFormat1(Bar)
 
       assertFormat(bar, expect)
     }
 
     it("should support zero content case classes") {
+      implicit val BazFormat = productFormat0(Baz)
+
       assertFormat(Baz(), SexpNil)
     }
 
     it("should support missing fields as SexpNil / None") {
+      implicit val WibbleFormat = productFormat3(Wibble)
+
       val wibble = Wibble("wibble", 13, Some("fork"))
 
       assertFormat(wibble, SexpData(
@@ -78,17 +75,10 @@ class ProductFormatsSpec extends FormatSpec
     val foo = (13, "foo")
     val fooexpect = SexpList(SexpNumber(13), SexpString("foo"))
 
+    implicit val TupleFooFormat = tupleFormat2[Int, String]
+
     it("should support primitive types") {
       assertFormat(foo, fooexpect)
     }
-
-    it("should support 'fast' tuples") {
-      // can't really test - its a side effect optimisation
-      implicit val FastFooFormat = SexpFormat[(Int, String)]
-      assertFormat(foo, fooexpect)
-      assertFormat(foo, fooexpect)
-      assertFormat(foo, fooexpect)
-    }
-
   }
 }

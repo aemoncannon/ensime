@@ -1,8 +1,8 @@
 package org.ensime.test
 
 import akka.event.slf4j.SLF4JLogging
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.backport.Await
+import scala.concurrent.backport.duration._
 import scala.reflect.internal.util.OffsetPosition
 import org.scalatest.FunSpec
 import org.scalatest.Matchers
@@ -205,12 +205,12 @@ class RichPresentationCompilerSpec extends FunSpec with Matchers with SLF4JLoggi
 
             val info = cc1.askSymbolInfoAt(new OffsetPosition(usesFile, usePos)) match {
               case Some(x) => x
-              case None => fail(s"For $comment, askSymbolInfoAt returned None")
+              case None => fail(comment)
             }
             val declPos = info.declPos
             declPos match {
               case Some(op: OffsetSourcePosition) => assert(op.offset === defPos)
-              case _ => fail(s"For $comment, unexpected declPos value: $declPos")
+              case _ => fail(comment + " " + declPos)
             }
           } finally {
             cc1.askShutdown()

@@ -22,6 +22,7 @@ resolvers += "Akka Repo" at "http://repo.akka.io/repository"
 resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
+  "com.chuusai"                %  "shapeless_2.9.2"      % "1.2.4",
   "com.github.stacycurl"       %% "pimpathon-core"       % "1.2.0",
   "org.parboiled"              %% "parboiled-scala"      % {if (scalaVersion.value == "2.9.2") "1.1.4" else "1.1.6"},
   // h2 1.4.183 is bad https://github.com/ensime/ensime-server/issues/717
@@ -76,7 +77,8 @@ internalDependencyClasspath in Compile += { Attributed.blank(JavaTools) }
 internalDependencyClasspath in Test += { Attributed.blank(JavaTools) }
 
 scalacOptions in Compile ++= Seq(
-  "-encoding", "UTF-8", "-unchecked", "-deprecation", "-Xfatal-warnings"
+  "-encoding", "UTF-8", "-unchecked", "-deprecation", "-Xfatal-warnings",
+  "-Ydependent-method-types"
 )
 
 javacOptions in (Compile, compile) ++= Seq (

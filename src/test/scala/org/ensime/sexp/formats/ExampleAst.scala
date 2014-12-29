@@ -5,7 +5,7 @@ package org.ensime.sexp.formats
  */
 object ExampleAst {
   sealed trait Token {
-    val text: String
+    def text: String
   }
 
   sealed trait RawToken extends Token
@@ -29,7 +29,7 @@ object ExampleAst {
   case class Unclear(text: String = "") extends TokenTree
 
   sealed trait Term extends TokenTree {
-    val field: DatabaseField
+    def field: DatabaseField
   }
 
   case class DatabaseField(column: String)
@@ -41,11 +41,11 @@ object ExampleAst {
     high: Option[String] = None,
     inclusive: Boolean = false) extends Term
   case class LikeTerm(term: FieldTerm, like: Option[Like]) extends Term {
-    val text = like.map(_.text).getOrElse("")
-    val field = term.field
+    def text = like.map(_.text).getOrElse("")
+    def field = term.field
   }
   case class PreferToken(tree: TokenTree, before: Option[Prefer], after: Option[Prefer]) extends TokenTree {
-    val text = before.getOrElse("") + tree.text + after.getOrElse("")
+    def text = before.getOrElse("") + tree.text + after.getOrElse("")
   }
   case class InTerm(field: DatabaseField, value: List[String], text: String = "") extends CompressedToken
   case class QualifierToken(text: String, field: DatabaseField) extends ContextualToken with Term

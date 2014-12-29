@@ -1,7 +1,5 @@
 package org.ensime.sexp.formats
 
-import scala.util.Try
-
 import org.ensime.sexp._
 
 /**
@@ -21,8 +19,12 @@ object SexpFormatUtils {
   /**
    * Wraps an existing `SexpReader` with `Exception` protection.
    */
-  def safeReader[A: SexpReader] = new SexpReader[Try[A]] {
-    def read(value: Sexp) = Try(value.convertTo[A])
+  def safeReader[A: SexpReader] = new SexpReader[Option[A]] {
+    def read(value: Sexp) = try {
+      Some(value.convertTo[A])
+    } catch {
+      case _: Throwable => None
+    }
   }
 
   /**
@@ -41,7 +43,7 @@ object SexpFormatUtils {
    */
   def lift[T](reader: SexpReader[T]) = new SexpFormat[T] {
     def write(obj: T): Sexp =
-      throw new UnsupportedOperationException(s"SexpWriter implementation missing")
+      throw new UnsupportedOperationException("SexpWriter implementation missing")
     def read(value: Sexp) = reader.read(value)
   }
 }

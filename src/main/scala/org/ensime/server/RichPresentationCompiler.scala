@@ -10,7 +10,7 @@ import org.ensime.protocol.FullTypeCheckCompleteEvent
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
-import scala.tools.nsc.util._
+import scala.tools.nsc.util.FailedInterrupt
 import scala.reflect.internal.util._
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.reporters.Reporter
@@ -91,7 +91,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     x.get
   }
 
-  def askLoadedTyped(f: SourceFile) {
+  def askLoadedTyped(f: SourceFile): Either[Tree, Throwable] = {
     val x = new Response[Tree]()
     askLoadedTyped(f, x)
     x.get
@@ -163,11 +163,11 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
 class RichPresentationCompiler(
   val config: EnsimeConfig,
-  override val settings: Settings,
+  val origSettings: Settings,
   val richReporter: Reporter,
   var parent: ActorRef,
   var indexer: ActorRef,
-  val search: SearchService) extends Global(settings, richReporter)
+  val search: SearchService) extends Global(origSettings, richReporter)
     with ModelBuilders with RichCompilerControl
     with RefactoringImpl with Completion with Helpers {
 

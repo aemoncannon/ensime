@@ -9,7 +9,7 @@ import pimpathon.file._
 import org.ensime.config._
 import org.ensime.util.RichFile._
 import org.ensime.util.FileUtils.jdkDir
-import scala.concurrent.duration._
+import scala.concurrent.backport.duration._
 import scalariform.formatter.preferences.FormattingPreferences
 
 object TestUtil {

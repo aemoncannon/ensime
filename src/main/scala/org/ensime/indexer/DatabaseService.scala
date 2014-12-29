@@ -4,8 +4,15 @@ import akka.event.slf4j.SLF4JLogging
 import java.io.File
 import java.sql.Timestamp
 import org.apache.commons.vfs2.FileObject
-import scala.slick.driver.H2Driver.simple._
 import com.jolbox.bonecp.BoneCPDataSource
+
+import org.scalaquery.session._
+import org.scalaquery.session.Database.threadLocalSession
+import org.scalaquery.ql._
+import org.scalaquery.ql.TypeMapper._
+import org.scalaquery.ql.extended.H2Driver.Implicit._
+import org.scalaquery.ql.extended.{ ExtendedTable => Table }
+
 import DatabaseService._
 
 class DatabaseService(dir: File) extends SLF4JLogging {
@@ -26,8 +33,8 @@ class DatabaseService(dir: File) extends SLF4JLogging {
   if (!dir.exists) {
     log.info("creating the search database")
     dir.mkdirs()
-    db withSession { implicit s =>
-      (fileChecks.ddl ++ fqnSymbols.ddl).create
+    db withSession {
+      (FileChecks.ddl ++ FqnSymbols.ddl).create
     }
   }
 
@@ -35,32 +42,36 @@ class DatabaseService(dir: File) extends SLF4JLogging {
   // TODO reverse lookup table
 
   // file with last modified time
-  def knownFiles(): List[FileCheck] = db.withSession { implicit s =>
-    (for (row <- fileChecks) yield row).list
+  def knownFiles(): List[FileCheck] = {
+    db.withSession {
+      (for (row <- FileChecks) yield row).list
+    }
+  }.map {
+    FileCheck.apply
   }
 
-  def removeFiles(files: List[FileObject]): Int = db.withSession { implicit s =>
+  def removeFiles(files: List[FileObject]): Int = db.withSession {
     val restrict = files.map(_.getName.getURI)
     val q1 = for {
-      row <- fqnSymbols
+      row <- FqnSymbols
       if row.file inSet restrict
     } yield row
     q1.delete
 
     val q2 = for {
-      row <- fileChecks
+      row <- FileChecks
       if row.filename inSet restrict
     } yield row
     q2.delete
   }
 
-  def outOfDate(f: FileObject): Boolean = db withSession { implicit s =>
+  def outOfDate(f: FileObject): Boolean = db withSession {
     val uri = f.getName.getURI
     val modified = f.getContent.getLastModifiedTime
 
     val query = for {
       filename <- Parameters[String]
-      u <- fileChecks if u.filename === filename
+      u <- FileChecks if u.filename === filename
     } yield u.timestamp
 
     query(uri).list.map(_.getTime).headOption match {
@@ -71,28 +82,31 @@ class DatabaseService(dir: File) extends SLF4JLogging {
   }
 
   def persist(check: FileCheck, symbols: Seq[FqnSymbol]): Unit =
-    db.withSession { implicit s =>
-      fileChecks.insert(check)
-      fqnSymbols.insertAll(symbols: _*)
+    db.withSession {
+      FileChecks.insert(check)
+      val tuples = symbols.map { e => FqnSymbol.unapply(e).get }
+      FqnSymbols.insertAll(tuples: _*)
     }
 
-  private val findCompiled = Compiled((fqn: Column[String]) =>
-    fqnSymbols.filter(_.fqn === fqn).take(1)
-  )
-  def find(fqn: String): Option[FqnSymbol] = db.withSession { implicit s =>
-    findCompiled(fqn).firstOption
-  }
+  def find(fqn: String): Option[FqnSymbol] = db.withSession {
+    {
+      for {
+        row <- FqnSymbols
+        if row.fqn === fqn
+      } yield row
+    }.list.headOption
+  }.map(FqnSymbol.apply)
 
   import IndexService._
   def find(fqns: List[FqnIndex]): List[FqnSymbol] = {
-    db.withSession { implicit s =>
+    db.withSession {
       val restrict = fqns.map(_.fqn)
       val query = for {
-        row <- fqnSymbols
+        row <- FqnSymbols
         if row.fqn inSet restrict
       } yield row
 
-      val results = query.list.groupBy(_.fqn)
+      val results = query.list.map(FqnSymbol.apply).groupBy(_.fqn)
       restrict.flatMap(results.get(_).map(_.head))
     }
   }
@@ -115,25 +129,29 @@ object DatabaseService {
   //}
 
   case class FileCheck(id: Option[Int], filename: String, timestamp: Timestamp) {
-    def file = vfile(filename)
+    def file = vfilename(filename)
     def lastModified = timestamp.getTime
     def changed = file.getContent.getLastModifiedTime != lastModified
   }
-  object FileCheck extends ((Option[Int], String, Timestamp) => FileCheck) {
+  object FileCheck {
+    def apply(t: (Option[Int], String, Timestamp)): FileCheck =
+      new FileCheck(t._1, t._2, t._3)
+
     def apply(f: FileObject): FileCheck = {
       val name = f.getName.getURI
       val ts = new Timestamp(f.getContent.getLastModifiedTime)
       FileCheck(None, name, ts)
     }
   }
-  private class FileChecks(tag: Tag) extends Table[FileCheck](tag, "FILECHECKS") {
+  object FileChecks extends Table[(Option[Int], String, Timestamp)]("FILECHECKS") {
     def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
     def filename = column[String]("filename")
     def timestamp = column[Timestamp]("timestamp")
-    def * = (id.?, filename, timestamp) <> (FileCheck.tupled, FileCheck.unapply)
+    def * = id.? ~ filename ~ timestamp
     def idx = index("idx_filename", filename, unique = true)
+
+    def insert(e: FileCheck): Int = insert(FileCheck.unapply(e).get)
   }
-  private val fileChecks = TableQuery[FileChecks]
 
   case class FqnSymbol(
       id: Option[Int],
@@ -149,7 +167,7 @@ object DatabaseService {
       ) {
     // this is just as a helper until we can use more sensible
     // domain objects with slick
-    def sourceFileObject = source.map(vfile)
+    def sourceFileObject = source.map(vfilename)
 
     // legacy: note that we can't distinguish class/trait
     def declAs: Symbol =
@@ -157,7 +175,12 @@ object DatabaseService {
       else if (internal.isDefined) 'field
       else 'class
   }
-  private class FqnSymbols(tag: Tag) extends Table[FqnSymbol](tag, "FQN_SYMBOLS") {
+  object FqnSymbol {
+    def apply(t: ((Option[Int], String, String, String, Option[String], Option[String], Option[String], Option[Int], Option[Int]))): FqnSymbol =
+      new FqnSymbol(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)
+  }
+
+  object FqnSymbols extends Table[(Option[Int], String, String, String, Option[String], Option[String], Option[String], Option[Int], Option[Int])]("FQN_SYMBOLS") {
     def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
     def file = column[String]("file")
     def path = column[String]("path")
@@ -167,9 +190,13 @@ object DatabaseService {
     def source = column[Option[String]]("source handle")
     def line = column[Option[Int]]("line in source")
     def offset = column[Option[Int]]("offset in source")
-    def * = (id.?, file, path, fqn, descriptor, internal, source, line, offset) <> (FqnSymbol.tupled, FqnSymbol.unapply)
+    def * = id.? ~ file ~ path ~ fqn ~ descriptor ~ internal ~ source ~ line ~ offset
     def fqnIdx = index("idx_fqn", fqn, unique = false) // fqns are unique by type and sig
-    def uniq = index("idx_uniq", (fqn, descriptor, internal), unique = true)
+    def uniq = index("idx_uniq", fqn ~ descriptor ~ internal, unique = true)
+
+    def insert(e: FqnSymbol): Int = insert(FqnSymbol.unapply(e).get)
+
+    // insertAll cannot be hacked this way
+    // something to do with https://issues.scala-lang.org/browse/SI-4626
   }
-  private val fqnSymbols = TableQuery[FqnSymbols]
 }

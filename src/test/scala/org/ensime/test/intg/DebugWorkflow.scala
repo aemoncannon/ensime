@@ -6,7 +6,7 @@ import org.ensime.server.DebugVmSuccess
 import org.scalatest.{ FunSpec, Matchers }
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.duration._
+import scala.concurrent.backport.duration._
 import pimpathon.file._
 
 class DebugWorkflow extends FunSpec with Matchers {
@@ -33,7 +33,7 @@ class DebugWorkflow extends FunSpec with Matchers {
           case DebugBacktrace(List(
             DebugStackFrame(0, List(), 0, "org.example.Foo$delayedInit$body", "apply", LineSourcePosition(`fooFile`, 14), _),
             DebugStackFrame(1, List(DebugStackLocal(0, "$this", "scala.Function0", "Instance of Foo$delayedInit$body")),
-              1, "scala.Function0$class", "apply$mcV$sp", LineSourcePosition(function0SourceFile, 40), _),
+              1, "scala.Function0$class", "apply$mcV$sp", LineSourcePosition(function0SourceFile, 34), _),
             DebugStackFrame(2, Nil,
               0, "scala.runtime.AbstractFunction0", "apply$mcV$sp", LineSourcePosition(_, _), _)
             ), 1, "main") =>

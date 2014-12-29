@@ -6,7 +6,6 @@ import java.nio.charset.Charset
 import org.apache.commons.vfs2.FileObject
 import scala.collection.Seq
 import scala.collection.mutable
-import scala.util.Try
 import scala.sys.process._
 
 import pimpathon.file._
@@ -68,7 +67,7 @@ object FileUtils {
     sys.env.get("JDK_HOME"),
     sys.env.get("JAVA_HOME"),
     // osx
-    Try("/usr/libexec/java_home".!!.trim).toOption,
+    try { Some("/usr/libexec/java_home".!!.trim) } catch { case t: Throwable => None },
     // fallback
     sys.props.get("java.home").map(new File(_).getParent),
     sys.props.get("java.home")

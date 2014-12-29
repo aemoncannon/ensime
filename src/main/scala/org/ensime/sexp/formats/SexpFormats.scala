@@ -1,7 +1,6 @@
 package org.ensime.sexp.formats
 
 import org.ensime.sexp._
-import scala.reflect.ClassTag
 
 trait SexpFormats {
   /**
@@ -12,12 +11,9 @@ trait SexpFormats {
     def read(json: Sexp) = reader.read(json)
   }
 
-  implicit def sexpIdentityFormat[T <: Sexp: ClassTag] = new SexpFormat[T] {
+  implicit def sexpIdentityFormat[T <: Sexp: Manifest] = new SexpFormat[T] {
     def write(o: T) = o
-    def read(v: Sexp) = v match {
-      case t: T => t
-      case x => deserializationError(x)
-    }
+    def read(v: Sexp) = v.asInstanceOf[T]
   }
 
   // performance boilerplate

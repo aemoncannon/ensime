@@ -3,6 +3,8 @@ package org.ensime.sexp.formats
 import org.ensime.sexp._
 import shapeless._
 
+import SexpFormatUtils._
+
 class FamilyFormatsSpec extends FormatSpec with FamilyFormats {
 
   case object Bloo
@@ -16,19 +18,24 @@ class FamilyFormatsSpec extends FormatSpec with FamilyFormats {
       import DefaultSexpProtocol._
       import ExampleAst._
 
-      // the Scala 2.10 compiler needs these explicitly provided
-      implicit val FieldTermF = SexpFormat[FieldTerm]
-      implicit val BoundedTermF = SexpFormat[BoundedTerm]
-      implicit val UnparsedF = SexpFormat[Unparsed]
-      implicit val IgnoredF = SexpFormat[Ignored]
-      implicit val UnclearF = SexpFormat[Unclear]
-      implicit val InTermF = SexpFormat[InTerm]
-      implicit val LikeF = SexpFormat[Like]
-      implicit val LikeTermF = SexpFormat[LikeTerm]
-      implicit val QualifierTokenF = SexpFormat[QualifierToken]
-
       /////////////////// START OF BOILERPLATE /////////////////
-      implicit object TokenTreeFormat extends TraitFormat[TokenTree] {
+
+      implicit val DatabaseFieldF = productFormat1(DatabaseField)
+      implicit val PreferF = productFormat1(Prefer)
+      implicit val FieldTermF = productFormat3(FieldTerm)
+      implicit val BoundedTermF = productFormat5(BoundedTerm)
+      implicit val UnparsedF = productFormat1(Unparsed)
+      implicit val IgnoredF = productFormat1(Ignored)
+      implicit val UnclearF = productFormat1(Unclear)
+      implicit val InTermF = productFormat3(InTerm)
+      implicit val LikeF = productFormat1(Like)
+      implicit val LikeTermF = productFormat2(LikeTerm)
+      implicit val QualifierTokenF = productFormat2(QualifierToken)
+
+      implicit def AndConditionF = productFormat3(AndCondition)
+      implicit def OrConditionF = productFormat3(OrCondition)
+
+      implicit def TokenTreeFormat: SexpFormat[TokenTree] = new TraitFormat[TokenTree] {
         // get a performance improvement by creating as many implicit vals
         // for TypeHint[T] as possible, e.g.
         // implicit val FieldTermTH = typehint[FieldTerm]
@@ -51,9 +58,9 @@ class FamilyFormatsSpec extends FormatSpec with FamilyFormats {
           case u: Unclear => wrap(u)
           case i: InTerm => wrap(i)
           case like: LikeTerm => wrap(like)
-          case a: AndCondition => wrap(a)
-          case o: OrCondition => wrap(o)
-          case prefer: PreferToken => wrap(prefer)
+          case a: AndCondition => wrap(a)(typehint[AndCondition], AndConditionF)
+          case o: OrCondition => wrap(o)(typehint[OrCondition], OrConditionF)
+          case prefer: PreferToken => throw new UnsupportedOperationException
           case q: QualifierToken => wrap(q)
         }
 
@@ -67,12 +74,12 @@ class FamilyFormatsSpec extends FormatSpec with FamilyFormats {
           case s if s == implicitly[TypeHint[LikeTerm]].hint => value.convertTo[LikeTerm]
           case s if s == implicitly[TypeHint[AndCondition]].hint => value.convertTo[AndCondition]
           case s if s == implicitly[TypeHint[OrCondition]].hint => value.convertTo[OrCondition]
-          case s if s == implicitly[TypeHint[PreferToken]].hint => value.convertTo[PreferToken]
           case s if s == implicitly[TypeHint[QualifierToken]].hint => value.convertTo[QualifierToken]
           // SAD FACE --- compiler doesn't catch typos on matches or missing impls
           case _ => deserializationError(hint)
         }
       }
+
       /////////////////// END OF BOILERPLATE /////////////////
 
       val fieldTerm = FieldTerm("thing is ten", DatabaseField("THING"), "10")

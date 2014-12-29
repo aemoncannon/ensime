@@ -241,7 +241,7 @@ class Analyzer(
                 sender ! handleExecUndo(undo)
               case ExpandSelectionReq(filename: String, start: Int, stop: Int) =>
                 sender ! handleExpandselection(filename, start, stop)
-              case FormatFilesReq(filenames: List[String]) =>
+              case FormatFilesReq(filenames) =>
                 handleFormatFiles(filenames)
                 sender ! VoidResponse
             }

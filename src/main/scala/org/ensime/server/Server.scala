@@ -30,7 +30,7 @@ object Server {
 
     val ensimeFile = new File(ensimeFileStr)
     if (!ensimeFile.exists() || !ensimeFile.isFile)
-      throw new RuntimeException(s".ensime file ($ensimeFile) not found")
+      throw new RuntimeException(".ensime file (" + ensimeFile + ") not found")
 
     val config = EnsimeConfig.parse(Files.toString(ensimeFile, Charsets.UTF_8))
 
@@ -82,7 +82,7 @@ class Server(config: EnsimeConfig,
             try {
               val socket = listener.accept()
               log.info("Got connection, creating handler...")
-              actorSystem.actorOf(Props(classOf[SocketHandler], socket, project, connectionCreator))
+              actorSystem.actorOf(Props(new SocketHandler(socket, project, connectionCreator)))
             } catch {
               case e: IOException =>
                 if (!hasShutdownFlag.get())

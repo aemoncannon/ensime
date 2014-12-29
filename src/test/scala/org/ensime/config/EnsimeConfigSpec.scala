@@ -109,7 +109,7 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
  :source-mode """ + (if (sourceMode) "t" else "nil") + """
  :subprojects ((:name "module1"
                 :scala-version "2.10.4"
-                :targets (${abcDirStr}))))""", { implicit config =>
+                :targets (""" + abcDirStr + "))))", { implicit config =>
             assert(config.sourceMode == sourceMode)
             assert(config.runtimeClasspath == Set(dir / "abc"), config)
             assert(config.compileClasspath == (

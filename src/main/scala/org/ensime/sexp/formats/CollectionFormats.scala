@@ -8,15 +8,12 @@ import collection.{ immutable => im, mutable => mut }
 import org.ensime.sexp._
 import scala.collection.GenMap
 import scala.collection.GenTraversable
-import scala.collection.generic.IsTraversableLike
 
 /**
  * Support for anything with a `CanBuildFrom`.
  */
 trait CollectionFormats {
   this: BasicFormats =>
-
-  import scala.language.higherKinds
 
   /*
    Implementation note. Ideally, and intuitively, we'd like to be able
@@ -92,63 +89,6 @@ trait CollectionFormats {
       }(breakOut)
       case x => deserializationError(x)
     }
-  }
-
-  /**
-   * We only support deserialisation via `im.BitSet` as the general
-   * case requires going through a proxy to convert the bitmask into
-   * elements that can be read via `CanBuildFrom`. If you have your
-   * own (possibly compressed) implementation of `BitSet` you will
-   * need to provide your own format.
-   *
-   * We encode the `BigInt` form as a String using emacs `calc-eval`
-   * notation (radix is part of the string). See `ViaBigDecimalFormat`
-   * for a longer discussion about emacs number formats.
-   *
-   * This can potentially be used in Emacs using the following (which
-   * will parse the strings into big ints every time it is queried, so
-   * it's not particularly efficient):
-   *
-   *   (require 'calc)
-   *   (defmath bitsetAnd (bitset i)
-   *     (logand (lsh 1 i (+ 1 i)) bitset (+ 1 i)))
-   *   (defun bitsetContains (bitset i)
-   *     (not (string= "0"
-   *       (calc-eval "bitsetAnd($, $$)" 'num bitset i))))
-   *
-   *   (bitsetContains "10#3" 0) ; 't
-   *   (bitsetContains "10#3" 1) ; 't
-   *   (bitsetContains "10#3" 2) ; nil
-   *   (bitsetContains "32#10000000000000001" 0) ; t
-   *   (bitsetContains "16#10000000000000001" 64) ; t
-   *   (bitsetContains "16#10000000000000002" 1) ; t
-   *   (bitsetContains "16#10000000000000002" 64) ; t
-   *   (bitsetContains "16#10000000000000002" 0) ; nil
-   */
-  implicit object BitSetFormat extends SexpFormat[collection.BitSet] {
-    private val Radix = 16
-    private val CalcEval = "(\\d+)#(\\d+)"r
-
-    def write(bs: collection.BitSet) =
-      if (bs.isEmpty) SexpNil
-      else {
-        val bigInt = BigIntConvertor.fromBitSet(bs)
-        SexpString(Radix + "#" + bigInt.toString(Radix))
-      }
-
-    // NOTE: returns immutable BitSet
-    def read(m: Sexp): im.BitSet = m match {
-      case SexpNil => im.BitSet()
-      case SexpString(CalcEval(radix, num)) =>
-        val bigInt = BigInt(num, radix.toInt)
-        BigIntConvertor.toBitSet(bigInt)
-      case x => deserializationError(x)
-    }
-  }
-
-  implicit object ImBitSetFormat extends SexpFormat[im.BitSet] {
-    def write(bs: im.BitSet) = BitSetFormat.write(bs)
-    def read(m: Sexp) = BitSetFormat.read(m)
   }
 
   private val start = SexpSymbol(":start")

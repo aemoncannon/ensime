@@ -1,8 +1,5 @@
 package org.ensime.sexp.formats
 
-import scala.reflect.runtime.universe._
-import shapeless._
-
 import org.ensime.sexp._
 
 /**
@@ -29,8 +26,8 @@ trait FamilyFormats {
   // }
 
   case class TypeHint[T](hint: SexpSymbol)
-  implicit def typehint[T: TypeTag]: TypeHint[T] =
-    TypeHint(SexpSymbol(":" + typeOf[T].normalize.toString.split("(\\.|\\$)").last))
+  implicit def typehint[T: ClassManifest]: TypeHint[T] =
+    TypeHint(SexpSymbol(":" + implicitly[ClassManifest[T]].erasure.getSimpleName.toString.split("(\\.|\\$)").last))
 
   abstract class TraitFormat[T] extends SexpFormat[T] {
     protected def wrap[E](t: E)(implicit th: TypeHint[E], sf: SexpFormat[E]): Sexp =

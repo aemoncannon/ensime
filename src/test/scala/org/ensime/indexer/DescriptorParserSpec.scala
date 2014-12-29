@@ -5,7 +5,6 @@ import org.scalatest.FunSpec
 import org.scalatest.Matchers
 import DescriptorParser.{ parse, parseType }
 import ClassName._
-import scala.util.Try
 
 class DescriptorParserSpec extends FunSpec with Matchers with SLF4JLogging {
 
@@ -18,14 +17,6 @@ class DescriptorParserSpec extends FunSpec with Matchers with SLF4JLogging {
   private val root = PackageName(Nil)
 
   describe("DescriptorParser") {
-    it("should fail to parse the empty string") {
-      assert(Try(parse("")).isFailure)
-    }
-
-    it("should fail to parse a bad string") {
-      assert(Try(parse("not valid")).isFailure)
-    }
-
     it("should parse descriptors without parameters") {
       assert(parse("()V") === D(Nil, PrimitiveVoid))
       assert(parse("()Ljava/lang/String;") === D(Nil, S))
@@ -47,23 +38,12 @@ class DescriptorParserSpec extends FunSpec with Matchers with SLF4JLogging {
   }
 
   describe("DescriptorParser's JVM internal mode") {
-    it("should fail to parse the empty string") {
-      assert(Try(parseType("")).isFailure)
-    }
-
-    it("should fail to parse a bad string") {
-      assert(Try(parseType("not valid")).isFailure)
-    }
-
     it("should handle examples") {
       assert(parseType("Ljava/lang/String;") === S)
       assert(parseType("[Ljava/lang/String;") === A(S))
       assert(parseType("[[Ljava/lang/String;") === A(A(S)))
       assert(parseType("V") === V)
       assert(parseType("LMyAnnotation;") === ClassName(root, "MyAnnotation"))
-
-      // of course, SUN break their own rules for package names (capitals)
-      assert(Try(parseType("Lcom/sun/tools/corba/se/idl/toJavaPortable/NameModifierImpl;")).isSuccess)
     }
 
     it("should be invertible") {

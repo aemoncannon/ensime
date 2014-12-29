@@ -10,7 +10,8 @@ import org.ensime.protocol._
 import org.ensime.util._
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
-import scala.concurrent.duration._
+import scala.concurrent.backport.duration._
+import akka.util.Deadline
 
 case class RPCError(code: Int, detail: String) extends RuntimeException()
 case class AsyncEvent(evt: ProtocolEvent)
@@ -78,11 +79,11 @@ class Project(
   }
   private val classfileWatcher = new ClassfileWatcher(config, search :: reTypecheck :: Nil)
 
-  import concurrent.ExecutionContext.Implicits.global
+  import concurrent.backport.ExecutionContext.Implicits.global
   search.refresh().onSuccess {
     case (deletes, inserts) =>
       actor ! AsyncEvent(IndexerReadyEvent)
-      log.debug(s"indexed $inserts and removed $deletes")
+      log.debug("indexed " + inserts + " and removed " + deletes)
   }
 
   protected val indexer: ActorRef = actorSystem.actorOf(Props(
@@ -116,7 +117,7 @@ class Project(
 
     override def receive = waiting orElse ready
 
-    private val ready: Receive = {
+    private def ready: Receive = {
       case Retypecheck =>
         log.warn("Re-typecheck needed")
         analyzer.foreach(_ ! ReloadExistingFilesEvent)
@@ -138,7 +139,7 @@ class Project(
         sender ! false
     }
 
-    private val waiting: Receive = {
+    private def waiting: Receive = {
       case ClientReadyEvent =>
       case SubscribeAsync(handler) =>
         asyncListeners ::= handler

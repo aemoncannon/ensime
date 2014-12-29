@@ -10,11 +10,12 @@ import org.ensime.protocol.swank.ReplConfig
 import org.ensime.protocol.{ ConnectionInfo, RPCTarget }
 import org.ensime.util._
 
-import scala.concurrent.Await
+import scala.concurrent.backport.Await
 import akka.pattern.ask
-import scala.concurrent.duration._
-import shapeless.syntax.typeable._
+import scala.concurrent.backport.duration._
+
 import shapeless.Typeable
+import Typeable._
 
 trait ProjectRPCTarget extends RPCTarget { self: Project =>
 

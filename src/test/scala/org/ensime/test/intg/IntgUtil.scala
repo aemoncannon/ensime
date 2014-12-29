@@ -15,8 +15,8 @@ import org.ensime.test.TestUtil
 import org.ensime.util._
 import org.scalatest.Assertions
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.backport.Await
+import scala.concurrent.backport.duration._
 import scala.io.Source
 import scala.reflect.io.{ File => SFile, Path }
 
@@ -55,7 +55,7 @@ object IntgUtil extends Assertions with SLF4JLogging {
 
       override def receive: Receive = {
         case AsyncRequest(req) =>
-          outstandingAsyncs = outstandingAsyncs :+ (req, sender())
+          outstandingAsyncs = outstandingAsyncs :+ ((req, sender))
           processOutstandingRequests()
         case AsyncSent(event) =>
           val newCount = asyncMsgs.getOrElse(event, 0) + 1

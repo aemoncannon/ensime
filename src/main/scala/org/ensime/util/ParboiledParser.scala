@@ -26,7 +26,8 @@ trait ParboiledParser[T] extends Parser with ThreadLocalSupport {
     }
   }
 
-  protected implicit class RulePimp(val rule: Rule0) {
+  protected implicit def rulePimp(rule: Rule0): RulePimp = new RulePimp(rule)
+  protected class RulePimp(val rule: Rule0) {
     def save: Rule1[String] = { rule ~> (_.toString) }
     def as[T](t: T): Rule1[T] = { rule ~> (_ => t) }
   }

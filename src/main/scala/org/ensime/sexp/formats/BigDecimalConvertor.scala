@@ -18,10 +18,10 @@ class BigDecimalConvertor[T](
 }
 
 object BigDecimalConvertor {
-  // an implicit already exists from many of these types to BigDecimal
-  implicit val IntBigConv = new BigDecimalConvertor[Int](identity, _.intValue)
-  implicit val LongBigConv = new BigDecimalConvertor[Long](identity, _.longValue)
-  implicit val FloatBigConv = new BigDecimalConvertor[Float](identity, _.floatValue) {
+  implicit val IntBigConv = new BigDecimalConvertor[Int](BigDecimal.apply, _.intValue)
+  implicit val LongBigConv = new BigDecimalConvertor[Long](BigDecimal.apply, _.longValue)
+  // no float => BigDecimal in scala 2.9
+  implicit val FloatBigConv = new BigDecimalConvertor[Float](f => BigDecimal(f.doubleValue), _.floatValue) {
     override def isPosInf(t: Float) = t.isPosInfinity
     override def PosInf = Float.PositiveInfinity
     override def isNegInf(t: Float) = t.isNegInfinity
@@ -29,7 +29,7 @@ object BigDecimalConvertor {
     override def isNaN(t: Float) = t.isNaN
     override def NaN = Float.NaN
   }
-  implicit val DoubleBigConv = new BigDecimalConvertor[Double](identity, _.doubleValue) {
+  implicit val DoubleBigConv = new BigDecimalConvertor[Double](BigDecimal.apply, _.doubleValue) {
     override def isPosInf(t: Double) = t.isPosInfinity
     override def PosInf = Double.PositiveInfinity
     override def isNegInf(t: Double) = t.isNegInfinity
@@ -37,44 +37,9 @@ object BigDecimalConvertor {
     override def isNaN(t: Double) = t.isNaN
     override def NaN = Double.NaN
   }
-  implicit val ByteBigConv = new BigDecimalConvertor[Byte](identity, _.byteValue)
-  implicit val ShortBigConv = new BigDecimalConvertor[Short](identity, _.shortValue)
+  // no byte or short => BigDecimal in 2.9
+  implicit val ByteBigConv = new BigDecimalConvertor[Byte](b => BigDecimal(b.intValue), _.byteValue)
+  implicit val ShortBigConv = new BigDecimalConvertor[Short](s => BigDecimal(s.intValue), _.shortValue)
   implicit val BigIntBigConv = new BigDecimalConvertor[BigInt](BigDecimal.apply, _.toBigInt)
   implicit val BigDecimalBigConv = new BigDecimalConvertor[BigDecimal](identity, identity)
-}
-
-object BigIntConvertor {
-  def fromBitSet(bitSet: BitSet): BigInt =
-    fromBitMask(bitSet.toBitMask)
-
-  def toBitSet(bigInt: BigInt): im.BitSet = {
-    im.BitSet.fromBitMaskNoCopy(toBitMask(bigInt))
-  }
-
-  /** @param bitmask is the same format as used by `BitSet` */
-  private def fromBitMask(bitmask: Array[Long]): BigInt = {
-    val bytes = Array.ofDim[Byte](bitmask.length * 8)
-    val bb = java.nio.ByteBuffer.wrap(bytes)
-    bitmask.reverse foreach bb.putLong
-    BigInt(bytes)
-  }
-
-  /** @return the same format as used by `BitSet` */
-  private def toBitMask(bigInt: BigInt): Array[Long] = {
-    // bytes may not be padded to be divisible by 8
-    val bytes = {
-      val raw = bigInt.toByteArray
-      val rem = raw.length % 8
-      if (rem == 0) raw
-      else Array.ofDim[Byte](8 - rem) ++ raw
-    }
-    val longLength = bytes.length / 8
-    val bb = java.nio.ByteBuffer.wrap(bytes)
-    // asLongBuffer.array doesn't support .array
-    val longs = Array.ofDim[Long](longLength)
-    for { i <- 0 until longLength } {
-      longs(i) = bb.getLong(i * 8)
-    }
-    longs.reverse
-  }
 }
