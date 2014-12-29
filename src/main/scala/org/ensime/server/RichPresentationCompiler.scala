@@ -1,6 +1,7 @@
 package org.ensime.server
 
 import java.io.File
+import java.nio.charset.Charset
 import akka.actor.ActorRef
 import org.ensime.config._
 import org.ensime.indexer.SearchService
@@ -9,7 +10,7 @@ import org.ensime.protocol.FullTypeCheckCompleteEvent
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
-import scala.tools.nsc.util.FailedInterrupt
+import scala.tools.nsc.util._
 import scala.reflect.internal.util._
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.reporters.Reporter
@@ -19,6 +20,8 @@ import scala.tools.refactoring.analysis.GlobalIndexes
 
 trait RichCompilerControl extends CompilerControl with RefactoringControl with CompletionControl {
   self: RichPresentationCompiler =>
+
+  def charset: Charset = Charset.forName(settings.encoding.value)
 
   def askOption[A](op: => A): Option[A] =
     try {
@@ -88,17 +91,10 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     x.get
   }
 
-  def askLoadedTyped(f: SourceFile): Either[Tree, Throwable] = {
+  def askLoadedTyped(f: SourceFile) {
     val x = new Response[Tree]()
     askLoadedTyped(f, x)
     x.get
-  }
-
-  def askInvalidateTargets(): Unit = for {
-    m <- config.modules.values
-    dir <- (m.targets ++ m.testTargets)
-  } {
-    askOption(invalidatePackage(dir))
   }
 
   def askUnloadAllFiles(): Unit = askOption(unloadAllFiles())
@@ -113,11 +109,11 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
         file <- config.sourceFiles
         source = getSourceFile(file.getAbsolutePath)
       } yield source
-    }.toSet ++ activeUnits.map(_.source)
+    }.toSet ++ activeUnits().map(_.source)
     askReloadFiles(all)
   }
 
-  def loadedFiles: List[SourceFile] = activeUnits.map(_.source)
+  def loadedFiles: List[SourceFile] = activeUnits().map(_.source)
 
   def askReloadExistingFiles() =
     askReloadFiles(loadedFiles)
@@ -167,7 +163,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
 class RichPresentationCompiler(
   val config: EnsimeConfig,
-  settings: Settings,
+  override val settings: Settings,
   val richReporter: Reporter,
   var parent: ActorRef,
   var indexer: ActorRef,
@@ -196,19 +192,8 @@ class RichPresentationCompiler(
     symsByFile(sym.sourceFile) += sym
   }
 
-  def invalidatePackage(f: File): Unit = {
-    // introduced in 2.10
-    // https://github.com/odersky/scala/commit/ace051ff0abe112b767c3912f846eb4d50e52cf5
-
-    // eek! we don't seem to be able to invalidate anything in 2.9
-    //invalidateClassPathEntry(f.getCanonicalPath())
-
-    // NOTE: removed again in 2.11
-    // https://github.com/mpociecha/scala/commit/41507ba71b7a8a5fbd5dffb4378a963ecd08be2a
-  }
-
   def unloadAllFiles(): Unit = {
-    allSources.foreach(removeUnitOf(_))
+    allSources.foreach(removeUnitOf)
   }
 
   /**
@@ -309,16 +294,16 @@ class RichPresentationCompiler(
 
   private def typeOfTree(t: Tree): Option[Type] = {
     val tree = t match {
-      case Select(qual, name) if t.tpe == ErrorType =>
-        qual
+      case Select(qualifier, name) if t.tpe == ErrorType =>
+        qualifier
       case t: ImplDef if t.impl != null =>
         t.impl
       case t: ValOrDefDef if t.tpt != null =>
         t.tpt
       case t: ValOrDefDef if t.rhs != null =>
         t.rhs
-      case t =>
-        t
+      case otherTree =>
+        otherTree
     }
 
     Option(tree.tpe)
@@ -473,11 +458,11 @@ class RichPresentationCompiler(
     wrapReloadSources(List(source))
 
   def wrapReloadSources(sources: List[SourceFile]): Unit = {
-    val superseeded = scheduler.dequeueAll {
+    val superseded = scheduler.dequeueAll {
       case ri: ReloadItem if ri.sources == sources => Some(ri)
       case _ => None
     }
-    superseeded.foreach(_.response.set(()))
+    superseded.foreach(_.response.set(()))
     wrap[Unit](r => new ReloadItem(sources, r).apply(), _ => ())
   }
 

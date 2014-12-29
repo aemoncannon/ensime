@@ -1,16 +1,16 @@
 package org.ensime.test
 
+import akka.actor.ActorSystem
 import org.apache.commons.io.FileUtils.copyDirectory
 import java.io.File
-import java.io.IOException
-import org.ensime.util.CanonFile
 import org.scalatest.Tag
-import scala.util.Properties
 import scala.util.Properties._
 import pimpathon.file._
 import org.ensime.config._
-import org.ensime.util.FileUtils._
 import org.ensime.util.RichFile._
+import org.ensime.util.FileUtils.jdkDir
+import scala.concurrent.duration._
+import scalariform.formatter.preferences.FormattingPreferences
 
 object TestUtil {
 
@@ -24,15 +24,14 @@ object TestUtil {
   val testJars = (parseTestProp("ensime.test.jars") -- compileJars).toList
   val mainSourcePath = "src/main/scala"
   val testSourcePath = "src/test/scala"
-  val compileClassDirs = (parseTestProp("ensime.compile.classDirs")).head
+  val compileClassDirs = parseTestProp("ensime.compile.classDirs").head
   val testClassDirs = parseTestProp("ensime.test.classDirs").head
   val scalaVersion = propOrEmpty("scala.version")
   val sourceJars = parseTestProp("ensime.jars.sources").toList
   val javaSource = {
-    val javaHome = file(System.getProperty("java.home"))
-    val alt1 = javaHome / "src.zip"
-    val alt2 = javaHome.getParentFile / "src.zip"
-    List(alt1, alt2).filter(_.exists).headOption
+    val f = jdkDir / "src.zip"
+    if (f.exists) Some(f)
+    else None
   }
   val scalaLib = compileJars.find(_.getName.contains("scala-library")).get
 
@@ -51,9 +50,10 @@ object TestUtil {
     testSources: Boolean = false,
     classes: Boolean = false,
     testClasses: Boolean = false,
-    jars: Boolean = true): EnsimeConfig = {
+    jars: Boolean = true,
+    compilerArgs: List[String] = List.empty): EnsimeConfig = {
     val base = tmp.canon
-    require(base.isDirectory())
+    require(base.isDirectory)
 
     val module = {
       val classesDir = base / "target/classes"
@@ -71,7 +71,7 @@ object TestUtil {
         copyDirectory(file(testSourcePath), testSourcesDir)
 
       EnsimeModule(
-        "single", classesDir :: Nil, testClassesDir :: Nil, Nil,
+        "single", None, classesDir :: Nil, None, testClassesDir :: Nil, Nil,
         if (jars) compileJars else List(scalaLib), Nil,
         if (jars) testJars else Nil,
         mainSourcesDir :: testSourcesDir :: Nil,
@@ -80,18 +80,28 @@ object TestUtil {
     }
 
     if (classes)
-      copyDirectory(compileClassDirs, module.targets.head)
+      copyDirectory(compileClassDirs, module.targetDirs.head)
     if (testClasses)
-      copyDirectory(testClassDirs, module.testTargets.head)
+      copyDirectory(testClassDirs, module.testTargetDirs.head)
 
     val cacheDir = base / ".ensime_cache"
     cacheDir.mkdirs()
 
     EnsimeConfig(
-      base.canon, cacheDir.canon,
-      "simple", scalaVersion, Nil, Map(module.name -> module),
-      javaSource.toList
+      base.canon, cacheDir.canon, "simple", scalaVersion,
+      compilerArgs, javaSource.toList, List(module),
+      FormattingPreferences(), false, Nil
     )
+  }
+
+  def withActorSystem[T](f: ActorSystem => T): T = {
+    implicit val system = ActorSystem.create()
+    try {
+      f(system)
+    } finally {
+      system.shutdown()
+      system.awaitTermination(20.seconds)
+    }
   }
 }
 

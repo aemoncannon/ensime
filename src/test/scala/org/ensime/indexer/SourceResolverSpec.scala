@@ -1,19 +1,12 @@
 package org.ensime.indexer
 
 import java.io.File
-import org.apache.commons.io.FileUtils
 import org.scalatest.FunSpec
 import org.scalatest.Matchers
-import akka.event.slf4j.SLF4JLogging
 import org.ensime.config._
-import org.ensime.util.FileUtils._
 import org.ensime.test.TestUtil._
-import scala.concurrent.backport.Await
-import scala.concurrent.backport.duration.Duration
-import scala.util.Properties
 import pimpathon.file._
 import pimpathon.any._
-import scalariform.formatter.preferences.FormattingPreferences
 import org.ensime.util.RichFile._
 
 class SourceResolverSpec extends FunSpec with Matchers {
@@ -39,7 +32,7 @@ class SourceResolverSpec extends FunSpec with Matchers {
       PackageName(pkg.split('.').toList), RawSource(Some(file), None)
     ).map(fo => fo.pathWithinArchive match {
         case None => fo.asLocalFile.getAbsolutePath
-        case _ => fo.getName.getPath()
+        case _ => fo.getName.getPath
       })
   }
 

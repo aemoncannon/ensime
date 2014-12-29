@@ -2,6 +2,7 @@ package org.ensime.server
 
 import java.io.File
 import akka.actor.{ ActorLogging, Actor, ActorRef }
+import java.nio.charset.Charset
 import org.ensime.config._
 import org.ensime.indexer.SearchService
 import org.ensime.model._
@@ -18,10 +19,9 @@ import scala.tools.nsc.interactive.Global
 case class CompilerFatalError(e: Throwable)
 
 class Analyzer(
-  val project: Project,
+  val project: ActorRef,
   val indexer: ActorRef,
   search: SearchService,
-  val protocol: ProtocolConversions,
   val config: EnsimeConfig)
     extends Actor with ActorLogging with RefactoringHandler {
 
@@ -41,8 +41,6 @@ class Analyzer(
   settings.processArguments(config.compilerArgs, processAll = false)
 
   log.info("Presentation Compiler settings:\n" + settings)
-
-  import protocol._
 
   private val reportHandler = new ReportHandler {
     override def messageUser(str: String) {
@@ -69,8 +67,12 @@ class Analyzer(
   private var awaitingInitialCompile = true
   private var allFilesLoaded = false
 
+  protected def bgMessage(msg: String) {
+    project ! AsyncEvent(SendBackgroundMessageEvent(ProtocolConst.MsgMisc, Some(msg)))
+  }
+
   override def preStart(): Unit = {
-    project.bgMessage("Initializing Analyzer. Please wait...")
+    bgMessage("Initializing Analyzer. Please wait...")
     initTime = System.currentTimeMillis()
 
     implicit val ec = context.dispatcher
@@ -110,6 +112,8 @@ class Analyzer(
     presCompLog.warn("Started")
   }
 
+  def charset: Charset = scalaCompiler.charset
+
   def process(msg: Any): Unit = {
     msg match {
       case AnalyzerShutdownEvent =>
@@ -120,7 +124,7 @@ class Analyzer(
       case ReloadExistingFilesEvent => if (allFilesLoaded) {
         presCompLog.warn("Skipping reload, in all-files mode")
       } else {
-        restartCompiler(true)
+        restartCompiler(keepLoaded = true)
       }
 
       case FullTypeCheckCompleteEvent =>
@@ -133,179 +137,94 @@ class Analyzer(
         }
         project ! AsyncEvent(FullTypeCheckCompleteEvent)
 
-      case rpcReq @ RPCRequestEvent(req: Any, callId: Int) =>
+      case rpcReq: RPCRequest =>
         try {
           if (awaitingInitialCompile) {
-            project.sendRPCError(ErrAnalyzerNotReady, "Analyzer is not ready! Please wait.", callId)
+            sender ! RPCError(ErrAnalyzerNotReady, "Analyzer is not ready! Please wait.")
           } else {
             reporter.enable()
 
-            req match {
+            rpcReq match {
               case RemoveFileReq(file: File) =>
                 scalaCompiler.askRemoveDeleted(file)
-                project ! RPCResultEvent(toWF(value = true), callId)
-
+                sender ! VoidResponse
               case ReloadAllReq =>
                 allFilesLoaded = true
                 scalaCompiler.askRemoveAllDeleted()
                 scalaCompiler.askReloadAllFiles()
                 scalaCompiler.askNotifyWhenReady()
-                project ! RPCResultEvent(toWF(value = true), callId)
-
+                sender ! VoidResponse
               case UnloadAllReq =>
                 if (config.sourceMode) {
                   log.info("in source mode, will reload all files")
                   scalaCompiler.askRemoveAllDeleted()
-                  restartCompiler(true)
+                  restartCompiler(keepLoaded = true)
                 } else {
                   allFilesLoaded = false
-                  restartCompiler(false)
+                  restartCompiler(keepLoaded = false)
                 }
-                project ! RPCResultEvent(toWF(value = true), callId)
-
+                sender ! VoidResponse
               case ReloadFilesReq(files) =>
-                files foreach { file =>
-                  require(file.file.exists, file + " does not exist")
-                }
-
-                val (javas, scalas) = files.filter(_.file.exists).partition(
-                  _.file.getName.endsWith(".java"))
-
-                if (scalas.nonEmpty) {
-                  scalaCompiler.askReloadFiles(scalas.map(createSourceFile))
-                  scalaCompiler.askNotifyWhenReady()
-                  project ! RPCResultEvent(toWF(value = true), callId)
-                }
-
+                handleReloadFiles(files)
+                sender ! VoidResponse
               case PatchSourceReq(file, edits) =>
                 if (!file.exists()) {
-                  project.sendRPCError(ErrFileDoesNotExist, file.getPath, callId)
+                  sender ! RPCError(ErrFileDoesNotExist, file.getPath)
                 } else {
                   val f = createSourceFile(file)
                   val revised = PatchSource.applyOperations(f, edits)
                   reporter.disable()
                   scalaCompiler.askReloadFile(revised)
-                  project ! RPCResultEvent(toWF(value = true), callId)
+                  sender ! VoidResponse
                 }
 
               case req: RefactorPrepareReq =>
-                handleRefactorPrepareRequest(req, callId)
-
+                handleRefactorPrepareRequest(req)
               case req: RefactorExecReq =>
-                handleRefactorExec(req, callId)
-
+                handleRefactorExec(req)
               case req: RefactorCancelReq =>
-                handleRefactorCancel(req, callId)
-
+                handleRefactorCancel(req)
               case CompletionsReq(file: File, point: Int,
                 maxResults: Int, caseSens: Boolean, reload: Boolean) =>
                 val p = if (reload) pos(file, point) else posNoRead(file, point)
                 reporter.disable()
-                val info = scalaCompiler.askCompletionsAt(
-                  p, maxResults, caseSens)
-                project ! RPCResultEvent(toWF(info), callId)
-
-              case ImportSuggestionsReq(_, _, _, _) =>
-                indexer ! rpcReq
-
-              case PublicSymbolSearchReq(_, _) =>
-                indexer ! rpcReq
-
+                val info = scalaCompiler.askCompletionsAt(p, maxResults, caseSens)
+                sender ! info
               case UsesOfSymAtPointReq(file: File, point: Int) =>
                 val p = pos(file, point)
-                val uses = scalaCompiler.askUsesOfSymAtPoint(p)
-                project ! RPCResultEvent(toWF(uses.map(toWF)), callId)
-
+                sender ! scalaCompiler.askUsesOfSymAtPoint(p).map(ERangePosition.apply)
               case PackageMemberCompletionReq(path: String, prefix: String) =>
                 val members = scalaCompiler.askCompletePackageMember(path, prefix)
-                project ! RPCResultEvent(toWF(members.map(toWF)), callId)
-
+                sender ! members
               case InspectTypeReq(file: File, range: OffsetRange) =>
                 val p = pos(file, range)
-                val result = scalaCompiler.askInspectTypeAt(p) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askInspectTypeAt(p)
               case InspectTypeByIdReq(id: Int) =>
-                val result = scalaCompiler.askInspectTypeById(id) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askInspectTypeById(id)
               case InspectTypeByNameReq(name: String) =>
-                val result = scalaCompiler.askInspectTypeByName(name) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askInspectTypeByName(name)
               case SymbolAtPointReq(file: File, point: Int) =>
                 val p = pos(file, point)
-                val result = scalaCompiler.askSymbolInfoAt(p) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askSymbolInfoAt(p)
               case InspectPackageByPathReq(path: String) =>
-                val result = scalaCompiler.askPackageByPath(path) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askPackageByPath(path)
               case TypeAtPointReq(file: File, range: OffsetRange) =>
                 val p = pos(file, range)
-                val result = scalaCompiler.askTypeInfoAt(p) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askTypeInfoAt(p)
               case TypeByIdReq(id: Int) =>
-                val result = scalaCompiler.askTypeInfoById(id) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askTypeInfoById(id)
               case MemberByNameReq(typeName: String, memberName: String, memberIsType: Boolean) =>
-                val result = scalaCompiler.askMemberInfoByName(typeName, memberName, memberIsType) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askMemberInfoByName(typeName, memberName, memberIsType)
               case TypeByNameReq(name: String) =>
-                val result = scalaCompiler.askTypeInfoByName(name) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askTypeInfoByName(name)
               case TypeByNameAtPointReq(name: String, file: File, range: OffsetRange) =>
                 val p = pos(file, range)
-                val result = scalaCompiler.askTypeInfoByNameAt(name, p) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askTypeInfoByNameAt(name, p)
               case CallCompletionReq(id: Int) =>
-                val result = scalaCompiler.askCallCompletionInfoById(id) match {
-                  case Some(info) => toWF(info)
-                  case None => wfNull
-                }
-                project ! RPCResultEvent(result, callId)
-
+                sender ! scalaCompiler.askCallCompletionInfoById(id)
               case SymbolDesignationsReq(file, start, end, tpes) =>
                 if (!FileUtils.isScalaSourceFile(file)) {
-                  project ! RPCResultEvent(
-                    toWF(SymbolDesignations(file.getPath, List.empty)), callId)
+                  sender ! SymbolDesignations(file.getPath, List.empty)
                 } else {
                   val f = createSourceFile(file)
                   val clampedEnd = math.max(end, start)
@@ -313,21 +232,42 @@ class Analyzer(
                   if (tpes.nonEmpty) {
                     val syms = scalaCompiler.askSymbolDesignationsInRegion(
                       pos, tpes)
-                    project ! RPCResultEvent(toWF(syms), callId)
+                    sender ! syms
                   } else {
-                    project ! RPCResultEvent(
-                      toWF(SymbolDesignations(f.path, List.empty)), callId)
+                    sender ! SymbolDesignations(f.path, List.empty)
                   }
                 }
+              case ExecUndoReq(undo: Undo) =>
+                sender ! handleExecUndo(undo)
+              case ExpandSelectionReq(filename: String, start: Int, stop: Int) =>
+                sender ! handleExpandselection(filename, start, stop)
+              case FormatFilesReq(filenames: List[String]) =>
+                handleFormatFiles(filenames)
+                sender ! VoidResponse
             }
           }
         } catch {
           case e: Throwable =>
             log.error(e, "Error handling RPC: " + e)
-            project.sendRPCError(ErrExceptionInAnalyzer, "Error occurred in Analyzer. Check the server log.", callId)
+            sender ! RPCError(ErrExceptionInAnalyzer, "Error occurred in Analyzer. Check the server log.")
         }
+
       case other =>
         log.error("Unknown message type: " + other)
+    }
+  }
+
+  def handleReloadFiles(files: List[SourceFileInfo]): Unit = {
+    files foreach { file =>
+      require(file.file.exists, file + " does not exist")
+    }
+
+    val (javas, scalas) = files.filter(_.file.exists).partition(
+      _.file.getName.endsWith(".java"))
+
+    if (scalas.nonEmpty) {
+      scalaCompiler.askReloadFiles(scalas.map(createSourceFile))
+      scalaCompiler.askNotifyWhenReady()
     }
   }
 
@@ -354,5 +294,6 @@ class Analyzer(
   def createSourceFile(file: SourceFileInfo) = {
     scalaCompiler.createSourceFile(file)
   }
+
 }
 
