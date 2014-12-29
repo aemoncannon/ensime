@@ -1,19 +1,15 @@
 package org.ensime.indexer
 
 import java.io.File
-import org.apache.commons.io.FileUtils
 import org.scalatest.FunSpec
 import org.scalatest.Matchers
 import akka.event.slf4j.SLF4JLogging
 import org.ensime.config._
-import org.ensime.util.FileUtils._
 import org.ensime.test.TestUtil._
 import scala.concurrent.backport.Await
 import scala.concurrent.backport.duration.Duration
-import scala.util.Properties
 import pimpathon.file._
 import pimpathon.any._
-import scalariform.formatter.preferences.FormattingPreferences
 
 class SearchServiceSpec extends FunSpec with Matchers with SLF4JLogging {
 
@@ -26,11 +22,11 @@ class SearchServiceSpec extends FunSpec with Matchers with SLF4JLogging {
 
     // to reduce test time
     val trimmed = module.copy(
-      compileJars = Nil,
-      testJars = module.testJars filter (_.getName.contains("scalatest_"))
+      `compile-deps` = Nil,
+      `test-deps` = module.testJars filter (_.getName.contains("scalatest_"))
     )
     config.copy(
-      modules = Map(trimmed.name -> trimmed)
+      subprojects = List(trimmed)
     )
   }
 
@@ -57,7 +53,7 @@ class SearchServiceSpec extends FunSpec with Matchers with SLF4JLogging {
       val now = System.currentTimeMillis()
       for {
         m <- config.modules.values
-        r <- m.targets ++ m.testTargets
+        r <- m.targetDirs ++ m.testTargetDirs
         f <- r.tree
       } {
         // simulate a full recompile
@@ -71,7 +67,7 @@ class SearchServiceSpec extends FunSpec with Matchers with SLF4JLogging {
 
     it("should remove classfiles that have been deleted", SlowTest) {
       val module = config.modules.values.toList.head
-      val classfile = module.targets.head / "org/ensime/indexer/SearchService.class"
+      val classfile = module.targetDirs.head / "org/ensime/indexer/SearchService.class"
       assert(classfile.exists)
       classfile.delete()
       assert(refresh() === (1, 0))
@@ -81,14 +77,14 @@ class SearchServiceSpec extends FunSpec with Matchers with SLF4JLogging {
   describe("class searching") {
     def search(expect: String, query: String) = {
       val max = 10
-      val info = query + " expected " + expect
+      val info = "'" + query + "' expected '" + expect + "'"
       service.searchClasses(query, max) tap { results =>
         assert(results.size <= max, results.size + " " + info)
         assert(results.nonEmpty, info)
         // when we improve the search quality, we could
         // make this really look only at #1
         val got = results.map(_.fqn)
-        assert(got contains expect, info + " got " + got)
+        assert(got contains expect, info + " got '" + got + "'")
       }
     }
     def searches(expect: String, queries: String*) =
@@ -106,7 +102,7 @@ class SearchServiceSpec extends FunSpec with Matchers with SLF4JLogging {
       searches(
         "org.scalatest.FunSuite",
         "FunSuite", "funsuite", "funsu",
-        "o s FunSu"
+        "o s Fun"
       )
     }
 
@@ -128,14 +124,14 @@ class SearchServiceSpec extends FunSpec with Matchers with SLF4JLogging {
   describe("class, field and method searching") {
     def search(expect: String, query: String) = {
       val max = 10
-      val info = query + " expected " + expect
+      val info = "'" + query + "' expected '" + expect + "'"
       service.searchClassesFieldsMethods(query, max) tap { results =>
         assert(results.size <= max, results.size + " " + info)
         assert(results.nonEmpty, info)
         // when we improve the search quality, we could
         // make this really look only at #1
         val got = results.map(_.fqn)
-        assert(got contains expect, info + " got " + got)
+        assert(got contains expect, info + " got '" + got + "'")
       }
     }
     def searches(expect: String, queries: String*) =

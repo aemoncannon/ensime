@@ -10,52 +10,52 @@ import org.ensime.protocol._
 import org.ensime.util._
 import org.slf4j.LoggerFactory
 import scala.collection.mutable
+import scala.concurrent.backport.duration._
 import akka.util.Deadline
-import akka.util.duration._
 
-case class RPCResultEvent(value: WireFormat, callId: Int)
-case class RPCErrorEvent(code: Int, detail: String, callId: Int)
-case class RPCRequestEvent(req: Any, callId: Int)
-
-case class AsyncEvent(evt: SwankEvent)
+case class RPCError(code: Int, detail: String) extends RuntimeException()
+case class AsyncEvent(evt: ProtocolEvent)
 
 case object AnalyzerShutdownEvent
 case object ReloadExistingFilesEvent
 case object AskReTypecheck
 
-case class ReloadFilesReq(files: List[SourceFileInfo])
-case object ReloadAllReq
-case object UnloadAllReq
-case class PatchSourceReq(file: File, edits: List[PatchOp])
-case class RemoveFileReq(file: File)
-case class CompletionsReq(file: File, point: Int, maxResults: Int, caseSens: Boolean, reload: Boolean)
-case class ImportSuggestionsReq(file: File, point: Int, names: List[String], maxResults: Int)
-case class PublicSymbolSearchReq(names: List[String], maxResults: Int)
-case class MethodBytecodeReq(sourceName: String, line: Int)
-case class UsesOfSymAtPointReq(file: File, point: Int)
-case class PackageMemberCompletionReq(path: String, prefix: String)
-case class SymbolAtPointReq(file: File, point: Int)
-case class InspectTypeReq(file: File, range: OffsetRange)
-case class InspectTypeByIdReq(id: Int)
-case class InspectTypeByNameReq(name: String)
-case class InspectPackageByPathReq(path: String)
-case class TypeByIdReq(id: Int)
-case class MemberByNameReq(typeFullName: String, memberName: String, memberIsType: Boolean)
-case class TypeByNameReq(name: String)
-case class TypeByNameAtPointReq(name: String, file: File, range: OffsetRange)
-case class CallCompletionReq(id: Int)
-case class TypeAtPointReq(file: File, range: OffsetRange)
-case class SymbolDesignationsReq(file: File, start: Int, end: Int, tpes: List[Symbol])
+case object VoidResponse
 
-case class AddUndo(summary: String, changes: List[FileEdit])
-case class Undo(id: Int, summary: String, changes: List[FileEdit])
-case class UndoResult(id: Int, touched: Iterable[File])
+trait RPCRequest
 
-case object ClientConnectedEvent
+case class ReloadFilesReq(files: List[SourceFileInfo]) extends RPCRequest
+case object ReloadAllReq extends RPCRequest
+case object UnloadAllReq extends RPCRequest
+case class PatchSourceReq(file: File, edits: List[PatchOp]) extends RPCRequest
+case class RemoveFileReq(file: File) extends RPCRequest
+case class CompletionsReq(file: File, point: Int, maxResults: Int, caseSens: Boolean, reload: Boolean) extends RPCRequest
+case class ImportSuggestionsReq(file: File, point: Int, names: List[String], maxResults: Int) extends RPCRequest
+case class PublicSymbolSearchReq(names: List[String], maxResults: Int) extends RPCRequest
+case class UsesOfSymAtPointReq(file: File, point: Int) extends RPCRequest
+case class PackageMemberCompletionReq(path: String, prefix: String) extends RPCRequest
+case class SymbolAtPointReq(file: File, point: Int) extends RPCRequest
+case class InspectTypeReq(file: File, range: OffsetRange) extends RPCRequest
+case class InspectTypeByIdReq(id: Int) extends RPCRequest
+case class InspectTypeByNameReq(name: String) extends RPCRequest
+case class InspectPackageByPathReq(path: String) extends RPCRequest
+case class TypeByIdReq(id: Int) extends RPCRequest
+case class MemberByNameReq(typeFullName: String, memberName: String, memberIsType: Boolean) extends RPCRequest
+case class TypeByNameReq(name: String) extends RPCRequest
+case class TypeByNameAtPointReq(name: String, file: File, range: OffsetRange) extends RPCRequest
+case class CallCompletionReq(id: Int) extends RPCRequest
+case class TypeAtPointReq(file: File, range: OffsetRange) extends RPCRequest
+case class SymbolDesignationsReq(file: File, start: Int, end: Int, tpes: List[Symbol]) extends RPCRequest
+case class ExecUndoReq(undo: Undo) extends RPCRequest
+case class FormatFilesReq(filenames: List[String]) extends RPCRequest
+case class ExpandSelectionReq(filename: String, start: Int, stop: Int) extends RPCRequest
+
+case class SubscribeAsync(handler: ProtocolEvent => Unit) extends RPCRequest
+
+case object ClientReadyEvent
 
 class Project(
     val config: EnsimeConfig,
-    val protocol: Protocol,
     actorSystem: ActorSystem) extends ProjectRPCTarget {
   val log = LoggerFactory.getLogger(this.getClass)
 
@@ -64,8 +64,6 @@ class Project(
   def !(msg: AnyRef) {
     actor ! msg
   }
-
-  protocol.setRPCTarget(this)
 
   protected var analyzer: Option[ActorRef] = None
 
@@ -89,31 +87,22 @@ class Project(
   }
 
   protected val indexer: ActorRef = actorSystem.actorOf(Props(
-    new Indexer(config, search, this, protocol.conversions)), "indexer")
+    new Indexer(config, search, this)), "indexer")
 
   protected var debugger: Option[ActorRef] = None
 
   def getAnalyzer: ActorRef = {
     analyzer.getOrElse(throw new RuntimeException("Analyzer unavailable."))
   }
-  def getIndexer: ActorRef = indexer
 
   private var undoCounter = 0
   private val undos: mutable.LinkedHashMap[Int, Undo] = new mutable.LinkedHashMap[Int, Undo]
 
-  def sendRPCError(code: Int, detail: String, callId: Int) {
-    actor ! RPCErrorEvent(code, detail, callId)
-  }
-
-  def bgMessage(msg: String) {
-    actor ! AsyncEvent(SendBackgroundMessageEvent(ProtocolConst.MsgMisc, Some(msg)))
-  }
-
   class ProjectActor extends Actor {
     case object Retypecheck
 
-    val typecheckDelay = 1000 millis
-    val typecheckCooldown = 5000 millis
+    val typecheckDelay = 1000.millis
+    val typecheckCooldown = 5000.millis
     private var tick: Option[Cancellable] = None
 
     private var earliestRetypecheck = Deadline.now
@@ -122,25 +111,13 @@ class Project(
       tick.foreach(_.cancel())
     }
 
-    override def receive = waiting orElse connected
+    // buffer events until the first client connects
+    private var asyncEvents = Vector[ProtocolEvent]()
+    private var asyncListeners: List[ProtocolEvent => Unit] = Nil
 
-    // buffer until the client connects
-    private var asyncs: List[AsyncEvent] = Nil
+    override def receive = waiting orElse ready
 
-    private def waiting: Receive = {
-      case ClientConnectedEvent =>
-        asyncs foreach {
-          case AsyncEvent(value) =>
-            protocol.sendEvent(value)
-        }
-        asyncs = Nil
-        context.become(connected, true)
-
-      case e: AsyncEvent =>
-        asyncs ::= e
-    }
-
-    private def connected: Receive = {
+    private def ready: Receive = {
       case Retypecheck =>
         log.warn("Re-typecheck needed")
         analyzer.foreach(_ ! ReloadExistingFilesEvent)
@@ -150,16 +127,28 @@ class Project(
         val timeToTypecheck = earliestRetypecheck.timeLeft max typecheckDelay
         tick = Some(context.system.scheduler.scheduleOnce(timeToTypecheck, self, Retypecheck))
 
-      case IncomingMessageEvent(msg: WireFormat) =>
-        protocol.handleIncomingMessage(msg)
       case AddUndo(sum, changes) =>
         addUndo(sum, changes)
-      case RPCResultEvent(value, callId) =>
-        protocol.sendRPCReturn(value, callId)
-      case AsyncEvent(value) =>
-        protocol.sendEvent(value)
-      case RPCErrorEvent(code, detail, callId) =>
-        protocol.sendRPCError(code, detail, callId)
+
+      case AsyncEvent(event) =>
+        asyncListeners foreach { l =>
+          l(event)
+        }
+      case SubscribeAsync(handler) =>
+        asyncListeners ::= handler
+        sender ! false
+    }
+
+    private def waiting: Receive = {
+      case ClientReadyEvent =>
+      case SubscribeAsync(handler) =>
+        asyncListeners ::= handler
+        asyncEvents.foreach { event => handler(event) }
+        asyncEvents = Vector.empty
+        context.become(ready, discardOld = true)
+        sender ! true
+      case AsyncEvent(event) =>
+        asyncEvents :+= event
     }
   }
 
@@ -179,12 +168,7 @@ class Project(
     undos.get(undoId) match {
       case Some(u) =>
         undos.remove(u.id)
-        FileUtils.writeChanges(u.changes) match {
-          case Right(touched) =>
-            analyzer.foreach(ea => ea ! ReloadFilesReq(touched.toList.map { SourceFileInfo(_) }))
-            Right(UndoResult(undoId, touched))
-          case Left(e) => Left(e.getMessage)
-        }
+        callRPC[Either[String, UndoResult]](getAnalyzer, ExecUndoReq(u))
       case _ => Left("No such undo.")
     }
   }
@@ -198,18 +182,17 @@ class Project(
 
   protected def startCompiler() {
     val newAnalyzer = actorSystem.actorOf(Props(
-      new Analyzer(this, indexer, search, protocol.conversions, config)
-    ), "analyzer")
+      new Analyzer(actor, indexer, search, config)), "analyzer")
     analyzer = Some(newAnalyzer)
   }
 
-  protected def acquireDebugger(): ActorRef = {
-    (debugger, indexer) match {
-      case (Some(b), _) => b
-      case (None, indexer) =>
-        val b = actorSystem.actorOf(Props(new DebugManager(this, indexer, protocol.conversions, config)))
-        debugger = Some(b)
-        b
+  protected def acquireDebugger: ActorRef = {
+    debugger match {
+      case Some(d) => d
+      case None =>
+        val d = actorSystem.actorOf(Props(new DebugManager(actor, indexer, config)))
+        debugger = Some(d)
+        d
     }
   }
 
@@ -219,8 +202,19 @@ class Project(
   }
 
   protected def shutdownServer() {
-    log.info("Server is exiting...")
-    System.exit(0)
+    val t = new Thread() {
+      override def run(): Unit = {
+        log.info("Server is exiting...")
+        Thread.sleep(1000)
+        log.info("Shutting down actor system...")
+        actorSystem.shutdown()
+        Thread.sleep(1000)
+        log.info("Forcing exit...")
+        Thread.sleep(200)
+        System.exit(0)
+      }
+    }
+    t.start()
   }
 }
 

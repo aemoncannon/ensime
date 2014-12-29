@@ -1,18 +1,16 @@
 package org.ensime.indexer
 
+import java.util
+
 import DatabaseService._
 import akka.event.slf4j.SLF4JLogging
 import java.sql.SQLException
-import java.util.ArrayList
-import java.util.concurrent.BlockingQueue
 import java.util.concurrent.Executors
-import com.google.common.io.ByteStreams
 import java.util.concurrent.LinkedBlockingQueue
 import org.apache.commons.vfs2._
 import org.ensime.config.EnsimeConfig
 import pimpathon.file._
 import scala.concurrent.backport.Future
-import scala.util.Properties
 import scala.concurrent.backport.ExecutionContext.Implicits.global
 
 /**
@@ -74,8 +72,6 @@ class SearchService(
     } yield f
 
     log.info("removing " + stale.size + " stale files from the index")
-    if (log.isTraceEnabled)
-      log.trace("STALE = " + stale)
 
     // individual DELETEs in H2 are really slow
     val removing = stale.grouped(1000).toSeq.map { files =>
@@ -90,10 +86,10 @@ class SearchService(
     val bases = {
       config.modules.flatMap {
         case (name, m) =>
-          m.targets.flatMap { d => scan(d) } ::: m.testTargets.flatMap { d => scan(d) } :::
+          m.targetDirs.flatMap { d => scan(d) } ::: m.testTargetDirs.flatMap { d => scan(d) } :::
             m.compileJars.map(vfile) ::: m.testJars.map(vfile)
       }
-    }.toSet ++ config.javaLib.map(vfile).toIterable
+    }.toSet + vfile(config.javaLib)
 
     // start indexing after all deletes have completed (not pretty)
     val indexing = removed.map { _ =>
@@ -128,17 +124,19 @@ class SearchService(
     } yield (r, i)
   }
 
+  def refreshResolver(): Unit = resolver.update()
+
   private def persist(check: FileCheck, symbols: List[FqnSymbol]): Unit = try {
     index.persist(check, symbols)
     db.persist(check, symbols)
   } catch {
     case e: SQLException =>
       // likely a timing issue or corner-case dupe FQNs
-      log.warn("failed to insert $symbols " + e.getClass + ": " + e.getMessage)
+      log.warn("failed to insert " + symbols + " " + e.getClass + ": " + e.getMessage)
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
-  private val ignore = Set("$$anonfun$", "$worker$")
+  private val ignore = Set("$$anon$", "$$anonfun$", "$worker$")
   import org.ensime.util.RichFileObject._
   private def extractSymbols(container: FileObject, f: FileObject): List[FqnSymbol] = {
     f.pathWithinArchive match {
@@ -197,7 +195,7 @@ class SearchService(
     override def run(): Unit = {
       while (true) {
         val head = backlog.take() // blocks until something appears
-        val buffer = new ArrayList[(FileObject, List[FqnSymbol])]()
+        val buffer = new util.ArrayList[(FileObject, List[FqnSymbol])]()
         backlog.drainTo(buffer, 999) // 1000 at a time to avoid blow-ups
         val tail = buffer.asScala.toList
 

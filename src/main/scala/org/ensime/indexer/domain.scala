@@ -3,13 +3,12 @@ package org.ensime.indexer
 import org.objectweb.asm.Opcodes._
 import collection.immutable.Queue
 
-import pimpathon.option._
-
 sealed trait Access
 case object Public extends Access
 case object Default extends Access
 case object Protected extends Access
 case object Private extends Access
+
 object Access {
   def apply(code: Int): Access =
     if ((ACC_PUBLIC & code) > 0) Public
@@ -22,9 +21,10 @@ sealed trait FullyQualifiedName {
   def contains(o: FullyQualifiedName): Boolean
   def fqnString: String
 }
+
 case class PackageName(path: List[String]) extends FullyQualifiedName {
   def contains(o: FullyQualifiedName) = o match {
-    case PackageName(o) => o.startsWith(path)
+    case PackageName(pn) => pn.startsWith(path)
     case ClassName(p, _) => contains(p)
     case MemberName(c, _) => contains(c)
   }
@@ -43,6 +43,7 @@ case class ClassName(pack: PackageName, name: String) extends FullyQualifiedName
   def internalString =
     "L" + (if (pack.path.isEmpty) name else pack.path.mkString("/") + "/" + name) + ";"
 }
+
 object ClassName {
   private val Root = PackageName(Nil)
   // we consider Primitives to be ClassNames
@@ -64,11 +65,10 @@ object ClassName {
   // must be a single type descriptor
   // strips array reification
   def fromDescriptor(desc: String): ClassName =
-    DescriptorParser.parseType(desc).
-      getOrThrow(desc + " is not a descriptor") match {
-        case c: ClassName => c
-        case a: ArrayDescriptor => a.reifier
-      }
+    DescriptorParser.parseType(desc) match {
+      case c: ClassName => c
+      case a: ArrayDescriptor => a.reifier
+    }
 
   // internal name is effectively the FQN with / instead of dots
   def fromInternal(internal: String): ClassName = {
@@ -88,7 +88,7 @@ case class MemberName(
 sealed trait DescriptorType {
   def internalString: String
 }
-// ClassName implements DescriptorType
+
 case class ArrayDescriptor(fqn: DescriptorType) extends DescriptorType {
   def reifier: ClassName = fqn match {
     case c: ClassName => c

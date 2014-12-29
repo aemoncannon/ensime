@@ -13,6 +13,8 @@ import org.scalaquery.ql.TypeMapper._
 import org.scalaquery.ql.extended.H2Driver.Implicit._
 import org.scalaquery.ql.extended.{ ExtendedTable => Table }
 
+import DatabaseService._
+
 class DatabaseService(dir: File) extends SLF4JLogging {
   lazy val db = {
     // MVCC plus connection pooling speeds up the tests ~10%
@@ -27,8 +29,6 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     ds.setStatementsCacheSize(50)
     Database.forDataSource(ds)
   }
-
-  import DatabaseService._
 
   if (!dir.exists) {
     log.info("creating the search database")
@@ -150,7 +150,7 @@ object DatabaseService {
     def * = id.? ~ filename ~ timestamp
     def idx = index("idx_filename", filename, unique = true)
 
-    def insert(e: FileCheck)(implicit s: Session): Int = insert(FileCheck.unapply(e).get)(s)
+    def insert(e: FileCheck): Int = insert(FileCheck.unapply(e).get)
   }
 
   case class FqnSymbol(
@@ -194,7 +194,7 @@ object DatabaseService {
     def fqnIdx = index("idx_fqn", fqn, unique = false) // fqns are unique by type and sig
     def uniq = index("idx_uniq", fqn ~ descriptor ~ internal, unique = true)
 
-    def insert(e: FqnSymbol)(implicit s: Session): Int = insert(FqnSymbol.unapply(e).get)(s)
+    def insert(e: FqnSymbol): Int = insert(FqnSymbol.unapply(e).get)
 
     // insertAll cannot be hacked this way
     // something to do with https://issues.scala-lang.org/browse/SI-4626

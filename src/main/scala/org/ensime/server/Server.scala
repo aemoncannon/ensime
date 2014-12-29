@@ -1,11 +1,15 @@
 package org.ensime.server
 
+import com.google.common.base.Charsets
+import com.google.common.io.Files
 import java.io._
 import java.net.{ InetAddress, ServerSocket, Socket }
+import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor._
 import org.ensime.config._
 import org.ensime.protocol._
+import org.ensime.protocol.swank.SwankProtocol
 import org.ensime.util._
 import org.slf4j._
 import org.slf4j.bridge.SLF4JBridgeHandler
@@ -28,38 +32,24 @@ object Server {
     if (!ensimeFile.exists() || !ensimeFile.isFile)
       throw new RuntimeException(".ensime file (" + ensimeFile + ") not found")
 
-    val config = readEnsimeConfig(ensimeFile)
+    val config = EnsimeConfig.parse(Files.toString(ensimeFile, Charsets.UTF_8))
 
     initialiseServer(config)
   }
 
   def initialiseServer(config: EnsimeConfig): Server = {
-    val server = new Server(config, "127.0.0.1", 0)
+    val server = new Server(config, "127.0.0.1", 0,
+      (actorSystem, peerRef, rpcTarget) => { new SwankProtocol(actorSystem, peerRef, rpcTarget) }
+    )
     server.start()
     server
   }
-
-  /**
-   * ******************************************************************************
-   * Read a new style config from the given files.
-   * @param ensimeFile The base ensime file.
-   * @param rootDir The project root directory
-   * @param cacheDir The
-   * @return
-   */
-  def readEnsimeConfig(ensimeFile: File): EnsimeConfig = {
-    val configSrc = Source.fromFile(ensimeFile)
-    try {
-      val content = configSrc.getLines().filterNot(_.startsWith(";;")).mkString("\n")
-      val parsed = SExpParser.read(content).asInstanceOf[SExpList]
-      EnsimeConfig.parse(parsed)
-    } finally {
-      configSrc.close()
-    }
-  }
 }
 
-class Server(config: EnsimeConfig, host: String, requestedPort: Int) {
+class Server(config: EnsimeConfig,
+    host: String,
+    requestedPort: Int,
+    connectionCreator: (ActorSystem, ActorRef, RPCTarget) => Protocol) {
 
   import org.ensime.server.Server.log
 
@@ -76,28 +66,27 @@ class Server(config: EnsimeConfig, host: String, requestedPort: Int) {
 
   writePort(config.cacheDir, actualPort)
 
-  val protocol = new SwankProtocol
-  val project = new Project(config, protocol, actorSystem)
+  val project = new Project(config, actorSystem)
 
   def start() {
     project.initProject()
     startSocketListener()
   }
 
+  private val hasShutdownFlag = new AtomicBoolean(false)
   def startSocketListener(): Unit = {
     val t = new Thread(new Runnable() {
       def run() {
         try {
-          while (true) {
+          while (!hasShutdownFlag.get()) {
             try {
               val socket = listener.accept()
               log.info("Got connection, creating handler...")
-              actorSystem.actorOf(Props(
-                new SocketHandler(socket, protocol, project)
-              ))
+              actorSystem.actorOf(Props(new SocketHandler(socket, project, connectionCreator)))
             } catch {
               case e: IOException =>
-                log.error("ENSIME Server: ", e)
+                if (!hasShutdownFlag.get())
+                  log.error("ENSIME Server socket listener error: ", e)
             }
           }
         } finally {
@@ -110,8 +99,12 @@ class Server(config: EnsimeConfig, host: String, requestedPort: Int) {
 
   def shutdown() {
     log.info("Shutting down server")
+    hasShutdownFlag.set(true)
     listener.close()
     actorSystem.shutdown()
+    log.info("Awaiting actor system shutdown")
+    actorSystem.awaitTermination()
+    log.info("Shutdown complete")
   }
   private def writePort(cacheDir: File, port: Int): Unit = {
     val portfile = new File(cacheDir, "port")
@@ -161,8 +154,15 @@ class SocketReader(socket: Socket, protocol: Protocol, handler: ActorRef) extend
   }
 }
 
-class SocketHandler(socket: Socket, protocol: Protocol, project: Project) extends Actor with ActorLogging {
-  protocol.setOutputActor(self)
+/**
+ * Create a socket handler
+ * @param socket The incoming socket
+ * @param connectionCreator Function to create protocol instance given actorSystem and the peer (this) ref
+ */
+class SocketHandler(socket: Socket,
+    rpcTarget: RPCTarget,
+    connectionCreator: (ActorSystem, ActorRef, RPCTarget) => Protocol) extends Actor with ActorLogging {
+  val protocol = connectionCreator(context.system, self, rpcTarget)
 
   val reader = new SocketReader(socket, protocol, self)
   val out = new BufferedOutputStream(socket.getOutputStream)
@@ -182,10 +182,10 @@ class SocketHandler(socket: Socket, protocol: Protocol, project: Project) extend
   }
 
   override def receive = {
-    case IncomingMessageEvent(value: WireFormat) =>
-      project ! IncomingMessageEvent(value)
-    case OutgoingMessageEvent(value: WireFormat) =>
-      write(value)
+    case IncomingMessageEvent(message) =>
+      protocol.handleIncomingMessage(message)
+    case OutgoingMessageEvent(message: WireFormat) =>
+      write(message)
     case SocketClosed =>
       log.error("Socket closed, stopping self")
       context.stop(self)

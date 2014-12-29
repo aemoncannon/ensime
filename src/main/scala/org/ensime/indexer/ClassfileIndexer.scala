@@ -7,8 +7,6 @@ import org.objectweb.asm.Opcodes._
 import collection.immutable.Queue
 import collection.immutable.BitSet
 
-import pimpathon.option._
-
 trait ClassfileIndexer {
   this: SLF4JLogging =>
 
@@ -34,7 +32,7 @@ trait ClassfileIndexer {
 
   // extracts all the classnames from a descriptor
   private def classesInDescriptor(desc: String): List[ClassName] =
-    DescriptorParser.parse(desc).getOrThrow(desc) match {
+    DescriptorParser.parse(desc) match {
       case Descriptor(params, ret) => (ret :: params).map {
         case c: ClassName => c
         case a: ArrayDescriptor => a.reifier
@@ -96,7 +94,7 @@ trait ClassfileIndexer {
               }
 
             case name =>
-              val descriptor = DescriptorParser.parse(desc).getOrThrow(desc)
+              val descriptor = DescriptorParser.parse(desc)
               val method = RawMethod(MemberName(clazz.name, name), Access(access), descriptor, Option(signature), firstLine)
               clazz = clazz.copy(methods = clazz.methods :+ method)
           }

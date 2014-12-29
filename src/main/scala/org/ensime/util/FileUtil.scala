@@ -3,69 +3,24 @@ package org.ensime.util
 import java.io._
 import java.net.URI
 import java.nio.charset.Charset
-import java.security.MessageDigest
 import org.apache.commons.vfs2.FileObject
 import scala.collection.Seq
 import scala.collection.mutable
-import scala.reflect.io.{ AbstractFile, ZipArchive }
+import scala.sys.process._
 
 import pimpathon.file._
 
-// This routine copied from http://rosettacode.org/wiki/Walk_a_directory/Recursively#Scala
-
-trait FileEdit {
-  def file: File
-  def text: String
-  def from: Int
-  def to: Int
-}
-case class TextEdit(file: File, from: Int, to: Int, text: String) extends FileEdit
-
-case class NewFile(file: File, text: String) extends FileEdit {
-  def from: Int = 0
-  def to: Int = text.length - 1
-}
-case class DeleteFile(file: File, text: String) extends FileEdit {
-  def from: Int = 0
-  def to: Int = text.length - 1
-}
-
-object FileEdit {
-
-  import scala.tools.refactoring.common.{ TextChange, NewFileChange, Change }
-
-  def fromChange(ch: Change): FileEdit = {
-    ch match {
-      case ch: TextChange => TextEdit(ch.file.file, ch.from, ch.to, ch.text)
-      case ch: NewFileChange => NewFile(ch.file, ch.text)
-    }
-  }
-
-  def applyEdits(ch: List[TextEdit], source: String): String = {
-    (source /: ch.sortBy(-_.to)) { (src, change) =>
-      src.substring(0, change.from) + change.text + src.substring(change.to)
-    }
-  }
-
-}
-
 /** A wrapper around file, allowing iteration either on direct children or on directory tree */
 class RichFile(file: File) {
-
-  def andTree: Iterable[File] = Seq(file) ++ file.children.flatMap(child => new RichFile(child).andTree)
 
   def canon: File =
     try file.getCanonicalFile
     catch {
       case e: Exception => file.getAbsoluteFile
     }
-
-  def rebaseIfRelative(base: File): File =
-    if (file.isAbsolute) file
-    else base / file.getPath
 }
 
-/** implicitely enrich java.io.File with methods of RichFile */
+/** implicitly enrich java.io.File with methods of RichFile */
 object RichFile {
   implicit def toRichFile(file: File): RichFile = new RichFile(file)
 }
@@ -106,138 +61,31 @@ object CanonFile {
 
 object FileUtils {
 
-  private def error[T](s: String): T = {
-    throw new IOException(s)
-  }
+  // WORKAROUND: https://github.com/typelevel/scala/issues/75
+  val jdkDir: File = List(
+    // manual
+    sys.env.get("JDK_HOME"),
+    sys.env.get("JAVA_HOME"),
+    // osx
+    try { Some("/usr/libexec/java_home".!!.trim) } catch { case t: Throwable => None },
+    // fallback
+    sys.props.get("java.home").map(new File(_).getParent),
+    sys.props.get("java.home")
+  ).flatten.find(n =>
+      new File(n + "/lib/tools.jar").exists).map(new File(_)).getOrElse(
+      throw new FileNotFoundException(
+        """Could not automatically find the JDK/lib/tools.jar.
+      |You must explicitly set JDK_HOME or JAVA_HOME.""".stripMargin
+      )
+    )
 
   implicit def toCanonFile(file: File): CanonFile = CanonFile(file)
-
-  import RichFile._
-  def expandRecursively(rootDir: File, fileList: Iterable[File], isValid: (File => Boolean)): Set[CanonFile] = {
-    (for (
-      f <- fileList;
-      files = if (f.isAbsolute) f.andTree else new File(rootDir, f.getPath).andTree;
-      file <- files if isValid(file)
-    ) yield { toCanonFile(file) }).toSet
-  }
-
-  // NOTE: Taken from ZipArchive internals to replace deepIterator that will be removed 2.11
-  private def walkIterator(its: Iterator[AbstractFile]): Iterator[AbstractFile] = {
-    its flatMap { f =>
-      if (f.isDirectory) walkIterator(f.iterator)
-      else Iterator(f)
-    }
-  }
-
-  def expandSourceJars(fileList: Iterable[CanonFile]): Iterable[AbstractFile] = {
-    fileList.flatMap { f =>
-      if (isValidArchive(f)) {
-        walkIterator(ZipArchive.fromFile(f).iterator).filter(f => isValidSourceName(f.name))
-      } else {
-        Seq(AbstractFile.getFile(f))
-      }
-    }
-  }
-
-  def canonicalizeDirs(names: Iterable[String], baseDir: File): Iterable[CanonFile] = {
-    names.map { s => canonicalizeDir(s, baseDir) }.flatten
-  }
-
-  def canonicalizeFiles(names: Iterable[String], baseDir: File): Iterable[CanonFile] = {
-    names.map { s => canonicalizeFile(s, baseDir) }.flatten
-  }
-
-  def canonicalizeFile(s: String, baseDir: File): Option[CanonFile] = {
-    val f = new File(s)
-    if (f.isAbsolute) Some(toCanonFile(f))
-    else Some(toCanonFile(new File(baseDir, s)))
-  }.filter(f => f.exists)
-
-  def canonicalizeDir(s: String, baseDir: File): Option[CanonFile] = {
-    canonicalizeFile(s, baseDir).filter(_.isDirectory)
-  }
-
-  def isValidJar(f: File): Boolean = f.exists && f.getName.endsWith(".jar")
-  def isValidArchive(f: File): Boolean = f.exists && (f.getName.endsWith(".jar") || f.getName.endsWith(".zip"))
-  def isValidClassDir(f: File): Boolean = f.exists && f.isDirectory
-  def isValidSourceName(filename: String) = {
-    filename.endsWith(".scala") || filename.endsWith(".java")
-  }
-
-  def isValidSourceFile(f: File): Boolean = {
-    f.exists && !f.isHidden && isValidSourceName(f.getName)
-  }
-
-  def isValidSourceOrArchive(f: File): Boolean = {
-    isValidSourceFile(f) || isValidArchive(f)
-  }
 
   def isScalaSourceFile(f: File): Boolean = {
     f.exists && f.getName.endsWith(".scala")
   }
 
-  def createDirectory(dir: File): Unit = {
-    def failBase = "Could not create directory " + dir
-    // Need a retry because mkdirs() has a race condition
-    var tryCount = 0
-    while (!dir.exists && !dir.mkdirs() && tryCount < 100) { tryCount += 1 }
-    if (dir.isDirectory)
-      ()
-    else if (dir.exists) {
-      error(failBase + ": file exists and is not a directory.")
-    } else
-      error(failBase)
-  }
-
-  def listFiles(dir: File): Array[File] = Option(dir.listFiles()).getOrElse(new Array[File](0))
-
-  def delete(files: Iterable[File]): Unit = files.foreach(delete)
-
-  def delete(file: File): Unit = {
-    if (file.isDirectory) {
-      delete(listFiles(file))
-      file.delete
-    } else if (file.exists)
-      file.delete
-  }
-
-  def hexifyBytes(b: Array[Byte]): String = {
-    var result = ""
-    var i: Int = 0
-    while (i < b.length) {
-      result += Integer.toString((b(i) & 0xff) + 0x100, 16).substring(1)
-      i += 1
-    }
-    result
-  }
-
-  def md5(f: File): String = {
-    val buffer = new Array[Byte](1024)
-    val hash = MessageDigest.getInstance("MD5")
-    for (f <- f.andTree) {
-      try {
-        hash.update(f.getAbsolutePath.getBytes)
-        if (!f.isDirectory) {
-          val fis = new FileInputStream(f)
-          var numRead = 0
-          do {
-            numRead = fis.read(buffer)
-            if (numRead > 0) {
-              hash.update(buffer, 0, numRead)
-            }
-          } while (numRead != -1)
-          fis.close()
-        }
-      } catch {
-        case e: IOException =>
-          e.printStackTrace()
-      }
-    }
-    hexifyBytes(hash.digest())
-  }
-
-  def readFile(file: File): Either[IOException, String] = {
-    val cs = Charset.defaultCharset()
+  def readFile(file: File, cs: Charset): Either[IOException, String] = {
     try {
       val stream = new FileInputStream(file)
       try {
@@ -260,29 +108,32 @@ object FileUtils {
     }
   }
 
-  def replaceFileContents(file: File, newContents: String): Either[Exception, Unit] = {
+  def replaceFileContents(file: File, newContents: String, cs: Charset): Either[Exception, Unit] = {
     try {
-      val writer = new FileWriter(file)
+      val stream = new FileOutputStream(file)
+      val writer = new OutputStreamWriter(stream, cs)
       try {
         writer.write(newContents)
         Right(())
       } catch {
-        case e: IOException => Left(e)
+        case e: IOException =>
+          Left(e)
       } finally {
         writer.close()
       }
     } catch {
-      case e: Exception => Left(e)
+      case e: Exception =>
+        Left(e)
     }
   }
 
   // Note: we assume changes do not overlap
-  def inverseEdits(edits: Iterable[FileEdit]): List[FileEdit] = {
+  def inverseEdits(edits: Iterable[FileEdit], cs: Charset): List[FileEdit] = {
     val result = new mutable.ListBuffer[FileEdit]
     val editsByFile = edits.groupBy(_.file)
     editsByFile.foreach {
       case (file, fileEdits) =>
-        readFile(file) match {
+        readFile(file, cs) match {
           case Right(contents) =>
             var dy = 0
             for (ch <- fileEdits) {
@@ -305,14 +156,14 @@ object FileUtils {
     result.toList
   }
 
-  def writeChanges(changes: Iterable[FileEdit]): Either[Exception, Iterable[File]] = {
+  def writeChanges(changes: Iterable[FileEdit], cs: Charset): Either[Exception, Iterable[File]] = {
     val editsByFile = changes.collect { case ed: TextEdit => ed }.groupBy(_.file)
     val newFiles = changes.collect { case ed: NewFile => ed }
     try {
       val rewriteList = newFiles.map { ed => (ed.file, ed.text) } ++
         editsByFile.map {
           case (file, fileChanges) =>
-            readFile(file) match {
+            readFile(file, cs) match {
               case Right(contents) =>
                 val newContents = FileEdit.applyEdits(fileChanges.toList, contents)
                 (file, newContents)
@@ -325,7 +176,7 @@ object FileUtils {
         ed.file.delete()
       }
 
-      rewriteFiles(rewriteList) match {
+      rewriteFiles(rewriteList, cs) match {
         case Right(Right(_)) => Right(changes.groupBy(_.file).keys)
         case Right(Left(e)) => Left(new IllegalStateException(
           "Possibly incomplete write of change-set caused by: " + e))
@@ -341,7 +192,7 @@ object FileUtils {
    * before any disk writes, return Left(exception). If  an error occurs DURING
    * disk writes, return Right(Left(exception)). Otherwise, return Right(Right(()))
    */
-  def rewriteFiles(changes: Iterable[(File, String)]): Either[Exception, Either[Exception, Unit]] = {
+  def rewriteFiles(changes: Iterable[(File, String)], cs: Charset): Either[Exception, Either[Exception, Unit]] = {
     try {
 
       // Try to fail fast, before writing anything to disk.
@@ -356,7 +207,7 @@ object FileUtils {
       // Apply the changes. An error here may result in a corrupt disk state :(
       changes.foreach {
         case (file, newContents) =>
-          replaceFileContents(file, newContents) match {
+          replaceFileContents(file, newContents, cs) match {
             case Right(_) =>
             case Left(e) => Right(Left(e))
           }

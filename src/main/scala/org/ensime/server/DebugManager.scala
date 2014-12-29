@@ -17,24 +17,24 @@ import com.sun.jdi.event._
 
 case object DebuggerShutdownEvent
 
-case class DebugStartVMReq(commandLine: String)
-case class DebugAttachVMReq(hostname: String, port: String)
-case object DebugStopVMReq
-case object DebugRunReq
-case class DebugContinueReq(threadId: Long)
-case class DebugNextReq(threadId: Long)
-case class DebugStepReq(threadId: Long)
-case class DebugStepOutReq(threadId: Long)
-case class DebugLocateNameReq(threadId: Long, name: String)
-case class DebugValueReq(loc: DebugLocation)
-case class DebugToStringReq(threadId: Long, loc: DebugLocation)
-case class DebugSetValueReq(loc: DebugLocation, newValue: String)
-case class DebugBacktraceReq(threadId: Long, index: Int, count: Int)
-case object DebugActiveVMReq
-case class DebugBreakReq(file: String, line: Int)
-case class DebugClearBreakReq(file: String, line: Int)
-case object DebugClearAllBreaksReq
-case object DebugListBreaksReq
+case class DebugStartVMReq(commandLine: String) extends RPCRequest
+case class DebugAttachVMReq(hostname: String, port: String) extends RPCRequest
+case object DebugStopVMReq extends RPCRequest
+case object DebugRunReq extends RPCRequest
+case class DebugContinueReq(threadId: Long) extends RPCRequest
+case class DebugNextReq(threadId: Long) extends RPCRequest
+case class DebugStepReq(threadId: Long) extends RPCRequest
+case class DebugStepOutReq(threadId: Long) extends RPCRequest
+case class DebugLocateNameReq(threadId: Long, name: String) extends RPCRequest
+case class DebugValueReq(loc: DebugLocation) extends RPCRequest
+case class DebugToStringReq(threadId: Long, loc: DebugLocation) extends RPCRequest
+case class DebugSetValueReq(loc: DebugLocation, newValue: String) extends RPCRequest
+case class DebugBacktraceReq(threadId: Long, index: Int, count: Int) extends RPCRequest
+case object DebugActiveVMReq extends RPCRequest
+case class DebugSetBreakpointReq(file: String, line: Int) extends RPCRequest
+case class DebugClearBreakpointReq(file: String, line: Int) extends RPCRequest
+case object DebugClearAllBreakpointsReq extends RPCRequest
+case object DebugListBreakpointsReq extends RPCRequest
 
 abstract class DebugVmStatus
 
@@ -42,12 +42,9 @@ case object DebugVmSuccess extends DebugVmStatus
 case class DebugVmError(code: Int, details: String) extends DebugVmStatus
 
 class DebugManager(
-    project: Project,
+    project: ActorRef,
     indexer: ActorRef,
-    protocol: ProtocolConversions,
     config: EnsimeConfig) extends Actor with ActorLogging {
-
-  import protocol._
 
   def ignoreErr[T](action: => T, orElse: => T): T = {
     try { action } catch { case e: Exception => orElse }
@@ -151,9 +148,10 @@ class DebugManager(
     project ! AsyncEvent(DebugVMDisconnectEvent())
   }
 
-  def vmOptions(): List[String] = List("-classpath",
+  def vmOptions(): List[String] = List(
+    "-classpath",
     config.runtimeClasspath.mkString("\"", File.pathSeparator, "\"")
-  )
+  ) ++ config.debugVMArgs
 
   private var maybeVM: Option[VM] = None
 
@@ -175,28 +173,31 @@ class DebugManager(
     }
   }
 
-  private def handleRPCWithVM(callId: Int)(action: (VM => Unit)) = {
+  private def handleRPCWithVM()(action: (VM => Unit)) = {
     withVM { vm =>
       action(vm)
     }.getOrElse {
       log.warning("Could not access debug VM.")
-      project ! RPCResultEvent(toWF(value = false), callId)
+      sender ! false
     }
   }
 
-  private def handleRPCWithVMAndThread(callId: Int,
-    threadId: Long)(action: ((VM, ThreadReference) => Unit)) = {
+  private def handleRPCWithVMAndThread(threadId: Long)(action: ((VM, ThreadReference) => Unit)) = {
     withVM { vm =>
       (for (thread <- vm.threadById(threadId)) yield {
         action(vm, thread)
       }).getOrElse {
-        log.warning("Couldn't find thread: " + threadId)
-        project ! RPCResultEvent(toWF(value = false), callId)
+        log.warning("Could not find thread: " + threadId)
+        sender ! false
       }
     }.getOrElse {
       log.warning("Could not access debug VM")
-      project ! RPCResultEvent(toWF(value = false), callId)
+      sender ! false
     }
+  }
+
+  def bgMessage(msg: String) {
+    project ! AsyncEvent(SendBackgroundMessageEvent(ProtocolConst.MsgMisc, Some(msg)))
   }
 
   override def receive = {
@@ -222,6 +223,8 @@ class DebugManager(
           case e: VMStartEvent =>
             withVM { vm =>
               vm.initLocationMap()
+              // by default we will attempt to start in suspended mode so we can attach breakpoints etc
+              vm.resume()
             }
             project ! AsyncEvent(DebugVMStartEvent())
           case e: VMDeathEvent => disconnectDebugVM()
@@ -259,13 +262,13 @@ class DebugManager(
           case e: MethodExitEvent =>
           case _ =>
         }
-      case RPCRequestEvent(req: Any, callId: Int) =>
+      case req: RPCRequest =>
         try {
           def handleStartupFailure(e: Exception): Unit = {
             maybeVM = None
             log.error(e, "Failure during VM startup")
             val message = e.toString
-            project ! RPCResultEvent(toWF(DebugVmError(1, message)), callId)
+            sender ! DebugVmError(1, message)
           }
 
           req match {
@@ -277,13 +280,12 @@ class DebugManager(
                 val vm = new VM(VmStart(commandLine))
                 maybeVM = Some(vm)
                 vm.start()
-                project ! RPCResultEvent(toWF(DebugVmSuccess), callId)
+                sender ! DebugVmSuccess
               } catch {
                 case e: Exception =>
-                  log.error(e, "Couldn't start VM")
+                  log.error(e, "Could not start VM")
                   handleStartupFailure(e)
               }
-
             case DebugAttachVMReq(hostname, port) ⇒
               withVM { vm ⇒
                 vm.dispose()
@@ -292,134 +294,118 @@ class DebugManager(
                 val vm = new VM(VmAttach(hostname, port))
                 maybeVM = Some(vm)
                 vm.start()
-                project ! RPCResultEvent(toWF(DebugVmSuccess), callId)
+                sender ! DebugVmSuccess
               } catch {
                 case e: Exception =>
+                  log.error(e, "Could not attach VM")
                   handleStartupFailure(e)
               }
-
             case DebugActiveVMReq =>
-              handleRPCWithVM(callId) { vm =>
-                project ! RPCResultEvent(toWF(value = true), callId)
+              handleRPCWithVM() { vm =>
+                sender ! true
               }
 
             case DebugStopVMReq =>
-              handleRPCWithVM(callId) { vm =>
+              handleRPCWithVM() { vm =>
                 vm.dispose()
-                project ! RPCResultEvent(toWF(value = true), callId)
+                sender ! true
               }
 
             case DebugRunReq =>
-              handleRPCWithVM(callId) { vm =>
+              handleRPCWithVM() { vm =>
                 vm.resume()
-                project ! RPCResultEvent(toWF(value = true), callId)
+                sender ! true
               }
-
             case DebugContinueReq(threadId) =>
-              handleRPCWithVMAndThread(callId, threadId) {
+              handleRPCWithVMAndThread(threadId) {
                 (vm, thread) =>
                   vm.resume()
-                  project ! RPCResultEvent(toWF(value = true), callId)
+                  sender ! true
               }
-
-            case DebugBreakReq(filepath: String, line: Int) =>
+            case DebugSetBreakpointReq(filepath: String, line: Int) =>
               val file = CanonFile(filepath)
               if (!setBreakpoint(file, line)) {
-                project.bgMessage("Location not loaded. Set pending breakpoint.")
+                bgMessage("Location not loaded. Set pending breakpoint.")
               }
-              project ! RPCResultEvent(toWF(value = true), callId)
-
-            case DebugClearBreakReq(filepath: String, line: Int) =>
+              sender ! VoidResponse
+            case DebugClearBreakpointReq(filepath: String, line: Int) =>
               val file = CanonFile(filepath)
               clearBreakpoint(file, line)
-              project ! RPCResultEvent(toWF(value = true), callId)
+              sender ! VoidResponse
 
-            case DebugClearAllBreaksReq =>
+            case DebugClearAllBreakpointsReq =>
               clearAllBreakpoints()
-              project ! RPCResultEvent(toWF(value = true), callId)
+              sender ! VoidResponse
 
-            case DebugListBreaksReq =>
+            case DebugListBreakpointsReq =>
               val breaks = BreakpointList(activeBreakpoints.toList, pendingBreakpoints)
               sender ! breaks
 
             case DebugNextReq(threadId: Long) =>
-              handleRPCWithVMAndThread(callId, threadId) {
+              handleRPCWithVMAndThread(threadId) {
                 (vm, thread) =>
                   vm.newStepRequest(thread,
                     StepRequest.STEP_LINE,
                     StepRequest.STEP_OVER)
-                  project ! RPCResultEvent(toWF(value = true), callId)
+                  sender ! true
               }
 
             case DebugStepReq(threadId: Long) =>
-              handleRPCWithVMAndThread(callId, threadId) {
+              handleRPCWithVMAndThread(threadId) {
                 (vm, thread) =>
                   vm.newStepRequest(thread,
                     StepRequest.STEP_LINE,
                     StepRequest.STEP_INTO)
-                  project ! RPCResultEvent(toWF(value = true), callId)
+                  sender ! true
               }
 
             case DebugStepOutReq(threadId: Long) =>
-              handleRPCWithVMAndThread(callId, threadId) {
+              handleRPCWithVMAndThread(threadId) {
                 (vm, thread) =>
                   vm.newStepRequest(thread,
                     StepRequest.STEP_LINE,
                     StepRequest.STEP_OUT)
-                  project ! RPCResultEvent(toWF(value = true), callId)
+                  sender ! true
               }
 
             case DebugLocateNameReq(threadId: Long, name: String) =>
-              handleRPCWithVMAndThread(callId, threadId) {
+              handleRPCWithVMAndThread(threadId) {
                 (vm, thread) =>
-                  vm.locationForName(thread, name) match {
-                    case Some(loc) =>
-                      project ! RPCResultEvent(toWF(loc), callId)
-                    case None =>
-                      project ! RPCResultEvent(toWF(value = false), callId)
-                  }
+                  sender ! vm.locationForName(thread, name)
               }
             case DebugBacktraceReq(threadId: Long, index: Int, count: Int) =>
-              handleRPCWithVMAndThread(callId, threadId) {
-                (vm, thread) =>
-                  val bt = vm.backtrace(thread, index, count)
-                  project ! RPCResultEvent(toWF(bt), callId)
+              handleRPCWithVMAndThread(threadId) { (vm, thread) =>
+                val bt = vm.backtrace(thread, index, count)
+                sender ! bt
               }
             case DebugValueReq(location) =>
-              handleRPCWithVM(callId) {
-                (vm) =>
-                  vm.debugValueAtLocation(location).map(toWF) match {
-                    case Some(payload) => project ! RPCResultEvent(payload, callId)
-                    case None => project ! RPCResultEvent(toWF(value = false), callId)
-                  }
+              handleRPCWithVM() { (vm) =>
+                sender ! vm.debugValueAtLocation(location)
               }
             case DebugToStringReq(threadId, location) =>
-              handleRPCWithVM(callId) {
-                (vm) =>
-                  vm.debugValueAtLocationToString(threadId, location).map(toWF) match {
-                    case Some(payload) => project ! RPCResultEvent(payload, callId)
-                    case None => project ! RPCResultEvent(toWF(value = false), callId)
-                  }
+              handleRPCWithVM() { (vm) =>
+                sender ! vm.debugValueAtLocationToString(threadId, location)
               }
+
             case DebugSetValueReq(location, newValue) =>
-              handleRPCWithVM(callId) { vm =>
+              handleRPCWithVM() { vm =>
                 location match {
                   case DebugStackSlot(threadId, frame, offset) => vm.threadById(threadId) match {
                     case Some(thread) =>
                       val status = vm.setStackVar(thread, frame, offset, newValue)
-                      project ! RPCResultEvent(toWF(status), callId)
+                      sender ! status
                     case _ =>
                   }
                   case unknown =>
                     log.error("Unsupported location type for debug-set-value.: " + unknown)
-                    project ! RPCResultEvent(toWF(value = false), callId)
+                    sender ! false
                 }
               }
           }
         } catch {
           case e: Throwable =>
             log.error(e, "Error handling RPC:")
-            project.sendRPCError(ErrExceptionInDebugger, "Error occurred in Debug Manager. Check the server log.", callId)
+            sender ! RPCError(ErrExceptionInDebugger, "Error occurred in Debug Manager. Check the server log.")
         }
       case other =>
         log.error("Unknown event type: " + other)
@@ -443,7 +429,9 @@ class DebugManager(
           val allVMOpts = (List(opts) ++ vmOptions).mkString(" ")
           arguments.get("options").setValue(allVMOpts)
           arguments.get("main").setValue(commandLine)
-          arguments.get("suspend").setValue("false")
+          // set the debugged process into suspend mode so we can catch it and add
+          // breakpoints (see vm start  event), otherwise we have a race condition.
+          arguments.get("suspend").setValue("true")
 
           log.info("Using Connector: " + connector.name + " : " + connector.description())
           log.info("Connector class: " + connector.getClass.getName)
@@ -472,7 +460,8 @@ class DebugManager(
       }
     }
 
-    vm.setDebugTraceMode(VirtualMachine.TRACE_EVENTS)
+    //This flag is useful for debugging but not needed during general use
+    // vm.setDebugTraceMode(VirtualMachine.TRACE_EVENTS)
     val evtQ = new VMEventManager(vm.eventQueue())
     val erm: EventRequestManager = vm.eventRequestManager();
     {
@@ -548,8 +537,8 @@ class DebugManager(
     def setBreakpoint(file: CanonFile, line: Int): Boolean = {
       val locs = locations(file, line)
       if (locs.nonEmpty) {
-        project.bgMessage("Resolved breakpoint at: " + file + " : " + line)
-        project.bgMessage("Installing breakpoint at locations: " + locs)
+        bgMessage("Resolved breakpoint at: " + file + " : " + line)
+        bgMessage("Installing breakpoint at locations: " + locs)
         for (loc <- locs) {
           val request = erm.createBreakpointRequest(loc)
           request.setSuspendPolicy(EventRequest.SUSPEND_ALL)
@@ -932,7 +921,7 @@ class DebugManager(
       if (thread.frameCount > frame &&
         thread.frame(frame).visibleVariables.length > offset) {
         val stackFrame = thread.frame(frame)
-        val localVar = stackFrame.visibleVariables.get(offset)
+        val localVar: LocalVariable = stackFrame.visibleVariables.get(offset)
         mirrorFromString(localVar.`type`(), newValue) match {
           case Some(v) =>
             stackFrame.setValue(localVar, v); true
@@ -969,7 +958,7 @@ class DebugManager(
             self ! t
             finished = true
           case t: Throwable =>
-            t.printStackTrace()
+            log.info("Exception during execution", t)
             finished = true
         }
       }
@@ -990,7 +979,7 @@ class DebugManager(
         }
       } catch {
         case t: Throwable =>
-          t.printStackTrace()
+          log.info("Exception during execution", t)
       }
     }
   }

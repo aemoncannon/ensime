@@ -1,23 +1,32 @@
-package org.ensime.protocol
+package org.ensime.protocol.swank
 
 import java.io._
 
-import akka.actor.ActorRef
+import akka.actor.{ ActorRef, ActorSystem }
 import org.ensime.model._
+import org.ensime.protocol._
 import org.ensime.server._
 import org.ensime.util.SExp._
 import org.ensime.util._
 import org.slf4j.LoggerFactory
 
-import scala.util.parsing.input
+import scala.concurrent.backport.Future
 
-class SwankProtocol extends Protocol {
-  import SwankProtocol._
+class SwankProtocol(actorSystem: ActorSystem,
+    val peer: ActorRef,
+    val rpcTarget: RPCTarget) extends Protocol with SwankWireFormatCodec {
+
+  import org.ensime.protocol.swank.SwankProtocol._
+
+  implicit val rpcExecutionContext = actorSystem.dispatchers.lookup("akka.swank-dispatcher")
 
   /**
-   * Protocol Version: 0.8.9
+   * Protocol Version: 0.8.10 (Must match version at ConnectionInfo.protocolVersion)
    *
    * Protocol Change Log:
+   *   0.8.10
+   *     Remove the config argument from init-project. Server loads
+   *     configuration on its own.
    *   0.8.9
    *     Remove Incremental builder - removed
    *       swank:builder-init
@@ -71,59 +80,12 @@ class SwankProtocol extends Protocol {
   import org.ensime.protocol.ProtocolConst._
 
   val log = LoggerFactory.getLogger(this.getClass)
-  override val conversions: ProtocolConversions = new SwankProtocolConversions
 
-  private var outPeer: ActorRef = null
-  private var rpcTarget: RPCTarget = null
+  val conversions: ProtocolConversions = new SwankProtocolConversions
 
-  def peer = outPeer
+  import conversions._
 
-  def setOutputActor(peer: ActorRef) { outPeer = peer }
-
-  def setRPCTarget(target: RPCTarget) { this.rpcTarget = target }
-
-  // Handle reading / writing of messages
-
-  def writeMessage(value: WireFormat, out: OutputStream): Unit = {
-    val dataString: String = value.toWireString
-    val data: Array[Byte] = dataString.getBytes("UTF-8")
-    val header: Array[Byte] = "%06x".format(data.length).getBytes("UTF-8")
-    log.info("Writing: " + dataString)
-    out.write(header)
-    out.write(data)
-    out.flush()
-  }
-
-  private def fillArray(in: java.io.Reader, a: Array[Char]): Unit = {
-    var n = 0
-    val l = a.length
-    var charsRead = 0
-    while (n < l) {
-      charsRead = in.read(a, n, l - n)
-      if (charsRead == -1) {
-        throw new EOFException("End of file reached in socket reader.")
-      } else {
-        n += charsRead
-      }
-    }
-  }
-
-  private val headerBuf = new Array[Char](6)
-
-  def readMessage(reader: java.io.InputStreamReader): WireFormat = {
-    fillArray(reader, headerBuf)
-    val msglen = Integer.valueOf(new String(headerBuf), 16).intValue()
-    if (msglen > 0) {
-      //TODO allocating a new array each time is inefficient!
-      val buf: Array[Char] = new Array[Char](msglen)
-      fillArray(reader, buf)
-      SExpParser.read(new input.CharArrayReader(buf))
-    } else {
-      throw new IllegalStateException("Empty message read from socket!")
-    }
-  }
-
-  def handleIncomingMessage(msg: Any): Unit = {
+  def handleIncomingMessage(msg: Any): Unit = synchronized {
     msg match {
       case sexp: SExp => handleMessageForm(sexp)
       case _ => log.error("Unexpected message type: " + msg)
@@ -147,18 +109,23 @@ class SwankProtocol extends Protocol {
   }
 
   private def handleEmacsRex(form: SExp, callId: Int): Unit = {
-    form match {
-      case l @ SExpList(SymbolAtom(name) :: rest) =>
-        try {
-          handleRPCRequest(name, l.items.drop(1), l, callId)
-        } catch {
-          case e: Throwable =>
-            log.error("Exception whilst handling rpc " + e.getMessage, e)
-            sendRPCError(ErrExceptionInRPC, e.getMessage, callId)
-        }
-      case _ =>
-        sendRPCError(ErrMalformedRPC, "Expecting leading symbol in: " + form, callId)
-    }
+    Future {
+      form match {
+        case l @ SExpList(SymbolAtom(name) :: rest) =>
+          try {
+            handleRPCRequest(name, l.items.drop(1), l, callId)
+          } catch {
+            case rpce: RPCError =>
+              log.warn("RPCError returned " + rpce)
+              sendRPCError(rpce.code, rpce.detail, callId)
+            case e: Throwable =>
+              log.error("Exception whilst handling rpc " + e.getMessage, e)
+              sendRPCError(ErrExceptionInRPC, e.getMessage, callId)
+          }
+        case _ =>
+          sendRPCError(ErrMalformedRPC, "Expecting leading symbol in: " + form, callId)
+      }
+    }(rpcExecutionContext)
   }
 
   ////////////////////
@@ -284,11 +251,11 @@ class SwankProtocol extends Protocol {
    * Doc DataStructure:
    *   InterfaceInfo
    * Summary:
-   *   Describes an inteface that a type supports
+   *   Describes an interface that a type supports
    * Structure:
    *   (
    *   :type //TypeInfo:The type of the interface.
-   *   :via-view //Bool:Is this type suppoted via an implicit conversion?
+   *   :via-view //Bool:Is this type supported via an implicit conversion?
    *   )
    */
 
@@ -538,7 +505,7 @@ class SwankProtocol extends Protocol {
        *   None
        * Return:
        *   (
-       *   :pid  //Int:The integer process id of the server (or nil if unnavailable)
+       *   :pid  //Int:The integer process id of the server (or nil if unavailable)
        *   :implementation
        *     (
        *     :name  //String:An identifying name for this server implementation.
@@ -552,35 +519,28 @@ class SwankProtocol extends Protocol {
        *   :version "0.7")) 42)
        */
       case ("swank:connection-info", Nil) =>
-        rpcTarget.rpcConnectionInfo(callId)
+        val info = rpcTarget.rpcConnectionInfo()
+        sendRPCReturn(toWF(info), callId)
 
       /**
        * Doc RPC:
        *   swank:init-project
        * Summary:
-       *   Initialize the server with a project configuration. The
-       *   server returns it's own knowledge about the project, including
-       *   source roots which can be used by clients to determine whether
-       *   a given source file belongs to this project.
+       *   Notify the server that the client is ready to receive
+       *   project events.
        * Arguments:
-       *   A complete ENSIME configuration property list. See manual.
+       *   None
        * Return:
-       *   (
-       *   :project-name //String:The name of the project.
-       *   :source-roots //List of Strings:The source code directory roots..
-       *   )
+       *   None
        * Example call:
-       *   (:swank-rpc (swank:init-project (:use-sbt t :compiler-args
-       *   ("-Ywarn-dead-code" "-Ywarn-catches" "-Xstrict-warnings")
-       *   :root-dir "/Users/aemon/projects/ensime/")) 42)
+       *   (:swank-rpc (swank:init-project) 42)
        * Example return:
-       *   (:return (:ok (:project-name "ensime" :source-roots
-       *   ("/Users/aemon/projects/ensime/src/main/scala"
-       *   "/Users/aemon/projects/ensime/src/test/scala"
-       *   "/Users/aemon/projects/ensime/src/main/java"))) 42)
+       *   (:return (:ok t) 42)
        */
-      case ("swank:init-project", (conf: SExpList) :: Nil) =>
-        rpcTarget.rcpInitProject(conf, callId)
+      case ("swank:init-project", Nil) =>
+        sendRPCAckOK(callId)
+        rpcTarget.rpcNotifyClientReady()
+        rpcTarget.rpcSubscribeAsync((e) => { sendEvent(e) })
 
       /**
        * Doc RPC:
@@ -605,8 +565,10 @@ class SwankProtocol extends Protocol {
        *   :summary "Refactoring of type: 'rename") 42)
        */
       case ("swank:peek-undo", Nil) =>
-        rpcTarget.rpcPeekUndo(callId)
-
+        rpcTarget.rpcPeekUndo() match {
+          case Right(result) => sendRPCReturn(toWF(result), callId)
+          case Left(msg) => sendRPCError(ErrPeekUndoFailed, msg, callId)
+        }
       /**
        * Doc RPC:
        *   swank:exec-undo
@@ -626,7 +588,11 @@ class SwankProtocol extends Protocol {
        *   ("/src/main/scala/org/ensime/server/RPCTarget.scala"))) 42)
        */
       case ("swank:exec-undo", IntAtom(id) :: Nil) =>
-        rpcTarget.rpcExecUndo(id, callId)
+        val resultOpt = rpcTarget.rpcExecUndo(id)
+        resultOpt match {
+          case Right(result) => sendRPCReturn(toWF(result), callId)
+          case Left(msg) => sendRPCError(ErrExecUndoFailed, msg, callId)
+        }
 
       /**
        * Doc RPC:
@@ -645,7 +611,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok (:classpath "lib1.jar:lib2.jar:lib3.jar")) 42)
        */
       case ("swank:repl-config", Nil) =>
-        rpcTarget.rpcReplConfig(callId)
+        val config = rpcTarget.rpcReplConfig()
+        sendRPCReturn(toWF(config), callId)
 
       /**
        * Doc RPC:
@@ -662,7 +629,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:remove-file", StringAtom(file) :: Nil) =>
-        rpcTarget.rpcRemoveFile(file, callId)
+        rpcTarget.rpcRemoveFile(file)
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -681,9 +649,11 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:typecheck-file", StringAtom(file) :: StringAtom(contents) :: Nil) =>
-        rpcTarget.rpcTypecheckFiles(List(SourceFileInfo(new File(file), Some(contents))), callId)
+        rpcTarget.rpcTypecheckFiles(List(SourceFileInfo(new File(file), Some(contents))))
+        sendRPCReturn(wfTrue, callId)
       case ("swank:typecheck-file", StringAtom(file) :: Nil) =>
-        rpcTarget.rpcTypecheckFiles(List(SourceFileInfo(file)), callId)
+        rpcTarget.rpcTypecheckFiles(List(SourceFileInfo(file)))
+        sendRPCReturn(wfTrue, callId)
 
       /**
        * Doc RPC:
@@ -700,8 +670,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:typecheck-files", StringListExtractor(names) :: Nil) =>
-        rpcTarget.rpcTypecheckFiles(names.map(SourceFileInfo(_)), callId)
-
+        rpcTarget.rpcTypecheckFiles(names.map(SourceFileInfo(_)))
+        sendRPCAckOK(callId)
       /**
        * Doc RPC:
        *   swank:patch-source
@@ -718,7 +688,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:patch-source", StringAtom(file) :: PatchListExtractor(edits) :: Nil) =>
-        rpcTarget.rpcPatchSource(file, edits, callId)
+        rpcTarget.rpcPatchSource(file, edits)
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -736,7 +707,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:unload-all", Nil) =>
-        rpcTarget.rpcUnloadAll(callId)
+        rpcTarget.rpcUnloadAll()
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -753,7 +725,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:typecheck-all", Nil) =>
-        rpcTarget.rpcTypecheckAll(callId)
+        rpcTarget.rpcTypecheckAll()
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -773,7 +746,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:format-source", StringListExtractor(filenames) :: Nil) =>
-        rpcTarget.rpcFormatFiles(filenames, callId)
+        rpcTarget.rpcFormatFiles(filenames)
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -793,7 +767,8 @@ class SwankProtocol extends Protocol {
        *   :pos (:file "/Classes/classes.jar" :offset -1))) 42)
        */
       case ("swank:public-symbol-search", StringListExtractor(keywords) :: IntAtom(maxResults) :: Nil) =>
-        rpcTarget.rpcPublicSymbolSearch(keywords, maxResults, callId)
+        val result = rpcTarget.rpcPublicSymbolSearch(keywords, maxResults)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -820,7 +795,8 @@ class SwankProtocol extends Protocol {
        *   42)
        */
       case ("swank:import-suggestions", StringAtom(file) :: IntAtom(point) :: StringListExtractor(names) :: IntAtom(maxResults) :: Nil) =>
-        rpcTarget.rpcImportSuggestions(file, point, names, maxResults, callId)
+        val result = rpcTarget.rpcImportSuggestions(file, point, names, maxResults)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -849,7 +825,9 @@ class SwankProtocol extends Protocol {
        */
       case ("swank:completions", StringAtom(file) :: IntAtom(point) :: IntAtom(maxResults) ::
         BooleanAtom(caseSens) :: BooleanAtom(reload) :: Nil) =>
-        rpcTarget.rpcCompletionsAtPoint(file, point, maxResults, caseSens, reload, callId)
+        val result = rpcTarget.rpcCompletionsAtPoint(file, point, maxResults, caseSens, reload)
+        val resultWF = toWF(result)
+        sendRPCReturn(resultWF, callId)
 
       /**
        * Doc RPC:
@@ -867,7 +845,9 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok ((:name "Server$") (:name "Server"))) 42)
        */
       case ("swank:package-member-completion", StringAtom(path) :: StringAtom(prefix) :: Nil) =>
-        rpcTarget.rpcPackageMemberCompletion(path, prefix, callId)
+        val members = rpcTarget.rpcPackageMemberCompletion(path, prefix)
+        val resultWF = toWF(members.map(toWF))
+        sendRPCReturn(resultWF, callId)
 
       /**
        * Doc RPC:
@@ -892,7 +872,9 @@ class SwankProtocol extends Protocol {
        *   :decl-as class))))))) 42)
        */
       case ("swank:call-completion", IntAtom(id) :: Nil) =>
-        rpcTarget.rpcCallCompletion(id, callId)
+        val result = rpcTarget.rpcCallCompletion(id)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -913,7 +895,9 @@ class SwankProtocol extends Protocol {
        *   :offset 11319 :start 11319 :end 11339))) 42)
        */
       case ("swank:uses-of-symbol-at-point", StringAtom(file) :: IntAtom(point) :: Nil) =>
-        rpcTarget.rpcUsesOfSymAtPoint(file, point, callId)
+        val result = rpcTarget.rpcUsesOfSymAtPoint(file, point)
+        val wfResult = toWF(result.map(toWF))
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -934,7 +918,9 @@ class SwankProtocol extends Protocol {
        *   (:file "SwankProtocol.scala" :offset 36404))) 42)
        */
       case ("swank:member-by-name", StringAtom(typeFullName) :: StringAtom(memberName) :: BooleanAtom(memberIsType) :: Nil) =>
-        rpcTarget.rpcMemberByName(typeFullName, memberName, memberIsType, callId)
+        val result = rpcTarget.rpcMemberByName(typeFullName, memberName, memberIsType)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -953,7 +939,12 @@ class SwankProtocol extends Protocol {
        *   :decl-as class)))) 42)
        */
       case ("swank:type-by-id", IntAtom(id) :: Nil) =>
-        rpcTarget.rpcTypeById(id, callId)
+        val result = rpcTarget.rpcTypeById(id)
+        val wfResult = result match {
+          case Some(info) => toWF(info)
+          case None => wfNull
+        }
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -971,7 +962,12 @@ class SwankProtocol extends Protocol {
        *   "java.lang.String" :decl-as class)) 42)
        */
       case ("swank:type-by-name", StringAtom(name) :: Nil) =>
-        rpcTarget.rpcTypeByName(name, callId)
+        val result = rpcTarget.rpcTypeByName(name)
+        val wfResult = result match {
+          case Some(info) => toWF(info)
+          case None => wfNull
+        }
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -992,7 +988,9 @@ class SwankProtocol extends Protocol {
        *   "java.lang.String" :decl-as class)) 42)
        */
       case ("swank:type-by-name-at-point", StringAtom(name) :: StringAtom(file) :: OffsetRangeExtractor(range) :: Nil) =>
-        rpcTarget.rpcTypeByNameAtPoint(name, file, range, callId)
+        val result = rpcTarget.rpcTypeByNameAtPoint(name, file, range)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -1011,7 +1009,9 @@ class SwankProtocol extends Protocol {
        *   "java.lang.String" :decl-as class)) 42)
        */
       case ("swank:type-at-point", StringAtom(file) :: OffsetRangeExtractor(range) :: Nil) =>
-        rpcTarget.rpcTypeAtPoint(file, range, callId)
+        val result = rpcTarget.rpcTypeAtPoint(file, range)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -1032,7 +1032,9 @@ class SwankProtocol extends Protocol {
        *   (:file "SExp.scala" :offset 1877))......)) 42)
        */
       case ("swank:inspect-type-at-point", StringAtom(file) :: OffsetRangeExtractor(range) :: Nil) =>
-        rpcTarget.rpcInspectTypeAtPoint(file, range, callId)
+        val result = rpcTarget.rpcInspectTypeAtPoint(file, range)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -1051,7 +1053,9 @@ class SwankProtocol extends Protocol {
        *   (:file "SExp.scala" :offset 1877))......)) 42)
        */
       case ("swank:inspect-type-by-id", IntAtom(id) :: Nil) =>
-        rpcTarget.rpcInspectTypeById(id, callId)
+        val result = rpcTarget.rpcInspectTypeById(id)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -1070,7 +1074,9 @@ class SwankProtocol extends Protocol {
        *   (:file "SExp.scala" :offset 1877))......)) 42)
        */
       case ("swank:inspect-type-by-name", StringAtom(name) :: Nil) =>
-        rpcTarget.rpcInspectTypeByName(name, callId)
+        val result = rpcTarget.rpcInspectTypeByName(name)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -1090,7 +1096,9 @@ class SwankProtocol extends Protocol {
        *   (:file "SwankProtocol.scala" :offset 36404))) 42)
        */
       case ("swank:symbol-at-point", StringAtom(file) :: IntAtom(point) :: Nil) =>
-        rpcTarget.rpcSymbolAtPoint(file, point, callId)
+        val result = rpcTarget.rpcSymbolAtPoint(file, point)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -1110,7 +1118,9 @@ class SwankProtocol extends Protocol {
        *   (:file "SExp.scala" :offset 2848)).....))) 42)
        */
       case ("swank:inspect-package-by-path", StringAtom(path) :: Nil) =>
-        rpcTarget.rpcInspectPackageByPath(path, callId)
+        val result = rpcTarget.rpcInspectPackageByPath(path)
+        val wfResult = result.map(toWF).getOrElse(wfNull)
+        sendRPCReturn(wfResult, callId)
 
       /**
        * Doc RPC:
@@ -1146,7 +1156,21 @@ class SwankProtocol extends Protocol {
       case ("swank:prepare-refactor", IntAtom(procId) :: SymbolAtom(tpe) :: SymbolMapExtractor(params) :: BooleanAtom(interactive) :: Nil) =>
         parseRefactor(tpe, params) match {
           case Right(refactor) =>
-            rpcTarget.rpcPrepareRefactor(procId, refactor, interactive, callId)
+            val prepareResult = rpcTarget.rpcPrepareRefactor(procId, refactor)
+            prepareResult match {
+              case Right(r: RefactorEffect) =>
+                if (interactive) {
+                  sendRPCReturn(toWF(r), callId)
+                } else {
+                  val execResult = rpcTarget.rpcExecRefactor(procId, refactor.refactorType)
+                  execResult match {
+                    case Right(result: RefactorResult) => sendRPCReturn(toWF(result), callId)
+                    case Left(failure) => sendRPCReturn(toWF(failure), callId)
+                  }
+                }
+              case Left(failure) =>
+                sendRPCReturn(toWF(failure), callId)
+            }
           case Left(msg) =>
             sendRPCError(ErrMalformedRPC, "Malformed prepare-refactor - " + msg + ": " + fullForm, callId)
         }
@@ -1158,7 +1182,7 @@ class SwankProtocol extends Protocol {
        *   Execute a refactoring, usually after user confirmation.
        * Arguments:
        *   Int:A procedure id for this refactoring, uniquely generated by client.
-       *   Symbol:The manner of refacoring we want to prepare. Currently, one of
+       *   Symbol:The manner of refactoring we want to prepare. Currently, one of
        *     rename, extractMethod, extractLocal, organizeImports, or addImport.
        * Return:
        *   RefactorResult | RefactorFailure
@@ -1169,7 +1193,11 @@ class SwankProtocol extends Protocol {
        *   :touched-files ("SwankProtocol.scala"))) 42)
        */
       case ("swank:exec-refactor", IntAtom(procId) :: SymbolAtom(tpe) :: Nil) =>
-        rpcTarget.rpcExecRefactor(procId, Symbol(tpe), callId)
+        val result = rpcTarget.rpcExecRefactor(procId, Symbol(tpe))
+        result match {
+          case Right(result: RefactorResult) => sendRPCReturn(toWF(result), callId)
+          case Left(f: RefactorFailure) => sendRPCReturn(toWF(f), callId)
+        }
 
       /**
        * Doc RPC:
@@ -1187,7 +1215,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:cancel-refactor", IntAtom(procId) :: Nil) =>
-        rpcTarget.rpcCancelRefactor(procId, callId)
+        rpcTarget.rpcCancelRefactor(procId)
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -1214,7 +1243,8 @@ class SwankProtocol extends Protocol {
        *   (varField 34369 34378) (val 34398 34400)))) 42)
        */
       case ("swank:symbol-designations", StringAtom(filename) :: IntAtom(start) :: IntAtom(end) :: SymbolListExtractor(requestedTypes) :: Nil) =>
-        rpcTarget.rpcSymbolDesignations(filename, start, end, requestedTypes, callId)
+        val res = rpcTarget.rpcSymbolDesignations(filename, start, end, requestedTypes)
+        sendRPCReturn(toWF(res), callId)
 
       /**
        * Doc RPC:
@@ -1235,32 +1265,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok (:file "Model.scala" :start 4374 :end 14085)) 42)
        */
       case ("swank:expand-selection", StringAtom(filename) :: IntAtom(start) :: IntAtom(end) :: Nil) =>
-        rpcTarget.rpcExpandSelection(filename, start, end, callId)
-
-      /**
-       * Doc RPC:
-       *   swank:method-bytecode
-       * Summary:
-       *   Get bytecode for method at file and line.
-       * Arguments:
-       *   String:The file in which the method is defined.
-       *   Int:A line within the method's code.
-       * Return:
-       *   A MethodBytecode
-       * Example call:
-       *   (:swank-rpc (swank:method-bytecode "hello.scala" 12) 42)
-       * Example return:
-       *   (:return
-       *   (:ok (
-       *   :class-name "SomeClassName"
-       *   :name "SomeMethodName"
-       *   :signature ??
-       *   :bytcode ("opName" "opDescription" ...
-       *   )
-       *   42)
-       */
-      case ("swank:method-bytecode", StringAtom(filename) :: IntAtom(line) :: Nil) =>
-        rpcTarget.rpcMethodBytecode(filename, line, callId)
+        val result = rpcTarget.rpcExpandSelection(filename, start, end)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1277,7 +1283,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok nil) 42)
        */
       case ("swank:debug-active-vm", Nil) =>
-        rpcTarget.rpcDebugActiveVM(callId)
+        val result = rpcTarget.rpcDebugActiveVM()
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1295,7 +1302,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-start", StringAtom(commandLine) :: Nil) =>
-        rpcTarget.rpcDebugStartVM(commandLine, callId)
+        val result = rpcTarget.rpcDebugStartVM(commandLine)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1313,7 +1321,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-attach", StringAtom(hostname) :: StringAtom(port) :: Nil) =>
-        rpcTarget.rpcDebugAttachVM(hostname, port, callId)
+        val result = rpcTarget.rpcDebugAttachVM(hostname, port)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1330,7 +1339,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-stop", Nil) =>
-        rpcTarget.rpcDebugStopVM(callId)
+        val result = rpcTarget.rpcDebugStopVM()
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1348,7 +1358,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-set-break", StringAtom(filename) :: IntAtom(line) :: Nil) =>
-        rpcTarget.rpcDebugBreak(filename, line, callId)
+        rpcTarget.rpcDebugSetBreakpoint(filename, line)
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -1366,7 +1377,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-clear-break", StringAtom(filename) :: IntAtom(line) :: Nil) =>
-        rpcTarget.rpcDebugClearBreak(filename, line, callId)
+        rpcTarget.rpcDebugClearBreakpoint(filename, line)
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -1383,7 +1395,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-clear-all-breaks", Nil) =>
-        rpcTarget.rpcDebugClearAllBreaks(callId)
+        rpcTarget.rpcDebugClearAllBreakpoints()
+        sendRPCAckOK(callId)
 
       /**
        * Doc RPC:
@@ -1397,11 +1410,13 @@ class SwankProtocol extends Protocol {
        * Example call:
        *   (:swank-rpc (swank:debug-list-breakpoints) 42)
        * Example return:
+       *   (:ok (:active ((:file "/workspace/ensime-src/org/example/Foo.scala" :line 14)) :pending ((:file "/workspace/ensime-src/org/example/Foo.scala" :line 14))))
        *   (:return (:ok (:file "hello.scala" :line 1)
        *   (:file "hello.scala" :line 23)) 42)
        */
       case ("swank:debug-list-breakpoints", Nil) =>
-        rpcTarget.rpcDebugListBreaks(callId)
+        val result = rpcTarget.rpcDebugListBreakpoints()
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1418,7 +1433,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-run", Nil) =>
-        rpcTarget.rpcDebugRun(callId)
+        val result = rpcTarget.rpcDebugRun()
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1435,7 +1451,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-continue", StringAtom(threadId) :: Nil) =>
-        rpcTarget.rpcDebugContinue(threadId.toLong, callId)
+        val result = rpcTarget.rpcDebugContinue(threadId.toLong)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1453,7 +1470,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-step", StringAtom(threadId) :: Nil) =>
-        rpcTarget.rpcDebugStep(threadId.toLong, callId)
+        val result = rpcTarget.rpcDebugStep(threadId.toLong)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1471,7 +1489,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-next", StringAtom(threadId) :: Nil) =>
-        rpcTarget.rpcDebugNext(threadId.toLong, callId)
+        val result = rpcTarget.rpcDebugNext(threadId.toLong)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1489,7 +1508,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-step-out", StringAtom(threadId) :: Nil) =>
-        rpcTarget.rpcDebugStepOut(threadId.toLong, callId)
+        val result = rpcTarget.rpcDebugStepOut(threadId.toLong)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1508,7 +1528,13 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok (:slot :thread-id "7" :frame 2 :offset 0)) 42)
        */
       case ("swank:debug-locate-name", StringAtom(threadId) :: StringAtom(name) :: Nil) =>
-        rpcTarget.rpcDebugLocateName(threadId.toLong, name, callId)
+        val result = rpcTarget.rpcDebugLocateName(threadId.toLong, name)
+        result match {
+          case Some(loc) =>
+            sendRPCReturn(toWF(loc), callId)
+          case None =>
+            sendRPCReturn(wfFalse, callId)
+        }
 
       /**
        * Doc RPC:
@@ -1527,7 +1553,11 @@ class SwankProtocol extends Protocol {
        *    :type-name "Integer")) 42)
        */
       case ("swank:debug-value", DebugLocationExtractor(loc) :: Nil) =>
-        rpcTarget.rpcDebugValue(loc, callId)
+        val result = rpcTarget.rpcDebugValue(loc)
+        result match {
+          case Some(value) => sendRPCReturn(toWF(value), callId)
+          case None => sendRPCReturn(wfFalse, callId)
+        }
 
       /**
        * Doc RPC:
@@ -1547,8 +1577,11 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok "A little lamb") 42)
        */
       case ("swank:debug-to-string", StringAtom(threadId) :: DebugLocationExtractor(loc) :: Nil) =>
-        rpcTarget.rpcDebugToString(threadId.toLong, loc, callId)
-
+        val result = rpcTarget.rpcDebugToString(threadId.toLong, loc)
+        result match {
+          case Some(value) => sendRPCReturn(toWF(value), callId)
+          case None => sendRPCReturn(wfFalse, callId)
+        }
       /**
        * Doc RPC:
        *   swank:debug-set-value
@@ -1566,7 +1599,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:debug-set-value", DebugLocationExtractor(loc) :: StringAtom(newValue) :: Nil) =>
-        rpcTarget.rpcDebugSetValue(loc, newValue, callId)
+        val result = rpcTarget.rpcDebugSetValue(loc, newValue)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1586,7 +1620,8 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok (:frames () :thread-id "23" :thread-name "main")) 42)
        */
       case ("swank:debug-backtrace", StringAtom(threadId) :: IntAtom(index) :: IntAtom(count) :: Nil) =>
-        rpcTarget.rpcDebugBacktrace(threadId.toLong, index, count, callId)
+        val result = rpcTarget.rpcDebugBacktrace(threadId.toLong, index, count)
+        sendRPCReturn(toWF(result), callId)
 
       /**
        * Doc RPC:
@@ -1603,17 +1638,31 @@ class SwankProtocol extends Protocol {
        *   (:return (:ok t) 42)
        */
       case ("swank:shutdown-server", Nil) =>
-        rpcTarget.rpcShutdownServer(callId)
+        rpcTarget.rpcShutdownServer()
+        sendRPCAckOK(callId)
 
       case other =>
         oops()
     }
   }
 
+  /**
+   * Send a simple RPC Return with a 'true' value.
+   * Serves to acknowledge the RPC call when no
+   * other return value is required.
+   *
+   * @param  callId The id of the RPC call.
+   */
   def sendRPCAckOK(callId: Int): Unit = {
     sendRPCReturn(true, callId)
   }
 
+  /**
+   * Send an RPC Return with the given value.
+   *
+   * @param  value  The value to return.
+   * @param  callId The id of the RPC call.
+   */
   def sendRPCReturn(value: WireFormat, callId: Int): Unit = {
     value match {
       case sexp: SExp =>
@@ -1622,10 +1671,18 @@ class SwankProtocol extends Protocol {
     }
   }
 
-  override def sendEvent(event: SwankEvent): Unit = {
-    sendMessage(conversions.toWF(event))
+  override def sendEvent(event: ProtocolEvent): Unit = {
+    sendMessage(toWF(event))
   }
 
+  /**
+   * Notify the client that the RPC call could not
+   * be handled.
+   *
+   * @param  code  Integer code denoting error type.
+   * @param  detail  A message describing the error.
+   * @param  callId The id of the failed RPC call.
+   */
   def sendRPCError(code: Int, detail: String, callId: Int): Unit = {
     sendMessage(SExp(key(":return"), SExp(key(":abort"), code, detail), callId))
   }
@@ -1716,7 +1773,7 @@ object SwankProtocol {
   import org.ensime.util.{ Symbols => S }
 
   def parseRefactor(tpe: String, params: Map[Symbol, Any]): Either[String, RefactorDesc] = {
-    // a bit ugly, but we cant match the map - so match a sorted list, so expected tokens have to be in lexographic order
+    // a bit ugly, but we cant match the map - so match a sorted list, so expected tokens have to be in lexicographic order
     val orderedParams = params.toList.sortBy(_._1.name)
     (tpe, orderedParams) match {
       case ("rename", (S.End, end: Int) :: (S.File, file: String) :: (S.NewName, newName: String) :: (S.Start, start: Int) :: Nil) =>
@@ -1731,8 +1788,11 @@ object SwankProtocol {
         Right(OrganiseImportsRefactorDesc(file))
       case ("organizeImports", (S.File, file: String) :: Nil) =>
         Right(OrganiseImportsRefactorDesc(file))
+      // TODO Add import does not need start/end - remove from emacs protocol side
       case ("addImport", (S.End, end: Int) :: (S.File, file: String) :: (S.QualifiedName, qualifiedName: String) :: (S.Start, start: Int) :: Nil) =>
-        Right(AddImportRefactorDesc(qualifiedName, file, start, end))
+        Right(AddImportRefactorDesc(qualifiedName, file))
+      case ("addImport", (S.File, file: String) :: (S.QualifiedName, qualifiedName: String) :: Nil) =>
+        Right(AddImportRefactorDesc(qualifiedName, file))
       case _ =>
         Left("Incorrect arguments or unknown refactor type: " + tpe)
     }
