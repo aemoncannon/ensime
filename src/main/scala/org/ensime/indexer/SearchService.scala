@@ -111,16 +111,17 @@ class SearchService(
     }
 
     val indexed = indexing.flatMap { w => Future.sequence(w) }.map(_.size)
-    indexed onComplete { _ =>
+    val indexedAndCommitted = indexed map { count =>
       // delayed commits speedup initial indexing time
       log.debug("committing index to disk...")
       index.commit()
       log.debug("...done committing index")
+      count
     }
 
     for {
       r <- removed
-      i <- indexed
+      i <- indexedAndCommitted
     } yield (r, i)
   }
 
@@ -226,12 +227,12 @@ class SearchService(
   def classfileAdded(f: FileObject): Unit = classfileChanged(f)
 
   def classfileRemoved(f: FileObject): Unit = Future {
-    backlog.put(f, Nil)
+    backlog.put((f, Nil))
   }(worker.context)
 
   def classfileChanged(f: FileObject): Unit = Future {
-    val syms = extractSymbols(f, f)
-    backlog.put(f, syms)
+    val symbols = extractSymbols(f, f)
+    backlog.put((f, symbols))
   }(worker.context)
 
 }

@@ -1,7 +1,6 @@
 import sbt._
 import java.io._
 import java.util.concurrent.atomic.AtomicReference
-import net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 // NOTE: the following skips the slower tests
 // test-only * -- -l SlowTest
@@ -12,6 +11,8 @@ name := "ensime"
 
 // we also create a 2.9.3 build in travis
 scalaVersion := "2.9.2"
+
+ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
 
 version := "0.9.10-SNAPSHOT"
 
@@ -24,7 +25,8 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 libraryDependencies ++= Seq(
   "com.chuusai"                %  "shapeless_2.9.2"      % "1.2.4",
   "com.github.stacycurl"       %% "pimpathon-core"       % "1.2.0",
-  "org.parboiled"              %% "parboiled-scala"      % {if (scalaVersion.value == "2.9.2") "1.1.4" else "1.1.6"},
+  // https://github.com/spray/spray-json/issues/129
+  "org.parboiled"              %  "parboiled-scala_2.9.3"% "1.1.6",
   // h2 1.4.183 is bad https://github.com/ensime/ensime-server/issues/717
   "com.h2database"             %  "h2"                   % "1.4.182",
   "org.scalaquery"             %% "scalaquery"           % "0.10.0-M1",
@@ -142,8 +144,6 @@ unmanagedSourceDirectories in Test += baseDirectory.value / "src/example-simple"
 
 // full stacktraces in scalatest
 //testOptions in Test += Tests.Argument("-oF")
-
-graphSettings
 
 scalariformSettings
 
