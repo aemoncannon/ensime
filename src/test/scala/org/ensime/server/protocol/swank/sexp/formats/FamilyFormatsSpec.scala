@@ -1,6 +1,6 @@
 package org.ensime.server.protocol.swank.sexp.formats
 
-import org.ensime.sexp._
+import org.ensime.server.protocol.swank.sexp._
 import shapeless._
 
 class FamilyFormatsSpec extends FormatSpec with FamilyFormats {
