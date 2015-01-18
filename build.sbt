@@ -10,14 +10,14 @@ organization := "org.ensime"
 
 name := "ensime"
 
-scalaVersion := "2.11.4"
+scalaVersion := "2.10.4"
 
 version := "0.9.10-SNAPSHOT"
 
 //resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
-  "com.chuusai"                %% "shapeless"            % "2.0.0",
+  "com.chuusai"                % ("shapeless_" + scalaVersion.value) % "2.0.0",
   "com.github.stacycurl"       %% "pimpathon-core"       % "1.2.0",
   "org.parboiled"              %% "parboiled-scala"      % "1.1.6",
   // h2 1.4.183 is bad https://github.com/ensime/ensime-server/issues/717

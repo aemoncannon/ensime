@@ -55,8 +55,8 @@ trait CompletionControl {
     val (src, p, patched) = if (defaultPrefix.isEmpty) {
       // Add a fake prefix if none was provided by the user. Otherwise the
       // compiler will give us a weird tree.
-      val src = spliceSource(inputP.source, inputP.end, inputP.end, "a")
-      (src, inputP.withSource(src).withShift(1), true)
+      val src = spliceSource(inputP.source, inputP.endOrPoint, inputP.endOrPoint, "a")
+      (src, inputP.withSource(src, 1), true)
     } else {
       (inputP.source, inputP, false)
     }
@@ -162,7 +162,7 @@ trait CompletionControl {
       if (!inherited) score += 10
       if (!sym.hasPackageFlag) score += 10
       if (!sym.isType) score += 10
-      if (sym.isLocalToBlock) score += 10
+      if (sym.isLocal) score += 10
       if (sym.isPublic) score += 10
       if (viaView == NoSymbol) score += 10
       if (sym.owner != definitions.AnyClass &&

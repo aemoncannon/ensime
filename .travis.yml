@@ -1,13 +1,8 @@
-branches:
-  only:
-    - master
-    - scala-2.9
-    - scala-2.10
 language: scala
 jdk:
   - openjdk6
 scala:
-  - 2.11.5
+  - 2.10.4
 sudo: false
 cache:
   directories:

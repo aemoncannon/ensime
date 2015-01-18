@@ -15,16 +15,16 @@ class FamilyFormatsSpec extends FormatSpec with FamilyFormats {
       import DefaultSexpProtocol._
       import ExampleAst._
 
-      // performance improvement - avoids creating afresh at each call
-      // site (only possible for the non-recursive classes)
-      // implicit val FieldTermF = SexpFormat[FieldTerm]
-      // implicit val BoundedTermF = SexpFormat[BoundedTerm]
-      // implicit val UnparsedF = SexpFormat[Unparsed]
-      // implicit val IgnoredF = SexpFormat[Ignored]
-      // implicit val UnclearF = SexpFormat[Unclear]
-      // implicit val InTermF = SexpFormat[InTerm]
-      // implicit val LikeTermF = SexpFormat[LikeTerm]
-      // implicit val QualifierTokenF = SexpFormat[QualifierToken]
+      // the Scala 2.10 compiler needs these explicitly provided
+      implicit val FieldTermF = SexpFormat[FieldTerm]
+      implicit val BoundedTermF = SexpFormat[BoundedTerm]
+      implicit val UnparsedF = SexpFormat[Unparsed]
+      implicit val IgnoredF = SexpFormat[Ignored]
+      implicit val UnclearF = SexpFormat[Unclear]
+      implicit val InTermF = SexpFormat[InTerm]
+      implicit val LikeF = SexpFormat[Like]
+      implicit val LikeTermF = SexpFormat[LikeTerm]
+      implicit val QualifierTokenF = SexpFormat[QualifierToken]
 
       /////////////////// START OF BOILERPLATE /////////////////
       implicit object TokenTreeFormat extends TraitFormat[TokenTree] {

@@ -30,7 +30,7 @@ trait FamilyFormats {
 
   case class TypeHint[T](hint: SexpSymbol)
   implicit def typehint[T: TypeTag]: TypeHint[T] =
-    TypeHint(SexpSymbol(":" + typeOf[T].dealias.toString.split("(\\.|\\$)").last))
+    TypeHint(SexpSymbol(":" + typeOf[T].normalize.toString.split("(\\.|\\$)").last))
 
   abstract class TraitFormat[T] extends SexpFormat[T] {
     protected def wrap[E](t: E)(implicit th: TypeHint[E], sf: SexpFormat[E]): Sexp =

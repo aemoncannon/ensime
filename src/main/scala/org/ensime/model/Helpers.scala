@@ -215,7 +215,7 @@ trait Helpers { self: Global =>
 
   def packageSymFromPath(path: String): Option[Symbol] = {
     val candidates = symsAtQualifiedPath(path, RootPackage)
-    candidates.find { s => s.hasPackageFlag }
+    candidates.find { s => s.isPackage }
   }
 
   // Where path is the qualified name of a symbol that is a direct or

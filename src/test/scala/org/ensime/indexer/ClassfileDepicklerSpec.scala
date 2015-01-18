@@ -19,7 +19,7 @@ class ClassfileDepicklerSpec extends FunSpec with Matchers with ClassfileDepickl
     }
 
     it("don't expect anything in closures") {
-      assert(depickle(vres("scala/util/matching/Regex$Groups$$anonfun$unapplySeq$4.class")) === None)
+      assert(depickle(vres("scala/util/matching/Regex$Groups$$anonfun$unapplySeq$2.class")) === None)
     }
   }
 }

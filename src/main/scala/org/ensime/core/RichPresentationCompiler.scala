@@ -163,7 +163,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
 class RichPresentationCompiler(
   val config: EnsimeConfig,
-  settings: Settings,
+  override val settings: Settings,
   val richReporter: Reporter,
   var parent: ActorRef,
   var indexer: ActorRef,
