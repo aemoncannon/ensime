@@ -1,7 +1,6 @@
 package org.ensime.sexp.formats
 
 import org.ensime.sexp._
-import shapeless._
 
 import SexpFormatUtils._
 

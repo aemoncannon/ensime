@@ -4,11 +4,8 @@ import java.io._
 import java.net.URI
 import java.nio.charset.Charset
 import org.apache.commons.vfs2.FileObject
-import scala.collection.Seq
 import scala.collection.mutable
 import scala.sys.process._
-
-import pimpathon.file._
 
 /** A wrapper around file, allowing iteration either on direct children or on directory tree */
 class RichFile(file: File) {
@@ -78,8 +75,6 @@ object FileUtils {
       |You must explicitly set JDK_HOME or JAVA_HOME.""".stripMargin
       )
     )
-
-  implicit def toCanonFile(file: File): CanonFile = CanonFile(file)
 
   def isScalaSourceFile(f: File): Boolean = {
     f.exists && f.getName.endsWith(".scala")
@@ -198,7 +193,7 @@ object FileUtils {
       // Try to fail fast, before writing anything to disk.
       changes.foreach {
         case (f: File, s: String) => if (f.isDirectory || !f.canWrite) {
-          throw new IllegalArgumentException(f + " is not a writable file.")
+          throw new IllegalArgumentException("" + f + " is not a writable file.")
         }
         case _ =>
           throw new IllegalArgumentException("Invalid (File,String) pair.")

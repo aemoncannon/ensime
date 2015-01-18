@@ -1,7 +1,6 @@
 import sbt._
 import java.io._
 import java.util.concurrent.atomic.AtomicReference
-import net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 // NOTE: the following skips the slower tests
 // test-only * -- -l SlowTest
@@ -142,8 +141,6 @@ unmanagedSourceDirectories in Test += baseDirectory.value / "src/example-simple"
 
 // full stacktraces in scalatest
 //testOptions in Test += Tests.Argument("-oF")
-
-graphSettings
 
 scalariformSettings
 
