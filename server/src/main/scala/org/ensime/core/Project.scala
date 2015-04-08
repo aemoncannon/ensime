@@ -1,7 +1,5 @@
 package org.ensime.core
 
-import java.io.File
-
 import akka.actor.{ Actor, ActorRef, ActorSystem, Cancellable, Props }
 import org.apache.commons.vfs2.FileObject
 import org.ensime.config._
@@ -13,17 +11,15 @@ import org.slf4j.LoggerFactory
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
+import scala.util.Try
 
 class Project(
     val config: EnsimeConfig,
-    actorSystem: ActorSystem) extends ProjectEnsimeApiImpl {
+    actorSystem: ActorSystem,
+    asyncHandler: Option[EnsimeEvent => Unit]) extends ProjectEnsimeApiImpl {
   val log = LoggerFactory.getLogger(this.getClass)
 
   protected val actor = actorSystem.actorOf(Props(new ProjectActor()), "project")
-
-  def !(msg: AnyRef): Unit = {
-    actor ! msg
-  }
 
   private val readyPromise = Promise[Unit]()
 
@@ -44,7 +40,7 @@ class Project(
   import scala.concurrent.ExecutionContext.Implicits.global
   search.refresh().onSuccess {
     case (deletes, inserts) =>
-      actor ! AsyncEvent(IndexerReadyEvent)
+      actor ! IndexerReadyEvent
       log.debug(s"indexed $inserts and removed $deletes")
   }
 
@@ -72,17 +68,22 @@ class Project(
 
     private var earliestRetypecheck = Deadline.now
 
+    private var indexerReady = false
+    private var analyserReady = false
+
     override def postStop(): Unit = {
       tick.foreach(_.cancel())
     }
 
-    // buffer events until the first client connects
-    private var asyncEvents = Vector[EnsimeEvent]()
-    private var asyncListeners: List[EnsimeEvent => Unit] = Nil
+    /**
+     * If startup conditions are met, complete the initialisation promise.
+     */
+    def checkInitialisationComplete(): Unit = {
+      if (!readyPromise.isCompleted && indexerReady && analyserReady)
+        readyPromise.tryComplete(Try(()))
+    }
 
-    override def receive: Receive = waiting orElse ready
-
-    private val ready: Receive = {
+    override def receive: Receive = {
       case Retypecheck =>
         log.warn("Re-typecheck needed")
         analyzer.foreach(_ ! ReloadExistingFilesEvent)
@@ -95,24 +96,16 @@ class Project(
       case AddUndo(sum, changes) =>
         addUndo(sum, changes)
 
+      case AnalyzerReadyEvent =>
+        analyserReady = true
+        checkInitialisationComplete()
+        asyncHandler.foreach(_(AnalyzerReadyEvent))
+      case IndexerReadyEvent =>
+        indexerReady = true
+        checkInitialisationComplete()
+        asyncHandler.foreach(_(IndexerReadyEvent))
       case AsyncEvent(event) =>
-        asyncListeners foreach { l =>
-          l(event)
-        }
-      case SubscribeAsync(handler) =>
-        asyncListeners ::= handler
-        sender ! false
-    }
-
-    private val waiting: Receive = {
-      case SubscribeAsync(handler) =>
-        asyncListeners ::= handler
-        asyncEvents.foreach { event => handler(event) }
-        asyncEvents = Vector.empty
-        context.become(ready, discardOld = true)
-        sender ! true
-      case AsyncEvent(event) =>
-        asyncEvents :+= event
+        asyncHandler.foreach(_(event))
     }
   }
 
