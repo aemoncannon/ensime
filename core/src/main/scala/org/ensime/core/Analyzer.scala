@@ -197,7 +197,7 @@ class Analyzer(
       }
       sender ! VoidResponse
     case TypecheckFileReq(fileInfo) =>
-      handleReloadFiles(List(fileInfo), async = true)
+      handleReloadFiles(List(fileInfo), async = false)
       sender ! VoidResponse
     case TypecheckFilesReq(files) =>
       handleReloadFiles(files.map(SourceFileInfo(_)), async = false)
