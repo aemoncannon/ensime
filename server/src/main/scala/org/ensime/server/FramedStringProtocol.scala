@@ -14,9 +14,9 @@ trait FramedStringProtocol extends Protocol with SLF4JLogging {
     val data: Array[Byte] = value.getBytes("UTF-8")
     val header: Array[Byte] = "%06x".format(data.length).getBytes("UTF-8")
 
-    if (log.isTraceEnabled) {
-      log.trace(new String(header ++ data))
-    }
+    //if (log.isTraceEnabled) {
+    log.info("<-- " + new String(header ++ data))
+    //}
 
     out.write(header)
     out.write(data)
@@ -45,9 +45,9 @@ trait FramedStringProtocol extends Protocol with SLF4JLogging {
     fillArray(buf)
 
     val request = new String(buf)
-    if (log.isTraceEnabled) {
-      log.trace(request)
-    }
+    //if (log.isTraceEnabled) {
+    log.info("--> " + request)
+    //}
     request
   }
 
