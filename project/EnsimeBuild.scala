@@ -64,7 +64,7 @@ object EnsimeBuild extends Build with JdkResolver {
     fork := true,
     parallelExecution in Test := true,
     testForkedParallel in Test := true,
-    javaOptions ++= Seq("-XX:MaxPermSize=256m", "-Xmx2g", "-XX:+UseConcMarkSweepGC"),
+    javaOptions := Seq("-Xss2m", "-XX:MaxPermSize=256m", "-Xmx2g"),
     javaOptions in run ++= yourkitAgent,
     javaOptions in Test += "-Dlogback.configurationFile=../logback-test.xml",
     testOptions in Test ++= noColorIfEmacs,

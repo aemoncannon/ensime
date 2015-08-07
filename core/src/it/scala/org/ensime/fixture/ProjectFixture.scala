@@ -22,16 +22,16 @@ object ProjectFixture extends Matchers {
     import testkit._
 
     val probe = TestProbe()
-    val project = TestActorRef[Project](Project(probe.ref), "project")
-
-    project ! ConnectionInfoReq
-    expectMsg(ConnectionInfo())
-
     probe.ignoreMsg {
       // these are too noisy for tests
       case e: SendBackgroundMessageEvent => true
       case e: DebugOutputEvent => true
     }
+
+    val project = TestActorRef[Project](Project(probe.ref), "project")
+
+    project ! ConnectionInfoReq
+    expectMsg(ConnectionInfo())
 
     probe.receiveN(3) should contain only (
       Broadcaster.Persist(AnalyzerReadyEvent),
