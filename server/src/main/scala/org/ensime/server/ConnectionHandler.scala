@@ -27,7 +27,10 @@ class ConnectionHandler(
     broadcaster ! Broadcaster.Unregister
   }
 
-  def receive: Receive = receiveRpc orElse LoggingReceive { receiveEvents }
+  // not Receive, thanks to https://issues.scala-lang.org/browse/SI-8861
+  // (fixed in 2.11.7)
+  def receive: PartialFunction[Any, Unit] =
+    receiveRpc orElse LoggingReceive { receiveEvents }
 
   def receiveRpc: Receive = {
     case req: RpcRequestEnvelope =>

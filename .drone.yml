@@ -4,6 +4,7 @@ build:
   environment:
     - SONATYPE_USERNAME=$$SONATYPE_USERNAME
     - SONATYPE_PASSWORD=$$SONATYPE_PASSWORD
+    - TYPELEVEL_SSH=$$TYPELEVEL_SSH
     - EMACS=/opt/emacs-24.4/bin/emacs
     - AKKA_TEST_TIMEFACTOR=10
   commands:
@@ -16,18 +17,31 @@ build:
         exit 1 ;
       fi
     - sbt ++$SCALA_VERSION test it:test
-    - if [ "${SCALA_VERSION}" = "2.11.7" ] ; then
+    - if [ "${SCALA_VERSION}" = "2.11.6" ] ; then
         git clone --depth 1 https://github.com/ensime/ensime-emacs.git ensime-emacs &&
         cd ensime-emacs && cask pkg-file && test/run_emacs_tests.sh && cd .. ;
       fi
-    - if [ "$CI_BRANCH" = "master" ] ; then
-        sbt ++$SCALA_VERSION publish ;
+    - if [ -z "$CI_PULL_REQUEST" ] ; then
+        sbt ++$SCALA_VERSION publish &&
+        sbt ++$SCALA_VERSION ensime/assembly &&
+        echo "$TYPELEVEL_SSH" > id_rsa && chmod 600 id_rsa &&
+        scp -o StrictHostKeyChecking=no -i id_rsa target/scala-*/*.jar typelevel@docs.typelevel.org:ensime.typelevel.org/ ;
       fi
+
+# TODO https://github.com/ensime/ensime-server/issues/1091
+#    - if [ "${SCALA_VERSION}" = "2.11.6" ] ; then
+#        sbt ++$SCALA_VERSION clean &&
+#        sbt ++$SCALA_VERSION coverage test &&
+#        sbt ++$SCALA_VERSION coverage it:test &&
+#        sbt ++$SCALA_VERSION coverageAggregate ;
+#      fi
 
 matrix:
   SCALA_VERSION:
-    - 2.11.7
-    - 2.10.5
+    - 2.11.6
+    - 2.10.4
+# 2.10.4 / 2.11.6 because that's what fommil uses at work :-D
+# EnsimeBuild tends to track latest stables
 
 deploy:
   dockerhub:
@@ -35,8 +49,4 @@ deploy:
     repo: ensime/ensime
     when:
       matrix:
-        SCALA_VERSION: 2.11.7
-    
-# BLOCKED https://github.com/scoverage/sbt-coveralls/pull/41
-#- sbt ++$SCALA_VERSION clean coverage test it:test &&
-#  sbt coverageAggregate coveralls
+        SCALA_VERSION: 2.11.6

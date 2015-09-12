@@ -3,7 +3,8 @@ import java.io._
 import com.typesafe.sbt.SbtScalariform._
 import sbt.Keys._
 import sbt.{IntegrationTest => It, _}
-//import scoverage.ScoverageSbtPlugin.ScoverageKeys
+import scoverage.ScoverageKeys
+import sbtassembly.AssemblyKeys._
 
 import scala.util.{Properties, Try}
 
@@ -22,6 +23,7 @@ object EnsimeBuild extends Build with JdkResolver {
     version := "0.9.10-SNAPSHOT",
 
     dependencyOverrides ++= Set(
+      "org.scala-lang" % "scala-library" % scalaVersion.value,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
       "org.scala-lang.modules" %% "scala-xml" % "1.0.4",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
@@ -211,20 +213,20 @@ object EnsimeBuild extends Build with JdkResolver {
   )
 
   lazy val testingEmpty = Project("testingEmpty", file("testing/empty"), settings = basicSettings).settings(
-    //ScoverageKeys.coverageExcludedPackages := ".*"
+    ScoverageKeys.coverageExcludedPackages := ".*"
   )
 
   lazy val testingSimple = Project("testingSimple", file("testing/simple"), settings = basicSettings) settings (
-    //ScoverageKeys.coverageExcludedPackages := ".*",
+    ScoverageKeys.coverageExcludedPackages := ".*",
     libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.5" % "test" intransitive()
   )
 
   lazy val testingDebug = Project("testingDebug", file("testing/debug"), settings = basicSettings).settings(
-    //ScoverageKeys.coverageExcludedPackages := ".*"
+    ScoverageKeys.coverageExcludedPackages := ".*"
   )
 
   lazy val testingDocs = Project("testingDocs", file("testing/docs"), settings = basicSettings).settings(
-    //ScoverageKeys.coverageExcludedPackages := ".*",
+    ScoverageKeys.coverageExcludedPackages := ".*",
     libraryDependencies ++= Seq(
       // specifically using ForecastIOLib version 1.5.1 for javadoc 1.8 output
       "com.github.dvdme" %  "ForecastIOLib" % "1.5.1" intransitive(),
@@ -298,7 +300,13 @@ object EnsimeBuild extends Build with JdkResolver {
   // manual root project so we can exclude the testing projects from publication
   lazy val root = Project(id = "ensime", base = file("."), settings = commonSettings) aggregate (
     api, sexpress, jerk, swank, core, server
-  ) dependsOn (server)
+  ) dependsOn (server) settings (
+    // e.g. `sbt ++2.11.7 ensime/assembly`
+    test in assembly := {},
+    aggregate in assembly := false,
+    assemblyExcludedJars in assembly := List(Attributed.blank(JavaTools)),
+    assemblyJarName in assembly := s"ensime_${scalaVersion.value}-${version.value}-assembly.jar"
+  )
 }
 
 trait JdkResolver {

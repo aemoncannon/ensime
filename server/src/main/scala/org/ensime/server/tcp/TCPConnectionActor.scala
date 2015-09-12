@@ -34,10 +34,12 @@ class TCPConnectionActor(
     context stop self
   }
 
-  override def receive = idle
+  override def receive: Receive = idle
 
-  def idle: Receive = incoming orElse readyToSend
-  def busy: Receive = incoming orElse awaitingAck
+  // not Receive, thanks to https://issues.scala-lang.org/browse/SI-8861
+  // (fixed in 2.11.7)
+  def idle: PartialFunction[Any, Unit] = incoming orElse readyToSend
+  def busy: PartialFunction[Any, Unit] = incoming orElse awaitingAck
 
   def incoming: Receive = {
     case Received(data: ByteString) =>
