@@ -1,11 +1,10 @@
 package org.ensime.core
 
+import java.io.BufferedWriter
 import java.io.File
-
+import java.io.PrintWriter
 import org.ensime.api._
-
 import org.ensime.util._
-
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.refactoring._
 import scala.tools.refactoring.analysis.GlobalIndexes
@@ -204,14 +203,52 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
       val result = performRefactoring(procId, tpe, new refactoring.RefactoringParameters())
     }.result
 
-  protected def doAddImport(procId: Int, tpe: RefactorType, qualName: String, file: File) = {
-    val refactoring = new AddImportStatement {
-      val global = RefactoringImpl.this
+  private def using[A, R <: { def close(): Unit }](r: R)(f: R => A): A = {
+    import scala.language.reflectiveCalls
+    try {
+      f(r)
+    } finally {
+      r.close()
     }
-    val af = AbstractFile.getFile(file.getPath)
-    val modifications = refactoring.addImport(af, qualName)
-    Right(new RefactorEffect(procId, tpe, modifications.map(FileEditHelper.fromChange)))
   }
+
+  protected def doAddImport(procId: Int, tpe: RefactorType, qualName: String, file: File) = {
+
+    val lines = scala.io.Source.fromFile(file.getPath, settings.encoding.value).mkString
+
+    using(new PrintWriter(file, settings.encoding.value)) { pwriter: PrintWriter =>
+      using(new BufferedWriter(pwriter)) { writer =>
+
+        val newline = Option(System.getProperty("line.separator")).getOrElse("\n")
+        val statement = "import " + qualName + newline
+
+        if (lines.linesWithSeparators.exists(line => line.contains("package"))) {
+          val toWrite = lines.linesWithSeparators.map { line =>
+            if (line.contains("package")) {
+              line + newline + statement
+            } else {
+              line
+            }
+          }.toSeq
+
+          writer.write(toWrite.mkString)
+          writer.flush()
+
+        } else {
+          writer.write(statement)
+          writer.write(lines)
+          writer.flush()
+        }
+      }
+    }
+
+    new RefactoringEnvironment(file.getPath, 0, 0) {
+      val refactoring = new OrganizeImports {
+        val global = RefactoringImpl.this
+      }
+      val result = performRefactoring(procId, tpe, new refactoring.RefactoringParameters())
+    }
+  }.result
 
   protected def reloadAndType(f: File) = reloadAndTypeFiles(List(this.createSourceFile(f.getPath)))
 
