@@ -19,13 +19,18 @@ build:
     - sbt ++$SCALA_VERSION test it:test
     - if [ "${SCALA_VERSION}" = "2.11.6" ] ; then
         git clone --depth 1 https://github.com/ensime/ensime-emacs.git ensime-emacs &&
-        cd ensime-emacs && cask pkg-file && test/run_emacs_tests.sh && cd .. ;
+        cd ensime-emacs &&
+        cask pkg-file &&
+        test/run_emacs_tests.sh &&
+        cd $CI_BUILD_DIR ;
       fi
     - if [ -z "$CI_PULL_REQUEST" ] ; then
         sbt ++$SCALA_VERSION publish &&
         sbt ++$SCALA_VERSION ensime/assembly &&
-        echo "$TYPELEVEL_SSH" > id_rsa && chmod 600 id_rsa &&
-        scp -o StrictHostKeyChecking=no -i id_rsa target/scala-*/*.jar typelevel@docs.typelevel.org:ensime.typelevel.org/ ;
+        apt-get install -yy openssh-client ccrypt &&
+        ccdecrypt .id_rsa.cpt -E SONATYPE_PASSWORD &&
+        chmod 0600 .id_rsa &&
+        scp -o StrictHostKeyChecking=no -i .id_rsa target/scala-*/*.jar typelevel@docs.typelevel.org:ensime.typelevel.org/ ;
       fi
 
 # TODO https://github.com/ensime/ensime-server/issues/1091
