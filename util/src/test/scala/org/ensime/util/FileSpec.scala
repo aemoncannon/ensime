@@ -5,7 +5,7 @@ package org.ensime.util
 import Predef.{ any2stringadd => _ }
 import com.google.common.base.Charsets
 import com.google.common.io.Files
-import java.io.File
+import java.io.{ File => JFile }
 
 import org.scalatest._
 import scala.util.Properties
@@ -21,7 +21,7 @@ class FileSpec extends FlatSpec with Matchers {
       assert(dir.exists())
       dir.getPath shouldBe dir.getCanonicalPath
 
-      assert(File.createTempFile("foo", "bar", dir).exists())
+      assert(JFile.createTempFile("foo", "bar", dir).exists())
 
       scoped = dir
     }
@@ -39,17 +39,17 @@ class FileSpec extends FlatSpec with Matchers {
   }
 
   it should "help define new files" in {
-    file("foo"): File
+    File("foo"): File
   }
 
   it should "help create children files" in {
-    val foo = file("foo")
+    val foo = File("foo")
     val bar = foo / "bar"
-    bar.getPath shouldBe s"foo${File.separator}bar"
+    bar.getPath shouldBe s"foo${JFile.separator}bar"
   }
 
   it should "break a File into its parts" in {
-    file("./foo/bar/baz.wiz").parts shouldBe List("foo", "bar", "baz.wiz")
+    File("./foo/bar/baz.wiz").parts shouldBe List("foo", "bar", "baz.wiz")
   }
 
   it should "provide an output stream" in withTempFile { file =>
@@ -108,7 +108,7 @@ class FileSpec extends FlatSpec with Matchers {
   }
 
   it should "traverse family trees" in {
-    val here = file(".")
+    val here = File(".")
     here.tree should contain(here)
 
     here.tree.filter(_.getName == "FileSpec.scala").toList.size shouldBe 1

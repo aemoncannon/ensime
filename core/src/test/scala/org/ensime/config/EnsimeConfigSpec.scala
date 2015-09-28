@@ -1,8 +1,5 @@
 package org.ensime.config
 
-import com.google.common.io.Files
-import java.io.File
-
 import org.scalatest.{ FunSpec, Matchers }
 import org.ensime.util.file._
 
@@ -25,7 +22,7 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
       withTempDir { dir =>
         val abc = dir / "abc"
         val cache = dir / ".ensime_cache"
-        val javaHome = file(Properties.javaHome)
+        val javaHome = File(Properties.javaHome)
 
         abc.mkdirs()
         cache.mkdirs()
@@ -64,7 +61,7 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
       withTempDir { dir =>
         val abc = dir / "abc"
         val cache = dir / ".ensime_cache"
-        val javaHome = file(Properties.javaHome)
+        val javaHome = File(Properties.javaHome)
 
         abc.mkdirs()
         cache.mkdirs()
@@ -94,7 +91,7 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
         withTempDir { dir =>
           val abc = dir / "abc"
           val cache = dir / ".ensime_cache"
-          val javaHome = file(Properties.javaHome)
+          val javaHome = File(Properties.javaHome)
 
           abc.mkdirs()
           cache.mkdirs()

@@ -1,7 +1,5 @@
 package org.ensime.jerk
 
-import java.io.File
-
 import spray.json._
 import fommil.sjs._
 import shapeless._
@@ -17,7 +15,7 @@ private object JerkConversions extends DefaultJsonProtocol with FamilyFormats {
   // move to somewhere more general
   implicit object FileFormat extends JsonFormat[File] {
     def read(j: JsValue): File = j match {
-      case JsString(path) => file(path)
+      case JsString(path) => File(path)
       case other => unexpectedJson[File](other)
     }
     def write(f: File): JsValue = JsString(f.getPath)

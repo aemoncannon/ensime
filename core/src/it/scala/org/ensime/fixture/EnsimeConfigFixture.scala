@@ -1,7 +1,7 @@
 package org.ensime.fixture
 
 import com.google.common.io.Files
-import java.io.File
+import java.io.{ File => JFile }
 
 import org.apache.commons.io.FileUtils.copyDirectory
 import org.ensime.api._
@@ -22,14 +22,14 @@ trait EnsimeConfigFixture {
   // convenience method
   def scalaMain(implicit config: EnsimeConfig): File =
     config.subprojects.head.sourceRoots.filter { dir =>
-      val sep = File.separator
+      val sep = JFile.separator
       dir.getPath.endsWith(s"${sep}main${sep}scala")
     }.head
 }
 
 object EnsimeConfigFixture {
 
-  lazy val dotEnsime = file("../.ensime")
+  lazy val dotEnsime = File("../.ensime")
   require(
     dotEnsime.exists,
     "the .ensime file must exist to run the integration tests." +
@@ -68,7 +68,7 @@ object EnsimeConfigFixture {
         target.getAbsolutePath
       )
       require(toPath != from.getAbsolutePath, s"${source.root.getAbsolutePath} ${target.getAbsolutePath} in ${from.getAbsolutePath}")
-      file(toPath)
+      File(toPath)
     }
 
     def renameAndCopy(from: File): File = {

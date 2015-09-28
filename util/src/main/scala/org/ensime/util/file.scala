@@ -3,22 +3,31 @@
 package org.ensime.util
 
 import com.google.common.base.Charsets
-import java.io._
+import java.io.{ File => JFile, _ }
 import com.google.common.io.Files
 
-import Predef.{ any2stringadd => _, _ => _ }
+import Predef.{ any2stringadd => _, _ }
 import java.nio.charset.Charset
 import java.util.regex.Pattern
 
 /**
  * Decorate `java.io.File` with functionality from common utility
- * packages, which would be otherwise verbose to call directly.
+ * packages, which would otherwise be verbose/ugly to call directly.
+ *
+ * Its nicer to put conveniences for working with `File` here
+ * instead of using static accessors from J2SE or Guava.
  */
 package object file {
-  type File = java.io.File
+  type File = JFile
 
-  // TODO: rename to File (capital)
-  def file(name: String): File = new File(name)
+  /**
+   * Convenience for creating `File`s (which we do a lot), but has the
+   * caveat that static methods on `java.io.File` can no longer be
+   * accessed, so it must be imported like:
+   *
+   *   `java.io.{ File => JFile }`
+   */
+  def File(name: String): File = new File(name)
 
   implicit val DefaultCharset: Charset = Charset.defaultCharset()
 
@@ -36,7 +45,7 @@ package object file {
   }
 
   def withTempFile[T](a: File => T): T = {
-    val file = File.createTempFile("ensime-", ".tmp").canon
+    val file = JFile.createTempFile("ensime-", ".tmp").canon
     try a(file)
     finally file.delete()
   }
@@ -47,7 +56,7 @@ package object file {
 
     def parts: List[String] =
       file.getPath.split(
-        Pattern.quote(File.separator)
+        Pattern.quote(JFile.separator)
       ).toList.filterNot(Set("", "."))
 
     def outputStream(): OutputStream = new FileOutputStream(file)
@@ -80,8 +89,9 @@ package object file {
 
     /**
      * Helps to resolve ambiguity surrounding files in symbolically
-     * linked directories (which are common on operating systems that
-     * use a symbolically linked temporary directory).
+     * linked directories, which are common on operating systems that
+     * use a symbolically linked temporary directory (OS X I'm looking
+     * at you).
      *
      * @return the canonical form of `file`, falling back to the absolute file.
      */

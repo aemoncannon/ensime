@@ -23,8 +23,10 @@ object EnsimeBuild extends Build with JdkResolver {
     version := "0.9.10-SNAPSHOT",
 
     dependencyOverrides ++= Set(
+      "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.scala-lang" % "scala-library" % scalaVersion.value,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      "org.scala-lang" % "scalap" % scalaVersion.value,
       "org.scala-lang.modules" %% "scala-xml" % "1.0.4",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalamacros" %% "quasiquotes" % "2.0.1",

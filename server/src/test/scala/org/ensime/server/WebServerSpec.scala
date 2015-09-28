@@ -2,7 +2,6 @@ package org.ensime.server
 
 import akka.http.scaladsl.model.MediaTypes
 import akka.util.ByteString
-import java.io.File
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
@@ -41,7 +40,7 @@ class WebServerSpec extends HttpFlatSpec with WebServer {
     if (filename != "foo-1.0-javadoc.jar" || entry != "bar/Baz.html") None
     else Some(ByteString("hello"))
 
-  def docJars(): Set[File] = Set(file("foo-javadoc.jar"), file("bar-javadoc.jar"))
+  def docJars(): Set[File] = Set(File("foo-javadoc.jar"), File("bar-javadoc.jar"))
 
   "WebServer" should "respond to REST queries" in {
     Post("/rpc", """{"typehint":"ConnectionInfoReq"}""".parseJson) ~> route ~> check {
