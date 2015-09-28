@@ -37,7 +37,6 @@ object FileUtils {
   }
 
   def readFile(f: File, cs: Charset): Either[IOException, String] = try {
-    // impl will be replaced by https://github.com/stacycurl/pimpathon/issues/201
     val ram = new RandomAccessFile(f, "r")
     val bytes = Array.ofDim[Byte](f.length.intValue())
     ram.read(bytes)

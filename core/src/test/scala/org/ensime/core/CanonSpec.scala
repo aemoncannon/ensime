@@ -2,7 +2,7 @@ package org.ensime.core
 
 import java.io.File
 import org.scalatest._
-import pimpathon.file._
+import org.ensime.util.file._
 
 import org.ensime.api._
 

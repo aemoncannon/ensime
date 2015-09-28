@@ -8,7 +8,7 @@ import shapeless._
 
 import org.ensime.api._
 
-import pimpathon.file._
+import org.ensime.util.file._
 
 private object JerkConversions extends DefaultJsonProtocol with FamilyFormats {
   // wtf?? why is this needed, why does it even work? Miles??

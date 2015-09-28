@@ -8,9 +8,9 @@ import akka.event.LoggingReceive.withLabel
 import org.ensime.api._
 import org.ensime.indexer.{ EnsimeVFS, SearchService }
 import org.ensime.model._
-import org.ensime.util._
+import org.ensime.util.{ PresentationReporter, ReportHandler, FileUtils }
 import org.slf4j.LoggerFactory
-import pimpathon.file._
+import org.ensime.util.file._
 
 import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
 import scala.tools.nsc.Settings

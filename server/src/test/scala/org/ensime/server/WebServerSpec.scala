@@ -23,7 +23,7 @@ import spray.json._
 import org.ensime.api._
 import org.ensime.core._
 
-import pimpathon.file._
+import org.ensime.util.file._
 
 class WebServerSpec extends HttpFlatSpec with WebServer {
 

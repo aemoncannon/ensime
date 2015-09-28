@@ -7,7 +7,7 @@ import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.ensime.api._
 import org.ensime.indexer.DatabaseService._
-import pimpathon.file._
+import org.ensime.util.file._
 
 //import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

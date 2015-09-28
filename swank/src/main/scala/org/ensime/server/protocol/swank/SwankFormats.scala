@@ -684,7 +684,7 @@ object SwankProtocolRequest {
   // PrepareRefactorReq
   implicit object RefactorDescFormat extends SexpFormat[RefactorDesc] {
     import org.ensime.api.{ RefactorLocation => Loc }
-    import pimpathon.file._
+    import org.ensime.util.file._
 
     def write(v: RefactorDesc): Sexp = ???
     def read(sexp: Sexp): RefactorDesc = sexp match {

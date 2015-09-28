@@ -3,8 +3,6 @@ package org.ensime.api
 import java.io.File
 import scalariform.formatter.preferences.FormattingPreferences
 
-import pimpathon.file._
-
 case class EnsimeConfig(
     rootDir: File,
     cacheDir: File,
@@ -31,13 +29,6 @@ case class EnsimeConfig(
   // some marshalling libs (e.g. spray-json) might not like extra vals
   val modules = subprojects.map { module => (module.name, module) }.toMap
 
-  def sourceFiles: Set[File] = for {
-    module: EnsimeModule <- modules.values.toSet
-    root <- module.sourceRoots
-    file <- root.tree
-    if file.isFile & file.getName.endsWith(".scala")
-  } yield file
-
   def runtimeClasspath: Set[File] =
     compileClasspath ++ modules.values.flatMap(_.runtimeDeps) ++ targetClasspath
 
@@ -60,7 +51,7 @@ case class EnsimeConfig(
 
 case class EnsimeModule(
     name: String,
-    // TODO: deprecate target/testTarget
+    // FIXME: deprecate target/testTarget
     target: Option[File],
     targets: List[File],
     testTarget: Option[File],

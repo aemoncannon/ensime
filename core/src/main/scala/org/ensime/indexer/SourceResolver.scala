@@ -3,10 +3,12 @@ package org.ensime.indexer
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 
+import collection.mutable
+
 import org.ensime.api._
 
-import pimpathon.list._
-import pimpathon.multiMap._
+import org.ensime.util.list._
+import org.ensime.util.map._
 
 // mutable: lookup of user's source files are atomically updated
 class SourceResolver(
@@ -53,12 +55,12 @@ class SourceResolver(
       } yield srcArchive
     }
     for {
-      srcJarFile <- srcJars
+      srcJarFile <- srcJars.toList
       // interestingly, this is able to handle zip files
       srcJar = vfs.vjar(srcJarFile)
       srcEntry <- scan(srcJar)
     } yield (infer(srcJar, srcEntry), srcEntry)
-  }.toMultiMap[Set]
+  }.toMultiMapSet
 
   private def userSources = {
     for {
@@ -67,7 +69,7 @@ class SourceResolver(
       dir = vfs.vfile(root)
       file <- scan(dir)
     } yield (infer(dir, file), file)
-  }.toMultiMap[Set]
+  }.toMultiMapSet
 
   private def recalculate = depSources merge userSources
 

@@ -7,7 +7,7 @@ import com.sun.jdi.request.{ EventRequest, EventRequestManager }
 import com.sun.jdi._
 import org.ensime.api._
 import org.slf4j.LoggerFactory
-import pimpathon.file._
+import org.ensime.util.file._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.{ Iterable, mutable }
