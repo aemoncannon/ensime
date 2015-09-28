@@ -30,7 +30,7 @@ build:
         apt-get install -yy openssh-client ccrypt &&
         ccdecrypt .id_rsa.cpt -E SONATYPE_PASSWORD &&
         chmod 0600 .id_rsa &&
-        scp -o StrictHostKeyChecking=no -i .id_rsa target/scala-*/*.jar typelevel@docs.typelevel.org:ensime.typelevel.org/ ;
+        scp -o StrictHostKeyChecking=no -i .id_rsa target/scala-*/*-assembly.jar typelevel@docs.typelevel.org:ensime.typelevel.org/ ;
       fi
 
 # TODO https://github.com/ensime/ensime-server/issues/1091
