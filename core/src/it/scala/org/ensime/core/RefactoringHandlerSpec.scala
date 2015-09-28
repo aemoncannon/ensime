@@ -98,6 +98,34 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
     //
     // core/src/main/scala/org/ensime/core/Refactoring.scala#L.239
     //
+    "organize imports when 3 imports exist" in withAnalyzer { (dir, analyzerRef) =>
+      val file = srcFile(dir, "tmp-contents", contents(
+        "import xerces.xmlParserAPIs._",
+        "import iaik.x509._",
+        "import javax.xml.transform.dom._"
+      ), write = true, encoding = encoding)
+
+      val analyzer = analyzerRef.underlyingActor
+
+      val procId = 1
+      analyzer.handleRefactorPrepareRequest(
+        new PrepareRefactorReq(
+          procId, 'Ignored, OrganiseImportsRefactorDesc(new File(file.path)), false
+        )
+      )
+      analyzer.handleRefactorExec(
+        new ExecRefactorReq(procId, RefactorType.OrganizeImports)
+      )
+
+      val formatted = readSrcFile(file, encoding)
+      val expectedContents = contents(
+        "import iaik.x509._",
+        "import javax.xml.transform.dom._",
+        "import xerces.xmlParserAPIs._"
+      )
+      assert(formatted === expectedContents)
+    }
+
     "add imports on the first line" in withAnalyzer { (dir, analyzerRef) =>
       val file = srcFile(dir, "tmp-contents", contents(
         "import scala.collection.mutable.Set"
@@ -122,6 +150,5 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
       )
       assert(formatted === expectedContents)
     }
-
   }
 }
