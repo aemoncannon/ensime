@@ -146,7 +146,7 @@ object EnsimeBuild extends Build with JdkResolver {
     "org.slf4j" % "jul-to-slf4j" % "1.7.12",
     "org.slf4j" % "jcl-over-slf4j" % "1.7.12"
   )
-  val akkaVersion = "2.3.12"
+  val akkaVersion = "2.3.14"
   val streamsVersion = "1.0"
 
   ////////////////////////////////////////////////
@@ -251,7 +251,7 @@ object EnsimeBuild extends Build with JdkResolver {
     commonItSettings
   ).settings(
     libraryDependencies ++= Seq(
-      "com.h2database" % "h2" % "1.4.188",
+      "com.h2database" % "h2" % "1.4.189",
       "com.typesafe.slick" %% "slick" % "2.1.0",
       "com.jolbox" % "bonecp" % "0.8.0.RELEASE",
       "org.apache.commons" % "commons-vfs2" % "2.0" intransitive(),
@@ -264,7 +264,7 @@ object EnsimeBuild extends Build with JdkResolver {
       "org.scala-lang" % "scalap" % scalaVersion.value,
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-      "org.scala-refactoring" %% "org.scala-refactoring.library" % "0.6.2",
+      "org.scala-refactoring" %% "org.scala-refactoring.library" % "0.7.0",
       "commons-lang" % "commons-lang" % "2.6",
       "commons-io" % "commons-io" % "2.4" % "test,it"
     ) ++ logback ++ testLibs(scalaVersion.value, "it,test")
