@@ -220,7 +220,7 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
       using(new BufferedWriter(pwriter)) { writer =>
         val statement = "import " + qualName
         writer.write(statement)
-        writer.write("\r\n")
+        writer.write(Option(System.getProperty("line.separator")).getOrElse("\n"))
         writer.write(lines)
         writer.flush()
       }

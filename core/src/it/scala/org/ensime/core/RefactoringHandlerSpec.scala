@@ -169,7 +169,7 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
       )
 
       val formatted = readSrcFile(file, encoding)
-      When(s"=> $formatted")
+      When(s"formatted => \n$formatted")
 
       val expectedContents = contents(
         "import java.lang.Integer.{valueOf => vo}",
@@ -182,7 +182,49 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
         "  toBinaryString(27)",
         "}"
       )
-      //assert(formatted === expectedContents)
+
+      assert(formatted === expectedContents)
     }
+
+    "add imports on the first line when other examples come" in withAnalyzer { (dir, analyzerRef) =>
+      val file = srcFile(dir, "tmp-contents", contents(
+        "import java.lang.String",
+        " ",
+        "trait Temp {",
+        "  valueOf(5)",
+        "  vo(\"5\")",
+        "  toBinaryString(27)",
+        "}"
+      ), write = true, encoding = encoding)
+
+      val analyzer = analyzerRef.underlyingActor
+
+      val procId = 1
+      analyzer.handleRefactorPrepareRequest(
+        new PrepareRefactorReq(
+          procId, 'Ignored, AddImportRefactorDesc("java.lang.Integer", new File(file.path)), false
+        )
+      )
+      analyzer.handleRefactorExec(
+        new ExecRefactorReq(procId, RefactorType.AddImport)
+      )
+
+      val formatted = readSrcFile(file, encoding)
+      When(s"formatted => \n$formatted")
+
+      val expectedContents = contents(
+        "import java.lang.Integer",
+        "import java.lang.String",
+        " ",
+        "trait Temp {",
+        "  valueOf(5)",
+        "  vo(\"5\")",
+        "  toBinaryString(27)",
+        "}"
+      )
+
+      assert(formatted === expectedContents)
+    }
+
   }
 }
