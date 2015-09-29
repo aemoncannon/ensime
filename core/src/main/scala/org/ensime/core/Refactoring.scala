@@ -203,7 +203,7 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
       val result = performRefactoring(procId, tpe, new refactoring.RefactoringParameters())
     }.result
 
-  private def using[A, R <: { def close(): Unit }](r : R)(f : R => A) : A = {
+  private def using[A, R <: { def close(): Unit }](r: R)(f: R => A): A = {
     import scala.language.reflectiveCalls
     try {
       f(r)
@@ -216,14 +216,16 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
 
     val lines = scala.io.Source.fromFile(file.getPath, settings.encoding.value).mkString
 
-    using(new PrintWriter(file, settings.encoding.value)) { pwriter:PrintWriter =>
+    using(new PrintWriter(file, settings.encoding.value)) { pwriter: PrintWriter =>
       using(new BufferedWriter(pwriter)) { writer =>
-        val statement = "import " + qualName
+
+        val newline = Option(System.getProperty("line.separator")).getOrElse("\n")
+        val statement = "import " + qualName + newline
 
         if (lines.linesWithSeparators.exists(line => line.contains("package"))) {
           val toWrite = lines.linesWithSeparators.map { line =>
             if (line.contains("package")) {
-              line + statement + Option(System.getProperty("line.separator")).getOrElse("\n")
+              line + newline + statement
             } else {
               line
             }
@@ -234,7 +236,6 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
 
         } else {
           writer.write(statement)
-          writer.write(Option(System.getProperty("line.separator")).getOrElse("\n"))
           writer.write(lines)
           writer.flush()
         }

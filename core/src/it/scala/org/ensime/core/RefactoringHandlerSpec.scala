@@ -216,6 +216,7 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
 
       val expectedContents = contents(
         "package org.ensime.testing",
+        "",
         "import java.lang.Integer",
         "",
         "import java.lang.String",
