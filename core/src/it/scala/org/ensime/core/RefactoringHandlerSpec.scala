@@ -7,7 +7,8 @@ import org.ensime.api._
 import org.ensime.fixture._
 
 class RefactoringHandlerSpec extends WordSpec with Matchers
-    with IsolatedAnalyzerFixture with RichPresentationCompilerTestUtils {
+    with IsolatedAnalyzerFixture with RichPresentationCompilerTestUtils
+    with GivenWhenThen {
 
   val encoding = "UTF-16"
   def original = EnsimeConfigFixture.EmptyTestProject.copy(
@@ -99,10 +100,22 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
     // core/src/main/scala/org/ensime/core/Refactoring.scala#L.239
     //
     "organize imports when 3 imports exist" in withAnalyzer { (dir, analyzerRef) =>
+
+      // Please refer Scala IDE
+      // scala-refactoring/src/test/scala/scala/tools/refactoring/tests/implementations/imports/
+      // --> OrganizeImportsWildcardsTest.scala
+
+      // OrganizeImports need some paren --> "{...}"
       val file = srcFile(dir, "tmp-contents", contents(
-        "import xerces.xmlParserAPIs._",
-        "import iaik.x509._",
-        "import javax.xml.transform.dom._"
+        "import java.lang.Integer.{valueOf => vo}",
+        "import java.lang.Integer.toBinaryString",
+        "import java.lang.String.valueOf",
+        " ",
+        "trait Temp {",
+        "  valueOf(5)",
+        "  vo(\"5\")",
+        "  toBinaryString(27)",
+        "}"
       ), write = true, encoding = encoding)
 
       val analyzer = analyzerRef.underlyingActor
@@ -119,9 +132,14 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
 
       val formatted = readSrcFile(file, encoding)
       val expectedContents = contents(
-        "import iaik.x509._",
-        "import javax.xml.transform.dom._",
-        "import xerces.xmlParserAPIs._"
+        "import java.lang.Integer.{toBinaryString, valueOf => vo}",
+        "import java.lang.String.valueOf",
+        " ",
+        "trait Temp {",
+        "  valueOf(5)",
+        "  vo(\"5\")",
+        "  toBinaryString(27)",
+        "}"
       )
       assert(formatted === expectedContents)
     }
