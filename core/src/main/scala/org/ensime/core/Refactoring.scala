@@ -219,10 +219,25 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
     using(new PrintWriter(file, settings.encoding.value)) { pwriter:PrintWriter =>
       using(new BufferedWriter(pwriter)) { writer =>
         val statement = "import " + qualName
-        writer.write(statement)
-        writer.write(Option(System.getProperty("line.separator")).getOrElse("\n"))
-        writer.write(lines)
-        writer.flush()
+
+        if (lines.linesWithSeparators.exists(line => line.contains("package"))) {
+          val toWrite = lines.linesWithSeparators.map { line =>
+            if (line.contains("package")) {
+              line + statement + Option(System.getProperty("line.separator")).getOrElse("\n")
+            } else {
+              line
+            }
+          }.toSeq
+
+          writer.write(toWrite.mkString)
+          writer.flush()
+
+        } else {
+          writer.write(statement)
+          writer.write(Option(System.getProperty("line.separator")).getOrElse("\n"))
+          writer.write(lines)
+          writer.flush()
+        }
       }
     }
 

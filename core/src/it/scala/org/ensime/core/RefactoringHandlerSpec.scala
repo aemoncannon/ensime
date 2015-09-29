@@ -188,6 +188,8 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
 
     "add imports on the first line when other examples come" in withAnalyzer { (dir, analyzerRef) =>
       val file = srcFile(dir, "tmp-contents", contents(
+        "package org.ensime.testing",
+        "",
         "import java.lang.String",
         " ",
         "trait Temp {",
@@ -213,7 +215,9 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
       When(s"formatted => \n$formatted")
 
       val expectedContents = contents(
+        "package org.ensime.testing",
         "import java.lang.Integer",
+        "",
         "import java.lang.String",
         " ",
         "trait Temp {",
