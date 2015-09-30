@@ -5,7 +5,7 @@ import org.ensime.fixture._
 import org.ensime.indexer.DatabaseService.FqnSymbol
 import org.ensime.indexer.EnsimeVFS
 import org.scalatest._
-import pimpathon.file._
+import org.ensime.util.file._
 
 class SourcePositionSpec extends WordSpec with Matchers
     with SharedEnsimeConfigFixture with SharedEnsimeVFSFixture {

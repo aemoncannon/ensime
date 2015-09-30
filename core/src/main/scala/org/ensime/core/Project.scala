@@ -69,7 +69,9 @@ class Project(
   // debounces ReloadExistingFilesEvent
   private var rechecking: Cancellable = _
 
-  def receive: Receive =
+  // not Receive, thanks to https://issues.scala-lang.org/browse/SI-8861
+  // (fixed in 2.11.7)
+  def receive: PartialFunction[Any, Unit] =
     filesChanging orElse LoggingReceive { respondingToQueries }
 
   def filesChanging: Receive = {

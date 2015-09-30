@@ -8,7 +8,7 @@ import org.ensime.sexp._
 import org.ensime.sexp.formats._
 import org.ensime.core.Canonised
 
-import pimpathon.file._
+import org.ensime.util.file._
 
 import org.ensime.api._
 

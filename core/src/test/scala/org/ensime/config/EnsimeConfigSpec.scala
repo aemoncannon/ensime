@@ -1,13 +1,12 @@
 package org.ensime.config
 
-import java.io.File
-
 import org.scalatest.{ FunSpec, Matchers }
-import pimpathon.file._
+import org.ensime.util.file._
 
 import org.ensime.api._
 
 import scala.util.Properties
+import scala.util.Try
 
 class EnsimeConfigSpec extends FunSpec with Matchers {
 
@@ -17,15 +16,13 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
     testFn(EnsimeConfigProtocol.parse(contents))
   }
 
-  def withCanonTempDir[A](a: File => A) = withTempDirectory { dir => a(dir.canon) }
-
   describe("ProjectConfigSpec") {
 
     it("should parse a simple config") {
-      withCanonTempDir { dir =>
+      withTempDir { dir =>
         val abc = dir / "abc"
         val cache = dir / ".ensime_cache"
-        val javaHome = file(Properties.javaHome)
+        val javaHome = File(Properties.javaHome)
 
         abc.mkdirs()
         cache.mkdirs()
@@ -61,10 +58,10 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
     }
 
     it("should parse a minimal config for a binary only project") {
-      withCanonTempDir { dir =>
+      withTempDir { dir =>
         val abc = dir / "abc"
         val cache = dir / ".ensime_cache"
-        val javaHome = file(Properties.javaHome)
+        val javaHome = File(Properties.javaHome)
 
         abc.mkdirs()
         cache.mkdirs()
@@ -91,10 +88,10 @@ class EnsimeConfigSpec extends FunSpec with Matchers {
 
     it("should base class paths on source-mode value") {
       List(true, false) foreach { (sourceMode: Boolean) =>
-        withCanonTempDir { dir =>
+        withTempDir { dir =>
           val abc = dir / "abc"
           val cache = dir / ".ensime_cache"
-          val javaHome = file(Properties.javaHome)
+          val javaHome = File(Properties.javaHome)
 
           abc.mkdirs()
           cache.mkdirs()

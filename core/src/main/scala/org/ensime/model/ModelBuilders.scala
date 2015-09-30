@@ -1,8 +1,7 @@
 package org.ensime.model
 
-import java.io.File
-
 import org.ensime.api._
+import org.ensime.util.file._
 
 import org.apache.commons.vfs2.FileObject
 import org.ensime.core.RichPresentationCompiler
@@ -362,22 +361,22 @@ object LineSourcePositionHelper {
   //       so we extract to the cache and report that as the source
   //       see the hack in the RichPresentationCompiler
   import org.ensime.util.RichFileObject._
-  import pimpathon.any._
-  import pimpathon.file._
-  import pimpathon.java.io._
+  import org.ensime.util.io._
 
   private def possiblyExtractFile(fo: FileObject)(implicit config: EnsimeConfig): File =
     fo.pathWithinArchive match {
       case None => fo.asLocalFile
       case Some(path) =>
         // subpath expected by the client
-        (config.cacheDir / "dep-src" / "source-jars" / path) withSideEffect { f =>
-          if (!f.exists) {
-            f.getParentFile.mkdirs()
-            f.outputStream().drain(fo.getContent.getInputStream)
-            f.setWritable(false)
-          }
+        val file = (config.cacheDir / "dep-src" / "source-jars" / path)
+        if (!file.exists) {
+          // create and populate the file if it does not exist
+          // https://github.com/ensime/ensime-server/issues/761
+          file.getParentFile.mkdirs()
+          file.outputStream().drain(fo.getContent.getInputStream)
+          file.setWritable(false)
         }
+        file
     }
 
   def fromFqnSymbol(sym: FqnSymbol)(implicit config: EnsimeConfig, vfs: EnsimeVFS): Option[LineSourcePosition] =
@@ -391,12 +390,12 @@ object LineSourcePositionHelper {
 }
 
 object OffsetSourcePositionHelper {
-  import pimpathon.file._
+  import org.ensime.util.file._
 
   def fromPosition(p: Position): Option[OffsetSourcePosition] = p match {
     case NoPosition => None
     case realPos =>
-      Some(new OffsetSourcePosition(file(realPos.source.file.path).canon, realPos.point))
+      Some(new OffsetSourcePosition(File(realPos.source.file.path).canon, realPos.point))
   }
 }
 

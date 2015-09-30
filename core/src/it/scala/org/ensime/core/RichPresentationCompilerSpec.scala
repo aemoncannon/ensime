@@ -7,7 +7,7 @@ import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.indexer.EnsimeVFS
 import org.scalatest._
-import pimpathon.file._
+import org.ensime.util.file._
 
 import scala.collection.immutable.Queue
 import scala.concurrent.Await
@@ -39,7 +39,7 @@ class RichPresentationCompilerThatNeedsJavaLibsSpec extends WordSpec with Matche
           assert(sym.declPos.isDefined)
           assert(sym.declPos.get match {
             case LineSourcePosition(f, i) =>
-              f.path.contains("File.java") && i > 0
+              f.parts.contains("File.java") && i > 0
             case _ => false
           })
         }
@@ -120,7 +120,7 @@ class RichPresentationCompilerSpec extends WordSpec with Matchers
           assert(sym.declPos.isDefined)
           assert(sym.declPos.get match {
             case OffsetSourcePosition(f, i) =>
-              f.path.contains("Int.scala") && i > 0
+              f.parts.contains("Int.scala") && i > 0
             case _ => false
           })
         }
@@ -485,7 +485,7 @@ trait RichPresentationCompilerTestUtils {
   def srcFile(proj: EnsimeConfig, name: String, content: String, write: Boolean = false, encoding: String = "UTF-8"): BatchSourceFile = {
     val src = proj.subprojects.head.sourceRoots.head / name
     if (write) {
-      src.create()
+      src.createWithParents()
       scala.tools.nsc.io.File(src)(encoding).writeAll(content)
     }
     new BatchSourceFile(src.getPath, content)

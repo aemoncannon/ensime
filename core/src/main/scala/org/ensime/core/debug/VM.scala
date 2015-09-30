@@ -1,13 +1,11 @@
 package org.ensime.core.debug
 
-import java.io.File
-
 import akka.actor.ActorRef
 import com.sun.jdi.request.{ EventRequest, EventRequestManager }
 import com.sun.jdi._
 import org.ensime.api._
 import org.slf4j.LoggerFactory
-import pimpathon.file._
+import org.ensime.util.file._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.{ Iterable, mutable }
@@ -501,7 +499,7 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
     val className = ignoreErr(frame.location.declaringType().name(), "Class")
     val pcLocation = sourceMap.locToPos(frame.location).getOrElse(
       LineSourcePosition(
-        file(frame.location.sourcePath()).canon,
+        File(frame.location.sourcePath()).canon,
         frame.location.lineNumber
       )
     )

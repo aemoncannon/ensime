@@ -1,9 +1,16 @@
 package org.ensime.api
 
-import pimpathon.file._
+import java.io.File
 
 trait EnsimeTestData {
-  private def canon(s: String) = file(s).canon
+  // duplicating utils to minimise dependencies
+  private def canon(s: String) = {
+    val file = new File(s)
+    try file.getCanonicalFile
+    catch {
+      case t: Throwable => file.getAbsoluteFile
+    }
+  }
 
   val typeInfo = new BasicTypeInfo("type1", 7, DeclaredAs.Method, "FOO.type1", List(), List(), None, Some(8))
 
@@ -71,8 +78,8 @@ trait EnsimeTestData {
 
   val debugBacktrace = DebugBacktrace(List(debugStackFrame), DebugThreadId(17), "thread1")
 
-  val analyzerFile = file("Analyzer.scala").canon
-  val fooFile = file("Foo.scala").canon
+  val analyzerFile = canon("Analyzer.scala")
+  val fooFile = canon("Foo.scala")
 
   val abd = canon("/abd")
 

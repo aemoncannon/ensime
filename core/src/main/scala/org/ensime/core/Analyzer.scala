@@ -1,6 +1,6 @@
 package org.ensime.core
 
-import java.io.File
+import java.io.{ File => JFile }
 import java.nio.charset.Charset
 
 import akka.actor._
@@ -8,9 +8,9 @@ import akka.event.LoggingReceive.withLabel
 import org.ensime.api._
 import org.ensime.indexer.{ EnsimeVFS, SearchService }
 import org.ensime.model._
-import org.ensime.util._
+import org.ensime.util.{ PresentationReporter, ReportHandler, FileUtils }
 import org.slf4j.LoggerFactory
-import pimpathon.file._
+import org.ensime.util.file._
 
 import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
 import scala.tools.nsc.Settings
@@ -65,7 +65,7 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar was not present")
     }
-    settings.classpath.value = config.compileClasspath.mkString(File.pathSeparator)
+    settings.classpath.value = config.compileClasspath.mkString(JFile.pathSeparator)
     settings.processArguments(config.compilerArgs, processAll = false)
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
@@ -241,7 +241,7 @@ class Analyzer(
           val syms = scalaCompiler.askSymbolDesignationsInRegion(pos, tpes)
           sender ! syms
         } else {
-          sender ! SymbolDesignations(file(sf.path), List.empty)
+          sender ! SymbolDesignations(File(sf.path), List.empty)
         }
       }
 

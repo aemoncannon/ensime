@@ -11,7 +11,8 @@ import org.apache.lucene.search.BooleanClause.Occur
 import org.apache.lucene.search.{ BooleanQuery, DisjunctionMaxQuery, PrefixQuery, TermQuery }
 import org.ensime.indexer.DatabaseService._
 import org.ensime.indexer.lucene._
-import pimpathon.list._
+
+import org.ensime.util.list._
 
 import scala.collection.JavaConversions._
 

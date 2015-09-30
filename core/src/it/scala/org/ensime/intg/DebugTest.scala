@@ -7,7 +7,7 @@ import org.ensime.api._
 import org.ensime.core._
 import org.ensime.fixture._
 import org.scalatest._
-import pimpathon.file._
+import org.ensime.util.file._
 
 // must be refreshing as the tests don't clean up after themselves properly
 class DebugTest extends WordSpec with Matchers with Inside

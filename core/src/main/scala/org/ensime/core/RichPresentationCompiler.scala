@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.charset.Charset
 
 import org.ensime.api._
+import org.ensime.config._
 
 import akka.actor.ActorRef
 import org.ensime.indexer.{ EnsimeVFS, SearchService }
@@ -20,7 +21,7 @@ import scala.tools.nsc.reporters.Reporter
 import scala.tools.nsc.util._
 import scala.tools.refactoring.analysis.GlobalIndexes
 
-import pimpathon.file._
+import org.ensime.util.file._
 
 trait RichCompilerControl extends CompilerControl with RefactoringControl with CompletionControl with DocFinding {
   self: RichPresentationCompiler =>
@@ -123,7 +124,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askReloadAllFiles() = {
     val all = {
       for {
-        file <- config.sourceFiles
+        file <- config.scalaSourceFiles
         source = getSourceFile(file.getAbsolutePath)
       } yield source
     }.toSet ++ activeUnits().map(_.source)

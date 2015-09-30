@@ -5,7 +5,7 @@ import org.ensime.api._
 import org.ensime.core._
 import org.ensime.fixture._
 import org.scalatest.{ Matchers, WordSpec }
-import pimpathon.file._
+import org.ensime.util.file._
 
 class BasicWorkflow extends WordSpec with Matchers
     with IsolatedEnsimeConfigFixture

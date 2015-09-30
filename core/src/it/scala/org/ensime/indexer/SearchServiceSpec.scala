@@ -2,8 +2,7 @@ package org.ensime.indexer
 
 import org.ensime.fixture._
 import org.scalatest._
-import pimpathon.any._
-import pimpathon.file._
+import org.ensime.util.file._
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -149,14 +148,14 @@ trait SearchServiceTestUtils {
   def searchClasses(expect: String, query: String)(implicit service: SearchService) = {
     val max = 10
     val info = s"'$query' expected '$expect')"
-    service.searchClasses(query, max) tap { results =>
-      assert(results.size <= max, s"${results.size} $info")
-      assert(results.nonEmpty, info)
-      // when we improve the search quality, we could
-      // make this really look only at #1
-      val got = results.map(_.fqn)
-      assert(got contains expect, s"$info got '$got'")
-    }
+    val results = service.searchClasses(query, max)
+    assert(results.size <= max, s"${results.size} $info")
+    assert(results.nonEmpty, s"$info but was empty")
+    // when we improve the search quality, we could
+    // make this really look only at #1
+    val got = results.map(_.fqn)
+    assert(got contains expect, s"$info got '$got'")
+    results
   }
 
   def searchesClasses(expect: String, queries: String*)(implicit service: SearchService) =
@@ -165,21 +164,21 @@ trait SearchServiceTestUtils {
   def searchClassesAndMethods(expect: String, query: String)(implicit service: SearchService) = {
     val max = 10
     val info = s"'$query' expected '$expect')"
-    service.searchClassesMethods(List(query), max) tap { results =>
-      assert(results.size <= max, s"${results.size} $info")
-      assert(results.nonEmpty, info)
-      // when we improve the search quality, we could
-      // make this really look only at #1
-      val got = results.map(_.fqn)
-      assert(got contains expect, s"$info got '$got'")
-    }
+    val results = service.searchClassesMethods(List(query), max)
+    assert(results.size <= max, s"${results.size} $info")
+    assert(results.nonEmpty, s"$info but was empty")
+    // when we improve the search quality, we could
+    // make this really look only at #1
+    val got = results.map(_.fqn)
+    assert(got contains expect, s"$info got '$got'")
+    results
   }
 
   def searchExpectEmpty(query: String)(implicit service: SearchService) = {
     val max = 1
-    service.searchClassesMethods(List(query), max) tap { results =>
-      assert(results.isEmpty, "expected empty results from %s".format(query))
-    }
+    val results = service.searchClassesMethods(List(query), max)
+    assert(results.isEmpty, "expected empty results from %s".format(query))
+    results
   }
 
   def searchesEmpty(queries: String*)(implicit service: SearchService) =

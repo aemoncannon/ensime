@@ -14,7 +14,7 @@ import scalariform.astselect.AstSelector
 import scalariform.formatter.ScalaFormatter
 import scalariform.utils.Range
 
-import pimpathon.file._
+import org.ensime.util.file._
 
 abstract class RefactoringEnvironment(file: String, start: Int, end: Int) {
 

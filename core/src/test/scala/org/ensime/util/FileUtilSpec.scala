@@ -3,7 +3,7 @@ package org.ensime.util
 import java.nio.charset.Charset
 import akka.event.slf4j.SLF4JLogging
 import org.scalatest._
-import pimpathon.file._
+import org.ensime.util.file._
 
 class FileUtilSpec extends FunSpec with Matchers with Inside with SLF4JLogging {
   describe("FileUtils") {

@@ -1,13 +1,13 @@
 package org.ensime.fixture
 
-import java.io.File
+import com.google.common.io.Files
+import java.io.{ File => JFile }
 
 import org.apache.commons.io.FileUtils.copyDirectory
 import org.ensime.api._
 import org.ensime.config._
 import org.scalatest._
-import pimpathon.any._
-import pimpathon.file._
+import org.ensime.util.file._
 
 /**
  * Provides a fixture for tests to have access to a cloned project,
@@ -22,21 +22,21 @@ trait EnsimeConfigFixture {
   // convenience method
   def scalaMain(implicit config: EnsimeConfig): File =
     config.subprojects.head.sourceRoots.filter { dir =>
-      val sep = File.separator
+      val sep = JFile.separator
       dir.getPath.endsWith(s"${sep}main${sep}scala")
     }.head
 }
 
 object EnsimeConfigFixture {
 
-  lazy val dotEnsime = file("../.ensime")
+  lazy val dotEnsime = File("../.ensime")
   require(
     dotEnsime.exists,
     "the .ensime file must exist to run the integration tests." +
       "Type 'sbt gen-ensime' to create it"
   )
 
-  lazy val EnsimeTestProject = EnsimeConfigProtocol.parse(dotEnsime.readLines().mkString)
+  lazy val EnsimeTestProject = EnsimeConfigProtocol.parse(dotEnsime.readString())
 
   // not completely empty, has a reference to the scala-library jar
   lazy val EmptyTestProject: EnsimeConfig = EnsimeTestProject.copy(
@@ -68,11 +68,13 @@ object EnsimeConfigFixture {
         target.getAbsolutePath
       )
       require(toPath != from.getAbsolutePath, s"${source.root.getAbsolutePath} ${target.getAbsolutePath} in ${from.getAbsolutePath}")
-      file(toPath)
+      File(toPath)
     }
 
-    def renameAndCopy(from: File): File = rename(from) withSideEffect {
-      to => copyDirectory(from, to)
+    def renameAndCopy(from: File): File = {
+      val to = rename(from)
+      copyDirectory(from, to)
+      to
     }
 
     // I tried using shapeless everywhere here, but it OOMd the compiler :-(
@@ -93,10 +95,10 @@ object EnsimeConfigFixture {
       subprojects = source.subprojects.map(cloneModule)
     ))
 
-    // HACK: we must force unix line endings on sources or the tests
+    // HACK: we must force OS line endings on sources or the tests
     // (which have fixed points within the file) will fail on Windows
-    config.sourceFiles.foreach { file =>
-      file.writeLines(file.readLines(), append = false)
+    config.scalaSourceFiles.foreach { file =>
+      file.writeLines(file.readLines())
     }
 
     config
@@ -122,11 +124,9 @@ trait IsolatedEnsimeConfigFixture extends Suite
   //   https://github.com/scoverage/sbt-scoverage/issues/97
   import EnsimeConfigFixture._
 
-  override def withEnsimeConfig(testCode: EnsimeConfig => Any): Any = withTempDirectory(
-    ".project", s"ensime-it-${getClass.getSimpleName}-"
-  ) {
-      dir => testCode(cloneForTesting(original, dir))
-    }
+  override def withEnsimeConfig(testCode: EnsimeConfig => Any): Any = withTempDir {
+    dir => testCode(cloneForTesting(original, dir))
+  }
 }
 
 /**
@@ -137,7 +137,7 @@ trait SharedEnsimeConfigFixture extends Suite
     with EnsimeConfigFixture with BeforeAndAfterAll {
   import EnsimeConfigFixture._
 
-  private val tmpDir = tempDir(".project", s"ensime-it-${getClass.getSimpleName}-")
+  private val tmpDir = Files.createTempDir()
 
   private[fixture] var _config: EnsimeConfig = _
 
@@ -148,7 +148,7 @@ trait SharedEnsimeConfigFixture extends Suite
 
   override def afterAll(): Unit = {
     super.afterAll()
-    tmpDir.deleteRecursively()
+    tmpDir.tree.reverse.foreach(_.delete())
   }
 
   override def withEnsimeConfig(testCode: EnsimeConfig => Any): Any = testCode(_config)

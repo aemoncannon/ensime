@@ -8,7 +8,8 @@ import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
-import pimpathon.file._
+import org.ensime.config._
+import org.ensime.util.file._
 
 class SourceMap(config: EnsimeConfig) {
   val log = LoggerFactory.getLogger("SourceMap")
@@ -30,7 +31,7 @@ class SourceMap(config: EnsimeConfig) {
 
   def rebuildSourceMap(): Unit = {
     sourceMap.clear()
-    for (f <- config.sourceFiles) {
+    for (f <- config.scalaSourceFiles) {
       val set = sourceMap.getOrElse(f.getName, mutable.HashSet())
       set.add(f.canon)
       sourceMap(f.getName) = set

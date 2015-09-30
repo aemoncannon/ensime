@@ -2,7 +2,7 @@ package org.ensime.core
 
 import java.io.File
 import shapeless._
-import pimpathon.file._
+import org.ensime.util.file._
 
 /**
  * Goes through sealed families and gets the canonical path of `File`

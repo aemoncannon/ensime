@@ -5,7 +5,7 @@ import java.io.File
 import java.util.jar.JarFile
 import org.ensime.api.EnsimeConfig
 
-import pimpathon.java.io._
+import org.ensime.util.io._
 
 trait DocJarReading {
   def config: EnsimeConfig
