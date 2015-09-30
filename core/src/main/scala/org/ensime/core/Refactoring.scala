@@ -3,8 +3,10 @@ package org.ensime.core
 import java.io.BufferedWriter
 import java.io.File
 import java.io.PrintWriter
+import java.nio.charset.Charset
 import org.ensime.api._
 import org.ensime.util._
+import org.ensime.util.file.RichFile
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.refactoring._
 import scala.tools.refactoring.analysis.GlobalIndexes
@@ -13,8 +15,6 @@ import scala.tools.refactoring.implementations._
 import scalariform.astselect.AstSelector
 import scalariform.formatter.ScalaFormatter
 import scalariform.utils.Range
-
-import org.ensime.util.file._
 
 abstract class RefactoringEnvironment(file: String, start: Int, end: Int) {
 
@@ -214,13 +214,14 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
 
   protected def doAddImport(procId: Int, tpe: RefactorType, qualName: String, file: File) = {
 
-    val lines = scala.io.Source.fromFile(file.getPath, settings.encoding.value).mkString
+    val newline = "\n"
+    val statement = "import " + qualName + "\n"
+
+    implicit val cs = Charset.forName(settings.encoding.value)
+    val lines = RichFile(file).readLines()(cs).mkString(newline)
 
     using(new PrintWriter(file, settings.encoding.value)) { pwriter: PrintWriter =>
       using(new BufferedWriter(pwriter)) { writer =>
-
-        val newline = Option(System.getProperty("line.separator")).getOrElse("\n")
-        val statement = "import " + qualName + newline
 
         if (lines.linesWithSeparators.exists(line => line.contains("package"))) {
           val toWrite = lines.linesWithSeparators.map { line =>
