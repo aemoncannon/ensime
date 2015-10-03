@@ -1,5 +1,5 @@
 # ENSIME
-TEST
+TEST 2
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ensime/ensime-server)
 [![Build Status](http://fommil.com/api/badge/github.com/ensime/ensime-server/status.svg?branch=master)](http://fommil.com/github.com/ensime/ensime-server)
 
