@@ -10,7 +10,7 @@ import org.ensime.indexer.DatabaseService._
 import org.ensime.util.file._
 
 //import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent._
 
 /**
  * Provides methods to perform ENSIME-specific indexing tasks,
@@ -220,8 +220,8 @@ class SearchService(
     backlogActor ! FileUpdate(f, symbols)
   }(workerEC)
 
-  def shutdown(): Unit = {
-    db.shutdown()
+  def shutdown()(implicit ec: ExecutionContext): Unit = {
+    db.shutdown
   }
 }
 

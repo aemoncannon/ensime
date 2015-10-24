@@ -10,9 +10,14 @@ import org.ensime.indexer.DatabaseService._
 
 import org.ensime.api._
 
-import scala.slick.driver.H2Driver.simple._
+import scala.concurrent._
+import scala.concurrent.duration._
+
+import slick.driver.H2Driver.api._
 
 class DatabaseService(dir: File) extends SLF4JLogging {
+
+  private def await[T](f: Future[T]): T = Await.result(f, Duration.Inf)
 
   lazy val (datasource, db) = {
     // MVCC plus connection pooling speeds up the tests ~10%
@@ -28,84 +33,81 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     (ds, Database.forDataSource(ds))
   }
 
-  def shutdown(): Unit = {
+  def shutdown()(implicit ec: ExecutionContext): Unit = {
     // call directly - using slick withSession barfs as it runs a how many rows were updated
     // after shutdown is executed.
-    db.createSession().createStatement() execute "shutdown;"
+    await(
+      db.run(sqlu"shutdown") flatMap (_ => db.shutdown)
+    )
     datasource.close()
   }
 
   if (!dir.exists) {
     log.info("creating the search database")
     dir.mkdirs()
-    db withSession { implicit s =>
-      (fileChecks.ddl ++ fqnSymbols.ddl).create
-    }
+    await(
+      db.run(
+        (fileChecks.schema ++ fqnSymbols.schema).create
+      )
+    )
   }
 
   // TODO hierarchy
   // TODO reverse lookup table
 
   // file with last modified time
-  def knownFiles(): List[FileCheck] = db.withSession { implicit s =>
-    (for (row <- fileChecks) yield row).list
+  def knownFiles(): List[FileCheck] = Await.result(db.run(fileChecks.to[List].result), Duration.Inf)
+
+  def removeFiles(files: List[FileObject])(implicit ec: ExecutionContext): Int = await(
+    db.run {
+      val restrict = files.map(_.getName.getURI)
+
+      (
+        fqnSymbols.filter(_.file inSet restrict).delete
+        andThen
+        fileChecks.filter(_.filename inSet restrict).delete
+      )
+    }
+  )
+
+  private val timestampsQuery = Compiled {
+    filename: Rep[String] => fileChecks.filter(_.filename === filename).map(_.timestamp).take(1)
   }
 
-  def removeFiles(files: List[FileObject]): Int = db.withSession { implicit s =>
-    val restrict = files.map(_.getName.getURI)
-    val q1 = for {
-      row <- fqnSymbols
-      if row.file inSet restrict
-    } yield row
-    q1.delete
-
-    val q2 = for {
-      row <- fileChecks
-      if row.filename inSet restrict
-    } yield row
-    q2.delete
-  }
-
-  def outOfDate(f: FileObject): Boolean = db withSession { implicit s =>
+  def outOfDate(f: FileObject)(implicit ec: ExecutionContext): Boolean = {
     val uri = f.getName.getURI
     val modified = f.getContent.getLastModifiedTime
 
-    val query = for {
-      filename <- Parameters[String]
-      u <- fileChecks if u.filename === filename
-    } yield u.timestamp
-
-    query(uri).list.map(_.getTime).headOption match {
-      case Some(timestamp) if timestamp < modified => true
-      case Some(_) => false
-      case _ => true
-    }
+    await(
+      db.run(
+        timestampsQuery(uri).result.headOption.map(_.map(_.getTime < modified).getOrElse(true))
+      )
+    )
   }
 
-  def persist(check: FileCheck, symbols: Seq[FqnSymbol]): Unit =
-    db.withSession { implicit s =>
-      fileChecks.insert(check)
-      fqnSymbols.insertAll(symbols: _*)
-    }
+  def persist(check: FileCheck, symbols: Seq[FqnSymbol])(implicit ec: ExecutionContext): Option[Int] =
+    await(
+      db.run(
+        (fileChecks += check) andThen (fqnSymbols ++= symbols)
+      )
+    )
 
-  private val findCompiled = Compiled((fqn: Column[String]) =>
+  private val findCompiled = Compiled((fqn: Rep[String]) =>
     fqnSymbols.filter(_.fqn === fqn).take(1))
-  def find(fqn: String): Option[FqnSymbol] = db.withSession { implicit s =>
-    findCompiled(fqn).firstOption
-  }
+
+  def find(fqn: String): Option[FqnSymbol] = await(db.run(
+    findCompiled(fqn).result.headOption
+  ))
 
   import org.ensime.indexer.IndexService._
   def find(fqns: List[FqnIndex]): List[FqnSymbol] = {
-    db.withSession { implicit s =>
-      val restrict = fqns.map(_.fqn)
-      val query = for {
-        row <- fqnSymbols
-        if row.fqn inSet restrict
-      } yield row
-
-      val results = query.list.groupBy(_.fqn)
-      restrict.flatMap(results.get(_).map(_.head))
-    }
+    val restrict = fqns.map(_.fqn)
+    val results = await(
+      db.run(
+        fqnSymbols.filter(_.fqn inSet restrict).result
+      )
+    ).groupBy(_.fqn)
+    restrict.flatMap(results.get(_).map(_.head))
   }
 }
 
