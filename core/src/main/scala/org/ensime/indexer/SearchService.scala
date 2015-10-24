@@ -11,6 +11,7 @@ import org.ensime.util.file._
 
 //import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
+import scala.concurrent.duration._
 
 /**
  * Provides methods to perform ENSIME-specific indexing tasks,
@@ -30,6 +31,8 @@ class SearchService(
 ) extends ClassfileIndexer
     with ClassfileListener
     with SLF4JLogging {
+
+  private val QUERY_TIMEOUT = 30 seconds
   private val version = "1.0"
 
   private val index = new IndexService(config.cacheDir / ("index-" + version))
@@ -193,7 +196,7 @@ class SearchService(
   }
 
   /** only for exact fqns */
-  def findUnique(fqn: String): Option[FqnSymbol] = db.find(fqn)
+  def findUnique(fqn: String): Option[FqnSymbol] = Await.result(db.find(fqn), QUERY_TIMEOUT)
 
   /* DELETE then INSERT in H2 is ridiculously slow, so we put all modifications
    * into a blocking queue and dedicate a thread to block on draining the queue.
