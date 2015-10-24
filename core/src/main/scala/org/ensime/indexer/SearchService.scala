@@ -65,27 +65,29 @@ class SearchService(
     val jarUris = config.allJars.map(vfs.vfile).map(_.getName.getURI)
 
     // remove stale entries: must be before index or INSERT/DELETE races
-    val stale = for {
-      known <- db.knownFiles()
-      f = known.file
-      name = f.getName.getURI
-      if !f.exists || known.changed ||
-        (name.endsWith(".jar") && !jarUris(name))
-    } yield f
+    val stale = db.knownFiles().map { knownFiles =>
+      val stale = for {
+        known <- knownFiles
+        f = known.file
+        name = f.getName.getURI
+        if !f.exists || known.changed ||
+          (name.endsWith(".jar") && !jarUris(name))
+      } yield f
 
-    log.info(s"removing ${stale.size} stale files from the index")
-    if (log.isTraceEnabled)
-      log.trace(s"STALE = $stale")
+      log.info(s"removing ${stale.size} stale files from the index")
+      if (log.isTraceEnabled)
+        log.trace(s"STALE = $stale")
 
-    // individual DELETEs in H2 are really slow
-    val removing = stale.grouped(1000).map { files =>
-      Future {
-        index.remove(files)
-        db.removeFiles(files)
-      }(workerEC)
+      stale
     }
 
-    val removed = Future.sequence(removing).map(_ => stale.size)
+    // individual DELETEs in H2 are really slow
+    val removed = for {
+      all <- stale
+      _ <- Future.sequence(
+        all.grouped(1000).map(delete)
+      )
+    } yield all.size
 
     val bases = {
       config.modules.flatMap {
@@ -204,7 +206,7 @@ class SearchService(
 
   val backlogActor = actorSystem.actorOf(Props(new IndexingQueueActor(this)), "ClassfileIndexer")
 
-  def delete(files: List[FileObject]): Unit = {
+  def delete(files: List[FileObject]): Future[Int] = {
     index.remove(files)
     db.removeFiles(files)
   }
@@ -266,9 +268,15 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       // blocks the actor thread intentionally -- this is real work
       // and the underlying I/O implementation is blocking. Give me an
       // async SQL database and we can talk...
+      //
+      // UPDATE 2015-10-24: Slick no longer blocking. This can most likely be fixed now
+      // (however the author of the above comment imagined)
 
       // batch the deletion (big bottleneck)
-      searchService.delete(batch.keys.toList)
+      Await.ready(
+        searchService.delete(batch.keys.toList),
+        Duration.Inf
+      )
 
       // opportunity to do more batching here
       batch.collect {

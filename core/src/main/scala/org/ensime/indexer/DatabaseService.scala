@@ -57,9 +57,9 @@ class DatabaseService(dir: File) extends SLF4JLogging {
   // TODO reverse lookup table
 
   // file with last modified time
-  def knownFiles(): List[FileCheck] = Await.result(db.run(fileChecks.to[List].result), Duration.Inf)
+  def knownFiles(): Future[List[FileCheck]] = db.run(fileChecks.to[List].result)
 
-  def removeFiles(files: List[FileObject])(implicit ec: ExecutionContext): Int = await(
+  def removeFiles(files: List[FileObject])(implicit ec: ExecutionContext): Future[Int] =
     db.run {
       val restrict = files.map(_.getName.getURI)
 
@@ -69,7 +69,6 @@ class DatabaseService(dir: File) extends SLF4JLogging {
         fileChecks.filter(_.filename inSet restrict).delete
       )
     }
-  )
 
   private val timestampsQuery = Compiled {
     filename: Rep[String] => fileChecks.filter(_.filename === filename).map(_.timestamp).take(1)
