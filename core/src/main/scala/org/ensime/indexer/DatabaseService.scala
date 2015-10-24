@@ -16,6 +16,7 @@ import scala.concurrent.duration._
 import slick.driver.H2Driver.api._
 
 class DatabaseService(dir: File) extends SLF4JLogging {
+  val DB_CREATE_TIMEOUT = 30 seconds
 
   private def await[T](f: Future[T]): T = Await.result(f, Duration.Inf)
 
@@ -44,10 +45,11 @@ class DatabaseService(dir: File) extends SLF4JLogging {
   if (!dir.exists) {
     log.info("creating the search database")
     dir.mkdirs()
-    await(
+    Await.result(
       db.run(
         (fileChecks.schema ++ fqnSymbols.schema).create
-      )
+      ),
+      DB_CREATE_TIMEOUT
     )
   }
 
