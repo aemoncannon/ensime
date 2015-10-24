@@ -33,14 +33,13 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     (ds, Database.forDataSource(ds))
   }
 
-  def shutdown()(implicit ec: ExecutionContext): Unit = {
+  def shutdown()(implicit ec: ExecutionContext): Future[Unit] = for {
     // call directly - using slick withSession barfs as it runs a how many rows were updated
     // after shutdown is executed.
-    await(
-      db.run(sqlu"shutdown") flatMap (_ => db.shutdown)
-    )
-    datasource.close()
-  }
+    _ <- db.run(sqlu"shutdown")
+    _ <- db.shutdown
+    _ = datasource.close()
+  } yield ()
 
   if (!dir.exists) {
     log.info("creating the search database")

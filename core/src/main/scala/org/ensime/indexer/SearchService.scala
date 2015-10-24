@@ -220,8 +220,8 @@ class SearchService(
     backlogActor ! FileUpdate(f, symbols)
   }(workerEC)
 
-  def shutdown()(implicit ec: ExecutionContext): Unit = {
-    db.shutdown
+  def shutdown(): Future[Unit] = {
+    db.shutdown()
   }
 }
 
