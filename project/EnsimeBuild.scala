@@ -275,7 +275,7 @@ object EnsimeBuild extends Build with JdkResolver {
       // Netbeans 7.4+ needs Java 7 (7.3 only needs it at runtime)
       "org.netbeans.api" % "org-netbeans-api-java" % "RELEASE731",
       "org.netbeans.api" % "org-netbeans-modules-java-source" % "RELEASE731",
-      "com.typesafe.slick" %% "slick" % "2.1.0",
+      "com.typesafe.slick" %% "slick" % "3.1.0",
       "com.jolbox" % "bonecp" % "0.8.0.RELEASE", // TODO: upgrade to https://github.com/brettwooldridge/HikariCP
       "org.apache.commons" % "commons-vfs2" % "2.0" intransitive(),
       // lucene 4.8+ needs Java 7: http://www.gossamer-threads.com/lists/lucene/general/225300

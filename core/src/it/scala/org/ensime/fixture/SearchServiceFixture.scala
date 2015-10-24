@@ -3,6 +3,7 @@ package org.ensime.fixture
 import akka.actor.ActorSystem
 import org.ensime.api._
 import org.ensime.indexer.{ EnsimeVFS, SearchService }
+import scala.concurrent._
 import scala.concurrent.duration._
 
 trait IsolatedSearchServiceFixture extends IsolatedSourceResolverFixture {
@@ -12,7 +13,7 @@ trait IsolatedSearchServiceFixture extends IsolatedSourceResolverFixture {
     try {
       testCode(config, searchService)
     } finally {
-      searchService.shutdown()
+      Await.ready(searchService.shutdown(), 10.seconds)
       actorSystem.shutdown()
       actorSystem.awaitTermination(10.seconds)
     }
@@ -33,7 +34,7 @@ trait SharedSearchServiceFixture
   }
 
   override def afterAll(): Unit = {
-    _search.shutdown()
+    Await.ready(_search.shutdown(), 10.seconds)
     super.afterAll()
   }
 

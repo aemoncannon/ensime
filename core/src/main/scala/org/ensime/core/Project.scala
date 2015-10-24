@@ -7,6 +7,7 @@ import org.ensime.api._
 import org.ensime.core.debug.DebugManager
 import org.ensime.indexer._
 
+import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util.Try
 
@@ -20,6 +21,8 @@ class Project(
     broadcaster: ActorRef,
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with Stash {
+  private val DB_SHUTDOWN_TIMEOUT = 30 seconds
+
   import context.{ dispatcher, system }
 
   /* The main components of the ENSIME server */
@@ -73,7 +76,7 @@ class Project(
     // make sure the "reliable" dependencies are cleaned up
     Try(classfileWatcher.shutdown())
     Try(sourceWatcher.shutdown())
-    Try(searchService.shutdown())
+    Try(Await.ready(searchService.shutdown(), DB_SHUTDOWN_TIMEOUT))
     Try(vfs.close())
   }
 
