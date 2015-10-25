@@ -83,11 +83,12 @@ class DatabaseService(dir: File) extends SLF4JLogging {
 
   def persist(check: FileCheck, symbols: Seq[FqnSymbol])(implicit ec: ExecutionContext): Future[Option[Int]] =
     db.run(
-      (fileChecks += check) andThen (fqnSymbols ++= symbols)
+      (fileChecksCompiled += check) andThen (fqnSymbolsCompiled ++= symbols)
     )
 
-  private val findCompiled = Compiled((fqn: Rep[String]) =>
-    fqnSymbols.filter(_.fqn === fqn).take(1))
+  private val findCompiled = Compiled {
+    fqn: Rep[String] => fqnSymbols.filter(_.fqn === fqn).take(1)
+  }
 
   def find(fqn: String): Future[Option[FqnSymbol]] = db.run(
     findCompiled(fqn).result.headOption
@@ -141,6 +142,7 @@ object DatabaseService {
     def idx = index("idx_filename", filename, unique = true)
   }
   private val fileChecks = TableQuery[FileChecks]
+  private val fileChecksCompiled = Compiled(TableQuery[FileChecks])
 
   case class FqnSymbol(
       id: Option[Int],
@@ -179,4 +181,5 @@ object DatabaseService {
     def uniq = index("idx_uniq", (fqn, descriptor, internal), unique = true)
   }
   private val fqnSymbols = TableQuery[FqnSymbols]
+  private val fqnSymbolsCompiled = Compiled { TableQuery[FqnSymbols] }
 }
