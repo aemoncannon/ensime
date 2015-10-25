@@ -83,11 +83,9 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     )
   }
 
-  def persist(check: FileCheck, symbols: Seq[FqnSymbol])(implicit ec: ExecutionContext): Option[Int] =
-    await(
-      db.run(
-        (fileChecks += check) andThen (fqnSymbols ++= symbols)
-      )
+  def persist(check: FileCheck, symbols: Seq[FqnSymbol])(implicit ec: ExecutionContext): Future[Option[Int]] =
+    db.run(
+      (fileChecks += check) andThen (fqnSymbols ++= symbols)
     )
 
   private val findCompiled = Compiled((fqn: Rep[String]) =>

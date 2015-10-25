@@ -106,13 +106,13 @@ class SearchService(
         basesWithOutOfDateInfo.collect { // is there a simpler way to do this, rather than collect after sequence?
           case (base, outOfDate) if outOfDate => base
         }.map {
-          case classfile if classfile.getName.getExtension == "class" => Future[Unit] {
+          case classfile if classfile.getName.getExtension == "class" => Future[Future[Unit]] {
             val check = FileCheck(classfile)
             val symbols = extractSymbols(classfile, classfile)
             persist(check, symbols)
-          }
+          }.flatMap(identity)
 
-          case jar => Future[Unit] {
+          case jar => Future[Future[Unit]] {
             try {
               log.debug(s"indexing $jar")
               val check = FileCheck(jar)
@@ -121,8 +121,9 @@ class SearchService(
             } catch {
               case e: Exception =>
                 log.error(s"Failed to index $jar", e)
+                Future.successful(())
             }
-          }
+          }.flatMap(identity)
         }
       )
 
@@ -138,13 +139,14 @@ class SearchService(
 
   def refreshResolver(): Unit = resolver.update()
 
-  def persist(check: FileCheck, symbols: List[FqnSymbol]): Unit = try {
+  def persist(check: FileCheck, symbols: List[FqnSymbol]): Future[Unit] = try {
     index.persist(check, symbols)
-    db.persist(check, symbols)
+    db.persist(check, symbols).map(_ => ())
   } catch {
     case e: SQLException =>
       // likely a timing issue or corner-case dupe FQNs
       log.warn(s"failed to insert ${symbols.size} symbols for ${check.file} ${e.getClass}: ${e.getMessage}")
+      Future.successful(())
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
