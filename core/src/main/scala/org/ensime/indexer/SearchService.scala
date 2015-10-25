@@ -10,7 +10,8 @@ import org.ensime.indexer.DatabaseService._
 import org.ensime.util.file._
 
 //import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent._
+import scala.concurrent.duration._
 
 /**
  * Provides methods to perform ENSIME-specific indexing tasks,
@@ -30,6 +31,8 @@ class SearchService(
 ) extends ClassfileIndexer
     with ClassfileListener
     with SLF4JLogging {
+
+  private val QUERY_TIMEOUT = 30 seconds
   private val version = "1.0"
 
   private val index = new IndexService(config.cacheDir / ("index-" + version))
@@ -46,13 +49,7 @@ class SearchService(
    * is unnecessary (e.g. we already know that a jar or classfile has
    * been indexed).
    *
-   * The decision of what will be indexed is performed syncronously,
-   * as is the removal of stale data, but the itself itself is
-   * performed asyncronously.
-   *
-   * @return the number of files estimated to be (removed, indexed)
-   *         from the index and database. This is only an estimate
-   *         because we may not have TODO
+   * @return the number of rows (removed, indexed) from the database.
    */
   def refresh(): Future[(Int, Int)] = {
     def scan(f: FileObject) = f.findFiles(EnsimeVFS.ClassfileSelector) match {
@@ -60,89 +57,96 @@ class SearchService(
       case res => res.toList
     }
 
-    // TODO visibility test/main and which module is viewed (a Lucene concern, not H2)
+    // it is much faster during startup to obtain the full list of
+    // known files from the DB then and check against the disk, than
+    // check each file against DatabaseService.outOfDate
+    def findStaleFileChecks(checks: Seq[FileCheck]): List[FileCheck] = {
+      log.info("findStaleFileChecks")
+      val jarUris = config.allJars.map(vfs.vfile).map(_.getName.getURI)
+      for {
+        check <- checks
+        name = check.file.getName.getURI
+        if !check.file.exists || check.changed ||
+          (name.endsWith(".jar") && !jarUris(name))
+      } yield check
+    }.toList
 
-    val jarUris = config.allJars.map(vfs.vfile).map(_.getName.getURI)
-
-    // remove stale entries: must be before index or INSERT/DELETE races
-    val stale = for {
-      known <- db.knownFiles()
-      f = known.file
-      name = f.getName.getURI
-      if !f.exists || known.changed ||
-        (name.endsWith(".jar") && !jarUris(name))
-    } yield f
-
-    log.info(s"removing ${stale.size} stale files from the index")
-    if (log.isTraceEnabled)
-      log.trace(s"STALE = $stale")
-
-    // individual DELETEs in H2 are really slow
-    val removing = stale.grouped(1000).map { files =>
-      Future {
-        index.remove(files)
-        db.removeFiles(files)
-      }(workerEC)
+    // delete the stale data before adding anything new
+    // returns number of rows deleted
+    def deleteReferences(checks: List[FileCheck]): Future[Int] = {
+      log.info(s"removing ${checks.size} stale files from the index")
+      deleteInBatches(checks.map(_.file))
     }
 
-    val removed = Future.sequence(removing).map(_ => stale.size)
-
-    val bases = {
+    // a snapshot of everything that we want to index
+    def findBases(): Set[FileObject] = {
+      log.info("findBases")
       config.modules.flatMap {
         case (name, m) =>
-          m.targetDirs.flatMap { d => scan(vfs.vfile(d)) } ::: m.testTargetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
+          m.targetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
+            m.testTargetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
             m.compileJars.map(vfs.vfile) ::: m.testJars.map(vfs.vfile)
       }
     }.toSet ++ config.javaLibs.map(vfs.vfile)
 
-    // start indexing after all deletes have completed (not pretty)
-    val indexing = removed.map { _ =>
-      // could potentially do the db lookup in parallel
-      bases.filter(db.outOfDate).toList map {
-        case classfile if classfile.getName.getExtension == "class" => Future[Unit] {
-          val check = FileCheck(classfile)
-          val symbols = extractSymbols(classfile, classfile)
-          persist(check, symbols)
-        }(workerEC)
+    // if the filecheck is outdated, extract symbols and then persist.
+    def indexBase(base: FileObject): Future[Option[Int]] =
+      db.outOfDate(base).flatMap { outOfDate =>
+        if (!outOfDate) Future.successful(None)
+        else base match {
+          case classfile if classfile.getName.getExtension == "class" =>
+            // too noisy to log
+            val check = FileCheck(classfile)
+            val symbols = Future {
+              blocking {
+                extractSymbols(classfile, classfile)
+              }
+            }
+            symbols.flatMap(persist(check, _))
 
-        case jar => Future[Unit] {
-          try {
+          case jar =>
             log.debug(s"indexing $jar")
             val check = FileCheck(jar)
-            val symbols = scan(vfs.vjar(jar)) flatMap (extractSymbols(jar, _))
-            persist(check, symbols)
-          } catch {
-            case e: Exception =>
-              log.error(s"Failed to index $jar", e)
-          }
-        }(workerEC)
+            val symbols = Future {
+              blocking {
+                scan(vfs.vjar(jar)) flatMap (extractSymbols(jar, _))
+              }
+            }
+            symbols.flatMap(persist(check, _))
+        }
+      }
+
+    // index all the given bases and return number of rows written
+    def indexBases(bases: Set[FileObject]): Future[Int] = {
+      log.info("indexBases")
+      Future.sequence(bases.map(indexBase)).map(_.flatten.sum)
+    }
+
+    def commitIndex(): Future[Unit] = Future {
+      blocking {
+        log.debug("committing index to disk...")
+        index.commit()
+        log.debug("...done committing index")
       }
     }
 
-    val indexed = indexing.flatMap { w => Future.sequence(w) }.map(_.size)
-    val indexedAndCommitted = indexed map { count =>
-      // delayed commits speedup initial indexing time
-      log.debug("committing index to disk...")
-      index.commit()
-      log.debug("...done committing index")
-      count
-    }
-
+    // chain together all the future tasks
     for {
-      r <- removed
-      i <- indexedAndCommitted
-    } yield (r, i)
+      checks <- db.knownFiles()
+      stale = findStaleFileChecks(checks)
+      deletes <- deleteReferences(stale)
+      bases = findBases()
+      added <- indexBases(bases)
+      _ <- commitIndex()
+    } yield (deletes, added)
   }
 
   def refreshResolver(): Unit = resolver.update()
 
-  def persist(check: FileCheck, symbols: List[FqnSymbol]): Unit = try {
-    index.persist(check, symbols)
-    db.persist(check, symbols)
-  } catch {
-    case e: SQLException =>
-      // likely a timing issue or corner-case dupe FQNs
-      log.warn(s"failed to insert ${symbols.size} symbols for ${check.file} ${e.getClass}: ${e.getMessage}")
+  def persist(check: FileCheck, symbols: List[FqnSymbol]): Future[Option[Int]] = {
+    val iwork = Future { blocking { index.persist(check, symbols) } }
+    val dwork = db.persist(check, symbols)
+    iwork.flatMap { _ => dwork }
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
@@ -181,17 +185,17 @@ class SearchService(
   /** free-form search for classes */
   def searchClasses(query: String, max: Int): List[FqnSymbol] = {
     val fqns = index.searchClasses(query, max)
-    db.find(fqns) take max
+    Await.result(db.find(fqns), QUERY_TIMEOUT) take max
   }
 
   /** free-form search for classes and methods */
   def searchClassesMethods(terms: List[String], max: Int): List[FqnSymbol] = {
     val fqns = index.searchClassesMethods(terms, max)
-    db.find(fqns) take max
+    Await.result(db.find(fqns), QUERY_TIMEOUT) take max
   }
 
   /** only for exact fqns */
-  def findUnique(fqn: String): Option[FqnSymbol] = db.find(fqn)
+  def findUnique(fqn: String): Option[FqnSymbol] = Await.result(db.find(fqn), QUERY_TIMEOUT)
 
   /* DELETE then INSERT in H2 is ridiculously slow, so we put all modifications
    * into a blocking queue and dedicate a thread to block on draining the queue.
@@ -204,9 +208,22 @@ class SearchService(
 
   val backlogActor = actorSystem.actorOf(Props(new IndexingQueueActor(this)), "ClassfileIndexer")
 
-  def delete(files: List[FileObject]): Unit = {
-    index.remove(files)
-    db.removeFiles(files)
+  // deletion in both Lucene and H2 is really slow, batching helps
+  def deleteInBatches(
+    files: List[FileObject],
+    batchSize: Int = 1000
+  ): Future[Int] = {
+    val removing = files.grouped(batchSize).map(delete)
+    Future.sequence(removing).map(_.sum)
+  }
+
+  // returns number of rows removed
+  def delete(files: List[FileObject]): Future[Int] = {
+    // this doesn't speed up Lucene deletes, but it means that we
+    // don't wait for Lucene before starting the H2 deletions.
+    val iwork = Future { blocking { index.remove(files) } }
+    val dwork = db.removeFiles(files)
+    iwork.flatMap(_ => dwork)
   }
 
   def classfileAdded(f: FileObject): Unit = classfileChanged(f)
@@ -220,7 +237,7 @@ class SearchService(
     backlogActor ! FileUpdate(f, symbols)
   }(workerEC)
 
-  def shutdown(): Unit = {
+  def shutdown(): Future[Unit] = {
     db.shutdown()
   }
 }
@@ -266,16 +283,27 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       // blocks the actor thread intentionally -- this is real work
       // and the underlying I/O implementation is blocking. Give me an
       // async SQL database and we can talk...
+      //
+      // UPDATE 2015-10-24: Slick no longer blocking. This can most likely be fixed now
+      // (however the author of the above comment imagined)
 
-      // batch the deletion (big bottleneck)
-      searchService.delete(batch.keys.toList)
-
-      // opportunity to do more batching here
-      batch.collect {
-        case (file, syms) if syms.nonEmpty =>
-          searchService.persist(FileCheck(file), syms)
+      {
+        import searchService.workerEC // TODO: check the right EC is used here
+        // batch the deletion (big bottleneck)
+        Await.ready(
+          for {
+            _ <- searchService.delete(batch.keys.toList)
+            _ <- Future.sequence(
+              // opportunity to do more batching here
+              batch.collect {
+                case (file, syms) if syms.nonEmpty =>
+                  searchService.persist(FileCheck(file), syms)
+              }
+            )
+          } yield (),
+          Duration.Inf
+        )
       }
-
   }
 
 }

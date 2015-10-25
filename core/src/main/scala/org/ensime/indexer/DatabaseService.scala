@@ -10,101 +10,102 @@ import org.ensime.indexer.DatabaseService._
 
 import org.ensime.api._
 
-import scala.slick.driver.H2Driver.simple._
+import scala.concurrent._
+import scala.concurrent.duration._
+
+import slick.driver.H2Driver.api._
 
 class DatabaseService(dir: File) extends SLF4JLogging {
-
   lazy val (datasource, db) = {
     // MVCC plus connection pooling speeds up the tests ~10%
     val url = "jdbc:h2:file:" + dir.getAbsolutePath + "/db;MVCC=TRUE"
     val driver = "org.h2.Driver"
-    //Database.forURL(url, driver = driver)
 
     // http://jolbox.com/benchmarks.html
     val ds = new BoneCPDataSource()
     ds.setDriverClass(driver)
     ds.setJdbcUrl(url)
     ds.setStatementsCacheSize(50)
-    (ds, Database.forDataSource(ds))
+    ds.setUsername("")
+    ds.setPassword("")
+    val threads = ds.getMaxConnectionsPerPartition()
+    val executor = AsyncExecutor("Slick", numThreads = threads, queueSize = -1)
+    (ds, Database.forDataSource(ds, executor = executor))
   }
 
-  def shutdown(): Unit = {
+  def shutdown()(implicit ec: ExecutionContext): Future[Unit] = for {
     // call directly - using slick withSession barfs as it runs a how many rows were updated
     // after shutdown is executed.
-    db.createSession().createStatement() execute "shutdown;"
-    datasource.close()
-  }
+    _ <- db.run(sqlu"shutdown")
+    _ <- db.shutdown
+    _ = datasource.close()
+  } yield ()
 
   if (!dir.exists) {
-    log.info("creating the search database")
+    log.info("creating the search database...")
     dir.mkdirs()
-    db withSession { implicit s =>
-      (fileChecks.ddl ++ fqnSymbols.ddl).create
-    }
+    Await.result(
+      db.run(
+        (fileChecks.schema ++ fqnSymbols.schema).create
+      ),
+      Duration.Inf
+    )
+    log.info("... created the search database")
   }
 
   // TODO hierarchy
   // TODO reverse lookup table
 
   // file with last modified time
-  def knownFiles(): List[FileCheck] = db.withSession { implicit s =>
-    (for (row <- fileChecks) yield row).list
+  def knownFiles(): Future[Seq[FileCheck]] = db.run(fileChecks.result)
+
+  def removeFiles(files: List[FileObject])(implicit ec: ExecutionContext): Future[Int] =
+    db.run {
+      val restrict = files.map(_.getName.getURI)
+
+      (
+        fqnSymbols.filter(_.file inSet restrict).delete
+        andThen
+        fileChecks.filter(_.filename inSet restrict).delete
+      )
+    }
+
+  private val timestampsQuery = Compiled {
+    filename: Rep[String] => fileChecks.filter(_.filename === filename).take(1)
   }
 
-  def removeFiles(files: List[FileObject]): Int = db.withSession { implicit s =>
-    val restrict = files.map(_.getName.getURI)
-    val q1 = for {
-      row <- fqnSymbols
-      if row.file inSet restrict
-    } yield row
-    q1.delete
-
-    val q2 = for {
-      row <- fileChecks
-      if row.filename inSet restrict
-    } yield row
-    q2.delete
-  }
-
-  def outOfDate(f: FileObject): Boolean = db withSession { implicit s =>
+  def outOfDate(f: FileObject)(implicit vfs: EnsimeVFS, ec: ExecutionContext): Future[Boolean] = {
     val uri = f.getName.getURI
     val modified = f.getContent.getLastModifiedTime
 
-    val query = for {
-      filename <- Parameters[String]
-      u <- fileChecks if u.filename === filename
-    } yield u.timestamp
-
-    query(uri).list.map(_.getTime).headOption match {
-      case Some(timestamp) if timestamp < modified => true
-      case Some(_) => false
-      case _ => true
-    }
+    db.run(
+      for {
+        check <- timestampsQuery(uri).result.headOption
+      } yield check.map(_.changed).getOrElse(true)
+    )
   }
 
-  def persist(check: FileCheck, symbols: Seq[FqnSymbol]): Unit =
-    db.withSession { implicit s =>
-      fileChecks.insert(check)
-      fqnSymbols.insertAll(symbols: _*)
-    }
+  def persist(check: FileCheck, symbols: Seq[FqnSymbol])(implicit ec: ExecutionContext): Future[Option[Int]] =
+    db.run(
+      (fileChecksCompiled += check) andThen (fqnSymbolsCompiled ++= symbols)
+    )
 
-  private val findCompiled = Compiled((fqn: Column[String]) =>
-    fqnSymbols.filter(_.fqn === fqn).take(1))
-  def find(fqn: String): Option[FqnSymbol] = db.withSession { implicit s =>
-    findCompiled(fqn).firstOption
+  private val findCompiled = Compiled {
+    fqn: Rep[String] => fqnSymbols.filter(_.fqn === fqn).take(1)
   }
+
+  def find(fqn: String): Future[Option[FqnSymbol]] = db.run(
+    findCompiled(fqn).result.headOption
+  )
 
   import org.ensime.indexer.IndexService._
-  def find(fqns: List[FqnIndex]): List[FqnSymbol] = {
-    db.withSession { implicit s =>
-      val restrict = fqns.map(_.fqn)
-      val query = for {
-        row <- fqnSymbols
-        if row.fqn inSet restrict
-      } yield row
-
-      val results = query.list.groupBy(_.fqn)
-      restrict.flatMap(results.get(_).map(_.head))
+  def find(fqns: List[FqnIndex])(implicit ec: ExecutionContext): Future[List[FqnSymbol]] = {
+    val restrict = fqns.map(_.fqn)
+    db.run(
+      fqnSymbols.filter(_.fqn inSet restrict).result
+    ).map { results =>
+      val grouped = results.groupBy(_.fqn)
+      restrict.flatMap(grouped.get(_).map(_.head))
     }
   }
 }
@@ -145,6 +146,7 @@ object DatabaseService {
     def idx = index("idx_filename", filename, unique = true)
   }
   private val fileChecks = TableQuery[FileChecks]
+  private val fileChecksCompiled = Compiled(TableQuery[FileChecks])
 
   case class FqnSymbol(
       id: Option[Int],
@@ -183,4 +185,5 @@ object DatabaseService {
     def uniq = index("idx_uniq", (fqn, descriptor, internal), unique = true)
   }
   private val fqnSymbols = TableQuery[FqnSymbols]
+  private val fqnSymbolsCompiled = Compiled { TableQuery[FqnSymbols] }
 }
