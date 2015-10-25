@@ -273,18 +273,23 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       // UPDATE 2015-10-24: Slick no longer blocking. This can most likely be fixed now
       // (however the author of the above comment imagined)
 
-      // batch the deletion (big bottleneck)
-      Await.ready(
-        searchService.delete(batch.keys.toList),
-        Duration.Inf
-      )
-
-      // opportunity to do more batching here
-      batch.collect {
-        case (file, syms) if syms.nonEmpty =>
-          searchService.persist(FileCheck(file), syms)
+      {
+        import searchService.workerEC // TODO: check the right EC is used here
+        // batch the deletion (big bottleneck)
+        Await.ready(
+          for {
+            _ <- searchService.delete(batch.keys.toList)
+            _ <- Future.sequence(
+              // opportunity to do more batching here
+              batch.collect {
+                case (file, syms) if syms.nonEmpty =>
+                  searchService.persist(FileCheck(file), syms)
+              }
+            )
+          } yield (),
+          Duration.Inf
+        )
       }
-
   }
 
 }
