@@ -169,7 +169,6 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
       )
 
       val formatted = readSrcFile(file, encoding)
-      When(s"formatted => \n$formatted")
 
       val expectedContents = contents(
         "import java.lang.Integer.{valueOf => vo}",
@@ -210,7 +209,6 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
       )
 
       val formatted = readSrcFile(file, encoding)
-      When(s"formatted => \n$formatted")
 
       val expectedContents = contents(
         "package org.ensime.testing",
