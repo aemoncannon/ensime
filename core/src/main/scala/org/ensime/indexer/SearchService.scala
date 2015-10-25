@@ -185,13 +185,13 @@ class SearchService(
   /** free-form search for classes */
   def searchClasses(query: String, max: Int): List[FqnSymbol] = {
     val fqns = index.searchClasses(query, max)
-    db.find(fqns) take max
+    Await.result(db.find(fqns), QUERY_TIMEOUT) take max
   }
 
   /** free-form search for classes and methods */
   def searchClassesMethods(terms: List[String], max: Int): List[FqnSymbol] = {
     val fqns = index.searchClassesMethods(terms, max)
-    db.find(fqns) take max
+    Await.result(db.find(fqns), QUERY_TIMEOUT) take max
   }
 
   /** only for exact fqns */
