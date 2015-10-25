@@ -67,39 +67,38 @@ class SearchService(
 
     val jarUris = config.allJars.map(vfs.vfile).map(_.getName.getURI)
 
-    // remove stale entries: must be before index or INSERT/DELETE races
-    val stale = db.knownFiles().map { knownFiles =>
-      val stale = for {
-        known <- knownFiles
-        f = known.file
-        name = f.getName.getURI
-        if !f.exists || known.changed ||
-          (name.endsWith(".jar") && !jarUris(name))
-      } yield f
-
-      log.info(s"removing ${stale.size} stale files from the index")
-      if (log.isTraceEnabled)
-        log.trace(s"STALE = $stale")
-
-      stale
-    }
-
-    val bases = {
-      config.modules.flatMap {
-        case (name, m) =>
-          m.targetDirs.flatMap { d => scan(vfs.vfile(d)) } ::: m.testTargetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
-            m.compileJars.map(vfs.vfile) ::: m.testJars.map(vfs.vfile)
-      }
-    }.toSet ++ config.javaLibs.map(vfs.vfile)
-
-    // individual DELETEs in H2 are really slow
     for {
-      removed <- stale
+      // remove stale entries: must be before index or INSERT/DELETE races
+      stale <- db.knownFiles().map { knownFiles =>
+        for {
+          known <- knownFiles
+          f = known.file
+          name = f.getName.getURI
+          if !f.exists || known.changed ||
+            (name.endsWith(".jar") && !jarUris(name))
+        } yield f
+      }
+
+      _ = {
+        log.info(s"removing ${stale.size} stale files from the index")
+        if (log.isTraceEnabled)
+          log.trace(s"STALE = $stale")
+      }
+
       _ <- Future.sequence(
-        removed.grouped(1000).map(delete)
+        // individual DELETEs in H2 are really slow
+        stale.grouped(1000).map(delete)
       )
 
       // start indexing after all deletes have completed (not pretty)
+
+      bases = {
+        config.modules.flatMap {
+          case (name, m) =>
+            m.targetDirs.flatMap { d => scan(vfs.vfile(d)) } ::: m.testTargetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
+              m.compileJars.map(vfs.vfile) ::: m.testJars.map(vfs.vfile)
+        }
+      }.toSet ++ config.javaLibs.map(vfs.vfile)
 
       basesWithOutOfDateInfo <- Future.sequence(bases.map(b => db.outOfDate(b).map((b, _))))
       persisted <- Future.sequence(
@@ -134,7 +133,7 @@ class SearchService(
         log.debug("...done committing index")
       }
 
-    } yield (removed.size, persisted.size)
+    } yield (stale.size, persisted.size)
   }
 
   def refreshResolver(): Unit = resolver.update()
