@@ -7,9 +7,8 @@ import org.ensime.api._
 import org.ensime.core.debug.DebugManager
 import org.ensime.indexer._
 
-import scala.concurrent._
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util._
 
 import org.ensime.util.file._
 
@@ -21,8 +20,6 @@ class Project(
     broadcaster: ActorRef,
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with Stash {
-  private val DB_SHUTDOWN_TIMEOUT = 30 seconds
-
   import context.{ dispatcher, system }
 
   /* The main components of the ENSIME server */
@@ -40,12 +37,15 @@ class Project(
   private implicit val vfs: EnsimeVFS = EnsimeVFS()
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
-  searchService.refresh().onSuccess {
-    case (deletes, inserts) =>
+  searchService.refresh().onComplete {
+    case Success((deletes, inserts)) =>
       // legacy clients expect to see IndexerReady on connection.
       // we could also just blindly send this on each connection.
       broadcaster ! Broadcaster.Persist(IndexerReadyEvent)
-      log.debug(s"indexed $inserts and removed $deletes")
+      log.debug(s"created $inserts and removed $deletes searchable rows")
+    case Failure(problem) =>
+      log.warning(problem.toString)
+      throw problem
   }(context.dispatcher)
 
   private val sourceWatcher = new SourceWatcher(config, resolver :: Nil)
@@ -76,7 +76,7 @@ class Project(
     // make sure the "reliable" dependencies are cleaned up
     Try(classfileWatcher.shutdown())
     Try(sourceWatcher.shutdown())
-    Try(Await.ready(searchService.shutdown(), DB_SHUTDOWN_TIMEOUT))
+    searchService.shutdown() // async
     Try(vfs.close())
   }
 

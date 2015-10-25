@@ -49,13 +49,7 @@ class SearchService(
    * is unnecessary (e.g. we already know that a jar or classfile has
    * been indexed).
    *
-   * The decision of what will be indexed is performed syncronously,
-   * as is the removal of stale data, but the itself itself is
-   * performed asyncronously.
-   *
-   * @return the number of files estimated to be (removed, indexed)
-   *         from the index and database. This is only an estimate
-   *         because we may not have TODO
+   * @return the number of rows (removed, indexed) from the database.
    */
   def refresh(): Future[(Int, Int)] = {
     def scan(f: FileObject) = f.findFiles(EnsimeVFS.ClassfileSelector) match {
@@ -63,89 +57,96 @@ class SearchService(
       case res => res.toList
     }
 
-    // TODO visibility test/main and which module is viewed (a Lucene concern, not H2)
+    // it is much faster during startup to obtain the full list of
+    // known files from the DB then and check against the disk, than
+    // check each file against DatabaseService.outOfDate
+    def findStaleFileChecks(checks: Seq[FileCheck]): List[FileCheck] = {
+      log.info("findStaleFileChecks")
+      val jarUris = config.allJars.map(vfs.vfile).map(_.getName.getURI)
+      for {
+        check <- checks
+        name = check.file.getName.getURI
+        if !check.file.exists || check.changed ||
+          (name.endsWith(".jar") && !jarUris(name))
+      } yield check
+    }.toList
 
-    val jarUris = config.allJars.map(vfs.vfile).map(_.getName.getURI)
+    // delete the stale data before adding anything new
+    // returns number of rows deleted
+    def deleteReferences(checks: List[FileCheck]): Future[Int] = {
+      log.info(s"removing ${checks.size} stale files from the index")
+      deleteInBatches(checks.map(_.file))
+    }
 
-    for {
-      // remove stale entries: must be before index or INSERT/DELETE races
-      stale <- db.knownFiles().map { knownFiles =>
-        for {
-          known <- knownFiles
-          f = known.file
-          name = f.getName.getURI
-          if !f.exists || known.changed ||
-            (name.endsWith(".jar") && !jarUris(name))
-        } yield f
+    // a snapshot of everything that we want to index
+    def findBases(): Set[FileObject] = {
+      log.info("findBases")
+      config.modules.flatMap {
+        case (name, m) =>
+          m.targetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
+            m.testTargetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
+            m.compileJars.map(vfs.vfile) ::: m.testJars.map(vfs.vfile)
       }
+    }.toSet ++ config.javaLibs.map(vfs.vfile)
 
-      _ = {
-        log.info(s"removing ${stale.size} stale files from the index")
-        if (log.isTraceEnabled)
-          log.trace(s"STALE = $stale")
-      }
-
-      _ <- Future.sequence(
-        // individual DELETEs in H2 are really slow
-        stale.grouped(1000).map(delete)
-      )
-
-      // start indexing after all deletes have completed (not pretty)
-
-      bases = {
-        config.modules.flatMap {
-          case (name, m) =>
-            m.targetDirs.flatMap { d => scan(vfs.vfile(d)) } ::: m.testTargetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
-              m.compileJars.map(vfs.vfile) ::: m.testJars.map(vfs.vfile)
-        }
-      }.toSet ++ config.javaLibs.map(vfs.vfile)
-
-      basesWithOutOfDateInfo <- Future.sequence(bases.map(b => db.outOfDate(b).map((b, _))))
-      persisted <- Future.sequence(
-        basesWithOutOfDateInfo.collect { // is there a simpler way to do this, rather than collect after sequence?
-          case (base, outOfDate) if outOfDate => base
-        }.map {
-          case classfile if classfile.getName.getExtension == "class" => Future[Future[Unit]] {
+    // if the filecheck is outdated, extract symbols and then persist.
+    def indexBase(base: FileObject): Future[Option[Int]] =
+      db.outOfDate(base).flatMap { outOfDate =>
+        if (!outOfDate) Future.successful(None)
+        else base match {
+          case classfile if classfile.getName.getExtension == "class" =>
+            // too noisy to log
             val check = FileCheck(classfile)
-            val symbols = extractSymbols(classfile, classfile)
-            persist(check, symbols)
-          }.flatMap(identity)
-
-          case jar => Future[Future[Unit]] {
-            try {
-              log.debug(s"indexing $jar")
-              val check = FileCheck(jar)
-              val symbols = scan(vfs.vjar(jar)) flatMap (extractSymbols(jar, _))
-              persist(check, symbols)
-            } catch {
-              case e: Exception =>
-                log.error(s"Failed to index $jar", e)
-                Future.successful(())
+            val symbols = Future {
+              blocking {
+                extractSymbols(classfile, classfile)
+              }
             }
-          }.flatMap(identity)
-        }
-      )
+            symbols.flatMap(persist(check, _))
 
-      _ = {
-        // delayed commits speedup initial indexing time
+          case jar =>
+            log.debug(s"indexing $jar")
+            val check = FileCheck(jar)
+            val symbols = Future {
+              blocking {
+                scan(vfs.vjar(jar)) flatMap (extractSymbols(jar, _))
+              }
+            }
+            symbols.flatMap(persist(check, _))
+        }
+      }
+
+    // index all the given bases and return number of rows written
+    def indexBases(bases: Set[FileObject]): Future[Int] = {
+      log.info("indexBases")
+      Future.sequence(bases.map(indexBase)).map(_.flatten.sum)
+    }
+
+    def commitIndex(): Future[Unit] = Future {
+      blocking {
         log.debug("committing index to disk...")
         index.commit()
         log.debug("...done committing index")
       }
+    }
 
-    } yield (stale.size, persisted.size)
+    // chain together all the future tasks
+    for {
+      checks <- db.knownFiles()
+      stale = findStaleFileChecks(checks)
+      deletes <- deleteReferences(stale)
+      bases = findBases()
+      added <- indexBases(bases)
+      _ <- commitIndex()
+    } yield (deletes, added)
   }
 
   def refreshResolver(): Unit = resolver.update()
 
-  def persist(check: FileCheck, symbols: List[FqnSymbol]): Future[Unit] = try {
-    index.persist(check, symbols)
-    db.persist(check, symbols).map(_ => ())
-  } catch {
-    case e: SQLException =>
-      // likely a timing issue or corner-case dupe FQNs
-      log.warn(s"failed to insert ${symbols.size} symbols for ${check.file} ${e.getClass}: ${e.getMessage}")
-      Future.successful(())
+  def persist(check: FileCheck, symbols: List[FqnSymbol]): Future[Option[Int]] = {
+    val iwork = Future { blocking { index.persist(check, symbols) } }
+    val dwork = db.persist(check, symbols)
+    iwork.flatMap { _ => dwork }
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
@@ -207,9 +208,22 @@ class SearchService(
 
   val backlogActor = actorSystem.actorOf(Props(new IndexingQueueActor(this)), "ClassfileIndexer")
 
+  // deletion in both Lucene and H2 is really slow, batching helps
+  def deleteInBatches(
+    files: List[FileObject],
+    batchSize: Int = 1000
+  ): Future[Int] = {
+    val removing = files.grouped(batchSize).map(delete)
+    Future.sequence(removing).map(_.sum)
+  }
+
+  // returns number of rows removed
   def delete(files: List[FileObject]): Future[Int] = {
-    index.remove(files)
-    db.removeFiles(files)
+    // this doesn't speed up Lucene deletes, but it means that we
+    // don't wait for Lucene before starting the H2 deletions.
+    val iwork = Future { blocking { index.remove(files) } }
+    val dwork = db.removeFiles(files)
+    iwork.flatMap(_ => dwork)
   }
 
   def classfileAdded(f: FileObject): Unit = classfileChanged(f)

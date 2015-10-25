@@ -13,7 +13,7 @@ trait IsolatedSearchServiceFixture extends IsolatedSourceResolverFixture {
     try {
       testCode(config, searchService)
     } finally {
-      Await.ready(searchService.shutdown(), 10.seconds)
+      searchService.shutdown()
       actorSystem.shutdown()
       actorSystem.awaitTermination(10.seconds)
     }
