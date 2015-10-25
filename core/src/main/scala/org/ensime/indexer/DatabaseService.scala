@@ -16,7 +16,7 @@ import scala.concurrent.duration._
 import slick.driver.H2Driver.api._
 
 class DatabaseService(dir: File) extends SLF4JLogging {
-  val DB_CREATE_TIMEOUT = 30 seconds
+  private val DB_CREATE_TIMEOUT = 30 seconds
 
   lazy val (datasource, db) = {
     // MVCC plus connection pooling speeds up the tests ~10%

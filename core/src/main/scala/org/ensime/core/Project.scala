@@ -19,7 +19,7 @@ class Project(
     broadcaster: ActorRef,
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with Stash {
-  val DB_SHUTDOWN_TIMEOUT = 30 seconds
+  private val DB_SHUTDOWN_TIMEOUT = 30 seconds
 
   import context.{ dispatcher, system }
 
