@@ -213,43 +213,14 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
   }
 
   protected def doAddImport(procId: Int, tpe: RefactorType, qualName: String, file: File) = {
-
-    val newline = "\n"
-    val statement = "import " + qualName + "\n"
-
-    implicit val cs = Charset.forName(settings.encoding.value)
-    val lines = RichFile(file).readLines()(cs).mkString(newline)
-
-    using(new PrintWriter(file, settings.encoding.value)) { pwriter: PrintWriter =>
-      using(new BufferedWriter(pwriter)) { writer =>
-
-        if (lines.linesWithSeparators.exists(line => line.contains("package"))) {
-          val toWrite = lines.linesWithSeparators.map { line =>
-            if (line.contains("package")) {
-              line + newline + statement
-            } else {
-              line
-            }
-          }.toSeq
-
-          writer.write(toWrite.mkString)
-          writer.flush()
-
-        } else {
-          writer.write(statement)
-          writer.write(lines)
-          writer.flush()
-        }
-      }
+    val refactoring = new AddImportStatement {
+      val global = RefactoringImpl.this
     }
 
-    new RefactoringEnvironment(file.getPath, 0, 0) {
-      val refactoring = new OrganizeImports {
-        val global = RefactoringImpl.this
-      }
-      val result = performRefactoring(procId, tpe, new refactoring.RefactoringParameters())
-    }
-  }.result
+    val af = AbstractFile.getFile(file.getPath)
+    val modifications = refactoring.addImport(af, qualName)
+    Right(new RefactorEffect(procId, tpe, modifications.map(FileEditHelper.fromChange)))
+  }
 
   protected def reloadAndType(f: File) = reloadAndTypeFiles(List(this.createSourceFile(f.getPath)))
 
