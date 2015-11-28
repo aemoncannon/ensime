@@ -28,6 +28,8 @@ trait EnsimeConfigFixture {
   def scalaMain(implicit config: EnsimeConfig): File = main("scala")
   def javaMain(implicit config: EnsimeConfig): File = main("java")
 
+  def mainTarget(implicit config: EnsimeConfig): File =
+    config.subprojects.head.targets.head
 }
 
 object EnsimeConfigFixture {
@@ -48,6 +50,10 @@ object EnsimeConfigFixture {
   )
   lazy val SimpleTestProject: EnsimeConfig = EnsimeTestProject.copy(
     subprojects = EnsimeTestProject.subprojects.filter(_.name == "testingSimple")
+  )
+  lazy val TimingTestProject: EnsimeConfig = EnsimeTestProject.copy(
+    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testingTiming"),
+    javaLibs = Nil
   )
   lazy val DebugTestProject: EnsimeConfig = EnsimeTestProject.copy(
     subprojects = EnsimeTestProject.subprojects.filter(_.name == "testingDebug")

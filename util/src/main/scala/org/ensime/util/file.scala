@@ -55,8 +55,8 @@ package object file {
     def /(sub: String): File = new File(file, sub)
 
     def isScala: Boolean = file.getName.toLowerCase.endsWith(".scala")
-
     def isJava: Boolean = file.getName.toLowerCase.endsWith(".java")
+    def isClassfile: Boolean = file.getName.toLowerCase.endsWith(".class")
 
     def parts: List[String] =
       file.getPath.split(

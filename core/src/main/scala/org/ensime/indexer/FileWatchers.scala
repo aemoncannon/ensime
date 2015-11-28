@@ -3,6 +3,7 @@ package org.ensime.indexer
 import java.io.File
 
 import akka.event.slf4j.SLF4JLogging
+import java.util.concurrent._
 import org.apache.commons.vfs2._
 import org.apache.commons.vfs2.impl._
 
@@ -10,6 +11,8 @@ import org.ensime.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.Try
+import org.ensime.util.file._
 
 trait ClassfileListener {
   def classfileAdded(f: FileObject): Unit
@@ -39,6 +42,8 @@ class ClassfileWatcher(
     vfs: EnsimeVFS
 ) extends SLF4JLogging {
 
+  private val scheduler = Executors.newSingleThreadScheduledExecutor()
+
   private val fm = new DefaultFileMonitor(new FileListener {
     def watched(event: FileChangeEvent) = {
       val name = event.getFile.getName
@@ -46,23 +51,35 @@ class ClassfileWatcher(
     }
 
     def fileChanged(event: FileChangeEvent): Unit =
-      if (watched(event))
+      if (watched(event)) {
         listeners foreach { list => Future { list.classfileChanged(event.getFile) } }
+      }
     def fileCreated(event: FileChangeEvent): Unit =
-      if (watched(event))
+      if (watched(event)) {
         listeners foreach { list => Future { list.classfileAdded(event.getFile) } }
+      }
     def fileDeleted(event: FileChangeEvent): Unit =
-      if (watched(event))
+      if (watched(event)) {
         listeners foreach { list => Future { list.classfileRemoved(event.getFile) } }
+      }
   })
   fm.setRecursive(true)
-  fm.start()
 
   // WORKAROUND https://issues.apache.org/jira/browse/VFS-536
-  // We don't have a dedicated test for this because it is an upstream bug
   private val workaround = new DefaultFileMonitor(
     new FileListener {
-      private def targets: Set[FileName] = for {
+      // hacky non-akka debouncer
+      private var running: ScheduledFuture[Unit] = null
+      def debouncedReset(): Unit = synchronized {
+        log.debug("cancelling scheduled reset")
+        Option(running).foreach(_.cancel(true))
+        val resetter = new Callable[Unit] {
+          def call(): Unit = reset(forceScan = true)
+        }
+        running = scheduler.schedule(resetter, 1, TimeUnit.SECONDS)
+      }
+
+      private val targets: Set[FileName] = for {
         dir <- config.targetClasspath
         ref = vfs.vfile(dir)
       } yield ref.getName()
@@ -77,13 +94,13 @@ class ClassfileWatcher(
         if (watched(event)) {
           // a fast delete followed by a create looks like a change
           log.debug(s"${event.getFile} was possibly recreated")
-          reset()
+          debouncedReset()
         }
       }
       def fileCreated(event: FileChangeEvent): Unit = {
         if (watched(event)) {
           log.debug(s"${event.getFile} was created")
-          reset()
+          debouncedReset()
         }
       }
       def fileDeleted(event: FileChangeEvent): Unit = {
@@ -96,7 +113,6 @@ class ClassfileWatcher(
   )
 
   workaround.setRecursive(false)
-  workaround.start()
 
   private def ancestors(f: FileObject): List[FileObject] = {
     val parent = f.getParent
@@ -104,35 +120,45 @@ class ClassfileWatcher(
     else parent :: ancestors(parent)
   }
 
-  // If directories are recreated, triggering the VFS-536 bug, we end up
-  // calling reset() a lot of times. We should probably debounce it, but
-  // it seems to happen so quickly that no damage is done.
-  private def reset(): Unit = {
+  // If directories are recreated, triggering the VFS-536 bug
+  private def reset(forceScan: Boolean): Unit = {
     // When this triggers we tend to see it multiple times because
     // we're watching the various depths within the project.
     log.info("Setting up new file watchers")
 
     val root = vfs.vfile(config.root)
+    workaround.removeFile(root)
+    workaround.addFile(root)
 
     // must remove then add to avoid leaks
     if (!config.disableClassMonitoring) for {
       d <- config.targetClasspath
       dir = vfs.vfile(d)
       _ = fm.removeFile(dir)
+      _ = Try(d.mkdirs()) // race with sbt
       _ = fm.addFile(dir)
       ancestor <- ancestors(dir)
       if ancestor.getName isAncestor root.getName
       _ = workaround.removeFile(ancestor)
       _ = workaround.addFile(ancestor)
+      if forceScan
+      classfile <- d.tree
+      if classfile.isClassfile
     } {
-      // side effects in the for comprehension
+      // VFS doesn't send "file created" messages when it first starts
+      // up, but since we're reacting to a directory deletion, we
+      // should send signals for everything we see.
+      listeners foreach { list =>
+        Future {
+          list.classfileAdded(vfs.vfile(classfile))
+        }
+      }
     }
-
-    workaround.removeFile(root)
-    workaround.addFile(root)
   }
 
-  reset()
+  fm.start()
+  workaround.start()
+  reset(forceScan = false) // SearchService does an aggressive scan
 
   def shutdown(): Unit = {
     fm.stop()
