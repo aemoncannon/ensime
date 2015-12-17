@@ -1,6 +1,8 @@
-Protocol Version: 0.8.18 (Must match version at ConnectionInfo.protocolVersion)
+Protocol Version: 0.8.19 (Must match version at ConnectionInfo.protocolVersion)
 
 Protocol Change Log:
+  0.8.19
+    Added swank:diff-refactor
   0.8.18
     Add backward-compatible support for SourceFileInfo to various RPCs
   0.8.17

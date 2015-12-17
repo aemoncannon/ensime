@@ -312,7 +312,8 @@ object EnsimeBuild extends Build with JdkResolver {
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "org.scala-refactoring" %% "org.scala-refactoring.library" % "0.8.0",
       "commons-lang" % "commons-lang" % "2.6",
-      "commons-io" % "commons-io" % "2.4" % "test,it"
+      "commons-io" % "commons-io" % "2.4" % "test,it",
+      "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
     ) ++ logback ++ testLibs(scalaVersion.value, "it,test")
   )
 

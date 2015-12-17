@@ -442,6 +442,7 @@ object SwankProtocolResponse {
   }
   // must be after FileEditFormat
   implicit val RefactorEffectFormat = SexpFormat[RefactorEffect]
+  implicit val RefactorDiffEffectFormat = SexpFormat[RefactorDiffEffect]
 
   // must be after SourcePosition
   implicit val TypeSearchResultFormat = SexpFormat[TypeSearchResult]
@@ -548,6 +549,7 @@ object SwankProtocolResponse {
       case value: SymbolDesignations => value.toSexp
       case value: RefactorFailure => value.toSexp
       case value: RefactorEffect => value.toSexp
+      case value: RefactorDiffEffect => value.toSexp
       case value: RefactorResult => value.toSexp
       case value: ImplicitInfos => value.toSexp
 
@@ -632,6 +634,7 @@ object SwankProtocolRequest {
   implicit val PrepareRefactorReqHint = TypeHint[PrepareRefactorReq](SexpSymbol("swank:prepare-refactor"))
   implicit val ExecRefactorReqHint = TypeHint[ExecRefactorReq](SexpSymbol("swank:exec-refactor"))
   implicit val CancelRefactorReqHint = TypeHint[CancelRefactorReq](SexpSymbol("swank:cancel-refactor"))
+  implicit val RefactorReqHint = TypeHint[RefactorReq](SexpSymbol("swank:diff-refactor"))
   implicit val SymbolDesignationsReqHint = TypeHint[SymbolDesignationsReq](SexpSymbol("swank:symbol-designations"))
   implicit val ImplicitInfoReqHint = TypeHint[ImplicitInfoReq](SexpSymbol("swank:implicit-info"))
   implicit val ExpandSelectionReqHint = TypeHint[ExpandSelectionReq](SexpSymbol("swank:expand-selection"))
@@ -782,6 +785,7 @@ object SwankProtocolRequest {
   implicit def PrepareRefactorReqFormat = SexpFormat[PrepareRefactorReq]
   implicit def ExecRefactorReqFormat = SexpFormat[ExecRefactorReq]
   implicit def CancelRefactorReqFormat = SexpFormat[CancelRefactorReq]
+  implicit def RefactorReqFormat = SexpFormat[RefactorReq]
   implicit def SymbolDesignationsReqFormat = SexpFormat[SymbolDesignationsReq]
   implicit def ImplicitInfoReqFormat = SexpFormat[ImplicitInfoReq]
   implicit def ExpandSelectionReqFormat = SexpFormat[ExpandSelectionReq]
@@ -834,6 +838,7 @@ object SwankProtocolRequest {
           case s if s == PrepareRefactorReqHint.hint => value.convertTo[PrepareRefactorReq]
           case s if s == ExecRefactorReqHint.hint => value.convertTo[ExecRefactorReq]
           case s if s == CancelRefactorReqHint.hint => value.convertTo[CancelRefactorReq]
+          case s if s == RefactorReqHint.hint => value.convertTo[RefactorReq]
           case s if s == SymbolDesignationsReqHint.hint => value.convertTo[SymbolDesignationsReq]
           case s if s == ImplicitInfoReqHint.hint => value.convertTo[ImplicitInfoReq]
           case s if s == ExpandSelectionReqHint.hint => value.convertTo[ExpandSelectionReq]
