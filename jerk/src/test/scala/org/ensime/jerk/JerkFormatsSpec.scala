@@ -184,6 +184,11 @@ class JerkFormatsSpec extends FlatSpec with Matchers
     )
 
     roundtrip(
+      RefactorReq(1, RenameRefactorDesc("bar", file1, 1, 100), false): RpcRequest,
+      s"""{"procId":1,"params":{"newName":"bar","typehint":"RenameRefactorDesc","end":100,"file":"$file1","start":1},"typehint":"RefactorReq","interactive":false}"""
+    )
+
+    roundtrip(
       SymbolDesignationsReq(
         Left(file1), 1, 100,
         List(ObjectSymbol, ValSymbol)
@@ -619,6 +624,11 @@ class JerkFormatsSpec extends FlatSpec with Matchers
     roundtrip(
       refactorResult: EnsimeServerMessage,
       s"""{"typehint":"RefactorResult","procedureId":7,"refactorType":{"typehint":"AddImport"},"touchedFiles":["$file3","$file1"],"status":"success"}"""
+    )
+
+    roundtrip(
+      refactorDiffEffect: EnsimeServerMessage,
+      s"""{"typehint":"RefactorDiffEffect","procedureId":9,"refactorType":{"typehint":"AddImport"},"diff":"$file2"}"""
     )
 
   }
