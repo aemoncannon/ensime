@@ -68,6 +68,29 @@ trait RefactoringHandler { self: Analyzer =>
     }
   }
 
+  def handleRefactorRequest(req: RefactorReq): RpcResponse = {
+    val cs = charset
+    val procedureId = req.procId
+    val refactor = req.params
+    val result = scalaCompiler.askPrepareRefactor(procedureId, refactor)
+
+    result match {
+      case Right(effect: RefactorEffect) => {
+        FileUtils.writeDiffChanges(effect.changes, cs) match {
+          case Right(f) =>
+            new RefactorDiffEffect(
+              effect.procedureId,
+              effect.refactorType,
+              f
+            )
+          case Left(err) => RefactorFailure(effect.procedureId, err.toString)
+        }
+      }
+      case Left(failure) =>
+        failure
+    }
+  }
+
   def handleRefactorExec(req: ExecRefactorReq): RpcResponse = {
     val procedureId = req.procId
     effects.get(procedureId) match {

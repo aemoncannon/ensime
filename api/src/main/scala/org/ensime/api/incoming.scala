@@ -236,6 +236,15 @@ case class PrepareRefactorReq(
 ) extends RpcAnalyserRequest
 
 /**
+ * Responds with a `RefactorFailure` or a `RefactorDiffEffect`.
+ */
+case class RefactorReq(
+  procId: Int,
+  params: RefactorDesc,
+  interactive: Boolean
+) extends RpcAnalyserRequest
+
+/**
  * Responds with a `RefactorFailure` or a `RefactorEffect`.
  */
 case class ExecRefactorReq(procId: Int, tpe: RefactorType) extends RpcAnalyserRequest
