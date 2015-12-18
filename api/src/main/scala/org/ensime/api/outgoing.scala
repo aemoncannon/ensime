@@ -163,6 +163,12 @@ case class RefactorResult(
   status: scala.Symbol = 'success // redundant field
 ) extends RpcResponse with RefactorProcedure
 
+case class RefactorDiffEffect(
+  procedureId: Int,
+  refactorType: RefactorType,
+  diff: File
+) extends RpcResponse with RefactorProcedure
+
 sealed abstract class RefactorDesc(val refactorType: RefactorType)
 
 case class InlineLocalRefactorDesc(file: File, start: Int, end: Int) extends RefactorDesc(RefactorType.InlineLocal)

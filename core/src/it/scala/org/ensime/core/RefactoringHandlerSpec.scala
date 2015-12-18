@@ -242,6 +242,50 @@ class RefactoringHandlerSpec extends WordSpec with Matchers
 
       assert(formatted === expectedContents)
     }
-
   }
+
+  "RefactoringHandler" should {
+    "produce a diff file in the unified output format" when {
+      "organize imports when 3 imports exist" in withAnalyzer { (dir, analyzerRef) =>
+        import org.ensime.util.file._
+        val file = srcFile(dir, "tmp-contents", contents(
+          "import java.lang.Integer.{valueOf => vo}",
+          "import java.lang.Integer.toBinaryString",
+          "import java.lang.String.valueOf",
+          " ",
+          "trait Temp {",
+          "  valueOf(5)",
+          "  vo(\"5\")",
+          "  toBinaryString(27)",
+          "}"
+        ), write = true, encoding = encoding)
+
+        val analyzer = analyzerRef.underlyingActor
+
+        val procId = 1
+        val result = analyzer.handleRefactorRequest(
+          new RefactorReq(
+            procId, OrganiseImportsRefactorDesc(new File(file.path)), false
+          )
+        )
+        val diffFile = result match {
+          case RefactorDiffEffect(_, _, f) => f.canon
+          case _ => fail()
+        }
+
+        val diffContents = diffFile.readString()
+        val expectedContents = s"""|--- ${file.path}
+                                   |+++ ${file.path}
+                                   |@@ -1,3 +1,2 @@
+                                   |-import java.lang.Integer.{valueOf => vo}
+                                   |-import java.lang.Integer.toBinaryString
+                                   |+import java.lang.Integer.{toBinaryString, valueOf => vo}
+                                   | import java.lang.String.valueOf""".stripMargin
+
+        assert(diffContents === expectedContents)
+        diffFile.delete()
+      }
+    }
+  }
+
 }
