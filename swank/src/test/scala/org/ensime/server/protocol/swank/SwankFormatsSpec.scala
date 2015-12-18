@@ -200,6 +200,11 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
     )
 
     unmarshal(
+      s"""(swank:diff-refactor 1 (end 100 file "$file1" newName "bar" start 1) nil)""",
+      RefactorReq(1, RenameRefactorDesc("bar", file1, 1, 100), false): RpcRequest
+    )
+
+    unmarshal(
       s"""(swank:symbol-designations "$file1" 1 100 (object val))""",
       SymbolDesignationsReq(
         Left(file1), 1, 100,
@@ -635,6 +640,12 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
       refactorResult: RefactorResult,
       s"""(:procedure-id 7 :refactor-type addImport :touched-files ("$file3" "$file1") :status success)"""
     )
+
+    marshal(
+      refactorDiffEffect: RefactorDiffEffect,
+      s"""(:procedure-id 9 :refactor-type addImport :diff "$file2")"""
+    )
+
   }
 
   it should "marshal legacy raw response types" in {

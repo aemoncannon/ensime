@@ -60,6 +60,7 @@ trait EnsimeTestData {
 
   val refactorEffect = new RefactorEffect(9, RefactorType.AddImport, List(TextEdit(file3, 5, 7, "aaa")))
   val refactorResult = new RefactorResult(7, RefactorType.AddImport, List(file3, file1))
+  val refactorDiffEffect = new RefactorDiffEffect(9, RefactorType.AddImport, file2)
 
   val sourcePos1 = new LineSourcePosition(file1, 57)
   val sourcePos2 = new LineSourcePosition(file1, 59)
