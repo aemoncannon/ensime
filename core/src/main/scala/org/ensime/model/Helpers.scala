@@ -1,10 +1,13 @@
 package org.ensime.model
 
+import org.ensime.indexer.Descriptor
+import org.slf4j.Logger
 import scala.tools.nsc.interactive.Global
 
 import org.ensime.api._
 
 trait Helpers { self: Global =>
+  def logger: Logger
 
   import rootMirror.{ EmptyPackage, RootPackage }
 
@@ -67,6 +70,7 @@ trait Helpers { self: Global =>
    *
    * Used for type-names of symbol and member completions
    */
+  @deprecated
   def typeShortNameWithArgs(tpe: Type): String = {
     if (isArrowType(tpe)) {
       (tpe.paramss.map { sect =>
@@ -79,6 +83,7 @@ trait Helpers { self: Global =>
     } else resultTypeName(tpe)
   }
 
+  @deprecated
   def resultTypeName(tpe: Type): String = {
     typeShortName(tpe) + (if (tpe.typeArgs.size > 0) {
       "[" +
@@ -88,37 +93,9 @@ trait Helpers { self: Global =>
   }
 
   /**
-   *  Return the string used to index a symbol
-   */
-  def symbolIndexerName(sym: Symbol): String = {
-    def typeIndexerName(sym: Symbol): String = {
-      val owner = sym.owner
-      if (owner.isRoot || owner.isRootPackage) {
-        sym.encodedName
-      } else if (owner.hasPackageFlag) {
-        owner.fullName + "." + sym.encodedName
-      } else {
-        typeIndexerName(owner) + "$" + sym.encodedName
-      }
-    }
-
-    val name = if (sym.isType) {
-      typeIndexerName(sym)
-    } else if (sym.isModule) {
-      typeIndexerName(sym) + "$"
-    } else {
-      symbolIndexerName(sym.owner) + "." + sym.encodedName
-    }
-    name.replaceAll("\\.package\\$\\$", ".")
-      .replaceAll("\\.package\\$\\.", ".")
-      .replaceAll("\\.package\\$(?!$)", ".")
-      .replaceAll("\\.package\\.", ".")
-      .replaceAll("\\.package$", ".package\\$")
-  }
-
-  /**
    * Generate qualified name, without args postfix.
    */
+  @deprecated
   def typeFullName(tpe: Type): String = {
     def nestedClassName(sym: Symbol): String = {
       outerClass(sym) match {
@@ -140,11 +117,13 @@ trait Helpers { self: Global =>
     }
   }
 
+  @deprecated
   def typeShortName(tpe: Type): String = {
     if (tpe.typeSymbol != NoSymbol) typeShortName(tpe.typeSymbol)
     else tpe.toString()
   }
 
+  @deprecated
   def typeShortName(sym: Symbol): String = {
     val s = sym.nameString
     if ((sym.isModule || sym.isModuleClass) && !s.endsWith("$")) s + "$" else s
@@ -152,6 +131,8 @@ trait Helpers { self: Global =>
 
   /**
    * Returns the type, object, or package symbol uniquely identified by name.
+   *
+   * AMBIGUOUS: What is the name? Scala name? FQN? Our name?
    */
   protected def symbolByName(name: String, rootSymbol: Symbol = RootClass): Option[Symbol] = {
     def segments(name: String): List[Name] = {

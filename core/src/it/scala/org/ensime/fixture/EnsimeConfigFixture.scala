@@ -6,6 +6,7 @@ import java.io.{ File => JFile }
 import org.apache.commons.io.FileUtils.copyDirectory
 import org.ensime.api._
 import org.ensime.config._
+import org.ensime.util.Slf4jSetup
 import org.scalatest._
 import org.ensime.util.file._
 
@@ -14,6 +15,8 @@ import org.ensime.util.file._
  * based on an example project that will be untouched.
  */
 trait EnsimeConfigFixture {
+  Slf4jSetup.init()
+
   /** The definition of the original project to clone for testing. */
   def original: EnsimeConfig
 
@@ -34,11 +37,12 @@ trait EnsimeConfigFixture {
 
 object EnsimeConfigFixture {
 
-  lazy val dotEnsime = File("../.ensime")
+  lazy val dotEnsime = File("../.ensime").canon
   require(
     dotEnsime.exists,
     "the .ensime file must exist to run the integration tests." +
-      "Type 'sbt gen-ensime' to create it"
+      "Type 'sbt gen-ensime' to create it." +
+      s"(I looked in ${dotEnsime})"
   )
 
   lazy val EnsimeTestProject = EnsimeConfigProtocol.parse(dotEnsime.readString())

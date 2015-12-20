@@ -74,7 +74,8 @@ trait CompletionControl {
   import CompletionUtil._
 
   def completionsAt(inputP: Position, maxResultsArg: Int, caseSens: Boolean): CompletionInfoList = {
-    val maxResults = if (maxResultsArg == 0) Int.MaxValue else maxResultsArg
+    // must be lower than 2147483391 for Lucene, pick something sane...
+    val maxResults = if (maxResultsArg == 0) 10000 else maxResultsArg
 
     val preceding = inputP.source.content.slice(
       Math.max(0, inputP.point - 100), inputP.point

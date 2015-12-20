@@ -1,8 +1,10 @@
 package org.ensime.indexer
 
 import org.scalatest.{ BeforeAndAfterAll, FunSpec, Matchers }
+import org.ensime.util.Slf4jSetup
 
 class ClassfileDepicklerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
+  Slf4jSetup.init()
 
   var vfs: EnsimeVFS = _
 

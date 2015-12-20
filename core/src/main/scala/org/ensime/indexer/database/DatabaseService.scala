@@ -1,4 +1,4 @@
-package org.ensime.indexer
+package org.ensime.indexer.database
 
 import java.io.File
 import java.sql.Timestamp
@@ -6,7 +6,8 @@ import java.sql.Timestamp
 import akka.event.slf4j.SLF4JLogging
 import com.jolbox.bonecp.BoneCPDataSource
 import org.apache.commons.vfs2.FileObject
-import org.ensime.indexer.DatabaseService._
+import org.ensime.indexer.EnsimeVFS
+import org.ensime.indexer.database.DatabaseService._
 
 import org.ensime.api._
 
@@ -32,6 +33,8 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     val executor = AsyncExecutor("Slick", numThreads = threads, queueSize = -1)
     (ds, Database.forDataSource(ds, executor = executor))
   }
+
+  def commit(): Future[Unit] = Future.successful(())
 
   def shutdown()(implicit ec: ExecutionContext): Future[Unit] = for {
     // call directly - using slick withSession barfs as it runs a how many rows were updated

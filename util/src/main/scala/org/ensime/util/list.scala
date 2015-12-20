@@ -17,6 +17,22 @@ package object list {
       case _ => throw new IllegalArgumentException("list was empty")
     }
 
+    /**
+     * Like `distinct` but by a property on the elements. Keeps the
+     * first of any duplicates.
+     */
+    def distinctBy[U](key: T => U): List[T] = {
+      var builder = List[T]()
+      var seen = Set[U]()
+      list.foreach { entry =>
+        val k = key(entry)
+        if (!seen(k)) {
+          seen += k
+          builder ::= entry
+        }
+      }
+      builder.reverse
+    }
   }
 
   implicit class RichListTuple2[K, V](val list: List[(K, V)]) extends AnyVal {

@@ -27,7 +27,8 @@ case class PackageName(path: List[String]) extends FullyQualifiedName {
   def contains(o: FullyQualifiedName) = o match {
     case PackageName(pn) => pn.startsWith(path)
     case ClassName(p, _) => contains(p)
-    case MemberName(c, _) => contains(c)
+    case FieldName(c, _) => contains(c)
+    case MethodName(c, _, _) => contains(c)
   }
   def fqnString = path.mkString(".")
   def parent = PackageName(path.init)
@@ -37,13 +38,14 @@ case class ClassName(pack: PackageName, name: String) extends FullyQualifiedName
   def contains(o: FullyQualifiedName) = o match {
     case ClassName(op, on) if pack == op & on.startsWith(name) =>
       (on == name) || on.startsWith(name + "$")
-    case MemberName(cn, _) => contains(cn)
+    case FieldName(cn, _) => contains(cn)
+    case MethodName(cn, _, _) => contains(cn)
     case _ => false
   }
 
   def fqnString =
     if (pack.path.isEmpty) name
-    else ClassName.cleanupPackage(pack.fqnString + "." + name)
+    else pack.fqnString + "." + name
 
   def internalString =
     "L" + (if (pack.path.isEmpty) name else pack.path.mkString("/") + "/" + name) + ";"
@@ -82,19 +84,28 @@ object ClassName {
     ClassName(PackageName(before.toList), after(0))
   }
 
-  def cleanupPackage(name: String): String = {
-    name.replaceAll("\\.package\\$?\\.", ".")
-      .replaceAll("\\.package\\$(?!$)", ".")
-      .replaceAll("\\.package$", ".package\\$")
-  }
 }
 
-case class MemberName(
+sealed trait MemberName extends FullyQualifiedName {
+  def contains(o: FullyQualifiedName) = this == o
+}
+
+case class FieldName(
     owner: ClassName,
     name: String
-) extends FullyQualifiedName {
-  def contains(o: FullyQualifiedName) = this == o
-  def fqnString = ClassName.cleanupPackage(owner.fqnString + "." + name)
+) extends MemberName {
+  def fqnString = owner.fqnString + "." + name
+}
+
+// FQNs are not really unique, because method overloading.
+// we should probably address this in the indexer by having a composite key
+// instead of fudging the descriptor into the FQN
+case class MethodName(
+    owner: ClassName,
+    name: String,
+    descriptor: Descriptor
+) extends MemberName {
+  def fqnString = owner.fqnString + "." + name + descriptor.descriptorString
 }
 
 sealed trait DescriptorType {
@@ -132,11 +143,9 @@ case class RawSource(
 )
 
 case class RawType(
-    fqn: String,
-    access: Access
-) {
-  def fqnString = ClassName.cleanupPackage(fqn)
-}
+  fqn: String,
+  access: Access
+)
 
 case class RawField(
   name: MemberName,
@@ -146,9 +155,8 @@ case class RawField(
 )
 
 case class RawMethod(
-  name: MemberName,
+  name: MethodName,
   access: Access,
-  descriptor: Descriptor,
   generics: Option[String],
   line: Option[Int]
 )

@@ -31,4 +31,8 @@ class ListSpec extends FlatSpec with Matchers {
     tuples.toMultiMapSet shouldEqual multi
   }
 
+  it should "provide distinctBy" in {
+    tuples.distinctBy(_._1) shouldBe List((1, 'a), (2, 'b))
+    tuples.distinctBy(_._2) shouldBe List((1, 'a), (1, 'b), (1, 'c))
+  }
 }

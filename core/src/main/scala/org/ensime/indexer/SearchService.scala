@@ -6,10 +6,10 @@ import akka.actor._
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.ensime.api._
-import org.ensime.indexer.DatabaseService._
+import org.ensime.indexer.database._
+import DatabaseService._
 import org.ensime.util.file._
 
-//import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 
@@ -33,7 +33,7 @@ class SearchService(
     with SLF4JLogging {
 
   private val QUERY_TIMEOUT = 30 seconds
-  private val version = "1.0"
+  private val version = "2.0"
 
   private val index = new IndexService(config.cacheDir / ("index-" + version))
   private val db = new DatabaseService(config.cacheDir / ("sql-" + version))
@@ -61,7 +61,6 @@ class SearchService(
     // known files from the DB then and check against the disk, than
     // check each file against DatabaseService.outOfDate
     def findStaleFileChecks(checks: Seq[FileCheck]): List[FileCheck] = {
-      log.info("findStaleFileChecks")
       val jarUris = config.allJars.map(vfs.vfile).map(_.getName.getURI)
       for {
         check <- checks
@@ -80,7 +79,6 @@ class SearchService(
 
     // a snapshot of everything that we want to index
     def findBases(): Set[FileObject] = {
-      log.info("findBases")
       config.modules.flatMap {
         case (name, m) =>
           m.targetDirs.flatMap { d => scan(vfs.vfile(d)) } :::
@@ -122,23 +120,31 @@ class SearchService(
       Future.sequence(bases.map(indexBase)).map(_.flatten.sum)
     }
 
-    def commitIndex(): Future[Unit] = Future {
-      blocking {
-        log.debug("committing index to disk...")
-        index.commit()
+    def commitIndex(): Future[Unit] = {
+      log.debug("committing index to disk...")
+      val i = Future { blocking { index.commit() } }
+      val g = db.commit()
+      for {
+        _ <- i
+        _ <- g
+      } yield {
         log.debug("...done committing index")
       }
     }
 
     // chain together all the future tasks
+    // FIXME: re-use results from the DB for performance
+    // FIXME: have an early response for indexing, and another after persisting
     for {
       checks <- db.knownFiles()
       stale = findStaleFileChecks(checks)
       deletes <- deleteReferences(stale)
       bases = findBases()
       added <- indexBases(bases)
-      _ <- commitIndex()
-    } yield (deletes, added)
+      commited <- commitIndex()
+    } yield {
+      (deletes, added)
+    }
   }
 
   def refreshResolver(): Unit = resolver.update()
@@ -149,6 +155,8 @@ class SearchService(
     iwork.flatMap { _ => dwork }
   }
 
+  // FIXME: move these sorts of ignore rules to an ensime server config
+  //        (and differentiate between ignored entirely, and not Lucene indexed)
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
   private val ignore = Set("$$anon$", "$$anonfun$", "$worker$")
   import org.ensime.util.RichFileObject._
@@ -167,17 +175,20 @@ class SearchService(
 
         // TODO: other types of visibility when we get more sophisticated
         if (clazz.access != Public) Nil
-        else FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
-          clazz.methods.toList.filter(_.access == Public).map { method =>
-            val descriptor = method.descriptor.descriptorString
-            FqnSymbol(None, name, path, method.name.fqnString, Some(descriptor), None, sourceUri, method.line)
-          } ::: clazz.fields.toList.filter(_.access == Public).map { field =>
-            val internal = field.clazz.internalString
-            FqnSymbol(None, name, path, field.name.fqnString, None, Some(internal), sourceUri, clazz.source.line)
-          } ::: depickler.getTypeAliases.toList.filter(_.access == Public).map { rawType =>
-            FqnSymbol(None, name, path, rawType.fqnString, None, None, sourceUri, None)
-          }
-
+        else {
+          FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
+            clazz.methods.toList.filter(_.access == Public).map { method =>
+              val descriptor = method.name.descriptor.descriptorString
+              FqnSymbol(None, name, path, method.name.fqnString, Some(descriptor), None, sourceUri, method.line)
+            } ::: clazz.fields.toList.filter(_.access == Public).map { field =>
+              val internal = field.clazz.internalString
+              FqnSymbol(None, name, path, field.name.fqnString, None, Some(internal), sourceUri, clazz.source.line)
+            } ::: depickler.getTypeAliases.toList.filter(_.access == Public).map { rawType =>
+              // this is a hack, we shouldn't be storing Scala names in the JVM name space
+              // in particular, it creates fqn names that clash with the above ones
+              FqnSymbol(None, name, path, rawType.fqn, None, None, sourceUri, None)
+            }
+        }
     }
   }.filterNot(sym => ignore.exists(sym.fqn.contains))
 

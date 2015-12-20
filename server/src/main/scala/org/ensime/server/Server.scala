@@ -16,7 +16,7 @@ import org.ensime.config._
 import org.ensime.core._
 import org.ensime.server.tcp.TCPServer
 import org.slf4j._
-import org.slf4j.bridge.SLF4JBridgeHandler
+import org.ensime.util.Slf4jSetup
 
 import scala.concurrent.duration._
 import scala.util.Properties._
@@ -90,8 +90,8 @@ class ServerActor(
 }
 
 object Server {
-  SLF4JBridgeHandler.removeHandlersForRootLogger()
-  SLF4JBridgeHandler.install()
+  Slf4jSetup.init()
+
   val log = LoggerFactory.getLogger("Server")
 
   def main(args: Array[String]): Unit = {

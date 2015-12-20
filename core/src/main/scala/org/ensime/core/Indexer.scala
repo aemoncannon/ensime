@@ -5,7 +5,7 @@ import akka.event.LoggingReceive
 
 import org.ensime.api._
 
-import org.ensime.indexer.DatabaseService.FqnSymbol
+import org.ensime.indexer.database.DatabaseService.FqnSymbol
 import org.ensime.indexer.{ EnsimeVFS, SearchService }
 import org.ensime.model._
 

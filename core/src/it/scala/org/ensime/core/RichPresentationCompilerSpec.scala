@@ -6,16 +6,18 @@ import akka.event.slf4j.SLF4JLogging
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.indexer.EnsimeVFS
+import org.ensime.indexer.SearchServiceTestUtils.refresh
 import org.scalatest._
 import org.ensime.util.file._
 
 import scala.collection.immutable.Queue
 import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.reflect.internal.util.{ BatchSourceFile, OffsetPosition }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.reporters.ConsoleReporter
 import scala.util.Properties
+
+import ReallyRichPresentationCompilerFixture._
 
 class RichPresentationCompilerThatNeedsJavaLibsSpec extends WordSpec with Matchers
     with IsolatedRichPresentationCompilerFixture
@@ -27,10 +29,9 @@ class RichPresentationCompilerThatNeedsJavaLibsSpec extends WordSpec with Matche
 
   "RichPresentationCompiler" should {
     "locate source position of Java classes in import statements" in withPresCompiler { (config, cc) =>
-      import ReallyRichPresentationCompilerFixture._
 
       cc.search.refreshResolver()
-      Await.result(cc.search.refresh(), Duration.Inf)
+      refresh()(cc.search)
 
       runForPositionInCompiledSource(config, cc,
         "package com.example",
@@ -93,7 +94,6 @@ class RichPresentationCompilerSpec extends WordSpec with Matchers
     }
 
     "get symbol info with cursor immediately after and before symbol" in withPresCompiler { (config, cc) =>
-      import ReallyRichPresentationCompilerFixture._
       runForPositionInCompiledSource(config, cc,
         "package com.example",
         "object @0@Bla@1@ { def !(x:Int) = x }",
@@ -108,10 +108,9 @@ class RichPresentationCompilerSpec extends WordSpec with Matchers
     }
 
     "find source declaration of standard operator" in withPresCompiler { (config, cc) =>
-      import ReallyRichPresentationCompilerFixture._
 
       cc.search.refreshResolver()
-      Await.result(cc.search.refresh(), Duration.Inf)
+      refresh()(cc.search)
 
       runForPositionInCompiledSource(config, cc,
         "package com.example",
@@ -442,7 +441,6 @@ class RichPresentationCompilerSpec extends WordSpec with Matchers
         "3.0" -> None
       )
 
-      import ReallyRichPresentationCompilerFixture._
       runForPositionInCompiledSource(config, cc,
         "package com.example",
         "import @1.0@java@1.1@.@1.2@io@1.3@.@1.4@File@1.5@.@1.6@separator@1.7@",
@@ -538,7 +536,7 @@ class RichPresentationCompilerSpec extends WordSpec with Matchers
       )
 
       cc.search.refreshResolver()
-      Await.result(cc.search.refresh(), Duration.Inf)
+      refresh()(cc.search)
 
       val scalaVersion = scala.util.Properties.versionNumberString
       val parts = scalaVersion.split("\\.").map { _.toInt }
@@ -599,7 +597,6 @@ trait ReallyRichPresentationCompilerFixture {
 
   final def withPosInCompiledSource(lines: String*)(testCode: (OffsetPosition, RichPresentationCompiler) => Any): Any =
     withPresCompiler { (config, cc) =>
-      import ReallyRichPresentationCompilerFixture._
       runForPositionInCompiledSource(config, cc, lines: _*) {
         (p, _, cc) => testCode(p, cc)
       }
@@ -626,4 +623,9 @@ object ReallyRichPresentationCompilerFixture
       testCode(new OffsetPosition(file, pt._1), pt._2, cc)
     }
   }
+
+  def testPositions(config: EnsimeConfig, cc: RichPresentationCompiler)(lines: String*)(testCode: (OffsetPosition, String) => Any): Any = {
+    runForPositionInCompiledSource(config, cc, lines: _*) { (p, name, _) => testCode(p, name) }
+  }
+
 }

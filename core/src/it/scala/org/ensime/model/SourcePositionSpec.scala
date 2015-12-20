@@ -2,7 +2,7 @@ package org.ensime.model
 
 import org.ensime.api._
 import org.ensime.fixture._
-import org.ensime.indexer.DatabaseService.FqnSymbol
+import org.ensime.indexer.database.DatabaseService.FqnSymbol
 import org.ensime.indexer.EnsimeVFS
 import org.scalatest._
 import org.ensime.util.file._

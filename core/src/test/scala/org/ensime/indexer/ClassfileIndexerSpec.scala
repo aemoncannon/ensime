@@ -38,5 +38,18 @@ class ClassfileIndexerSpec extends FunSpec with Matchers with ClassfileIndexer w
       indexClassfile(vfs.vres("scala/collection/immutable/List.class"))
       indexClassfile(vfs.vres("scala/collection/immutable/List$.class"))
     }
+
+    it("should support method overloading") {
+      val (clazz, _) = indexClassfile(vfs.vres("java/nio/channels/FileChannel.class"))
+      val methods = clazz.methods.filter { ref => ref.name.fqnString.startsWith("java.nio.channels.FileChannel.write") }
+
+      methods.map(_.name.fqnString) should contain theSameElementsAs List(
+        "java.nio.channels.FileChannel.write(Ljava/nio/ByteBuffer;)I",
+        "java.nio.channels.FileChannel.write([Ljava/nio/ByteBuffer;II)J",
+        "java.nio.channels.FileChannel.write([Ljava/nio/ByteBuffer;)J",
+        "java.nio.channels.FileChannel.write(Ljava/nio/ByteBuffer;J)I"
+      )
+    }
+
   }
 }

@@ -5,7 +5,7 @@ import org.ensime.util.file._
 
 import org.apache.commons.vfs2.FileObject
 import org.ensime.core.RichPresentationCompiler
-import org.ensime.indexer.DatabaseService._
+import org.ensime.indexer.database.DatabaseService._
 import org.ensime.indexer.EnsimeVFS
 
 import scala.collection.mutable
@@ -60,11 +60,9 @@ trait ModelBuilders { self: RichPresentationCompiler =>
     } else {
       // only perform operations is actively requested - this is comparatively expensive
       if (needPos == PosNeededYes) {
-        // we might need this for some Java fqns but we need some evidence
-        // val name = genASM.jsymbol(sym).fullName
-        val name = symbolIndexerName(sym)
-        val hit = search.findUnique(name)
-        logger.debug(s"search: $name = $hit")
+        val fqn = toFqn(sym).fqnString
+        val hit = search.findUnique(fqn)
+        logger.debug(s"search: $fqn = $hit")
         hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)(config, vfs)).flatMap { sourcePos =>
           if (sourcePos.file.getName.endsWith(".scala"))
             askLinkPos(sym, AbstractFile.getFile(sourcePos.file)).

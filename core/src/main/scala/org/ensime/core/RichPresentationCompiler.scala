@@ -43,6 +43,7 @@ import org.ensime.api._
 import org.ensime.config._
 
 import akka.actor.ActorRef
+import org.ensime.indexer.FullyQualifiedName
 import org.ensime.indexer.{ EnsimeVFS, SearchService }
 import org.ensime.model._
 import org.ensime.util.FileUtils
@@ -101,6 +102,10 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def askSymbolInfoAt(p: Position): Option[SymbolInfo] =
     askOption(symbolAt(p).map(SymbolInfo(_))).flatten
+
+  // exposed to test toFqn
+  def askSymbolFqn(p: Position): Option[FullyQualifiedName] =
+    askOption(symbolAt(p).map(toFqn)).flatten
 
   def askSymbolByName(fqn: String, memberName: Option[String], signatureString: Option[String]): Option[SymbolInfo] =
     askOption(symbolMemberByName(fqn, memberName, signatureString).map(SymbolInfo(_))).flatten
@@ -263,7 +268,7 @@ class RichPresentationCompiler(
   val vfs: EnsimeVFS
 ) extends Global(settings, richReporter)
     with ModelBuilders with RichCompilerControl
-    with RefactoringImpl with Completion with Helpers
+    with RefactoringImpl with Completion with Helpers with SymbolToFqn
     with PresentationCompilerBackCompat with PositionBackCompat {
 
   val logger = LoggerFactory.getLogger(this.getClass)

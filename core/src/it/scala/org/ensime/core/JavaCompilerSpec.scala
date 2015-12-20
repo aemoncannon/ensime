@@ -16,9 +16,10 @@ import org.scalatest._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
+import SearchServiceTestUtils._
+
 class JavaCompilerSpec extends FlatSpec with Matchers
     with IsolatedJavaCompilerFixture
-    with SearchServiceTestUtils
     with SLF4JLogging {
 
   val original = EnsimeConfigFixture.SimpleTestProject
@@ -63,8 +64,8 @@ class JavaCompilerSpec extends FlatSpec with Matchers
   }
 
   it should "find symbol at point" in withJavaCompiler { (_, config, cc, store, search) =>
-    implicit val searchService = search
-    refresh()
+    refresh()(search)
+
     runForPositionInCompiledSource(config, cc,
       "package org.example;",
       "import java.io.File;",

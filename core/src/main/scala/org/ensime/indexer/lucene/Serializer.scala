@@ -6,6 +6,9 @@ import org.apache.lucene.index.Term
 import org.apache.lucene.search.BooleanClause.Occur._
 import org.apache.lucene.search.{ BooleanQuery, Query, TermQuery }
 
+// in hindsight, this would have been more cleanly designed as TypeClass
+// and shouldn't need the Class (use Typeable instead)
+// TODO https://github.com/ensime/ensime-server/issues/1135
 abstract class Serializer[T](clazz: Class[T])
     extends DocumentProvider[T] with DocumentRecovery[T] with QueryProvider[T] {
   private val TypeField = new StringField("TYPE", clazz.getSimpleName, Store.YES)
@@ -30,3 +33,6 @@ abstract class Serializer[T](clazz: Class[T])
   }
 }
 
+abstract class EntityS[T <: Entity](clazz: Class[T]) extends Serializer(clazz) {
+  def id(t: T) = t.id
+}
