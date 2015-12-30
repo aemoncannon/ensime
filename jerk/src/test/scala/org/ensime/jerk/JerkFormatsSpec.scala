@@ -208,6 +208,12 @@ class JerkFormatsSpec extends FlatSpec with Matchers
       ImplicitInfoReq(Left(file1), OffsetRange(0, 123)): RpcRequest,
       s"""{"typehint":"ImplicitInfoReq","file":"$file1","range":{"from":0,"to":123}}"""
     )
+
+    roundtrip(
+      StructureViewReq(sourceFileInfo): RpcRequest,
+      s"""{"typehint":"StructureViewReq","fileInfo":{"file":"$file1","contents":"{/* code here */}","contentsIn":"$file2"}}"""
+    )
+
   }
 
   it should "roundtrip RpcDebugRequests" in {
