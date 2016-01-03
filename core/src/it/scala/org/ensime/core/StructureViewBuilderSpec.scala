@@ -5,43 +5,43 @@ import org.ensime.api._
 import org.scalatest._
 import scala.collection.mutable.ListBuffer
 
-class StructureViewBuilderSpec extends WordSpec with Matchers
+class StructureViewBuilderSpec extends FlatSpec with Matchers
     with IsolatedRichPresentationCompilerFixture
     with RichPresentationCompilerTestUtils
     with ReallyRichPresentationCompilerFixture {
 
   def original = EnsimeConfigFixture.EmptyTestProject
 
-  "StructureViewBuilder" should {
+  def getStructure(
+    config: EnsimeConfig,
+    cc: RichCompilerControl,
+    content: String
+  ): List[String] = {
 
-    def getStructure(
-      config: EnsimeConfig,
-      cc: RichCompilerControl,
-      content: String
-    ): List[String] = {
+    val result = ListBuffer[String]()
 
-      val result = ListBuffer[String]()
-
-      def collect(parent: Option[String], x: StructureViewMember): Unit = {
-        val par = parent.map(_ + ".").getOrElse("")
-        x match {
-          case StructureViewMember(key, name, _, Nil) =>
-            result.append(s"($key)${par}$name")
-          case StructureViewMember(key, name, _, xs) =>
-            result.append(s"($key)${par}$name")
-            xs.foreach(collect(Some(s"${par}$name"), _))
-        }
+    def collect(parent: Option[String], x: StructureViewMember): Unit = {
+      val par = parent.map(_ + ".").getOrElse("")
+      x match {
+        case StructureViewNode(key, name, _, Nil) =>
+          result.append(s"($key)${par}$name")
+        case StructureViewNode(key, name, _, xs) =>
+          result.append(s"($key)${par}$name")
+          xs.foreach(collect(Some(s"${par}$name"), _))
       }
-
-      val file = srcFile(config, "abc.scala", contents(content))
-      cc.askLoadedTyped(file)
-      cc.askStructure(file).foreach(collect(None, _))
-      result.toList
     }
 
-    "show top level classes and objects" in withPresCompiler { (config, cc) =>
-      val structure = getStructure(
-        config, cc, """
+    val file = srcFile(config, "abc.scala", contents(content))
+    cc.askLoadedTyped(file)
+    cc.askStructure(file).foreach(collect(None, _))
+    result.toList
+  }
+
+  behavior of "StructureViewBuilder"
+
+  it should "show top level classes and objects" in withPresCompiler { (config, cc) =>
+    val structure = getStructure(
+      config, cc, """
             package com.example
             import org.scalatest._
             class Test {
@@ -51,18 +51,19 @@ class StructureViewBuilderSpec extends WordSpec with Matchers
               def apply(x: String) { new Test(x) }
             }
           """
-      )
-      assert(structure === List(
-        "(class)Test",
-        "(def)Test.fun",
-        "(object)Test",
-        "(def)Test.apply"
-      ))
-    }
+    )
 
-    "show nested members" in withPresCompiler { (config, cc) =>
-      val structure = getStructure(
-        config, cc, """
+    structure shouldBe List(
+      "(class)Test",
+      "(def)Test.fun",
+      "(object)Test",
+      "(def)Test.apply"
+    )
+  }
+
+  it should "show nested members" in withPresCompiler { (config, cc) =>
+    val structure = getStructure(
+      config, cc, """
             package com.example
             object Test {
               type TestType = Int
@@ -74,20 +75,21 @@ class StructureViewBuilderSpec extends WordSpec with Matchers
               }
             }
           """
-      )
-      assert(structure === List(
-        "(object)Test",
-        "(type)Test.TestType",
-        "(class)Test.Nested",
-        "(def)Test.Nested.fun",
-        "(object)Test.Nested",
-        "(def)Test.Nested.apply"
-      ))
-    }
+    )
 
-    "skip accessors" in withPresCompiler { (config, cc) =>
-      val structure = getStructure(
-        config, cc, """
+    structure shouldBe List(
+      "(object)Test",
+      "(type)Test.TestType",
+      "(class)Test.Nested",
+      "(def)Test.Nested.fun",
+      "(object)Test.Nested",
+      "(def)Test.Nested.apply"
+    )
+  }
+
+  it should "skip accessors" in withPresCompiler { (config, cc) =>
+    val structure = getStructure(
+      config, cc, """
             package com.example
             class Test(val accessor: String)
             class CaseTest(x: String, y: Int)
@@ -96,15 +98,15 @@ class StructureViewBuilderSpec extends WordSpec with Matchers
               case class NestedCase(x: String, y:Int)
             }
           """
-      )
-      assert(structure === List(
-        "(class)Test",
-        "(class)CaseTest",
-        "(object)Test",
-        "(class)Test.Nested",
-        "(class)Test.NestedCase"
-      ))
-    }
+    )
 
+    structure shouldBe List(
+      "(class)Test",
+      "(class)CaseTest",
+      "(object)Test",
+      "(class)Test.Nested",
+      "(class)Test.NestedCase"
+    )
   }
+
 }

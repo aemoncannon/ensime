@@ -426,7 +426,6 @@ object SwankProtocolResponse {
   implicit def SymbolInfoFormat = SexpFormat[SymbolInfo]
   implicit def InterfaceInfoFormat = SexpFormat[InterfaceInfo]
   implicit def TypeInspectInfoFormat = SexpFormat[TypeInspectInfo]
-  implicit def StructureViewFormat = SexpFormat[StructureView]
 
   implicit object FileEditFormat extends TraitFormatAlt[FileEdit] {
     def write(ti: FileEdit): Sexp = ti match {
@@ -509,6 +508,13 @@ object SwankProtocolResponse {
       case _ => deserializationError(hint)
     }
   }
+  implicit object StructureViewMemberFormat extends TraitFormatAlt[StructureViewMember] {
+    def write(i: StructureViewMember): Sexp = i match {
+      case n: StructureViewNode => wrap(n)
+    }
+    def read(hint: SexpSymbol, sexp: Sexp): StructureViewMember = ???
+  }
+  implicit def StructureViewFormat = SexpFormat[StructureView]
 
   implicit object RpcResponseFormat extends SexpFormat[RpcResponse] {
     def read(sexp: Sexp): RpcResponse = ???
