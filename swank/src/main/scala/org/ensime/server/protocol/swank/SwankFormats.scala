@@ -509,6 +509,13 @@ object SwankProtocolResponse {
       case _ => deserializationError(hint)
     }
   }
+  implicit object StructureViewMemberFormat extends TraitFormatAlt[StructureViewMember] {
+    def write(i: StructureViewMember): Sexp = i match {
+      case n: StructureViewNode => wrap(n)
+    }
+    def read(hint: SexpSymbol, sexp: Sexp): StructureViewMember = ???
+  }
+  implicit def StructureViewFormat = SexpFormat[StructureView]
 
   implicit object RpcResponseFormat extends SexpFormat[RpcResponse] {
     def read(sexp: Sexp): RpcResponse = ???
@@ -552,7 +559,7 @@ object SwankProtocolResponse {
       case value: RefactorDiffEffect => value.toSexp
       case value: RefactorResult => value.toSexp
       case value: ImplicitInfos => value.toSexp
-
+      case value: StructureView => value.toSexp
       case error: EnsimeServerError =>
         throw new IllegalArgumentException(
           s"for legacy reasons, RpcError should be marshalled as an EnsimeServerMessage: $error"
@@ -638,6 +645,7 @@ object SwankProtocolRequest {
   implicit val SymbolDesignationsReqHint = TypeHint[SymbolDesignationsReq](SexpSymbol("swank:symbol-designations"))
   implicit val ImplicitInfoReqHint = TypeHint[ImplicitInfoReq](SexpSymbol("swank:implicit-info"))
   implicit val ExpandSelectionReqHint = TypeHint[ExpandSelectionReq](SexpSymbol("swank:expand-selection"))
+  implicit val StructureViewReqHint = TypeHint[StructureViewReq](SexpSymbol("swank:structure-view"))
   implicit val DebugActiveVmReqHint = TypeHint[DebugActiveVmReq.type](SexpSymbol("swank:debug-active-vm"))
   implicit val DebugStartReqHint = TypeHint[DebugStartReq](SexpSymbol("swank:debug-start"))
   implicit val DebugAttachReqHint = TypeHint[DebugAttachReq](SexpSymbol("swank:debug-attach"))
@@ -789,6 +797,7 @@ object SwankProtocolRequest {
   implicit def SymbolDesignationsReqFormat = SexpFormat[SymbolDesignationsReq]
   implicit def ImplicitInfoReqFormat = SexpFormat[ImplicitInfoReq]
   implicit def ExpandSelectionReqFormat = SexpFormat[ExpandSelectionReq]
+  implicit def StructureViewReqFormat = SexpFormat[StructureViewReq]
   implicit def DebugStartReqFormat = SexpFormat[DebugStartReq]
   implicit def DebugAttachReqFormat = SexpFormat[DebugAttachReq]
   implicit def DebugSetBreakReqFormat = SexpFormat[DebugSetBreakReq]
@@ -842,6 +851,7 @@ object SwankProtocolRequest {
           case s if s == SymbolDesignationsReqHint.hint => value.convertTo[SymbolDesignationsReq]
           case s if s == ImplicitInfoReqHint.hint => value.convertTo[ImplicitInfoReq]
           case s if s == ExpandSelectionReqHint.hint => value.convertTo[ExpandSelectionReq]
+          case s if s == StructureViewReqHint.hint => value.convertTo[StructureViewReq]
           case s if s == DebugActiveVmReqHint.hint => DebugActiveVmReq
           case s if s == DebugStartReqHint.hint => value.convertTo[DebugStartReq]
           case s if s == DebugAttachReqHint.hint => value.convertTo[DebugAttachReq]

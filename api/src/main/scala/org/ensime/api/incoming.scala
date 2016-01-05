@@ -277,6 +277,11 @@ case class SymbolDesignationsReq(
  */
 case class ExpandSelectionReq(file: File, start: Int, end: Int) extends RpcAnalyserRequest
 
+/**
+ * Responds with a `StructureView`.
+ */
+case class StructureViewReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+
 sealed trait RpcDebuggerRequest extends RpcRequest
 
 /**

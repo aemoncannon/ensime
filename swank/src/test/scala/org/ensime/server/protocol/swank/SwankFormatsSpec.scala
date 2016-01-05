@@ -230,6 +230,11 @@ class SwankFormatsSpec extends FlatSpec with Matchers with EnsimeTestData {
       ImplicitInfoReq(Left(file1), OffsetRange(0, 123))
     )
 
+    unmarshal(
+      s"""(swank:structure-view (:file "$file1" :contents "{/* code here */}" :contents-in "$file2"))""",
+      StructureViewReq(sourceFileInfo): RpcRequest
+    )
+
   }
 
   it should "unmarshal RpcDebugRequests" in {

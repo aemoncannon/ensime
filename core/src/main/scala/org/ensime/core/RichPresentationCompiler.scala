@@ -249,6 +249,11 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def askLinkPos(sym: Symbol, path: AbstractFile): Option[Position] =
     askOption(linkPos(sym, createSourceFile(path)))
+
+  def askStructure(fileInfo: SourceFile): List[StructureViewMember] =
+    askOption(structureView(fileInfo))
+      .getOrElse(List.empty)
+
 }
 
 class RichPresentationCompiler(
@@ -264,7 +269,8 @@ class RichPresentationCompiler(
 ) extends Global(settings, richReporter)
     with ModelBuilders with RichCompilerControl
     with RefactoringImpl with Completion with Helpers
-    with PresentationCompilerBackCompat with PositionBackCompat {
+    with PresentationCompilerBackCompat with PositionBackCompat
+    with StructureViewBuilder {
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
