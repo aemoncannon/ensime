@@ -27,7 +27,7 @@ Ensime builds on the shoulders of giants, this includes contributors, users, bug
 
 This project is actively community maintained, and we are very pleased to see contributions from new members. Please see the [Contributing](CONTRIBUTING.md) file for information on how to help out.
 
-If you are reporting a bug or feature request, please use the issue tracker associated with your text editor.
+If you are reporting a bug or feature request, please use the issue tracker associated with your preferred text editor.
 
 ------
 
