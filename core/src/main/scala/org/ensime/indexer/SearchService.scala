@@ -10,6 +10,7 @@ import org.ensime.indexer.DatabaseService._
 import org.ensime.util.file._
 
 //import scala.concurrent.ExecutionContext.Implicits.global
+import scala.collection.breakOut
 import scala.concurrent._
 import scala.concurrent.duration._
 
@@ -117,11 +118,15 @@ class SearchService(
     // index all the given bases and return number of rows written
     def indexBases(bases: Set[FileObject], checks: Seq[FileCheck]): Future[Int] = {
       log.info("Indexing bases...")
-      val checksLookup: Map[String, FileCheck] = checks.map(check => (check.filename -> check)).toMap
-      val basesWithChecks: Set[(FileObject, Option[FileCheck])] = bases.map { base =>
-        (base, checksLookup.get(base.getName().getURI()))
+      val known: Map[FileObject, FileCheck] = checks.flatMap { check =>
+        val f = check.file
+        if (bases(f)) Some(check.file -> check)
+        else None
+      }(breakOut)
+      val work = bases.map {
+        file => indexBase(file, known.get(file))
       }
-      Future.sequence(basesWithChecks.map { case (file, check) => indexBase(file, check) }).map(_.flatten.sum)
+      Future.sequence(work).map(_.flatten.sum)
     }
 
     def commitIndex(): Future[Unit] = Future {
