@@ -2,6 +2,7 @@ package org.ensime.api
 
 import java.io.File
 import scalariform.formatter.preferences.FormattingPreferences
+import scala.collection.breakOut
 
 // there is quite a lot of code in this file, when we clean up the
 // config file format so that a lot of these hacks are no longer
@@ -35,7 +36,7 @@ case class EnsimeConfig(
   def referenceSourceJars = referenceSourceRoots
 
   // some marshalling libs (e.g. spray-json) might not like extra vals
-  val modules = subprojects.map { module => (module.name, module) }.toMap
+  val modules: Map[String, EnsimeModule] = subprojects.map { module => (module.name, module) }(breakOut)
 
   def runtimeClasspath: Set[File] =
     compileClasspath ++ modules.values.flatMap(_.runtimeDeps) ++ targetClasspath

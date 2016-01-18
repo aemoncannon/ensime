@@ -8,6 +8,7 @@ import org.ensime.core.RichPresentationCompiler
 import org.ensime.indexer.DatabaseService._
 import org.ensime.indexer.EnsimeVFS
 
+import scala.collection.breakOut
 import scala.collection.mutable
 import scala.reflect.internal.util.{ NoPosition, Position, RangePosition }
 import scala.tools.nsc.io.AbstractFile
@@ -86,7 +87,7 @@ trait ModelBuilders { self: RichPresentationCompiler =>
       case _ => List.empty
     }
 
-    val parentMap = parents.map(_.typeSymbol -> List[TypeMember]()).toMap
+    val parentMap: Map[Symbol, List[TypeMember]] = parents.map(_.typeSymbol -> Nil)(breakOut)
     val membersMap = visMembers.groupBy {
       case TypeMember(sym, _, _, _, _) => sym.owner
     }
