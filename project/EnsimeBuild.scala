@@ -179,13 +179,13 @@ object EnsimeBuild extends Build {
   lazy val monkeys = Project("monkeys", file("monkeys")) settings(commonSettings) settings (
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "org.apache.commons" % "commons-vfs2" % "2.0" exclude("commons-logging", "commons-logging")
+      "org.apache.commons" % "commons-vfs2" % "2.0" intransitive() exclude("commons-logging", "commons-logging")
     ) ++ logback
   )
 
   lazy val util = Project("util", file("util")) settings(commonSettings) settings (
     libraryDependencies ++= List(
-      "org.apache.commons" % "commons-vfs2" % "2.0" exclude("commons-logging", "commons-logging"),
+      "org.apache.commons" % "commons-vfs2" % "2.0" intransitive() exclude("commons-logging", "commons-logging"),
       "com.google.guava" % "guava" % "18.0",
       "com.google.code.findbugs" % "jsr305" % "3.0.1" % "provided"
     ) ++ testLibs(scalaVersion.value) ++ logback
@@ -202,7 +202,7 @@ object EnsimeBuild extends Build {
     util
   ) settings (
       libraryDependencies ++= Seq(
-        "org.parboiled" %% "parboiled" % "2.1.0" exclude("com.chuusai", "shapeless_2.10.4"),
+        "org.parboiled" %% "parboiled" % "2.1.0" intransitive() exclude("com.chuusai", "shapeless_2.10.4"),
         shapeless
       ) ++ testLibs(scalaVersion.value)
     )
