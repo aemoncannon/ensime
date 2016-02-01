@@ -26,7 +26,7 @@ build_script:
 before_test:
   - sbt gen-ensime
 test_script:
-  - sbt test it:test
+  - sbt "it:test-only *Monkey*"
 cache:
   - C:\sbt\
   - C:\Users\appveyor\.m2
