@@ -30,18 +30,16 @@ import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.provider.AbstractFileSystem;
 
 /**
- * A polling {@link FileMonitor} implementation.<br />
- * <br />
- * The DefaultFileMonitor is a Thread based polling file system monitor with a 1
- * second delay.<br />
- * <br />
- * <b>Design:</b>
+ * A polling {@link FileMonitor} implementation.
  * <p>
+ * The DefaultFileMonitor is a Thread based polling file system monitor with a 1
+ * second delay.
+ *
+ * <h2>Design:</h2>
+ *
  * There is a Map of monitors known as FileMonitorAgents. With the thread running,
  * each FileMonitorAgent object is asked to "check" on the file it is
- * responsible for.
- * To do this check, the cache is cleared.
- * </p>
+ * responsible for. To do this check, the cache is cleared.
  * <ul>
  * <li>If the file existed before the refresh and it no longer exists, a delete
  * event is fired.</li>
@@ -49,35 +47,30 @@ import org.apache.commons.vfs2.provider.AbstractFileSystem;
  * last modified timestamp to see if that has changed.</li>
  * <li>If it has, fire a change event.</li>
  * </ul>
- * <p>
  * With each file delete, the FileMonitorAgent of the parent is asked to
  * re-build its
  * list of children, so that they can be accurately checked when there are new
- * children.<br/>
+ * children.
+ * <p>
  * New files are detected during each "check" as each file does a check for new
  * children.
  * If new children are found, create events are fired recursively if recursive
- * descent is
- * enabled.
- * </p>
+ * descent is enabled.
  * <p>
  * For performance reasons, added a delay that increases as the number of files
  * monitored
  * increases. The default is a delay of 1 second for every 1000 files processed.
- * </p>
- * <br /><b>Example usage:</b><br /><pre>
+ *
+ * <h2>Example usage:</h2><pre>
  * FileSystemManager fsManager = VFS.getManager();
  * FileObject listendir = fsManager.resolveFile("/home/username/monitored/");
- * <p/>
+ *
  * DefaultFileMonitor fm = new DefaultFileMonitor(new CustomFileListener());
  * fm.setRecursive(true);
  * fm.addFile(listendir);
- * fm.start();
- * </pre>
+ * fm.start();</pre>
  * <i>(where CustomFileListener is a class that implements the FileListener
  * interface.)</i>
- *
- * @author <a href="http://commons.apache.org/vfs/team-list.html">Commons VFS team</a>
  */
 public class DefaultFileMonitor implements Runnable, FileMonitor
 {
@@ -169,6 +162,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
      * Adds a file to be monitored.
      * @param file The FileObject to monitor.
      */
+    @Override
     public void addFile(final FileObject file)
     {
         doAddFile(file);
@@ -179,13 +173,13 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
             {
                 // Traverse the children
                 final FileObject[] children = file.getChildren();
-                for (int i = 0; i < children.length; i++)
+                for (final FileObject element : children)
                 {
-                    doAddFile(children[i]);
+                    doAddFile(element);
                 }
             }
         }
-        catch (FileSystemException fse)
+        catch (final FileSystemException fse)
         {
             LOG.error(fse.getLocalizedMessage(), fse);
         }
@@ -215,14 +209,14 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
                     {
                         // Traverse the children
                         final FileObject[] children = file.getChildren();
-                        for (int i = 0; i < children.length; i++)
+                        for (final FileObject element : children)
                         {
-                            this.addFile(children[i]); // Add depth first
+                            this.addFile(element); // Add depth first
                         }
                     }
 
                 }
-                catch (FileSystemException fse)
+                catch (final FileSystemException fse)
                 {
                     LOG.error(fse.getLocalizedMessage(), fse);
                 }
@@ -235,11 +229,12 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
      * Removes a file from being monitored.
      * @param file The FileObject to remove from monitoring.
      */
+    @Override
     public void removeFile(final FileObject file)
     {
         synchronized (this.monitorMap)
         {
-            FileName fn = file.getName();
+            final FileName fn = file.getName();
             if (this.monitorMap.get(fn) != null)
             {
                 FileObject parent;
@@ -247,7 +242,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
                 {
                     parent = file.getParent();
                 }
-                catch (FileSystemException fse)
+                catch (final FileSystemException fse)
                 {
                     parent = null;
                 }
@@ -256,7 +251,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
 
                 if (parent != null)
                 { // Not the root
-                    FileMonitorAgent parentAgent =
+                    final FileMonitorAgent parentAgent =
                         this.monitorMap.get(parent.getName());
                     if (parentAgent != null)
                     {
@@ -289,7 +284,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
      * Set the delay between runs.
      * @param delay The delay period.
      */
-    public void setDelay(long delay)
+    public void setDelay(final long delay)
     {
         if (delay > 0)
         {
@@ -316,7 +311,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
      *
      * @param checksPerRun a value less than 1 will disable this feature
      */
-    public void setChecksPerRun(int checksPerRun)
+    public void setChecksPerRun(final int checksPerRun)
     {
         this.checksPerRun = checksPerRun;
     }
@@ -355,16 +350,12 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
     /**
      * Asks the agent for each file being monitored to check its file for changes.
      */
+    @Override
     public void run()
     {
         mainloop:
         while (!monitorThread.isInterrupted() && this.shouldRun)
         {
-            while (!this.deleteStack.empty())
-            {
-                this.removeFile(this.deleteStack.pop());
-            }
-
             // For each entry in the map
             Object[] fileNames;
             synchronized (this.monitorMap)
@@ -374,7 +365,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
             for (int iterFileNames = 0; iterFileNames < fileNames.length;
                  iterFileNames++)
             {
-                FileName fileName = (FileName) fileNames[iterFileNames];
+                final FileName fileName = (FileName) fileNames[iterFileNames];
                 FileMonitorAgent agent;
                 synchronized (this.monitorMap)
                 {
@@ -385,18 +376,15 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
                     agent.check();
                 }
 
-                if (getChecksPerRun() > 0)
+                if (getChecksPerRun() > 0 && (iterFileNames + 1) % getChecksPerRun() == 0)
                 {
-                    if ((iterFileNames % getChecksPerRun()) == 0)
+                    try
                     {
-                        try
-                        {
-                            Thread.sleep(getDelay());
-                        }
-                        catch (InterruptedException e)
-                        {
-                            // Woke up.
-                        }
+                        Thread.sleep(getDelay());
+                    }
+                    catch (final InterruptedException e)
+                    {
+                        // Woke up.
                     }
                 }
 
@@ -411,11 +399,16 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
                 this.addFile(this.addStack.pop());
             }
 
+            while (!this.deleteStack.empty())
+            {
+                this.removeFile(this.deleteStack.pop());
+            }
+
             try
             {
                 Thread.sleep(getDelay());
             }
-            catch (InterruptedException e)
+            catch (final InterruptedException e)
             {
                 continue;
             }
@@ -436,7 +429,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
         private long timestamp;
         private Map<FileName, Object> children;
 
-        private FileMonitorAgent(DefaultFileMonitor fm, FileObject file)
+        private FileMonitorAgent(final DefaultFileMonitor fm, final FileObject file)
         {
             this.fm = fm;
             this.file = file;
@@ -448,7 +441,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
             {
                 this.exists = this.file.exists();
             }
-            catch (FileSystemException fse)
+            catch (final FileSystemException fse)
             {
                 this.exists = false;
                 this.timestamp = -1;
@@ -460,7 +453,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
                 {
                     this.timestamp = this.file.getContent().getLastModifiedTime();
                 }
-                catch (FileSystemException fse)
+                catch (final FileSystemException fse)
                 {
                     this.timestamp = -1;
                 }
@@ -474,15 +467,15 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
                 if (this.file.getType().hasChildren())
                 {
                     this.children = new HashMap<FileName, Object>();
-                    FileObject[] childrenList = this.file.getChildren();
-                    for (int i = 0; i < childrenList.length; i++)
+                    final FileObject[] childrenList = this.file.getChildren();
+                    for (final FileObject element : childrenList)
                     {
-                        this.children.put(childrenList[i].getName(), new
+                        this.children.put(element.getName(), new
                             Object()); // null?
                     }
                 }
             }
-            catch (FileSystemException fse)
+            catch (final FileSystemException fse)
             {
                 this.children = null;
             }
@@ -498,7 +491,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
             {
                 this.file.refresh();
             }
-            catch (FileSystemException fse)
+            catch (final FileSystemException fse)
             {
                 LOG.error(fse.getLocalizedMessage(), fse);
             }
@@ -511,7 +504,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
          * FileObject.
          * @param child The child to add.
          */
-        private void fireAllCreate(FileObject child)
+        private void fireAllCreate(final FileObject child)
         {
             // Add listener so that it can be triggered
             if (this.fm.getFileListener() != null)
@@ -532,21 +525,16 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
 
             try
             {
-
-                if (this.fm.isRecursive())
+                if (this.fm.isRecursive() && child.getType().hasChildren())
                 {
-                    if (child.getType().hasChildren())
+                    final FileObject[] newChildren = child.getChildren();
+                    for (final FileObject element : newChildren)
                     {
-                        FileObject[] newChildren = child.getChildren();
-                        for (int i = 0; i < newChildren.length; i++)
-                        {
-                            fireAllCreate(newChildren[i]);
-                        }
+                        fireAllCreate(element);
                     }
                 }
-
             }
-            catch (FileSystemException fse)
+            catch (final FileSystemException fse)
             {
                 LOG.error(fse.getLocalizedMessage(), fse);
             }
@@ -562,12 +550,12 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
             {
                 if (this.file.getType().hasChildren())
                 {
-                    FileObject[] newChildren = this.file.getChildren();
+                    final FileObject[] newChildren = this.file.getChildren();
                     if (this.children != null)
                     {
                         // See which new children are not listed in the current children map.
-                        Map<FileName, Object> newChildrenMap = new HashMap<FileName, Object>();
-                        Stack<FileObject> missingChildren = new Stack<FileObject>();
+                        final Map<FileName, Object> newChildrenMap = new HashMap<FileName, Object>();
+                        final Stack<FileObject> missingChildren = new Stack<FileObject>();
 
                         for (int i = 0; i < newChildren.length; i++)
                         {
@@ -589,7 +577,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
 
                             while (!missingChildren.empty())
                             {
-                                FileObject child = missingChildren.pop();
+                                final FileObject child = missingChildren.pop();
                                 this.fireAllCreate(child);
                             }
                         }
@@ -602,16 +590,16 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
                         {
                             this.children = new HashMap<FileName, Object>();
                         }
-                        for (int i = 0; i < newChildren.length; i++)
+                        for (final FileObject element : newChildren)
                         {
-                            this.children.put(newChildren[i].getName(), new
+                            this.children.put(element.getName(), new
                                 Object()); // null?
-                            this.fireAllCreate(newChildren[i]);
+                            this.fireAllCreate(element);
                         }
                     }
                 }
             }
-            catch (FileSystemException fse)
+            catch (final FileSystemException fse)
             {
                 LOG.error(fse.getLocalizedMessage(), fse);
             }
@@ -679,7 +667,7 @@ public class DefaultFileMonitor implements Runnable, FileMonitor
                 this.checkForNewChildren();
 
             }
-            catch (FileSystemException fse)
+            catch (final FileSystemException fse)
             {
                 LOG.error(fse.getLocalizedMessage(), fse);
             }
