@@ -30,7 +30,8 @@ object EnsimeBuild extends Build {
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalamacros" %% "quasiquotes" % "2.0.1",
       "org.slf4j" % "slf4j-api" % "1.7.13",
-      "org.apache.lucene" % "lucene-core" % "4.7.2"
+      "org.apache.lucene" % "lucene-core" % "4.7.2",
+      shapeless
     ),
 
     libraryDependencies ++= {
@@ -95,6 +96,7 @@ object EnsimeBuild extends Build {
     javaOptions in run ++= yourkitAgent,
     javaOptions in Test += "-Dlogback.configurationFile=../logback-test.xml",
     testOptions in Test ++= noColorIfEmacs,
+    testFrameworks in Test := Seq(TestFrameworks.ScalaTest, TestFrameworks.JUnit),
     EnsimeKeys.scalariform := ScalariformKeys.preferences.value
   // updateCaching is still missing things --- e.g. shapeless in core/it:test
   //updateOptions := updateOptions.value.withCachedResolution(true)
@@ -134,6 +136,7 @@ object EnsimeBuild extends Build {
 
     javaOptions in It += "-Dfile.encoding=UTF8", // for file cloning
     testOptions in It ++= noColorIfEmacs,
+    testFrameworks in It := Seq(TestFrameworks.ScalaTest, TestFrameworks.JUnit),
 
     javaOptions in It ++= Seq(
       "-Dlogback.configurationFile=../logback-it.xml"
@@ -173,40 +176,46 @@ object EnsimeBuild extends Build {
 
   ////////////////////////////////////////////////
   // modules
-  lazy val util = Project("util", file("util"), settings = commonSettings) settings (
+  lazy val monkeys = Project("monkeys", file("monkeys")) settings(commonSettings) settings (
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+      "org.apache.commons" % "commons-vfs2" % "2.0" intransitive() exclude("commons-logging", "commons-logging")
+    ) ++ logback
+  )
+
+  lazy val util = Project("util", file("util")) settings(commonSettings) settings (
     libraryDependencies ++= List(
-      "org.apache.commons" % "commons-vfs2" % "2.0" intransitive (),
+      "org.apache.commons" % "commons-vfs2" % "2.0" intransitive() exclude("commons-logging", "commons-logging"),
       "com.google.guava" % "guava" % "18.0",
       "com.google.code.findbugs" % "jsr305" % "3.0.1" % "provided"
     ) ++ testLibs(scalaVersion.value) ++ logback
   )
 
-  lazy val testutil = Project("testutil", file("testutil"), settings = commonSettings) dependsOn(
+  lazy val testutil = Project("testutil", file("testutil")) settings(commonSettings) dependsOn(
     util, api
   ) settings (
     libraryDependencies += "commons-io" % "commons-io" % "2.4",
     libraryDependencies ++= testLibs(scalaVersion.value, "compile")
   )
 
-  lazy val s_express = Project("s-express", file("s-express"), settings = commonSettings) dependsOn (
+  lazy val s_express = Project("s-express", file("s-express")) settings(commonSettings) dependsOn (
     util
   ) settings (
-      licenses := Seq(GPL3),
       libraryDependencies ++= Seq(
-        "org.parboiled" %% "parboiled" % "2.1.0" exclude("com.chuusai", "shapeless_2.10.4"),
+        "org.parboiled" %% "parboiled" % "2.1.0" intransitive() exclude("com.chuusai", "shapeless_2.10.4"),
         shapeless
       ) ++ testLibs(scalaVersion.value)
     )
 
-  lazy val api = Project("api", file("api"), settings = commonSettings) settings (
+  lazy val api = Project("api", file("api")) settings(commonSettings) settings (
     libraryDependencies ++= Seq(
-      "org.scalariform" %% "scalariform" % "0.1.8" intransitive ()
+      "org.scalariform" %% "scalariform" % "0.1.8"
     ) ++ testLibs(scalaVersion.value),
       licenses := Seq(Apache2)
   )
 
   // the JSON protocol
-  lazy val jerky = Project("jerky", file("protocol-jerky"), settings = commonSettings) dependsOn (
+  lazy val jerky = Project("jerky", file("protocol-jerky")) settings(commonSettings) dependsOn (
     util,
     api,
     testutil % "test",
@@ -219,7 +228,7 @@ object EnsimeBuild extends Build {
     )
 
   // the S-Exp protocol
-  lazy val swanky = Project("swanky", file("protocol-swanky"), settings = commonSettings) dependsOn (
+  lazy val swanky = Project("swanky", file("protocol-swanky")) settings(commonSettings) dependsOn (
     api,
     testutil % "test",
     api % "test->test", // for the test data
@@ -268,7 +277,7 @@ object EnsimeBuild extends Build {
   )
 
   lazy val core = Project("core", file("core")).dependsOn(
-    api, s_express,
+    api, s_express, monkeys,
     api % "test->test", // for the interpolator
     testutil % "test,it",
     // depend on "it" dependencies in "test" or sbt adds them to the release deps!
@@ -338,8 +347,8 @@ object EnsimeBuild extends Build {
       )
 
   // manual root project so we can exclude the testing projects from publication
-  lazy val root = Project(id = "ensime", base = file("."), settings = commonSettings) aggregate (
-    api, util, testutil, s_express, jerky, swanky, core, server
+  lazy val root = Project(id = "ensime", base = file(".")) settings(commonSettings) aggregate (
+    api, monkeys, util, testutil, s_express, jerky, swanky, core, server
   ) dependsOn (server) settings (
       // e.g. `sbt ++2.11.7 ensime/assembly`
       test in assembly := {},
