@@ -125,31 +125,46 @@ abstract class ZipArchive(override val file: JFile) extends AbstractFile with Eq
 }
 /** ''Note:  This library is considered experimental and should not be used unless you know what you are doing.'' */
 final class FileZipArchive(file: JFile) extends ZipArchive(file) {
-  def iterator: Iterator[Entry] = {
-    val zipFile = new ZipFile(file)
-    val root    = new DirEntry("/")
-    val dirs    = mutable.HashMap[String, DirEntry]("/" -> root)
+  lazy val (root, allDirs) = {
+    val root = new DirEntry("/")
+    val dirs = mutable.HashMap[String, DirEntry]("/" -> root)
+    def openZipFile(): ZipFile = try {
+      new ZipFile(file)
+    } catch {
+      case ioe: IOException => throw new IOException("Error accessing " + file.getPath, ioe)
+    }
+
+    val zipFile = openZipFile()
     val enum    = zipFile.entries()
 
-    while (enum.hasMoreElements) {
+    try {while (enum.hasMoreElements) {
       val zipEntry = enum.nextElement
       val dir = getDir(dirs, zipEntry)
       if (zipEntry.isDirectory) dir
       else {
         class FileEntry() extends Entry(zipEntry.getName) {
-          override def getArchive   = zipFile
+          override def getArchive   = openZipFile
           override def lastModified = zipEntry.getTime()
-          override def input        = getArchive getInputStream zipEntry
+          override def input = {
+            val zipFile = getArchive
+            val delegate = zipFile getInputStream zipEntry
+            new FilterInputStream(delegate) {
+              override def close(): Unit = {
+                delegate.close()
+                zipFile.close()
+              }
+            }
+          }
           override def sizeOption   = Some(zipEntry.getSize().toInt)
         }
         val f = new FileEntry()
         dir.entries(f.name) = f
       }
-    }
-
-    try root.iterator
-    finally dirs.clear()
+    }} finally zipFile.close()
+    (root, dirs)
   }
+
+  def iterator: Iterator[Entry] = root.iterator
 
   def name         = file.getName
   def path         = file.getPath
