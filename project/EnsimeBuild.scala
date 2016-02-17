@@ -153,7 +153,8 @@ object EnsimeBuild extends Build {
         // see notes in https://github.com/ensime/ensime-server/pull/1446
         "org.scala-refactoring" % ("org.scala-refactoring.library_" + scalaVersion.value) % "0.10.0",
         "commons-lang" % "commons-lang" % "2.6",
-        "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
+        "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",
+        "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-SNAPSHOT"
       ) ++ Sensible.testLibs("it,test") ++ Sensible.shapeless(scalaVersion.value)
     ) enablePlugins BuildInfoPlugin settings (
         buildInfoPackage := organization.value,
