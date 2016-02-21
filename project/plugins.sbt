@@ -23,3 +23,5 @@ scalacOptions in Compile ++= Seq("-feature", "-deprecation")
 ivyLoggingLevel := UpdateLogging.Quiet
 
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.6.0")
+
+addSbtPlugin("io.get-coursier" % "sbt-coursier-java-6" % "1.0.0-M11")

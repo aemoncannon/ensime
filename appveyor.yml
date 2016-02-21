@@ -21,6 +21,7 @@ install:
   - cmd: SET SBT_OPTS=-XX:MaxPermSize=256m -Xss2m -Xms512m -Xmx512m
   - cmd: SET AKKA_TEST_TIMEFACTOR=10
   - cmd: SET SBT_TASK_LIMIT=2
+  - cmd: SET COURSIER_MODE=update-local-changing,missing
 build_script:
   - sbt clean compile test:compile it:compile
 before_test:
@@ -31,6 +32,7 @@ cache:
   - C:\sbt\
   - C:\Users\appveyor\.m2
   - C:\Users\appveyor\.ivy2
+  - C:\Users\appveyor\.coursier
   - C:\Program Files\Java\jdk1.7.0\src.zip
 on_failure:
   - appveyor PushArtifact -Path '**\*.log' -FileName logs -Type zip
