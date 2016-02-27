@@ -115,7 +115,7 @@ object Sensible {
   def shapeless(scalaVersion: String) = {
     if (scalaVersion.startsWith("2.10.")) macroParadise
     else Nil
-  } :+ "com.chuusai" %% "shapeless" % "2.2.5"
+  } :+ "com.chuusai" %% "shapeless" % "2.3.0"
   val logback = Seq(
     "ch.qos.logback" % "logback-classic" % "1.1.5",
     "org.slf4j" % "slf4j-api" % logbackVersion,

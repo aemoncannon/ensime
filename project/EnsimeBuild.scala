@@ -86,8 +86,7 @@ object EnsimeBuild extends Build {
     testutil % "test"
   ) settings (
       libraryDependencies ++= Seq(
-        // 2.1.1 not available https://github.com/sirthias/parboiled2/issues/160
-        "org.parboiled" %% "parboiled" % "2.1.0" intransitive () exclude ("com.chuusai", "shapeless_2.10.4")
+        "org.parboiled" %% "parboiled" % "2.1.2"
       ) ++ Sensible.shapeless(scalaVersion.value)
     )
 
@@ -106,7 +105,7 @@ object EnsimeBuild extends Build {
     api % "test->test" // for the test data
   ) settings (
       libraryDependencies ++= Seq(
-        "com.github.fommil" %% "spray-json-shapeless" % "1.1.0",
+        "com.github.fommil" %% "spray-json-shapeless" % "1.2.0",
         "com.typesafe.akka" %% "akka-slf4j" % Sensible.akkaVersion
       ) ++ Sensible.shapeless(scalaVersion.value)
     )
