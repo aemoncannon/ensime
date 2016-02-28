@@ -181,7 +181,6 @@ class DebugTest extends EnsimeSpec
                 activeBreakpoints should contain theSameElementsAs Set(
                   Breakpoint(breakpointsFile, 11), Breakpoint(breakpointsFile, 13)
                 )
-                pendingBreakpoints shouldBe empty
             }
 
             // check clear works again

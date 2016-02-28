@@ -51,13 +51,12 @@ class DebugManager(
 
   def setBreakpoint(file: File, line: Int): Boolean = {
     val applied = maybeVM.exists { vm => vm.setBreakpoint(file, line) }
+    val bp = Breakpoint(file, line)
+    addPendingBreakpoint(bp)
     if (applied) {
-      activeBreakpoints += Breakpoint(file, line)
-      true
-    } else {
-      addPendingBreakpoint(Breakpoint(file, line))
-      false
+      activeBreakpoints += bp
     }
+    applied
   }
 
   def clearBreakpoint(file: File, line: Int): Unit = {
@@ -80,11 +79,6 @@ class DebugManager(
     }
   }
 
-  def moveActiveBreaksToPending(): Unit = {
-    activeBreakpoints.foreach(addPendingBreakpoint)
-    activeBreakpoints = Set.empty
-  }
-
   def addPendingBreakpoint(bp: Breakpoint): Unit = {
     val file = bp.file
     val breaks = pendingBreaksBySourceName.getOrElse(file.getName, mutable.HashSet())
@@ -100,7 +94,7 @@ class DebugManager(
     withVM { vm =>
       vm.dispose()
     }
-    moveActiveBreaksToPending()
+    activeBreakpoints = Set.empty
     maybeVM = None
     broadcaster ! DebugVMDisconnectEvent
   }
@@ -294,9 +288,7 @@ class DebugManager(
           TrueResponse
       }
     case DebugSetBreakReq(file, line: Int) =>
-      if (!setBreakpoint(file, line)) {
-        bgMessage("Location not loaded. Set pending breakpoint.")
-      }
+      setBreakpoint(file, line)
       sender ! TrueResponse
     case DebugClearBreakReq(file, line: Int) =>
       clearBreakpoint(file, line)

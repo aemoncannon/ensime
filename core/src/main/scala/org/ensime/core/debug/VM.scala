@@ -84,6 +84,7 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
   }
 
   private val fileToUnits = mutable.HashMap[String, mutable.HashSet[ReferenceType]]()
+  private val ignoredUnits = mutable.HashMap[LineSourcePosition, mutable.HashSet[ReferenceType]]()
   private val process = vm.process()
   private val monitor = mode match {
     case VmAttach(_, _) => Nil
@@ -144,7 +145,7 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
   }
 
   def setBreakpoint(file: File, line: Int): Boolean = {
-    val locs = locations(file, line)
+    val locs = newLocations(new LineSourcePosition(file, line))
     if (locs.nonEmpty) {
       bgMessage(s"Resolved breakpoint at: $file : $line")
       bgMessage(s"Installing breakpoint at locations: $locs")
@@ -161,6 +162,7 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
 
   def clearAllBreakpoints(): Unit = {
     erm.deleteAllBreakpoints()
+    ignoredUnits.clear()
   }
 
   def clearBreakpoints(bps: Iterable[Breakpoint]): Unit = {
@@ -171,6 +173,7 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
       ) {
         if (pos.file == bp.file && pos.line == bp.line) {
           req.disable()
+          ignoredUnits(pos).clear()
         }
       }
     }
@@ -194,7 +197,12 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
     }
   }
 
-  def locations(file: File, line: Int): Set[Location] = {
+  /**
+   * When first called for `lsp`, returns all the known locations on that line of that
+   * file. Subsequent calls return all additional locations that became known since the
+   * most recent call.
+   */
+  def newLocations(lsp: LineSourcePosition): Set[Location] = {
 
     // Group locations by file and line
     case class LocationClass(loc: Location) {
@@ -208,18 +216,19 @@ class VM(val mode: VmMode, vmOptions: List[String], debugManager: ActorRef, broa
       override def hashCode: Int = loc.lineNumber.hashCode ^ loc.sourceName.hashCode
     }
 
+    val toIgnore = ignoredUnits(lsp)
+    val key = lsp.file.getName
+    val newUnits = fileToUnits.get(key).getOrElse(Set[ReferenceType]()) -- toIgnore
+    toIgnore ++= newUnits
     val buf = mutable.HashSet[LocationClass]()
-    val key = file.getName
-    for (types <- fileToUnits.get(key)) {
-      for (t <- types) {
-        for (m <- t.methods()) {
-          try { buf ++= m.locationsOfLine(line).map(LocationClass.apply) } catch {
-            case e: AbsentInformationException =>
-          }
-        }
-        try { buf ++= t.locationsOfLine(line).map(LocationClass.apply) } catch {
+    for (t <- newUnits) {
+      for (m <- t.methods()) {
+        try { buf ++= m.locationsOfLine(lsp.line).map(LocationClass.apply) } catch {
           case e: AbsentInformationException =>
         }
+      }
+      try { buf ++= t.locationsOfLine(lsp.line).map(LocationClass.apply) } catch {
+        case e: AbsentInformationException =>
       }
     }
     buf.map(_.loc).toSet
