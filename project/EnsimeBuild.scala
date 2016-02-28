@@ -21,6 +21,12 @@ object EnsimeBuild extends Build {
   lazy val commonSettings = Sensible.settings ++ Seq(
     libraryDependencies ++= Sensible.testLibs() ++ Sensible.logback,
 
+    dependencyOverrides ++= Set(
+       "com.typesafe.akka" %% "akka-actor" % Sensible.akkaVersion,
+       "com.typesafe.akka" %% "akka-testkit" % Sensible.akkaVersion,
+       "io.spray" %% "spray-json" % "1.3.2"
+    ),
+
     // WORKAROUND https://github.com/ensime/ensime-emacs/issues/327
     fullResolvers += Resolver.jcenterRepo,
 
