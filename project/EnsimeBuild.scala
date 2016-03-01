@@ -64,13 +64,13 @@ object EnsimeBuild extends Build {
   lazy val monkeys = Project("monkeys", file("monkeys")) settings (commonSettings) settings (
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "org.apache.commons" % "commons-vfs2" % "2.0" intransitive () exclude ("commons-logging", "commons-logging")
+      "org.apache.commons" % "commons-vfs2" % "2.0" exclude ("commons-logging", "commons-logging")
     )
   )
 
   lazy val util = Project("util", file("util")) settings (commonSettings) settings (
     libraryDependencies ++= List(
-      "org.apache.commons" % "commons-vfs2" % "2.0" intransitive () exclude ("commons-logging", "commons-logging")
+      "org.apache.commons" % "commons-vfs2" % "2.0" exclude ("commons-logging", "commons-logging")
     ) ++ Sensible.guava
   )
 
