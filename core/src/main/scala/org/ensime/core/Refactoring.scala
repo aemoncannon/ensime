@@ -3,10 +3,10 @@
 package org.ensime.core
 
 import java.io.File
+import java.nio.charset.Charset
 import org.ensime.api._
 import org.ensime.util.FileUtils._
 import org.ensime.util._
-import org.ensime.util.file.RichFile
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.refactoring._
 import scala.tools.refactoring.analysis.GlobalIndexes
