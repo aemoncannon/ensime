@@ -172,21 +172,6 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     unmarshal(
-      s"""(swank:prepare-refactor 1 ignored (end 100 file "$file1" newName "bar" start 1) nil)""",
-      PrepareRefactorReq(1, 'ignored, RenameRefactorDesc("bar", file1, 1, 100), false): RpcRequest
-    )
-
-    unmarshal(
-      s"""(swank:exec-refactor 1 rename)""",
-      ExecRefactorReq(1, RefactorType.Rename): RpcRequest
-    )
-
-    unmarshal(
-      """(swank:cancel-refactor 1)""",
-      CancelRefactorReq(1): RpcRequest
-    )
-
-    unmarshal(
       s"""(swank:diff-refactor 1 (end 100 file "$file1" newName "bar" start 1) nil)""",
       RefactorReq(1, RenameRefactorDesc("bar", file1, 1, 100), false): RpcRequest
     )
@@ -621,16 +606,6 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     marshal(
       RefactorFailure(7, "message"): RefactorFailure,
       """(:procedure-id 7 :reason "message" :status failure)"""
-    )
-
-    marshal(
-      refactorEffect: RefactorEffect,
-      s"""(:procedure-id 9 :refactor-type addImport :changes ((:type edit :file "$file3" :from 5 :to 7 :text "aaa")) :status success)"""
-    )
-
-    marshal(
-      refactorResult: RefactorResult,
-      s"""(:procedure-id 7 :refactor-type addImport :touched-files ("$file3" "$file1") :status success)"""
     )
 
     marshal(

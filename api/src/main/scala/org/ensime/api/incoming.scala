@@ -209,16 +209,6 @@ case class SymbolByNameReq(
 case class InspectPackageByPathReq(path: String) extends RpcAnalyserRequest
 
 /**
- * Responds with a `RefactorFailure` or a `RefactorEffect`.
- */
-case class PrepareRefactorReq(
-  procId: Int,
-  tpe: Symbol, // tpe is ignored but part of the legacy wire format
-  params: RefactorDesc,
-  interactive: Boolean
-) extends RpcAnalyserRequest
-
-/**
  * Responds with a `RefactorFailure` or a `RefactorDiffEffect`.
  */
 case class RefactorReq(
@@ -226,16 +216,6 @@ case class RefactorReq(
   params: RefactorDesc,
   interactive: Boolean
 ) extends RpcAnalyserRequest
-
-/**
- * Responds with a `RefactorFailure` or a `RefactorEffect`.
- */
-case class ExecRefactorReq(procId: Int, tpe: RefactorType) extends RpcAnalyserRequest
-
-/**
- * Responds with a `VoidResponse`.
- */
-case class CancelRefactorReq(procId: Int) extends RpcAnalyserRequest
 
 /**
  * Request the semantic classes of symbols in the given range.

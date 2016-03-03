@@ -8,10 +8,12 @@ import java.util.Date
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
+import org.scalatest.Assertions
 
 class RefactoringHandlerSpec extends EnsimeSpec
     with IsolatedAnalyzerFixture
-    with RichPresentationCompilerTestUtils {
+    with RichPresentationCompilerTestUtils
+    with RefactoringHandlerTestUtils {
 
   val encoding = "UTF-16"
   def original = EnsimeConfigFixture.EmptyTestProject.copy(
@@ -124,55 +126,9 @@ class RefactoringHandlerSpec extends EnsimeSpec
     fileContents should ===(expectedContents)
   }
 
-  //
-  // core/src/main/scala/org/ensime/core/Refactoring.scala#L.239
-  //
-  it should "organize imports when 3 imports exist" in withAnalyzer { (dir, analyzerRef) =>
-
-    // Please refer Scala IDE
-    // scala-refactoring/src/test/scala/scala/tools/refactoring/tests/implementations/imports/
-    // --> OrganizeImportsWildcardsTest.scala
-
-    // OrganizeImports need some paren --> "{...}"
-    val file = srcFile(dir, "tmp-contents", contents(
-      "import java.lang.Integer.{valueOf => vo}",
-      "import java.lang.Integer.toBinaryString",
-      "import java.lang.String.valueOf",
-      " ",
-      "trait Temp {",
-      "  valueOf(5)",
-      "  vo(\"5\")",
-      "  toBinaryString(27)",
-      "}"
-    ), write = true, encoding = encoding)
-
-    val analyzer = analyzerRef.underlyingActor
-
-    val procId = 1
-    analyzer.handleRefactorPrepareRequest(
-      new PrepareRefactorReq(
-        procId, 'Ignored, OrganiseImportsRefactorDesc(new File(file.path)), false
-      )
-    )
-    analyzer.handleRefactorExec(
-      new ExecRefactorReq(procId, RefactorType.OrganizeImports)
-    )
-
-    val formatted = readSrcFile(file, encoding)
-    val expectedContents = contents(
-      "import java.lang.Integer.{valueOf => vo, toBinaryString}",
-      "import java.lang.String.valueOf",
-      " ",
-      "trait Temp {",
-      "  valueOf(5)",
-      "  vo(\"5\")",
-      "  toBinaryString(27)",
-      "}"
-    )
-    formatted should ===(expectedContents)
-  }
-
   it should "add imports on the first line" in withAnalyzer { (dir, analyzerRef) =>
+    import org.ensime.util.file._
+
     val file = srcFile(dir, "tmp-contents", contents(
       "import java.lang.Integer.toBinaryString",
       "import java.lang.String.valueOf",
@@ -187,34 +143,33 @@ class RefactoringHandlerSpec extends EnsimeSpec
     val analyzer = analyzerRef.underlyingActor
 
     val procId = 1
-    analyzer.handleRefactorPrepareRequest(
-      new PrepareRefactorReq(
-        procId, 'Ignored, AddImportRefactorDesc("java.lang.Integer.{valueOf => vo}", new File(file.path)), false
+    val result = analyzer.handleRefactorRequest(
+      new RefactorReq(
+        procId, AddImportRefactorDesc("java.lang.Integer.{valueOf => vo}", new File(file.path)), false
       )
     )
-    analyzer.handleRefactorExec(
-      new ExecRefactorReq(procId, RefactorType.AddImport)
-    )
+    val diffFile = result match {
+      case RefactorDiffEffect(_, _, f) => f.canon
+      case _ => fail()
+    }
 
-    val formatted = readSrcFile(file, encoding)
+    val diffContents = diffFile.readString()
 
-    val expectedContents = contents(
-      "import java.lang.Integer.toBinaryString",
-      "import java.lang.String.valueOf",
-      "import java.lang.Integer.{valueOf => vo}",
-      "",
-      "trait Temp {",
-      "  valueOf(5)",
-      "  vo(\"5\")",
-      "  toBinaryString(27)",
-      "}"
-    )
+    val relevantExpectedPart = s"""|@@ -2,2 +2,3 @@
+                                   | import java.lang.String.valueOf
+                                   |+import java.lang.Integer.{valueOf => vo}
+                                   | \n""".stripMargin
 
-    formatted should ===(expectedContents)
+    val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
+
+    diffContents should ===(expectedContents)
+    diffFile.delete()
   }
 
   it should "add imports on the first line when other examples come" in {
     withAnalyzer { (dir, analyzerRef) =>
+      import org.ensime.util.file._
+
       val file = srcFile(dir, "tmp-contents", contents(
         "package org.ensime.testing",
         "",
@@ -228,33 +183,34 @@ class RefactoringHandlerSpec extends EnsimeSpec
       val analyzer = analyzerRef.underlyingActor
 
       val procId = 1
-      analyzer.handleRefactorPrepareRequest(
-        new PrepareRefactorReq(
-          procId, 'Ignored, AddImportRefactorDesc("java.lang.Integer", new File(file.path)), false
+      val result = analyzer.handleRefactorRequest(
+        new RefactorReq(
+          procId, AddImportRefactorDesc("java.lang.Integer", new File(file.path)), false
         )
       )
-      analyzer.handleRefactorExec(
-        new ExecRefactorReq(procId, RefactorType.AddImport)
-      )
+      val diffFile = result match {
+        case RefactorDiffEffect(_, _, f) => f.canon
+        case _ => fail()
+      }
 
-      val formatted = readSrcFile(file, encoding)
+      val diffContents = diffFile.readString()
 
-      val expectedContents = contents(
-        "package org.ensime.testing",
-        "",
-        "import java.lang.Integer",
-        "trait Temp {",
-        "  valueOf(5)",
-        "  vo(\"5\")",
-        "  toBinaryString(27)",
-        "}"
-      )
+      val relevantExpectedPart1 = s"""|@@ -2,2 +2,3 @@
+                                      | \n""".stripMargin
+      // workaround for above space character which is removed by the formatter which is invoked when all integration tests task is run
+      val relevantExpectedPart2 = s"""|+import java.lang.Integer
+                                      | trait Temp {
+                                      |""".stripMargin
 
-      formatted should ===(expectedContents)
+      val expectedContents = expectedDiffContent(file.path, relevantExpectedPart1 + relevantExpectedPart2)
+
+      diffContents should ===(expectedContents)
+      diffFile.delete()
     }
   }
 
   it should "rename a function id with params' opening/closing parenthesis on different lines" in withAnalyzer { (dir, analyzerRef) =>
+    import org.ensime.util.file._
 
     val file = srcFile(dir, "tmp-contents", contents(
       "package org.ensime.testing",
@@ -268,27 +224,31 @@ class RefactoringHandlerSpec extends EnsimeSpec
     val analyzer = analyzerRef.underlyingActor
 
     val procId = 1
-    analyzer.handleRefactorPrepareRequest(
-      new PrepareRefactorReq(
-        procId, 'rename, RenameRefactorDesc("doItNow", new File(file.path), 43, 47), false
+    val result = analyzer.handleRefactorRequest(
+      new RefactorReq(
+        procId, RenameRefactorDesc("doItNow", new File(file.path), 43, 47), false
       )
     )
-    analyzer.handleRefactorExec(
-      new ExecRefactorReq(procId, RefactorType.Rename)
-    )
-    val formatted = readSrcFile(file, encoding)
-    val expectedContents = contents(
-      "package org.ensime.testing",
-      "trait Foo {",
-      "def doItNow(",
-      ") = \"\"",
-      "}",
-      ""
-    )
-    formatted should ===(expectedContents)
+    val diffFile = result match {
+      case RefactorDiffEffect(_, _, f) => f.canon
+      case _ => fail()
+    }
+
+    val diffContents = diffFile.readString()
+
+    val relevantExpectedPart = s"""|@@ -2,3 +2,3 @@
+                                   | trait Foo {
+                                   |-def doIt(
+                                   |+def doItNow(
+                                   | ) = ""
+                                   |""".stripMargin
+    val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
+
+    diffContents should ===(expectedContents)
+    diffFile.delete()
   }
 
-  it should "organize imports" in {
+  it should "organize imports when 3 imports exist" in {
     withAnalyzer { (dir, analyzerRef) =>
       import org.ensime.util.file._
 
@@ -320,17 +280,15 @@ class RefactoringHandlerSpec extends EnsimeSpec
         case _ => fail()
       }
 
-      val sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss Z")
-      val t = sdf.format(new Date((new File(file.path)).lastModified()))
       val diffContents = diffFile.readString()
-      val expectedContents = s"""|--- ${file.path}	${t}
-                                 |+++ ${file.path}	${t}
-                                 |@@ -1,3 +1,2 @@
-                                 |-import java.lang.Integer.{valueOf => vo}
-                                 |-import java.lang.Integer.toBinaryString
-                                 |+import java.lang.Integer.{valueOf => vo, toBinaryString}
-                                 | import java.lang.String.valueOf
-                                 |""".stripMargin
+
+      val relevantExpectedPart = s"""|@@ -1,3 +1,2 @@
+                                     |-import java.lang.Integer.{valueOf => vo}
+                                     |-import java.lang.Integer.toBinaryString
+                                     |+import java.lang.Integer.{valueOf => vo, toBinaryString}
+                                     | import java.lang.String.valueOf
+                                     |""".stripMargin
+      val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
 
       diffContents should ===(expectedContents)
       diffFile.delete()
@@ -367,23 +325,33 @@ class RefactoringHandlerSpec extends EnsimeSpec
         case default => fail()
       }
 
-      val sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss Z")
-      val t = sdf.format(new Date((new File(file.path)).lastModified()))
       val diffContents = diffFile.readString()
-      val expectedContents = s"""|--- ${file.path}	${t}
-                                 |+++ ${file.path}	${t}
-                                 |@@ -1,5 +1,5 @@
-                                 |-import scala._
-                                 |-import java.lang.Integer
-                                 |-import scala.Int
-                                 | import java._
-                                 |+import java.lang.Integer
-                                 |+
-                                 |+import scala._
-                                 |  \n""".stripMargin
+
+      val relevantExpectedPart = s"""|@@ -1,5 +1,5 @@
+                                     |-import scala._
+                                     |-import java.lang.Integer
+                                     |-import scala.Int
+                                     | import java._
+                                     |+import java.lang.Integer
+                                     |+
+                                     |+import scala._
+                                     |  \n""".stripMargin
+      val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
 
       diffContents should ===(expectedContents)
       diffFile.delete()
     }
+  }
+}
+
+trait RefactoringHandlerTestUtils extends Assertions {
+  def expectedDiffContent(filepath: String, expectedContent: String) = {
+    val sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss Z")
+    val t = sdf.format(new Date((new File(filepath)).lastModified()))
+    val filepathPart = s"""|--- ${filepath}	${t}
+                           |+++ ${filepath}	${t}
+                           |""".stripMargin
+
+    filepathPart + expectedContent
   }
 }
