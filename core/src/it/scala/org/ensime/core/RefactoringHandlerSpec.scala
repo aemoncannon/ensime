@@ -153,7 +153,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
       case _ => fail()
     }
 
-    val diffContents = diffFile.readString()
+    val diffContents = diffFile.readString()(analyzer.charset)
 
     val relevantExpectedPart = s"""|@@ -2,2 +2,3 @@
                                    | import java.lang.String.valueOf
@@ -193,7 +193,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
         case _ => fail()
       }
 
-      val diffContents = diffFile.readString()
+      val diffContents = diffFile.readString()(analyzer.charset)
 
       val relevantExpectedPart1 = s"""|@@ -2,2 +2,3 @@
                                       | \n""".stripMargin
@@ -234,7 +234,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
       case _ => fail()
     }
 
-    val diffContents = diffFile.readString()
+    val diffContents = diffFile.readString()(analyzer.charset)
 
     val relevantExpectedPart = s"""|@@ -2,3 +2,3 @@
                                    | trait Foo {
@@ -280,7 +280,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
         case _ => fail()
       }
 
-      val diffContents = diffFile.readString()
+      val diffContents = diffFile.readString()(analyzer.charset)
 
       val relevantExpectedPart = s"""|@@ -1,3 +1,2 @@
                                      |-import java.lang.Integer.{valueOf => vo}
@@ -325,7 +325,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
         case default => fail()
       }
 
-      val diffContents = diffFile.readString()
+      val diffContents = diffFile.readString()(analyzer.charset)
 
       val relevantExpectedPart = s"""|@@ -1,5 +1,5 @@
                                      |-import scala._

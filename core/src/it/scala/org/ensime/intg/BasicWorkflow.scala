@@ -21,7 +21,6 @@ class BasicWorkflow extends EnsimeSpec
       withTestKit { implicit testkit =>
         withProject { (project, asyncHelper) =>
           import testkit._
-          import org.ensime.util.file._
 
           val sourceRoot = scalaMain(config)
           val fooFile = sourceRoot / "org/example/Foo.scala"
