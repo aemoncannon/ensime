@@ -53,9 +53,15 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
         } else if (sym.hasFlag(PARAM)) {
           add(ParamSymbol)
         } else {
+
           if (sym.ownerChain.exists(_.isDeprecated)) {
             add(DeprecatedSymbol)
           }
+
+          if (sym.ownerChain.exists(_.annotations.exists(_.atp.toString().endsWith("deprecating")))) {
+            add(DeprecatedSymbol)
+          }
+
           if (sym.hasFlag(ACCESSOR)) {
             val under = sym.accessed
             // The compiler mis-reports lazy val fields
@@ -170,6 +176,7 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
     val typed = new Response[Tree]
     // AskLoadedTyped below doesn't wait, since this code should run in the pres. compiler thread.
     askLoadedTyped(p.source, keepLoaded = true, typed)
+
     typed.get.left.toOption match {
       case Some(tree) =>
         val traverser = new SymDesigsTraverser(p, requestedTypes.toSet)

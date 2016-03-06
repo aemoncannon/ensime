@@ -135,7 +135,7 @@ class SemanticHighlightingSpec extends EnsimeSpec
             class Baz { def boo() = {} }
             class Foo extends Baz {
               def bar(): Unit = {}
-            } 
+            }
             @deprecated("bad", "someday")
             object X {
               new Foo().bar()
@@ -144,8 +144,8 @@ class SemanticHighlightingSpec extends EnsimeSpec
             }
             object Z {
               X.Y.goo()
-            }            
-          """,
+            }
+                  """,
       List(DeprecatedSymbol)
     )
     sds should ===(List(
@@ -160,6 +160,26 @@ class SemanticHighlightingSpec extends EnsimeSpec
       (DeprecatedSymbol, "X"),
       (DeprecatedSymbol, "Y"),
       (DeprecatedSymbol, "goo")
+    ))
+  }
+
+  it should "support custom deprecated symbol names" in withPresCompiler { (config, cc) =>
+    val sds = getSymbolDesignations(
+      config, cc, """
+            package com.example
+            import scala.annotation.StaticAnnotation
+            class deprecating(val p:String) extends StaticAnnotation {}
+            class Test {
+              @deprecating("AAA")
+              trait BadTrait
+              class BadSubclass extends BadTrait
+            }
+          """,
+      List(DeprecatedSymbol)
+    )
+
+    sds should ===(List(
+      (DeprecatedSymbol, "BadTrait")
     ))
   }
 
