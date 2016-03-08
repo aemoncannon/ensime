@@ -63,12 +63,8 @@ class DatabaseService(dir: File) extends SLF4JLogging {
   def removeFiles(files: List[FileObject])(implicit ec: ExecutionContext): Future[Int] =
     db.run {
       val restrict = files.map(_.getName.getURI)
-
-      (
-        fqnSymbols.filter(_.file inSet restrict).delete
-        andThen
-        fileChecks.filter(_.filename inSet restrict).delete
-      )
+      // Deletion from fqnSymbols relies on fk cascade delete action
+      fileChecks.filter(_.filename inSetBind restrict).delete
     }
 
   private val timestampsQuery = Compiled {
@@ -169,6 +165,7 @@ object DatabaseService {
     def * = (id.?, file, path, fqn, descriptor, internal, source, line, offset) <> (FqnSymbol.tupled, FqnSymbol.unapply)
     def fqnIdx = index("idx_fqn", fqn, unique = false) // fqns are unique by type and sig
     def uniq = index("idx_uniq", (fqn, descriptor, internal), unique = true)
+    def filename = foreignKey("filename_fk", file, fileChecks)(_.filename, onDelete = ForeignKeyAction.Cascade)
   }
   private val fqnSymbols = TableQuery[FqnSymbols]
   private val fqnSymbolsCompiled = Compiled { TableQuery[FqnSymbols] }

@@ -41,6 +41,8 @@ class SearchService(
   /**
    * Changelog:
    *
+   * 1.2 - added foreign key to FqnSymbols.file with cascade delete
+   *
    * 1.0 - reverted index due to negative impact to startup time. The
    *       workaround to large scale deletions is to just nuke the
    *       .ensime_cache.
@@ -49,7 +51,7 @@ class SearchService(
    *
    * 1.0 - initial schema
    */
-  private val version = "1.0"
+  private val version = "1.2"
 
   private val index = new IndexService(config.cacheDir / ("index-" + version))
   private val db = new DatabaseService(config.cacheDir / ("sql-" + version))
