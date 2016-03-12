@@ -92,7 +92,12 @@ class CustomisedProductFormatsSpec extends FormatSpec
     with BasicFormats with StandardFormats with ProductFormats
     with CamelCaseToDashes {
 
+  trait SkippingEnabled extends ProductFormats {
+    override val skipNilValues = true
+  }
+
   case class Foo(AThingyMaBob: Int, HTML: String)
+  case class Bar(num: Int, str: Option[String])
 
   "ProductFormats with overloaded toWireName" should "support custom field names" in {
     assertFormat(Foo(13, "foo"), SexpData(
@@ -100,4 +105,20 @@ class CustomisedProductFormatsSpec extends FormatSpec
       SexpSymbol(":h-t-m-l") -> SexpString("foo")
     ))
   }
+
+  "ProductFormats" should "not skip writing out nil values by default" in {
+    val wobble = Bar(13, None)
+    assertFormat(wobble, SexpData(
+      SexpSymbol(":num") -> SexpNumber(13),
+      SexpSymbol(":str") -> SexpNil
+    ))
+  }
+
+  "ProductFormats with overloaded skipNilValues" should "support writing out only non-nil values" in new SkippingEnabled {
+    val wobble = Bar(13, None)
+    assertFormat(wobble, SexpData(
+      SexpSymbol(":num") -> SexpNumber(13)
+    ))
+  }
 }
+
