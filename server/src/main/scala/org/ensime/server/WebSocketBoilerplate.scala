@@ -3,10 +3,6 @@
 package org.ensime.server
 
 import akka.actor._
-import akka.event.LoggingReceive
-import akka.pattern.ask
-import akka.util.Timeout
-import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import spray.json._
 

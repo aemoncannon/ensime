@@ -2,8 +2,6 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.intg
 
-import akka.event.slf4j.SLF4JLogging
-import org.apache.commons.io.FileUtils
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec

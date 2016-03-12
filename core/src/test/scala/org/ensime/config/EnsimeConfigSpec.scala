@@ -8,7 +8,6 @@ import org.ensime.util.{ EnsimeSpec, EscapingStringInterpolation }
 import org.ensime.api._
 
 import scala.util.Properties
-import scala.util.Try
 
 class EnsimeConfigSpec extends EnsimeSpec {
 

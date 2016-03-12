@@ -2,7 +2,6 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.util
 
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import java.util.concurrent.TimeUnit
 import org.scalatest._

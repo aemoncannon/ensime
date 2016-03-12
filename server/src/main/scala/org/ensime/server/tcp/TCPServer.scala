@@ -5,7 +5,7 @@ package org.ensime.server.tcp
 import java.io.File
 import java.net.InetSocketAddress
 
-import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.actor.{ Actor, ActorLogging, ActorRef }
 import akka.io.{ IO, Tcp }
 import org.ensime.core.Protocol
 import org.ensime.server.{ ShutdownRequest, PortUtil }

@@ -7,7 +7,7 @@ import org.ensime.api._
 
 object FileEditHelper {
 
-  import scala.tools.refactoring.common.{ Change, NewFileChange, TextChange }
+  import scala.tools.refactoring.common.{ Change, TextChange }
 
   def fromChange(ch: Change): FileEdit = {
     ch match {

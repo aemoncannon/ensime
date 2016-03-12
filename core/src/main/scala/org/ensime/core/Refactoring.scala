@@ -2,10 +2,7 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import java.io.BufferedWriter
 import java.io.File
-import java.io.PrintWriter
-import java.nio.charset.Charset
 import org.ensime.api._
 import org.ensime.util.FileUtils._
 import org.ensime.util._
@@ -15,7 +12,7 @@ import scala.tools.refactoring._
 import scala.tools.refactoring.analysis.GlobalIndexes
 import scala.tools.refactoring.common.{ Change, CompilerAccess }
 import scala.tools.refactoring.implementations._
-import scala.util.{ Success, Failure, Try }
+import scala.util.{ Success, Try }
 import scalariform.astselect.AstSelector
 import scalariform.formatter.ScalaFormatter
 import scalariform.utils.Range

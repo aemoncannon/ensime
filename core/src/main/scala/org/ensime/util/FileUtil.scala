@@ -8,9 +8,6 @@ import java.nio.charset.Charset
 
 import org.apache.commons.vfs2.FileObject
 
-import scala.collection.mutable
-import scala.reflect.internal.util.{ BatchSourceFile, SourceFile }
-
 import org.ensime.api._
 import org.ensime.util.file._
 

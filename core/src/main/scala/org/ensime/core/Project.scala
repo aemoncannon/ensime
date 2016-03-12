@@ -3,7 +3,6 @@
 package org.ensime.core
 
 import akka.actor._
-import akka.event.LoggingReceive
 import akka.event.LoggingReceive.withLabel
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._

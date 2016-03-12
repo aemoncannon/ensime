@@ -2,8 +2,6 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.sql.SQLException
-
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._

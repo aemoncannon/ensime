@@ -4,18 +4,17 @@ package org.ensime.core.javac
 
 import akka.actor.ActorRef
 import akka.event.slf4j.SLF4JLogging
-import com.sun.source.tree.{ MemberSelectTree, MethodInvocationTree, Tree, IdentifierTree }
+import com.sun.source.tree.{ MemberSelectTree, Tree, IdentifierTree }
 import com.sun.source.util.TreePath
-import javax.lang.model.`type`.{ DeclaredType, PrimitiveType, ReferenceType, TypeKind, TypeMirror }
+import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.{ Element, ExecutableElement, PackageElement, TypeElement, VariableElement }
 import javax.lang.model.util.{ ElementFilter, Elements }
-import org.ensime.core.{ DocFqn, DocSig, DocSigPair, CompletionUtil }
+import org.ensime.core.CompletionUtil
 import org.ensime.util.file._
 import org.ensime.api._
 import scala.collection.JavaConversions._
 import java.nio.charset.Charset
 import com.sun.source.tree.Scope
-import scala.collection.mutable.HashSet;
 import scala.collection.mutable.ArrayBuffer;
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

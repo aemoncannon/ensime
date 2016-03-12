@@ -5,12 +5,9 @@ package org.ensime.fixture
 import org.scalatest._
 import akka.testkit._
 
-import akka.pattern.{ AskTimeoutException, Patterns }
 import org.ensime.api._
 import org.ensime.core._
 
-import scala.collection.immutable.ListMap
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 object ProjectFixture extends Matchers {

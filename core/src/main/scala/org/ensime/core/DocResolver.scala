@@ -3,12 +3,10 @@
 package org.ensime.core
 
 import akka.actor._
-import akka.event.slf4j.SLF4JLogging
 import com.google.common.io.ByteStreams
 import java.io.{ File, IOException }
 import java.util.jar.JarFile
 import org.ensime.api._
-import scala.collection.mutable
 
 class DocResolver(
     prefix: String,

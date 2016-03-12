@@ -5,7 +5,6 @@ package org.ensime.core
 import akka.testkit._
 import scala.concurrent.duration._
 import org.ensime.fixture.SharedTestKitFixture
-import org.ensime.fixture.TestKitFix
 import org.ensime.util.EnsimeSpec
 
 class BroadcasterSpec extends EnsimeSpec with SharedTestKitFixture {

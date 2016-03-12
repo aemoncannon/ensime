@@ -3,8 +3,6 @@
 package org.ensime.core
 
 import akka.actor.ActorSystem
-import akka.event.slf4j.SLF4JLogging
-import akka.pattern.ask
 import akka.testkit.TestActorRef
 import org.ensime.api._
 import org.ensime.fixture._

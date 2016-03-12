@@ -4,18 +4,13 @@ package org.ensime.core
 
 import java.io.File
 
-import akka.event.slf4j.SLF4JLogging
 import org.ensime.api.OffsetSourcePosition
 import org.ensime.api.LineSourcePosition
 import org.ensime.api.SourceFileInfo
-import org.ensime.core.javac.JavaCompiler
 import org.ensime.core.javac.JavaFqn
-import org.ensime.core.javac.Helpers
 import org.ensime.fixture._
 import org.ensime.indexer.SearchServiceTestUtils
 import org.ensime.util.EnsimeSpec
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 
 class JavaCompilerSpec extends EnsimeSpec
     with IsolatedJavaCompilerFixture

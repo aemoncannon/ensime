@@ -3,7 +3,6 @@
 package org.ensime.api
 
 import java.io.File
-import java.nio.charset.Charset
 
 /**
  * There should be exactly one `RpcResponseEnvelope` in response to an

@@ -4,8 +4,6 @@ package org.ensime.sexp
 
 import org.ensime.util.EnsimeSpec
 
-import scala.util.{ Success, Try }
-
 class SexpSpec extends EnsimeSpec {
 
   val foostring = SexpString("foo")

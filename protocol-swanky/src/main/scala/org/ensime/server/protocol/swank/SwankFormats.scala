@@ -2,8 +2,6 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.server.protocol.swank
 
-import shapeless.cachedImplicit
-
 import org.ensime.sexp._
 import org.ensime.sexp.formats._
 

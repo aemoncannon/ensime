@@ -5,12 +5,9 @@ package org.ensime.core.javac
 import akka.actor.ActorRef
 import akka.event.slf4j.SLF4JLogging
 import com.sun.source.tree.Scope
-import com.sun.source.tree.Tree
 import com.sun.source.tree.{ IdentifierTree, MemberSelectTree }
-import com.sun.source.util.{ JavacTask, TreePath, Trees }
+import com.sun.source.util.{ JavacTask, TreePath }
 import java.io.{ File, FileInputStream, InputStream }
-import java.net.URI
-import java.nio.charset.Charset
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import javax.lang.model.`type`.TypeKind
@@ -18,22 +15,12 @@ import javax.lang.model.`type`.TypeMirror
 import javax.tools._
 import org.ensime.api._
 import org.ensime.core.DocSigPair
-import org.ensime.model.LineSourcePositionHelper
 import org.ensime.vfs._
 import org.ensime.indexer.SearchService
 import org.ensime.util.ReportHandler
 import org.ensime.util.file._
 import scala.collection.JavaConverters._
-import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
-import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.CompilerControl
-import scala.tools.nsc.io.AbstractFile
-import scala.tools.nsc.reporters.Reporter
-import scala.tools.refactoring.analysis.GlobalIndexes
 import com.sun.tools.javac.util.Abort
-import javax.lang.model.element.ElementKind
-import javax.lang.model.element.ExecutableElement
-import javax.lang.model.element.TypeElement
 
 class JavaCompiler(
     val config: EnsimeConfig,

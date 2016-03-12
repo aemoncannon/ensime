@@ -4,9 +4,6 @@ package org.ensime.core
 
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
-import scala.reflect.internal.util.{ BatchSourceFile, OffsetPosition }
-import scala.tools.nsc.Settings
-import scala.tools.nsc.reporters.ConsoleReporter
 
 class DocFindingSpec extends EnsimeSpec
     with IsolatedRichPresentationCompilerFixture

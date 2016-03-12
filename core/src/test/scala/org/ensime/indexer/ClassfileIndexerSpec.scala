@@ -5,7 +5,6 @@ package org.ensime.indexer
 import akka.event.slf4j.SLF4JLogging
 import org.ensime.fixture.IsolatedEnsimeVFSFixture
 import org.ensime.util.EnsimeSpec
-import org.scalatest.{ BeforeAndAfterAll, FunSpec, Matchers }
 import org.ensime.vfs._
 
 class ClassfileIndexerSpec extends EnsimeSpec with IsolatedEnsimeVFSFixture {

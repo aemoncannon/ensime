@@ -6,7 +6,6 @@ import org.apache.commons.io.FileUtils
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
-import org.scalatest.concurrent.Eventually
 import scala.concurrent.duration._
 
 /**
