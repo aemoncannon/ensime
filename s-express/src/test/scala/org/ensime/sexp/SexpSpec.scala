@@ -4,6 +4,8 @@ package org.ensime.sexp
 
 import org.ensime.util.EnsimeSpec
 
+import scala.util.{ Success, Try }
+
 class SexpSpec extends EnsimeSpec {
 
   val foostring = SexpString("foo")
@@ -38,6 +40,12 @@ class SexpSpec extends EnsimeSpec {
       case SexpList(_) => fail()
       case _ =>
     }
+  }
+
+  it should "support a list with 1000000 elements" in {
+    val data = List.fill(1000000)(SexpChar('a'))
+    val res = Try(SexpList(data))
+    res shouldBe a[Success[Sexp]]
   }
 
   "SexpData" should "create from varargs" in {
