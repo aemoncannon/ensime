@@ -22,4 +22,4 @@ scalacOptions in Compile ++= Seq("-feature", "-deprecation")
 // sbt, STFU...
 ivyLoggingLevel := UpdateLogging.Quiet
 
-addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.5.0")
+addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.6.0")
