@@ -3,8 +3,6 @@
 package org.ensime
 package config
 
-import java.net.{ JarURLConnection, URL }
-
 object Environment {
   def info: Seq[String] = Seq(
     "Environment:",
