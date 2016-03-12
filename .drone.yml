@@ -16,7 +16,7 @@ build:
         exit 1 ;
       fi
     - sbt ++$SCALA_VERSION test it:test
-    - if [ "${SCALA_VERSION}" = "2.11.7" ] ; then
+    - if [ "${SCALA_VERSION}" = "2.11.8" ] ; then
         sbt ++$SCALA_VERSION publishLocal ;
         git clone --depth 1 https://github.com/ensime/ensime-emacs.git ensime-emacs ;
         cd ensime-emacs ;
@@ -35,7 +35,7 @@ build:
       fi
 
 # TODO https://github.com/ensime/ensime-server/issues/1091
-#    - if [ "${SCALA_VERSION}" = "2.11.7" ] ; then
+#    - if [ "${SCALA_VERSION}" = "2.11.8" ] ; then
 #        sbt ++$SCALA_VERSION clean ;
 #        sbt ++$SCALA_VERSION coverage test ;
 #        sbt ++$SCALA_VERSION coverage it:test ;
@@ -44,7 +44,7 @@ build:
 
 matrix:
   SCALA_VERSION:
-    - 2.11.7
+    - 2.11.8
     - 2.10.6
 
 deploy:
@@ -53,4 +53,4 @@ deploy:
     repo: ensime/ensime
     when:
       matrix:
-        SCALA_VERSION: 2.11.7
+        SCALA_VERSION: 2.11.8

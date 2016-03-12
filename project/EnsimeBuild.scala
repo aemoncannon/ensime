@@ -13,7 +13,7 @@ import sbtbuildinfo.BuildInfoPlugin, BuildInfoPlugin.autoImport._
 
 object EnsimeBuild extends Build {
   lazy override val settings = super.settings ++ Seq(
-    scalaVersion := "2.11.7",
+    scalaVersion := "2.11.8",
     organization := "org.ensime",
     version := "0.9.10-SNAPSHOT"
   )
@@ -233,7 +233,7 @@ object EnsimeBuild extends Build {
   lazy val root = Project(id = "ensime", base = file(".")) settings (commonSettings) aggregate (
     api, monkeys, util, testutil, s_express, jerky, swanky, core, server
   ) dependsOn (server) settings (
-      // e.g. `sbt ++2.11.7 ensime/assembly`
+      // e.g. `sbt ++2.11.8 ensime/assembly`
       test in assembly := {},
       aggregate in assembly := false,
       assemblyMergeStrategy in assembly := {
