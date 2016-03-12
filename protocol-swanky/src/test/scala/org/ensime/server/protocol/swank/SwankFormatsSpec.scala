@@ -326,7 +326,7 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
         isFull = false,
         List(new Note("foo.scala", "testMsg", NoteWarn, 50, 55, 77, 5))
       ): EnsimeEvent,
-      """(:scala-notes (:is-full nil :notes ((:file "foo.scala" :msg "testMsg" :severity warn :beg 50 :end 55 :line 77 :col 5))))"""
+      """(:scala-notes (:notes ((:file "foo.scala" :msg "testMsg" :severity warn :beg 50 :end 55 :line 77 :col 5))))"""
     )
 
     marshal(
@@ -365,7 +365,7 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
     marshal(
       DebugExceptionEvent(33L, dtid, "threadNameStr", None, None): EnsimeEvent,
-      """(:debug-event (:type exception :exception 33 :thread-id "13" :thread-name "threadNameStr" :file nil :line nil))"""
+      """(:debug-event (:type exception :exception 33 :thread-id "13" :thread-name "threadNameStr"))"""
     )
 
     marshal(
@@ -492,27 +492,27 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     marshal(
       completionInfo: CompletionInfo,
-      """(:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC" nil) :is-callable nil :relevance 90 :to-insert "BAZ")"""
+      """(:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC" nil) :relevance 90 :to-insert "BAZ")"""
     )
 
     marshal(
       completionInfo2: CompletionInfo,
-      """(:name "name2" :type-sig (((("abc" "def"))) "ABC" nil) :is-callable t :relevance 91 :to-insert nil)"""
+      """(:name "name2" :type-sig (((("abc" "def"))) "ABC" nil) :is-callable t :relevance 91)"""
     )
 
     marshal(
       CompletionInfoList("fooBar", List(completionInfo)): CompletionInfoList,
-      """(:prefix "fooBar" :completions ((:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC" nil) :is-callable nil :relevance 90 :to-insert "BAZ")))"""
+      """(:prefix "fooBar" :completions ((:name "name" :type-sig (((("abc" "def") ("hij" "lmn"))) "ABC" nil) :relevance 90 :to-insert "BAZ")))"""
     )
 
     marshal(
       new SymbolInfo("name", "localName", None, typeInfo, false): SymbolInfo,
-      """(:name "name" :local-name "localName" :decl-pos nil :type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :is-callable nil)"""
+      """(:name "name" :local-name "localName" :type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1"))"""
     )
 
     marshal(
       new NamedTypeMemberInfo("typeX", typeInfo, None, None, DeclaredAs.Method): EntityInfo,
-      """(:name "typeX" :type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :pos nil :signature-string nil :decl-as method)"""
+      """(:name "typeX" :type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :decl-as method)"""
     )
 
     marshal(
@@ -527,22 +527,22 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     marshal(
       packageInfo: EntityInfo,
-      """(:info-type package :name "name" :full-name "fullName" :members nil)"""
+      """(:info-type package :name "name" :full-name "fullName")"""
     )
 
     marshal(
       interfaceInfo: InterfaceInfo,
-      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :via-view "DEF")"""
+      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :via-view "DEF")"""
     )
 
     marshal(
       new TypeInspectInfo(typeInfo, List(interfaceInfo)): TypeInspectInfo,
-      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :interfaces ((:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1" :type-args nil :members nil :pos nil) :via-view "DEF")) :info-type typeInspect)"""
+      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :interfaces ((:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :via-view "DEF")) :info-type typeInspect)"""
     )
 
     marshal(
       structureView: StructureView,
-      s"""(:view ((:keyword "class" :name "StructureView" :position (:type line :file "$file1" :line 57) :members nil) (:keyword "object" :name "StructureView" :position (:type line :file "$file1" :line 59) :members ((:keyword "type" :name "BasicType" :position (:type offset :file "$file1" :offset 456) :members nil)))))"""
+      s"""(:view ((:keyword "class" :name "StructureView" :position (:type line :file "$file1" :line 57)) (:keyword "object" :name "StructureView" :position (:type line :file "$file1" :line 59) :members ((:keyword "type" :name "BasicType" :position (:type offset :file "$file1" :offset 456))))))"""
     )
   }
 

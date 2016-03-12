@@ -26,10 +26,12 @@ import scala.util.{ Failure, Success, Try }
 case class SwankRPCFormatException(msg: String, callId: Int, cause: Throwable = null) extends Exception(msg, cause)
 
 object SwankProtocolConversions extends DefaultSexpProtocol
-  with SymbolAltFormat
-  with OptionAltFormat
-  with FamilyFormats
-  with CamelCaseToDashes
+    with SymbolAltFormat
+    with OptionAltFormat
+    with FamilyFormats
+    with CamelCaseToDashes {
+  override def skipNilValues: Boolean = true
+}
 
 object SwankProtocolCommon {
   import SwankProtocolConversions._
