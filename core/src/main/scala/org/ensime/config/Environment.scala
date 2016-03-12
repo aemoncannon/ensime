@@ -6,17 +6,17 @@ package config
 import java.net.{ JarURLConnection, URL }
 
 object Environment {
-  def info: String = s"""
-    |Environment:
-    |  OS : $osVersion
-    |  Java : $javaVersion
-    |  Scala version: $scalaVersion
-    |  Ensime : $ensimeVersion
-    |  Built with Scala version: ${BuildInfo.scalaVersion}
-    |  Built with sbt version: ${BuildInfo.sbtVersion}
-    |  Built from git sha: ${BuildInfo.gitSha}
-    |  Built on: ${BuildInfo.builtAtString}
-  """.trim.stripMargin
+  def info: Seq[String] = Seq(
+    "Environment:",
+    s"  OS : $osVersion",
+    s"  Java : $javaVersion",
+    s"  Scala version: $scalaVersion",
+    s"  Ensime : $ensimeVersion",
+    s"  Built with Scala version: ${BuildInfo.scalaVersion}",
+    s"  Built with sbt version: ${BuildInfo.sbtVersion}",
+    s"  Built from git sha: ${BuildInfo.gitSha}",
+    s"  Built on: ${BuildInfo.builtAtString}"
+  )
 
   private def osVersion: String =
     System.getProperty("os.name")
