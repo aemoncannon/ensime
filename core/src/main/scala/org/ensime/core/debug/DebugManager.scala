@@ -212,10 +212,10 @@ class DebugManager(
         pos.map(_.line)
       )
     case e: ThreadDeathEvent =>
-      println(this.hashCode() + " - DebugThreadDeathEvent" + e.thread().uniqueID())
+      println(this.hashCode() + " - DebugThreadDeathEvent" + e.thread().uniqueID() + "  " + e.thread().name())
       broadcaster ! DebugThreadDeathEvent(DebugThreadId(e.thread().uniqueID()))
     case e: ThreadStartEvent =>
-      println(this.hashCode() + " - DebugThreadStartEvent: " + e.thread().uniqueID())
+      println(this.hashCode() + " - DebugThreadStartEvent: " + e.thread().uniqueID() + "  " + e.thread().name())
       broadcaster ! DebugThreadStartEvent(DebugThreadId(e.thread().uniqueID()))
     case e: AccessWatchpointEvent =>
     case e: ClassPrepareEvent =>
