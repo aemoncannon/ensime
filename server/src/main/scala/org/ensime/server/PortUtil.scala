@@ -19,11 +19,12 @@ object PortUtil extends SLF4JLogging {
   def writePort(cacheDir: File, port: Int, name: String): Unit = {
     val portFile = cacheDir / name
     if (!portFile.exists()) {
-      log.info("creating port file: " + portFile)
       portFile.createNewFile()
     }
 
     portFile.deleteOnExit() // doesn't work on Windows
     portFile.writeString(port.toString)
+    // Some clients grep the log waiting for this file to be written - so always write the log message.
+    log.info("creating port file: " + portFile)
   }
 }
