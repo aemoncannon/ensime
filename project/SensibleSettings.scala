@@ -4,6 +4,7 @@ import scala.util.{ Properties, Try }
 import sbt._
 import Keys._
 import com.typesafe.sbt.SbtScalariform._
+import org.ensime.Imports.EnsimeKeys
 
 /**
  * A bunch of sensible defaults that fommil typically uses.
@@ -38,15 +39,28 @@ object Sensible {
         if (sys.env.contains("CI")) Seq("-Xfatal-warnings")
         else Nil
       },
+
+    javaOptions := Seq("-Xss2m", "-XX:MaxPermSize=256m", "-Xms1g", "-Xmx1g"),
+
+    javaOptions ++= Seq(
+      "-XX:+UseConcMarkSweepGC",
+      "-XX:+CMSIncrementalMode",
+      "-Dfile.encoding=UTF8",
+      // disabling shared memory gives a small performance boost to tests
+      "-XX:+PerfDisableSharedMem"
+    ),
+
     javacOptions in (Compile, compile) ++= Seq(
       "-source", "1.6", "-target", "1.6", "-Xlint:all", "-Werror",
       "-Xlint:-options", "-Xlint:-path", "-Xlint:-processing"
     ),
+
+    javaOptions in Test ++= Seq(
+      "-Dlogback.configurationFile=../logback-test.xml"
+    ),
+
     javacOptions in doc ++= Seq("-source", "1.6"),
 
-    javaOptions := Seq("-Xss2m", "-XX:MaxPermSize=256m", "-Xms1g", "-Xmx1g"),
-    javaOptions += "-Dfile.encoding=UTF8",
-    javaOptions ++= Seq("-XX:+UseConcMarkSweepGC", "-XX:+CMSIncrementalMode"),
     javaOptions in run ++= yourkitAgent,
 
     maxErrors := 1,
@@ -55,16 +69,7 @@ object Sensible {
     // 4 x 1GB = 4GB
     concurrentRestrictions in Global := Seq(Tags.limitAll(4)),
 
-    dependencyOverrides ++= Set(
-      "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-      "org.scala-lang" % "scala-library" % scalaVersion.value,
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "org.scala-lang" % "scalap" % scalaVersion.value,
-      "org.scala-lang.modules" %% "scala-xml" % scalaModulesVersion,
-      "org.scala-lang.modules" %% "scala-parser-combinators" % scalaModulesVersion,
-      "org.scalamacros" %% "quasiquotes" % quasiquotesVersion,
-      "org.scalatest" %% "scalatest" % scalatestVersion
-    ) ++ logback ++ guava ++ shapeless(scalaVersion.value)
+    EnsimeKeys.scalariform := ScalariformKeys.preferences.value
   ) ++ inConfig(Test)(testSettings) ++ scalariformSettings
 
   // TODO: scalariformSettingsWithIt generalised
@@ -100,42 +105,6 @@ object Sensible {
     testOptions ++= noColorIfEmacs,
     testFrameworks := Seq(TestFrameworks.ScalaTest, TestFrameworks.JUnit)
   )
-
-  val scalaModulesVersion = "1.0.4"
-  val akkaVersion = "2.3.14"
-  val streamsVersion = "1.0"
-  val scalatestVersion = "2.2.6"
-  val logbackVersion = "1.7.19"
-  val quasiquotesVersion = "2.0.1"
-  val guavaVersion = "19.0"
-
-  val macroParadise = Seq(
-    compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
-  )
-  def shapeless(scalaVersion: String) = {
-    if (scalaVersion.startsWith("2.10.")) macroParadise
-    else Nil
-  } :+ "com.chuusai" %% "shapeless" % "2.3.0"
-  val logback = Seq(
-    "ch.qos.logback" % "logback-classic" % "1.1.6",
-    "org.slf4j" % "slf4j-api" % logbackVersion,
-    "org.slf4j" % "jul-to-slf4j" % logbackVersion,
-    "org.slf4j" % "jcl-over-slf4j" % logbackVersion
-  )
-  val guava = Seq(
-    "com.google.guava" % "guava" % guavaVersion,
-    "com.google.code.findbugs" % "jsr305" % "3.0.1" % "provided"
-  )
-
-  // TODO: automate testLibs as part of the testSettings
-  def testLibs(config: String = "test") = Seq(
-    "org.scalatest" %% "scalatest" % scalatestVersion % config,
-    "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % config,
-    // scalacheck 1.13.0 is java 7+
-    "org.scalacheck" %% "scalacheck" % "1.12.5" % config,
-    "com.typesafe.akka" %% "akka-testkit" % akkaVersion % config,
-    "com.typesafe.akka" %% "akka-slf4j" % akkaVersion % config
-  ) ++ logback.map(_ % config)
 
   // e.g. YOURKIT_AGENT=/opt/yourkit/bin/linux-x86-64/libyjpagent.so
   val yourkitAgent = Properties.envOrNone("YOURKIT_AGENT").map { name =>

@@ -1,3 +1,8 @@
+resolvers += Resolver.url(
+  "typelevel-sbt-plugins",
+  url("http://dl.bintray.com/content/typelevel/sbt-plugins"))(
+  Resolver.ivyStylePatterns)
+
 // ensime-sbt is needed for the integration tests
 addSbtPlugin("org.ensime" % "ensime-sbt" % "0.4.0")
 
@@ -23,3 +28,5 @@ scalacOptions in Compile ++= Seq("-feature", "-deprecation")
 ivyLoggingLevel := UpdateLogging.Quiet
 
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.6.0")
+
+addSbtPlugin("org.typelevel" % "sbt-catalysts" % "0.1.9")
