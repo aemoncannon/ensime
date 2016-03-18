@@ -150,20 +150,6 @@ trait RefactorProcedure {
   def refactorType: RefactorType
 }
 
-case class RefactorEffect(
-  procedureId: Int,
-  refactorType: RefactorType,
-  changes: List[FileEdit],
-  status: scala.Symbol = 'success // redundant field
-) extends RpcResponse with RefactorProcedure
-
-case class RefactorResult(
-  procedureId: Int,
-  refactorType: RefactorType,
-  touchedFiles: Seq[File],
-  status: scala.Symbol = 'success // redundant field
-) extends RpcResponse with RefactorProcedure
-
 case class RefactorDiffEffect(
   procedureId: Int,
   refactorType: RefactorType,

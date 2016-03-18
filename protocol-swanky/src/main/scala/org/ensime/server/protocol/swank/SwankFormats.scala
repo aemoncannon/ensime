@@ -245,7 +245,6 @@ object SwankProtocolResponse {
   implicit val TextEditFormat = SexpFormat[TextEdit]
   implicit val NewFileFormat = SexpFormat[NewFile]
   implicit val DeleteFileFormat = SexpFormat[DeleteFile]
-  implicit val RefactorResultFormat = SexpFormat[RefactorResult]
   implicit val DebugVmErrorFormat = SexpFormat[DebugVmError]
   implicit val EmptySourcePositionFormat = SexpFormat[EmptySourcePosition]
 
@@ -443,7 +442,6 @@ object SwankProtocolResponse {
     }
   }
   // must be after FileEditFormat
-  implicit val RefactorEffectFormat = SexpFormat[RefactorEffect]
   implicit val RefactorDiffEffectFormat = SexpFormat[RefactorDiffEffect]
 
   // must be after SourcePosition
@@ -550,9 +548,7 @@ object SwankProtocolResponse {
       case value: FileRange => value.toSexp
       case value: SymbolDesignations => value.toSexp
       case value: RefactorFailure => value.toSexp
-      case value: RefactorEffect => value.toSexp
       case value: RefactorDiffEffect => value.toSexp
-      case value: RefactorResult => value.toSexp
       case value: ImplicitInfos => value.toSexp
       case value: StructureView => value.toSexp
       case error: EnsimeServerError =>
@@ -630,9 +626,6 @@ object SwankProtocolRequest {
   implicit val SymbolAtPointReqHint = TypeHint[SymbolAtPointReq](SexpSymbol("swank:symbol-at-point"))
   implicit val SymbolByNameReqHint = TypeHint[SymbolByNameReq](SexpSymbol("swank:symbol-by-name"))
   implicit val InspectPackageByPathReqHint = TypeHint[InspectPackageByPathReq](SexpSymbol("swank:inspect-package-by-path"))
-  implicit val PrepareRefactorReqHint = TypeHint[PrepareRefactorReq](SexpSymbol("swank:prepare-refactor"))
-  implicit val ExecRefactorReqHint = TypeHint[ExecRefactorReq](SexpSymbol("swank:exec-refactor"))
-  implicit val CancelRefactorReqHint = TypeHint[CancelRefactorReq](SexpSymbol("swank:cancel-refactor"))
   implicit val RefactorReqHint = TypeHint[RefactorReq](SexpSymbol("swank:diff-refactor"))
   implicit val SymbolDesignationsReqHint = TypeHint[SymbolDesignationsReq](SexpSymbol("swank:symbol-designations"))
   implicit val ImplicitInfoReqHint = TypeHint[ImplicitInfoReq](SexpSymbol("swank:implicit-info"))
@@ -779,9 +772,6 @@ object SwankProtocolRequest {
   implicit def SymbolAtPointReqFormat = SexpFormat[SymbolAtPointReq]
   implicit def SymbolByNameReqFormat = SexpFormat[SymbolByNameReq]
   implicit def InspectPackageByPathReqFormat = SexpFormat[InspectPackageByPathReq]
-  implicit def PrepareRefactorReqFormat = SexpFormat[PrepareRefactorReq]
-  implicit def ExecRefactorReqFormat = SexpFormat[ExecRefactorReq]
-  implicit def CancelRefactorReqFormat = SexpFormat[CancelRefactorReq]
   implicit def RefactorReqFormat = SexpFormat[RefactorReq]
   implicit def SymbolDesignationsReqFormat = SexpFormat[SymbolDesignationsReq]
   implicit def ImplicitInfoReqFormat = SexpFormat[ImplicitInfoReq]
@@ -830,9 +820,6 @@ object SwankProtocolRequest {
           case s if s == SymbolAtPointReqHint.hint => value.convertTo[SymbolAtPointReq]
           case s if s == SymbolByNameReqHint.hint => value.convertTo[SymbolByNameReq]
           case s if s == InspectPackageByPathReqHint.hint => value.convertTo[InspectPackageByPathReq]
-          case s if s == PrepareRefactorReqHint.hint => value.convertTo[PrepareRefactorReq]
-          case s if s == ExecRefactorReqHint.hint => value.convertTo[ExecRefactorReq]
-          case s if s == CancelRefactorReqHint.hint => value.convertTo[CancelRefactorReq]
           case s if s == RefactorReqHint.hint => value.convertTo[RefactorReq]
           case s if s == SymbolDesignationsReqHint.hint => value.convertTo[SymbolDesignationsReq]
           case s if s == ImplicitInfoReqHint.hint => value.convertTo[ImplicitInfoReq]

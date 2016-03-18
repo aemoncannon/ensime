@@ -154,21 +154,6 @@ class JerkFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeTe
     )
 
     roundtrip(
-      PrepareRefactorReq(1, 'ignored, RenameRefactorDesc("bar", file1, 1, 100), false): RpcRequest,
-      s"""{"tpe":"ignored","procId":1,"params":{"newName":"bar","typehint":"RenameRefactorDesc","end":100,"file":"$file1","start":1},"typehint":"PrepareRefactorReq","interactive":false}"""
-    )
-
-    roundtrip(
-      ExecRefactorReq(1, RefactorType.Rename): RpcRequest,
-      """{"typehint":"ExecRefactorReq","procId":1,"tpe":{"typehint":"Rename"}}"""
-    )
-
-    roundtrip(
-      CancelRefactorReq(1): RpcRequest,
-      """{"typehint":"CancelRefactorReq","procId":1}"""
-    )
-
-    roundtrip(
       RefactorReq(1, RenameRefactorDesc("bar", file1, 1, 100), false): RpcRequest,
       s"""{"procId":1,"params":{"newName":"bar","typehint":"RenameRefactorDesc","end":100,"file":"$file1","start":1},"typehint":"RefactorReq","interactive":false}"""
     )
@@ -600,16 +585,6 @@ class JerkFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeTe
     roundtrip(
       RefactorFailure(7, "message"): EnsimeServerMessage,
       """{"typehint":"RefactorFailure","procedureId":7,"reason":"message","status":"failure"}"""
-    )
-
-    roundtrip(
-      refactorEffect: EnsimeServerMessage,
-      s"""{"typehint":"RefactorEffect","procedureId":9,"refactorType":{"typehint":"AddImport"},"changes":[{"text":"aaa","typehint":"TextEdit","to":7,"from":5,"file":"$file3"}],"status":"success"}"""
-    )
-
-    roundtrip(
-      refactorResult: EnsimeServerMessage,
-      s"""{"typehint":"RefactorResult","procedureId":7,"refactorType":{"typehint":"AddImport"},"touchedFiles":["$file3","$file1"],"status":"success"}"""
     )
 
     roundtrip(

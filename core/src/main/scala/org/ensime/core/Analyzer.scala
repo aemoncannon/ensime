@@ -178,12 +178,6 @@ class Analyzer(
       sender ! handleReloadFiles(List(fileInfo))
     case TypecheckFilesReq(files) =>
       sender ! handleReloadFiles(files.map(toSourceFileInfo))
-    case req: PrepareRefactorReq =>
-      sender ! handleRefactorPrepareRequest(req)
-    case req: ExecRefactorReq =>
-      sender ! handleRefactorExec(req)
-    case req: CancelRefactorReq =>
-      sender ! handleRefactorCancel(req)
     case req: RefactorReq =>
       sender ! handleRefactorRequest(req)
     case CompletionsReq(fileInfo, point, maxResults, caseSens, _reload) =>
