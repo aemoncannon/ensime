@@ -86,7 +86,7 @@ class WebServerSpec extends HttpFlatSpec with WebServer {
         <html>
           <head/>
           <body>
-            <h1>ENSIME: Your Project's Documention</h1>
+            <h1>ENSIME: Your Project's Documentation</h1>
             <ul>
               <li>
                 <a href="docs/bar-javadoc.jar/index.html">bar-javadoc.jar</a>

@@ -60,7 +60,7 @@ trait WebServer {
         <html>
           <head></head>
           <body>
-            <h1>ENSIME: Your Project's Documention</h1>
+            <h1>ENSIME: Your Project's Documentation</h1>
             <ul>{
               docJars().toList.map(_.getName).sorted.map { f =>
                 <li><a href={ s"docs/$f/index.html" }>{ f }</a> </li>
