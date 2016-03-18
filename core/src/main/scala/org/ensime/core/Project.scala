@@ -54,6 +54,20 @@ class Project(
   }
   private val classfileWatcher = context.actorOf(Props(new ClassfileWatcher(config, searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
+  var seenWorkSinceIdle = true
+  //  var lastMessageReceived = System.currentTimeMillis()
+
+  def processIdleMessage(): Unit = {
+    if (seenWorkSinceIdle)
+      seenWorkSinceIdle = false
+    else
+      System.gc()
+  }
+
+  def seenWorkMessage(): Unit = {
+    seenWorkSinceIdle = true
+  }
+
   def receive: Receive = awaitingConnectionInfoReq
 
   def awaitingConnectionInfoReq: Receive = withLabel("awaitingConnectionInfoReq") {
@@ -113,7 +127,13 @@ class Project(
   // debounces ReloadExistingFilesEvent
   private var rechecking: Cancellable = _
 
-  def handleRequests: Receive = withLabel("handleRequests") {
+  def idleMonitor(r: Receive)(implicit context: ActorContext): Receive = {
+    case i @ Idle =>
+      processIdleMessage(); r(i)
+    case i => seenWorkMessage; r(i)
+  }
+
+  def handleRequests: Receive = withLabel("handleRequests")(idleMonitor {
     case AskReTypecheck =>
       Option(rechecking).foreach(_.cancel())
       rechecking = system.scheduler.scheduleOnce(
@@ -141,7 +161,7 @@ class Project(
     // added here to prevent errors when client sends this repeatedly (e.g. as a keepalive
     case ConnectionInfoReq =>
       sender() ! ConnectionInfo()
-  }
+  })
 
 }
 object Project {
