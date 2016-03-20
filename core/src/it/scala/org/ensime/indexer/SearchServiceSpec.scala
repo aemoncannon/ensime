@@ -158,6 +158,21 @@ class SearchServiceSpec extends EnsimeSpec
     hits.head shouldBe "org.example2.Baz"
   }
 
+  it should "return user created classes first" in withSearchService { implicit service =>
+    val hits = service.searchClasses("File", 10).map(_.fqn)
+    hits.head should startWith("org.boost.File")
+    hits should contain("java.io.File")
+
+    val hits2 = service.searchClasses("Function1", 25).map(_.fqn)
+    hits2.head should startWith("org.boost.Function1")
+    hits2 should contain("scala.Function1")
+  }
+
+  it should "return user methods first" in withSearchService { implicit service =>
+    val hits = service.searchClassesMethods("toString" :: Nil, 10).map(_.fqn)
+    all(hits) should startWith regex ("org.example|org.boost")
+  }
+
   "exact searches" should "find type aliases" in withSearchService { implicit service =>
     service.findUnique("org.scalatest.fixture.ConfigMapFixture$FixtureParam") shouldBe defined
   }

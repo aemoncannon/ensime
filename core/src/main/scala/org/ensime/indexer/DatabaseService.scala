@@ -2,7 +2,6 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.io.File
 import java.sql.Timestamp
 
 import akka.event.slf4j.SLF4JLogging
@@ -12,6 +11,7 @@ import org.ensime.indexer.DatabaseService._
 
 import org.ensime.api._
 import org.ensime.vfs._
+import org.ensime.util.file._
 
 import scala.concurrent._
 import scala.concurrent.duration._

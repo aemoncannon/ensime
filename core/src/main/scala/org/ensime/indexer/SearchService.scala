@@ -34,6 +34,10 @@ class SearchService(
     with FileChangeListener
     with SLF4JLogging {
 
+  private[indexer] def isUserFile(file: FileName): Boolean = {
+    (config.allTargets map (vfs.vfile)) exists (file isAncestor _.getName)
+  }
+
   private val QUERY_TIMEOUT = 30 seconds
 
   /**
@@ -110,8 +114,9 @@ class SearchService(
       val outOfDate = fileCheck.map(_.changed).getOrElse(true)
       if (!outOfDate) Future.successful(None)
       else {
+        val boost = isUserFile(base.getName())
         val check = FileCheck(base)
-        extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false))
+        extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false, boost = boost))
       }
     }
 
@@ -146,8 +151,8 @@ class SearchService(
 
   def refreshResolver(): Unit = resolver.update()
 
-  def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean): Future[Option[Int]] = {
-    val iwork = Future { blocking { index.persist(check, symbols, commitIndex) } }
+  def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean, boost: Boolean): Future[Option[Int]] = {
+    val iwork = Future { blocking { index.persist(check, symbols, commitIndex, boost) } }
     val dwork = db.persist(check, symbols)
     iwork.flatMap { _ => dwork }
   }
@@ -313,7 +318,8 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
             case Success(_) => indexed.collect {
               case (file, syms) if syms.isEmpty =>
               case (file, syms) =>
-                searchService.persist(FileCheck(file), syms, commitIndex = true).onComplete {
+                val boost = searchService.isUserFile((file.getName))
+                searchService.persist(FileCheck(file), syms, commitIndex = true, boost = boost).onComplete {
                   case Failure(t) => log.error(s"failed to persist entries in $file", t)
                   case Success(_) =>
                 }
