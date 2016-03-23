@@ -212,8 +212,10 @@ class DebugManager(
         pos.map(_.line)
       )
     case e: ThreadDeathEvent =>
+      println(this.hashCode() + " - DebugThreadDeathEvent" + e.thread().uniqueID() + "  " + e.thread().name())
       broadcaster ! DebugThreadDeathEvent(DebugThreadId(e.thread().uniqueID()))
     case e: ThreadStartEvent =>
+      println(this.hashCode() + " - DebugThreadStartEvent: " + e.thread().uniqueID() + "  " + e.thread().name())
       broadcaster ! DebugThreadStartEvent(DebugThreadId(e.thread().uniqueID()))
     case e: AccessWatchpointEvent =>
     case e: ClassPrepareEvent =>
@@ -227,6 +229,7 @@ class DebugManager(
 
   def disposeCurrentVM(): Unit = {
     withVM { vm =>
+      println(this.hashCode() + " - DisposeVM")
       vm.dispose()
     }
   }
@@ -240,6 +243,7 @@ class DebugManager(
   def handleDebugStartReq(commandLine: String): RpcResponse = {
     disposeCurrentVM()
     try {
+      println(this.hashCode() + " - DebugStart")
       val vm = new VM(VmStart(commandLine), vmOptions(), self, broadcaster, sourceMap)
       maybeVM = Some(vm)
       vm.start()
