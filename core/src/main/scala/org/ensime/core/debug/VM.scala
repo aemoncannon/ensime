@@ -80,7 +80,7 @@ class VM(
   }
 
   def dispose() = try {
-    evtQ.finished = true
+    evtQ.stop()
     vm.dispose()
   } catch {
     case e: VMDisconnectedException =>
