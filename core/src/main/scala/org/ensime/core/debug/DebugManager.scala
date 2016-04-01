@@ -29,7 +29,6 @@ class DebugManager(
     config: EnsimeConfig
 ) extends Actor with ActorLogging {
 
-  // TODO this is built once on startup - probably makes sense for it to be done each time a debug vm is created
   private var sourceMap = new SourceMap(config)
 
   private var activeBreakpoints = Set[Breakpoint]()

@@ -81,8 +81,6 @@ class DocFindingSpec extends EnsimeSpec
           case "13" => sig.java shouldBe DocSig(DocFqn("com.google.common.io", "Files"), Some("map(java.io.File, java.nio.channels.FileChannel.MapMode)"))
           case "14" => sig.java shouldBe DocSig(DocFqn("com.google.common.io", "Files"), Some("map(java.io.File, java.nio.channels.FileChannel.MapMode, long)"))
           case "15" => sig.java shouldBe DocSig(DocFqn("com.google.common.io", "Files"), Some("write(byte[], java.io.File)"))
-          // TODO(fix this hack) - just goes to the class itself if companion
-          // constructor is requested.
           case "16" => sig.java shouldBe DocSig(DocFqn("scala", "Some"), None)
           case "17" => sig.java shouldBe DocSig(DocFqn("java.lang", "String"), None)
           case "18" => sig.scala shouldBe DocSig(DocFqn("scala", "Int"), None)
@@ -94,10 +92,6 @@ class DocFindingSpec extends EnsimeSpec
           case "25" => sig.java shouldBe DocSig(DocFqn("java.util", "Map.Entry"), None)
           case "26" => sig.java shouldBe DocSig(DocFqn("java.util", "package"), None)
           case "27" => sig.java shouldBe DocSig(DocFqn("scala.collection", "package"), None)
-          // TODO: Would be nice to be able to inspect a particular constructor. The problem is that
-          // symbolAt returns the type itself when point is in 'File', and it's not totally clear
-          // that's wrong.
-          //            case "28" => sig.java shouldBe DocSig("java.io.File", Some("File(java.lang.String, java.lang.String)")
           case "28" => sig.scala shouldBe DocSig(DocFqn("scala", "package"), Some("Exception=Exception"))
 
           // Check @usecase handling.

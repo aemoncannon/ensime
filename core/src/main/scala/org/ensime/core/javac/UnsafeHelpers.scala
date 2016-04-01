@@ -32,8 +32,6 @@ trait UnsafeHelpers extends SLF4JLogging {
       case t: JCVariableDecl => Some(t.sym)
       case t: JCIdent => Some(t.sym)
       case t: JCFieldAccess => Some(t.sym)
-      // TODO: Workaround for java 6
-      //      case t: JCMemberReference => Some(t.sym)
       case t: JCNewClass => Some(t.constructor)
       case t: JCMethodInvocation => unsafeGetElement(info, t.meth)
       case t: JCTypeApply => unsafeGetElement(info, t.clazz)

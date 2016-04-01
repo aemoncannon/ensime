@@ -56,7 +56,6 @@ class JavaCompiler(
     val fileManager = sharedFileManager match {
       case Some(fm) => fm
       case _ =>
-        // TODO: take a charset for each invocation
         val fm = compiler.getStandardFileManager(listener, null, DefaultCharset)
         sharedFileManager = Some(fm)
         fm

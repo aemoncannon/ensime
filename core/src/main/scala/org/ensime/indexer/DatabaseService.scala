@@ -54,9 +54,6 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     log.info("... created the search database")
   }
 
-  // TODO hierarchy
-  // TODO reverse lookup table
-
   // file with last modified time
   def knownFiles(): Future[Seq[FileCheck]] = db.run(fileChecks.result)
 

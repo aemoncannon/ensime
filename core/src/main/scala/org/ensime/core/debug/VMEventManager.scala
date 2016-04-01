@@ -11,8 +11,6 @@ class VMEventManager(val eventQueue: EventQueue, debugManager: ActorRef) extends
 
   val log = LoggerFactory.getLogger("VMEventManager")
 
-  // TODO needs proper stop method with interrupt
-
   @volatile var finished = false
   override def run(): Unit = {
     while (!finished) {

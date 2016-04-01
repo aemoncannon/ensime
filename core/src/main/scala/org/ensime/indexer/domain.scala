@@ -115,7 +115,6 @@ case class Descriptor(params: List[DescriptorType], ret: DescriptorType) {
     "(" + params.map(_.internalString).mkString("") + ")" + ret.internalString
 }
 
-// TODO: replace generics Strings with domain objects
 case class RawClassfile(
   name: ClassName,
   generics: Option[String],

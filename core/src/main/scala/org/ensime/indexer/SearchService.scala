@@ -190,7 +190,6 @@ class SearchService(
         val source = resolver.resolve(clazz.name.pack, clazz.source)
         val sourceUri = source.map(_.getName.getURI)
 
-        // TODO: other types of visibility when we get more sophisticated
         if (clazz.access != Public) Nil
         else FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
           clazz.methods.toList.filter(_.access == Public).map { method =>
@@ -206,7 +205,6 @@ class SearchService(
     }
   }.filterNot(sym => ignore.exists(sym.fqn.contains))
 
-  // TODO: provide context (user's current module and main/test)
   /** free-form search for classes */
   def searchClasses(query: String, max: Int): List[FqnSymbol] = {
     val fqns = index.searchClasses(query, max)
