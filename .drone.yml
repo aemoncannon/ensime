@@ -7,6 +7,10 @@ build:
     - EMACS=/opt/emacs-24.5/bin/emacs
     - AKKA_TEST_TIMEFACTOR=10
   commands:
+    - if grep -rlE 'TODO|FIXME' . | grep -Ev 'target|.git|.drone.yml' > /dev/null; then
+        echo "Please remove TODO or FIXME. Create an issue at GitHub instead." ;
+        exit 1 ;
+      fi
     - git log | head -n 20
     - sbt ++$SCALA_VERSION gen-ensime ;
       sbt ++$SCALA_VERSION clean test:compile it:compile doc ;
