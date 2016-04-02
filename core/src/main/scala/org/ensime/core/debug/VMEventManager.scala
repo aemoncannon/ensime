@@ -51,3 +51,4 @@ class VMEventManager(val eventQueue: EventQueue, debugManager: ActorRef) {
     thread.interrupt()
   }
 }
+
