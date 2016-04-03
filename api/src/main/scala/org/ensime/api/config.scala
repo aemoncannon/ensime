@@ -52,6 +52,9 @@ case class EnsimeConfig(
     }.toSet
   } ++ javaLibs
 
+  val allTargets: Set[File] =
+    subprojects.flatMap(sm => sm.targets ::: sm.testTargets).toSet
+
   def allDocJars: Set[File] = modules.values.flatMap(_.docJars).toSet
 
   def scalaLibrary: Option[File] = allJars.find(_.getName.startsWith("scala-library"))

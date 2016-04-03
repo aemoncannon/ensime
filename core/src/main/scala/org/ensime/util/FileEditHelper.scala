@@ -26,8 +26,4 @@ object FileEditHelper {
     val newContents = applyEdits(ch, source)
     DiffUtil.compareContents(source.lines.toSeq, newContents.lines.toSeq, originalFile, revisedFile)
   }
-
-  //TODO: add diffFromNewFile and diffFromDeleteFile
-  //def diffFromNewFile(ch: NewFile, source: String): String = ???
-  //def diffFromDeleteFile(ch: DeleteFile, source: String): String = ??
 }

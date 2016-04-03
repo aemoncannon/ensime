@@ -134,10 +134,6 @@ class JavaCompilerSpec extends EnsimeSpec
             info.localName shouldBe "compute"
             info.`type`.name shouldBe "()int"
             info.isCallable shouldBe true
-            // NOTE: we should find an OffsetSourcePosition here as the source enters
-            // the compiler's working set in case "5" above.
-            // TODO - However if the 'element' is not found, we'll fall through to indexer lookup.
-            // look into more exhaustive ways of finding the element.
             info.declPos should matchPattern {
               case Some(LineSourcePosition(f, 8)) if f.getName == "Test2.java" =>
               case Some(OffsetSourcePosition(f, 48)) if f.getName == "Test2.java" =>

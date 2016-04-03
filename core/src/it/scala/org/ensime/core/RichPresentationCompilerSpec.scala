@@ -222,7 +222,6 @@ class RichPresentationCompilerSpec extends EnsimeSpec
     }
     verify("java.lang.String", Some("startsWith"), None, "startsWith", "startsWith", DeclaredAs.Nil)
     verify("java.lang.String", None, None, "String", "java.lang.String", DeclaredAs.Class)
-    // TODO: should not be getting 'nil for declaredAs.
     verify("scala.Option", Some("wait"), Some("(x$1: Long,x$2: Int): Unit"),
       "wait", "wait", DeclaredAs.Nil)
     verify("scala.Option", Some("wait"), Some("(x$1: Long): Unit"),

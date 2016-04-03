@@ -619,7 +619,6 @@ public final class TreeUtilities {
                     if (remaped != null) {
                         sb.append(remaped);
                     } else {
-                        //TODO: illegal?
                         sb.append(text.charAt(c));
                     }
                 }

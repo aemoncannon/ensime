@@ -136,7 +136,6 @@ trait ModelBuilders { self: RichPresentationCompiler =>
       }
     }
 
-    // TODO THIS SHOULD NOT EXIST
     val nullInfo = new PackageInfo("NA", "NA", List.empty)
 
     private def sortedMembers(items: Iterable[EntityInfo]) = {
@@ -179,8 +178,6 @@ trait ModelBuilders { self: RichPresentationCompiler =>
     // use needPos=PosNeededYes sparingly as it potentially causes lots of I/O
     def apply(typ: Type, needPos: PosNeeded = PosNeededNo, members: Iterable[EntityInfo] = List.empty): TypeInfo = {
       val tpe = typ match {
-        // TODO: Instead of throwing away this information, would be better to
-        // alert the user that the type is existentially quantified.
         case et: ExistentialType => et.underlying
         case t => t
       }

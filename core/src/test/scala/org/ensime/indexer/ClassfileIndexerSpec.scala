@@ -12,8 +12,6 @@ class ClassfileIndexerSpec extends EnsimeSpec with IsolatedEnsimeVFSFixture {
   val indexer = new ClassfileIndexer with SLF4JLogging {}
   import indexer._
 
-  // TODO: some assertions (currently we're just checking that no exceptions are raised!)
-
   "ClassfileIndexer" should "support Java 6 class files" in withVFS { implicit vfs =>
     indexClassfile(vfs.vres("jdk6/Test.class"))
   }

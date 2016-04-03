@@ -82,7 +82,6 @@ object FileUtils {
   }
 
   def writeDiffChanges(changes: List[FileEdit])(implicit cs: Charset): Either[Exception, File] = {
-    //TODO: add support for NewFile and DeleteFile
     val editsByFile = changes.collect { case ed: TextEdit => ed }.groupBy(_.file)
     try {
       val diffContents =

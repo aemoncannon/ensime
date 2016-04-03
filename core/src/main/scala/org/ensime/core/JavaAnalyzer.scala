@@ -50,7 +50,6 @@ class JavaAnalyzer(
     // no way to stop the java compiler
   }
 
-  // TODO: create a sealed family of requests / responses just for Java usage
   override def receive = {
     case TypecheckFileReq(sfi) =>
       javaCompiler.askTypecheckFiles(sfi :: Nil)

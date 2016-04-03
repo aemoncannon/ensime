@@ -80,8 +80,6 @@ class SimpleLucene(path: File, analyzers: Map[String, Analyzer]) extends SLF4JLo
   def search(query: Query, limit: Int): List[Document] = {
     val searcher = new IndexSearcher(reader())
 
-    // TODO: use FieldCacheTermsFilter for fast restriction by module
-
     val collector = TopScoreDocCollector.create(limit, true)
     searcher.search(query, collector)
 

@@ -40,9 +40,6 @@ trait ArbitrarySexp {
   lazy val genSexpKey: Gen[SexpSymbol] =
     alphaStr.filter(_.nonEmpty).map { s => SexpSymbol(":" + s) }
 
-  // TODO: String/Char should be selected from a wider range
-  // TODO: arbitrary[BigDecimal] but it freezes the tests
-  // TODO: cons in SexpCons car, but it dramatically slows things
   lazy val genSexpAtom: Gen[SexpAtom] = oneOf(
     alphaNumChar.map(SexpChar),
     alphaStr.map(SexpString),
