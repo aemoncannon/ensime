@@ -10,6 +10,8 @@ trait Helpers { self: Global =>
 
   import rootMirror.{ EmptyPackage, RootPackage }
 
+  // TODO remove this todo
+
   def applySynonyms(sym: Symbol): List[Symbol] = {
     val members = if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
       sym.tpe.members
