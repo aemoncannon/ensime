@@ -7,7 +7,7 @@ build:
     - EMACS=/opt/emacs-24.5/bin/emacs
     - AKKA_TEST_TIMEFACTOR=10
   commands:
-    - if git grep -E 'TODO|FIXME' -- './*' ':!.drone.yml'; then
+    - if $(git grep -qE "TODO|FIXME" -- `git ls-files | grep -v .drone.yml`) ; then
         echo "Please remove TODO or FIXME. Create an issue at GitHub instead." ;
         exit 1 ;
       fi
