@@ -8,41 +8,41 @@ import org.ensime.api._
 
 trait Helpers { self: Global =>
 
-    import rootMirror.{ EmptyPackage, RootPackage }
+  import rootMirror.{ EmptyPackage, RootPackage }
 
-    def applySynonyms(sym: Symbol): List[Symbol] = {
-        val members = if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
-            sym.tpe.members
-        } else if (sym.isClass || sym.isPackageClass || sym.isPackageObjectClass) {
-            sym.companionModule.tpe.members
-        } else { List.empty }
-        members.toList.filter { _.name.toString == "apply" }
+  def applySynonyms(sym: Symbol): List[Symbol] = {
+    val members = if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
+      sym.tpe.members
+    } else if (sym.isClass || sym.isPackageClass || sym.isPackageObjectClass) {
+      sym.companionModule.tpe.members
+    } else { List.empty }
+    members.toList.filter { _.name.toString == "apply" }
+  }
+
+  def constructorSynonyms(sym: Symbol): List[Symbol] = {
+    val members = if (sym.isClass || sym.isPackageClass || sym.isPackageObjectClass) {
+      sym.tpe.members
+    } else if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
+      sym.companionClass.tpe.members
+    } else { List.empty }
+    members.toList.filter { _.isConstructor }
+  }
+
+  def isArrowType(tpe: Type): Boolean = {
+    tpe match {
+      case _: MethodType => true
+      case _: PolyType => true
+      case _ => false
     }
+  }
 
-    def constructorSynonyms(sym: Symbol): List[Symbol] = {
-        val members = if (sym.isClass || sym.isPackageClass || sym.isPackageObjectClass) {
-            sym.tpe.members
-        } else if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
-            sym.companionClass.tpe.members
-        } else { List.empty }
-            members.toList.filter { _.isConstructor }
+  def isNoParamArrowType(tpe: Type): Boolean = {
+    tpe match {
+      case t: MethodType => t.paramss.flatten.isEmpty
+      case t: PolyType => t.paramss.flatten.isEmpty
+      case t: Type => false
     }
-
-    def isArrowType(tpe: Type): Boolean = {
-        tpe match {
-            case _: MethodType => true
-            case _: PolyType => true
-            case _ => false
-        }
-    }
-
-      def isNoParamArrowType(tpe: Type): Boolean = {
-            tpe match {
-                  case t: MethodType => t.paramss.flatten.isEmpty
-                  case t: PolyType => t.paramss.flatten.isEmpty
-                  case t: Type => false
-            }
-      }
+  }
 
   def typeOrArrowTypeResult(tpe: Type): Type = {
     tpe match {
