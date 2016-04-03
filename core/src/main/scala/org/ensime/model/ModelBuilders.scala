@@ -18,6 +18,8 @@ trait ModelBuilders { self: RichPresentationCompiler =>
 
   import rootMirror.RootPackage
 
+  // FIXME dummy fixme
+
   def locateSymbolPos(sym: Symbol, needPos: PosNeeded): Option[SourcePosition] = {
     _locateSymbolPos(sym, needPos).orElse({
       logger.debug(s"search $sym: Try Companion")
