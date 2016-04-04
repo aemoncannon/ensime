@@ -76,7 +76,6 @@ class SemanticHighlightingSpec extends EnsimeSpec
           """,
       List(ConstructorSymbol)
     )
-    // TODO It would be better if the "new" was consistent.
     sds should ===(List(
       (ConstructorSymbol, "X1"),
       (ConstructorSymbol, "new X1(  )"),
@@ -221,7 +220,6 @@ class SemanticHighlightingSpec extends EnsimeSpec
       (ObjectSymbol, "A"),
       (ObjectSymbol, "B"),
       (ObjectSymbol, "D"),
-      // TODO two problems there: "c" should be a varField ; E should be highlighted.
       (ObjectSymbol, "c")
     ))
   }
@@ -237,7 +235,6 @@ class SemanticHighlightingSpec extends EnsimeSpec
           """,
       List(OperatorFieldSymbol)
     )
-    // TODO We should highlight the "+="
     sds should ===(List(
       (OperatorFieldSymbol, "+"),
       (OperatorFieldSymbol, "*")

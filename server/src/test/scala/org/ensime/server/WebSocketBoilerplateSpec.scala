@@ -40,8 +40,6 @@ class WebSocketBoilerplateSpec extends EnsimeSpec with SharedTestKitFixture {
 
     // it would be good to check that errors / closing will stop the
     // actor but that's perhaps testing the framework.
-
-    // TODO: use Streams TestKit as much as possible here
   }
 
   case class Foo(a: String)

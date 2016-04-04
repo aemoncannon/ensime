@@ -101,7 +101,6 @@ class BasicWorkflow extends EnsimeSpec
 
           log.info("------------------------------------222-")
 
-          // FIXME: doing a fresh typecheck is needed to pass the next few tests. Why?
           project ! TypecheckFilesReq(List(Left(fooFile)))
           expectMsg(VoidResponse)
 
@@ -196,8 +195,6 @@ class BasicWorkflow extends EnsimeSpec
           project ! ExpandSelectionReq(fooFile, 214, 217)
           val expandRange2 = expectMsgType[FileRange]
           expandRange2 shouldBe FileRange(fooFilePath, 210, 229)
-
-          // TODO get the before content of the file
 
           project ! RefactorReq(1234, RenameRefactorDesc("bar", fooFile, 215, 215), false)
           expectMsgPF() {

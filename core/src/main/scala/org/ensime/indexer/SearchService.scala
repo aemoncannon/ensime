@@ -34,6 +34,10 @@ class SearchService(
     with FileChangeListener
     with SLF4JLogging {
 
+  private[indexer] def isUserFile(file: FileName): Boolean = {
+    (config.allTargets map (vfs.vfile)) exists (file isAncestor _.getName)
+  }
+
   private val QUERY_TIMEOUT = 30 seconds
 
   /**
@@ -110,8 +114,9 @@ class SearchService(
       val outOfDate = fileCheck.map(_.changed).getOrElse(true)
       if (!outOfDate) Future.successful(None)
       else {
+        val boost = isUserFile(base.getName())
         val check = FileCheck(base)
-        extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false))
+        extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false, boost = boost))
       }
     }
 
@@ -146,8 +151,8 @@ class SearchService(
 
   def refreshResolver(): Unit = resolver.update()
 
-  def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean): Future[Option[Int]] = {
-    val iwork = Future { blocking { index.persist(check, symbols, commitIndex) } }
+  def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean, boost: Boolean): Future[Option[Int]] = {
+    val iwork = Future { blocking { index.persist(check, symbols, commitIndex, boost) } }
     val dwork = db.persist(check, symbols)
     iwork.flatMap { _ => dwork }
   }
@@ -190,7 +195,6 @@ class SearchService(
         val source = resolver.resolve(clazz.name.pack, clazz.source)
         val sourceUri = source.map(_.getName.getURI)
 
-        // TODO: other types of visibility when we get more sophisticated
         if (clazz.access != Public) Nil
         else FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
           clazz.methods.toList.filter(_.access == Public).map { method =>
@@ -206,7 +210,6 @@ class SearchService(
     }
   }.filterNot(sym => ignore.exists(sym.fqn.contains))
 
-  // TODO: provide context (user's current module and main/test)
   /** free-form search for classes */
   def searchClasses(query: String, max: Int): List[FqnSymbol] = {
     val fqns = index.searchClasses(query, max)
@@ -313,7 +316,8 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
             case Success(_) => indexed.collect {
               case (file, syms) if syms.isEmpty =>
               case (file, syms) =>
-                searchService.persist(FileCheck(file), syms, commitIndex = true).onComplete {
+                val boost = searchService.isUserFile((file.getName))
+                searchService.persist(FileCheck(file), syms, commitIndex = true, boost = boost).onComplete {
                   case Failure(t) => log.error(s"failed to persist entries in $file", t)
                   case Success(_) =>
                 }

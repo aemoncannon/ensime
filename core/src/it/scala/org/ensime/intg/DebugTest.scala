@@ -29,9 +29,6 @@ class DebugTest extends EnsimeSpec
     javaLibs = Nil // no need to index the JRE
   )
 
-  // TODO This is broken because step in our case is stepping into
-  // the classloader for inner class rather than doing a user
-  // visible step.
   "Debug - stepping" should "handle basic stepping" ignore {
     withEnsimeConfig { implicit config =>
       withTestKit { implicit testkit =>

@@ -34,13 +34,10 @@ class Project(
   private var javac: ActorRef = _
   private var debugger: ActorRef = _
 
-  // TODO consolidate search/indexer
   private var indexer: ActorRef = _
   private var docs: ActorRef = _
 
-  // TODO: use state transitions to manage this state
   // vfs, resolver, search and watchers are considered "reliable" (hah!)
-  // TODO: Actor-ise as many of these vals as possible
   private implicit val vfs: EnsimeVFS = EnsimeVFS()
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)

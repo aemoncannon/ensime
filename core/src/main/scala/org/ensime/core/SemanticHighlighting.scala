@@ -145,14 +145,6 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
             case TypeTree() =>
               if (!qualifySymbol(sym)) {
                 if (t.tpe != null) {
-                  // TODO:
-                  // This case occurs when
-                  // pattern matching on
-                  // case classes.
-                  // As in:
-                  // case MyClass(a:Int,b:Int)
-                  //
-                  // Works, but this is *way* under-constrained.
                   val start = treeP.startOrCursor
                   val end = treeP.endOrCursor
                   addAt(start, end, ObjectSymbol)

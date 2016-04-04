@@ -7,10 +7,15 @@ build:
     - EMACS=/opt/emacs-24.5/bin/emacs
     - AKKA_TEST_TIMEFACTOR=10
   commands:
+    - if $(git grep -qE "TODO|FIXME" -- `git ls-files | grep -v .drone.yml`) ; then
+        echo "Please remove TODO or FIXME. Create an issue at GitHub instead." ;
+        exit 1 ;
+      fi
     - git log | head -n 20
+    - host `curl -s http://httpbin.org/ip | jq -r '.origin'` || true ;
     - sbt ++$SCALA_VERSION gen-ensime ;
       sbt ++$SCALA_VERSION clean test:compile it:compile doc ;
-      if [ $(git diff | wc -l) -ge 1 ] ; then
+      if $(! git diff --exit-code --quiet) ; then
         echo "Code formatting does not meet the project's standards:" ;
         git --no-pager diff ;
         exit 1 ;

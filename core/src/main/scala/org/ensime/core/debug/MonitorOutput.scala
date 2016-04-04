@@ -15,8 +15,6 @@ private class MonitorOutput(val inStream: InputStream, broadcaster: ActorRef) ex
 
   @volatile var finished = false
 
-  // TODO This should have a stop method
-
   override def run(): Unit = {
     val buf = new Array[Char](512)
 

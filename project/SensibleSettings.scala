@@ -1,15 +1,13 @@
 // Copyright 2016 Sam Halliday
 // Licence: http://www.apache.org/licenses/LICENSE-2.0
-import scala.util.{ Properties, Try }
-import sbt._
-import Keys._
 import com.typesafe.sbt.SbtScalariform._
+import sbt.Keys._
+import sbt._
+
 import scala.util.Properties
 
 /**
  * A bunch of sensible defaults that fommil typically uses.
- *
- * TODO: integrate / contribute to the typelevel sbt plugin.
  */
 object Sensible {
 
@@ -70,7 +68,6 @@ object Sensible {
     ) ++ logback ++ guava ++ shapeless(scalaVersion.value)
   ) ++ inConfig(Test)(testSettings) ++ scalariformSettings
 
-  // TODO: scalariformSettingsWithIt generalised
   def testSettings = Seq(
     parallelExecution := true,
 
@@ -130,7 +127,6 @@ object Sensible {
     "com.google.code.findbugs" % "jsr305" % "3.0.1" % "provided"
   )
 
-  // TODO: automate testLibs as part of the testSettings
   def testLibs(config: String = "test") = Seq(
     "org.scalatest" %% "scalatest" % scalatestVersion % config,
     "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % config,

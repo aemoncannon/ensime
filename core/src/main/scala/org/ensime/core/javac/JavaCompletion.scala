@@ -69,7 +69,6 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
         }
       })
     } else if (isMemberAccess) {
-      // TODO how to avoid allocating a new string? buffer of immutable string slices?
       // Erase the trailing partial member (it breaks type resolution).
       val patched = s.substring(0, indexAfterTarget) + ".wait()" + s.substring(indexAfterTarget + defaultPrefix.length + 1);
       (pathToPoint(SourceFileInfo(info.file, Some(patched), None), indexAfterTarget + 1) flatMap {
