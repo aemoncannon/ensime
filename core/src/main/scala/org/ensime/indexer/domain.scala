@@ -47,8 +47,10 @@ final case class ClassName(pack: PackageName, name: String) extends FullyQualifi
     if (pack.path.isEmpty) name
     else ClassName.cleanupPackage(pack.fqnString + "." + name)
 
+  private def nonPrimitiveInternalString: String =
+    "L" + (if (pack.path.isEmpty) name else pack.path.mkString("/") + "/" + name) + ";"
+
   lazy val internalString: String = {
-    def fallback = "L" + (if (pack.path.isEmpty) name else pack.path.mkString("/") + "/" + name) + ";"
     if (pack.path.isEmpty)
       name match {
         case "boolean" => "Z"
@@ -60,9 +62,9 @@ final case class ClassName(pack: PackageName, name: String) extends FullyQualifi
         case "float" => "F"
         case "double" => "D"
         case "void" => "V"
-        case _ => fallback
+        case _ => nonPrimitiveInternalString
       }
-    else fallback
+    else nonPrimitiveInternalString
   }
 }
 
