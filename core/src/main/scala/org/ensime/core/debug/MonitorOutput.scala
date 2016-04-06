@@ -15,9 +15,13 @@ private class MonitorOutput(val inStream: InputStream, broadcaster: ActorRef) ex
 
   @volatile var finished = false
 
+  def stopExecution(): Unit = {
+    finished = true
+    this.interrupt()
+  }
+
   override def run(): Unit = {
     val buf = new Array[Char](512)
-
     try {
       var i = in.read(buf, 0, buf.length)
       while (!finished && i >= 0) {
@@ -25,8 +29,11 @@ private class MonitorOutput(val inStream: InputStream, broadcaster: ActorRef) ex
         i = in.read(buf, 0, buf.length)
       }
     } catch {
+      case t: InterruptedException =>
       case t: Throwable =>
         log.info("Exception during execution", t)
+    } finally {
+      in.close()
     }
   }
 }
