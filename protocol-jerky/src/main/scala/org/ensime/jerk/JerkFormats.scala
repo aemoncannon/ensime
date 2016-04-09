@@ -19,7 +19,7 @@ private object JerkConversions extends DefaultJsonProtocol with FamilyFormats {
   implicit override def eitherFormat[A: JsonFormat, B: JsonFormat]: JsonFormat[Either[A, B]] = super.eitherFormat[A, B]
   // Note that its not possible to override an object in scala, so we
   // just define a new one that wins the race.
-  implicit val symbolFormat = SymbolJsonFormat
+  implicit val symbolFormat: JsonFormat[Symbol] = SymbolJsonFormat
 
   // move to somewhere more general
   implicit object FileFormat extends JsonFormat[File] {
@@ -59,7 +59,7 @@ object JerkEnvelopeFormats {
   import DefaultJsonProtocol._
 
   // for the transitional SWANK (avoid derivations)
-  implicit val RpcRequestEnvelopeFormat = jsonFormat2(RpcRequestEnvelope)
-  implicit val RpcResponseEnvelopeFormat = jsonFormat2(RpcResponseEnvelope)
+  implicit val RpcRequestEnvelopeFormat: RootJsonFormat[RpcRequestEnvelope] = jsonFormat2(RpcRequestEnvelope)
+  implicit val RpcResponseEnvelopeFormat: RootJsonFormat[RpcResponseEnvelope] = jsonFormat2(RpcResponseEnvelope)
 
 }

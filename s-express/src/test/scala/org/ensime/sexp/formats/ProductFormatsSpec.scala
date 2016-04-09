@@ -27,7 +27,7 @@ class ProductFormatsSpec extends FormatSpec
 
   it should "support 'fast' case classes" in {
     // can't really test - its a side effect optimisation
-    implicit val FastFooFormat = SexpFormat[Foo]
+    implicit lazy val FastFooFormat: SexpFormat[Foo] = SexpFormat[Foo]
     assertFormat(foo, fooexpect)
     assertFormat(foo, fooexpect)
     assertFormat(foo, fooexpect)
@@ -81,7 +81,7 @@ class ProductFormatsSpec extends FormatSpec
 
   it should "support 'fast' tuples" in {
     // can't really test - its a side effect optimisation
-    implicit val FastBarormat = SexpFormat[(Int, String)]
+    implicit lazy val FastBarFormat: SexpFormat[(Int, String)] = SexpFormat[(Int, String)]
     assertFormat(bar, barexpect)
     assertFormat(bar, barexpect)
     assertFormat(bar, barexpect)

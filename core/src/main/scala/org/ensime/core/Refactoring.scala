@@ -58,7 +58,7 @@ abstract class RefactoringEnvironment(file: String, start: Int, end: Int) {
 
 trait RefactoringHandler { self: Analyzer =>
 
-  implicit def cs = charset
+  implicit def cs: Charset = charset
 
   def handleRefactorRequest(req: RefactorReq): RpcResponse =
     scalaCompiler.askDoRefactor(req.procId, req.params) match {
@@ -116,7 +116,7 @@ trait RefactoringImpl { self: RichPresentationCompiler =>
 
   import org.ensime.util.FileUtils._
 
-  implicit def cs = charset
+  implicit def cs: Charset = charset
 
   protected def doRename(procId: Int, tpe: RefactorType, name: String, file: File, start: Int, end: Int) =
     new RefactoringEnvironment(file.getPath, start, end) {

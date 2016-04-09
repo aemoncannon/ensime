@@ -23,8 +23,8 @@ object EnsimeConfigProtocol {
 
   private val log = Logger(this.getClass.getName)
 
-  private implicit val moduleFormat = SexpFormat[EnsimeModule]
-  private implicit val configFormat = SexpFormat[EnsimeConfig]
+  private implicit val moduleFormat: SexpFormat[EnsimeModule] = SexpFormat[EnsimeModule]
+  private implicit val configFormat: SexpFormat[EnsimeConfig] = SexpFormat[EnsimeConfig]
 
   def parse(config: String): EnsimeConfig = {
     val raw = config.parseSexp.convertTo[EnsimeConfig]

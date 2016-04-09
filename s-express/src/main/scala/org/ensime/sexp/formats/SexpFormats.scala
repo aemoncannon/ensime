@@ -14,7 +14,7 @@ trait SexpFormats {
     def read(json: Sexp) = reader.read(json)
   }
 
-  implicit def sexpIdentityFormat[T <: Sexp: ClassTag] = new SexpFormat[T] {
+  implicit def sexpIdentityFormat[T <: Sexp: ClassTag]: SexpFormat[T] = new SexpFormat[T] {
     def write(o: T) = o
     def read(v: Sexp) = v match {
       case t: T => t
@@ -23,12 +23,12 @@ trait SexpFormats {
   }
 
   // performance boilerplate
-  implicit val SexpFormat_ = SexpFormat[Sexp]
-  implicit val SexpConsFormat = SexpFormat[SexpCons]
-  implicit val SexpAtomFormat = SexpFormat[SexpAtom]
-  implicit val SexpStringFormat = SexpFormat[SexpString]
-  implicit val SexpNumberFormat = SexpFormat[SexpNumber]
-  implicit val SexpCharFormat = SexpFormat[SexpChar]
-  implicit val SexpSymbolFormat = SexpFormat[SexpSymbol]
+  implicit val SexpFormat_ : SexpFormat[Sexp] = SexpFormat[Sexp]
+  implicit val SexpConsFormat: SexpFormat[SexpCons] = SexpFormat[SexpCons]
+  implicit val SexpAtomFormat: SexpFormat[SexpAtom] = SexpFormat[SexpAtom]
+  implicit val SexpStringFormat: SexpFormat[SexpString] = SexpFormat[SexpString]
+  implicit val SexpNumberFormat: SexpFormat[SexpNumber] = SexpFormat[SexpNumber]
+  implicit val SexpCharFormat: SexpFormat[SexpChar] = SexpFormat[SexpChar]
+  implicit val SexpSymbolFormat: SexpFormat[SexpSymbol] = SexpFormat[SexpSymbol]
 
 }

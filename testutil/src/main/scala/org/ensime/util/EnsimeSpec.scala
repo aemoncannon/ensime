@@ -30,7 +30,7 @@ trait EnsimeSpec extends FlatSpec
 
   private val akkaTimeout: Duration = ConfigFactory.load().getDuration("akka.test.default-timeout", TimeUnit.MILLISECONDS).milliseconds
   override val spanScaleFactor: Double = ConfigFactory.load().getDouble("akka.test.timefactor")
-  implicit override val patienceConfig = PatienceConfig(
+  implicit override val patienceConfig: PatienceConfig = PatienceConfig(
     timeout = scaled(akkaTimeout),
     interval = scaled(Span(5, Millis))
   )

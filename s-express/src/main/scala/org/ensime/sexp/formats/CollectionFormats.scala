@@ -182,7 +182,8 @@ trait CollectionFormats {
   implicit def numericRangeFormat[E](implicit
     nf: SexpFormat[E],
     n: Numeric[E],
-    int: Integral[E]): SexpFormat[im.NumericRange[E]] = new SexpFormat[im.NumericRange[E]] {
+    int: Integral[E]
+  ): SexpFormat[im.NumericRange[E]] = new SexpFormat[im.NumericRange[E]] {
     def write(r: im.NumericRange[E]) = SexpData(
       start -> r.start.toSexp,
       end -> r.end.toSexp,

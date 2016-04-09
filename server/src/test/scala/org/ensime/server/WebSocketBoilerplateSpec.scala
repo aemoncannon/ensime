@@ -19,7 +19,7 @@ class WebSocketBoilerplateSpec extends EnsimeSpec with SharedTestKitFixture {
   "WebSocketBoilerplate" should "produce Flow[In, Out]" in withTestKit { tk =>
     import tk.system
     import tk.system.dispatcher
-    implicit val mat = ActorMaterializer()
+    implicit val mat: ActorMaterializer = ActorMaterializer()
 
     val service = TestProbe()
 
@@ -45,15 +45,15 @@ class WebSocketBoilerplateSpec extends EnsimeSpec with SharedTestKitFixture {
   case class Foo(a: String)
   case class Bar(b: Long)
   import DefaultJsonProtocol._
-  implicit def FooFormat = jsonFormat1(Foo)
-  implicit def BarFormat = jsonFormat1(Bar)
+  implicit def FooFormat: RootJsonFormat[Foo] = jsonFormat1(Foo)
+  implicit def BarFormat: RootJsonFormat[Bar] = jsonFormat1(Bar)
   val foo = Foo("hello")
   val bar = Bar(13L)
 
   it should "produce a marshalled Flow that accepts valid messages" in withTestKit { tk =>
     import tk.system
     import tk.system.dispatcher
-    implicit val mat = ActorMaterializer()
+    implicit val mat: ActorMaterializer = ActorMaterializer()
 
     // This is quite horrible and really highlights why a BidiFlow
     // model would be better. WebSockets are *not* request / response
@@ -75,7 +75,7 @@ class WebSocketBoilerplateSpec extends EnsimeSpec with SharedTestKitFixture {
   it should "produce a marshalled Flow that errors on bad message" in withTestKit { tk =>
     import tk.system
     import tk.system.dispatcher
-    implicit val mat = ActorMaterializer()
+    implicit val mat: ActorMaterializer = ActorMaterializer()
 
     val user = Flow[Foo].map { f =>
       f shouldBe foo
@@ -96,7 +96,7 @@ class WebSocketBoilerplateSpec extends EnsimeSpec with SharedTestKitFixture {
   it should "produce a marshalled Flow that errors on bad inbound JSON" in withTestKit { tk =>
     import tk.system
     import tk.system.dispatcher
-    implicit val mat = ActorMaterializer()
+    implicit val mat: ActorMaterializer = ActorMaterializer()
 
     val user = Flow[Foo].map { _ => bar }
     val endpoints = jsonMarshalledMessageFlow(user)

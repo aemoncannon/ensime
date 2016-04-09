@@ -41,9 +41,9 @@ class ServerActor(
 
   def initialiseChildren(): Unit = {
 
-    implicit val config = this.config
-    implicit val mat = ActorMaterializer()
-    implicit val timeout = Timeout(10 seconds)
+    implicit val config: EnsimeConfig = this.config
+    implicit val mat: ActorMaterializer = ActorMaterializer()
+    implicit val timeout: Timeout = Timeout(10 seconds)
 
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
     val project = context.actorOf(Project(broadcaster), "project")
@@ -118,7 +118,7 @@ object Server {
     if (!ensimeFile.exists() || !ensimeFile.isFile)
       throw new RuntimeException(s".ensime file ($ensimeFile) not found")
 
-    implicit val config = try {
+    implicit val config: EnsimeConfig = try {
       EnsimeConfigProtocol.parse(Files.toString(ensimeFile, Charsets.UTF_8))
     } catch {
       case e: Throwable =>

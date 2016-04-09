@@ -38,7 +38,7 @@ trait BasicFormats {
   }
 
   // val allows override
-  implicit val SymbolFormat = new SexpFormat[Symbol] {
+  implicit val SymbolFormat: SexpFormat[Symbol] = new SexpFormat[Symbol] {
     def write(x: Symbol): Sexp = SexpString(x.name)
     def read(value: Sexp): Symbol = value match {
       case SexpString(x) => Symbol(x)
@@ -61,7 +61,7 @@ trait BasicFormats {
    * numbers, override this implementation with one that adheres to
    * the arbitrary precision framework of your choice.
    */
-  implicit def ViaBigDecimalFormat[T](implicit c: BigDecimalConvertor[T]) =
+  implicit def ViaBigDecimalFormat[T](implicit c: BigDecimalConvertor[T]): SexpFormat[T] =
     new SexpFormat[T] {
       def write(x: T): Sexp =
         if (c.isNaN(x)) SexpNaN
@@ -79,19 +79,19 @@ trait BasicFormats {
     }
 
   // boilerplate for performance (uses ViaBigDecimal)
-  implicit val IntFormat = SexpFormat[Int]
-  implicit val LongFormat = SexpFormat[Long]
-  implicit val FloatFormat = SexpFormat[Float]
-  implicit val DoubleFormat = SexpFormat[Double]
-  implicit val ByteFormat = SexpFormat[Byte]
-  implicit val ShortFormat = SexpFormat[Short]
-  implicit val BigIntFormat = SexpFormat[BigInt]
-  implicit val BigDecimalFormat = SexpFormat[BigDecimal]
+  implicit val IntFormat: SexpFormat[Int] = SexpFormat[Int]
+  implicit val LongFormat: SexpFormat[Long] = SexpFormat[Long]
+  implicit val FloatFormat: SexpFormat[Float] = SexpFormat[Float]
+  implicit val DoubleFormat: SexpFormat[Double] = SexpFormat[Double]
+  implicit val ByteFormat: SexpFormat[Byte] = SexpFormat[Byte]
+  implicit val ShortFormat: SexpFormat[Short] = SexpFormat[Short]
+  implicit val BigIntFormat: SexpFormat[BigInt] = SexpFormat[BigInt]
+  implicit val BigDecimalFormat: SexpFormat[BigDecimal] = SexpFormat[BigDecimal]
 }
 
 trait SymbolAltFormat {
   this: BasicFormats =>
-  override implicit val SymbolFormat = new SexpFormat[Symbol] {
+  override implicit val SymbolFormat: SexpFormat[Symbol] = new SexpFormat[Symbol] {
     def write(x: Symbol): Sexp = SexpSymbol(x.name)
     def read(value: Sexp): Symbol = value match {
       case SexpSymbol(x) => Symbol(x)
