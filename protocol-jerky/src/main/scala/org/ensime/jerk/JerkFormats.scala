@@ -19,7 +19,7 @@ private object JerkConversions extends DefaultJsonProtocol with FamilyFormats {
   implicit override def eitherFormat[A: JsonFormat, B: JsonFormat]: JsonFormat[Either[A, B]] = super.eitherFormat[A, B]
   // Note that its not possible to override an object in scala, so we
   // just define a new one that wins the race.
-  implicit val symbolFormat: JsonFormat[Symbol] = SymbolJsonFormat
+  implicit val symbolFormat: SymbolJsonFormat.type = SymbolJsonFormat
 
   // move to somewhere more general
   implicit object FileFormat extends JsonFormat[File] {
