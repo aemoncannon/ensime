@@ -20,7 +20,7 @@ install:
   - cmd: SET PATH=C:\sbt\sbt\bin;%JDK_HOME%\bin;%PATH%
   - cmd: SET SBT_OPTS=-XX:MaxPermSize=256m -Xss2m -Xms512m -Xmx512m
   - cmd: SET AKKA_TEST_TIMEFACTOR=10
-  - cmd: SET SBT_TASK_LIMIT=1
+  - cmd: SET SBT_TASK_LIMIT=2
 build_script:
   - sbt clean compile test:compile it:compile
 before_test:
@@ -32,3 +32,7 @@ cache:
   - C:\Users\appveyor\.m2
   - C:\Users\appveyor\.ivy2
   - C:\Program Files\Java\jdk1.7.0\src.zip
+artifacts:
+  - path: '**\*.log'
+    name: logs
+    type: zip
