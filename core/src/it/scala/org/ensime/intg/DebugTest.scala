@@ -368,6 +368,7 @@ object VMStarter extends SLF4JLogging {
     val args = Seq(
       java,
       "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=" + port,
+      "-Xms128m", "-Xmx128m",
       "-classpath", classpath,
       clazz
     )
