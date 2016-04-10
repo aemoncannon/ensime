@@ -105,14 +105,25 @@ class DocResolver(
 
   private val PackRegexp = """^((?:[a-z0-9]+\.)+)""".r
 
-  private def guessJar(sig: DocSigPair): Option[File] = {
-    htmlToJar.get(scalaFqnToPath(sig.scala.fqn))
-      .orElse(htmlToJar.get(javaFqnToPath(sig.java.fqn)))
+  private def guessJar(sig: DocSigPair): Option[(File, DocSigPair)] = {
+    val scalafqn = scalaFqnToPath(sig.scala.fqn)
+    val javafqn = javaFqnToPath(sig.java.fqn)
+
+    val scala = htmlToJar.get(scalafqn).map((_, sig))
+    val scala2 = scala.orElse(
+      htmlToJar.get(scalafqn.replace("$.html", ".html")).map({ file =>
+        // Documentation for Object doesn't exists but documentation for Class does
+        val typeName = sig.scala.fqn.typeName.replaceFirst("\\$$", "")
+        val sigOfClass = sig.copy(scala = sig.scala.copy(fqn = sig.scala.fqn.copy(typeName = typeName)))
+        (file, sigOfClass)
+      })
+    )
+    scala2.orElse(htmlToJar.get(javafqn).map((_, sig)))
   }
 
   private def resolveLocalUri(sig: DocSigPair): Option[String] = {
     guessJar(sig) match {
-      case Some(jar) =>
+      case Some((jar, sig)) =>
         log.debug(s"Resolved to jar: $jar")
         Some(makeLocalUri(jar, sig))
       case _ =>
