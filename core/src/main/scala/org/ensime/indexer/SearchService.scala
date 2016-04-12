@@ -128,6 +128,7 @@ class SearchService(
       val basesWithChecks: Set[(FileObject, Option[FileCheck])] = bases.map { base =>
         (base, checksLookup.get(base.getName().getURI()))
       }
+
       Future.sequence(basesWithChecks.map { case (file, check) => indexBase(file, check) }).map(_.flatten.sum)
     }
 

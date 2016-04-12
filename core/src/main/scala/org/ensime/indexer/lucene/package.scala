@@ -36,5 +36,9 @@ package object lucene {
     def boostText(f: String, boost: Float) = {
       d.getField(f).asInstanceOf[TextField].setBoost(boost)
     }
+
+    def currentBoost(f: String) = {
+      d.getField(f).asInstanceOf[TextField].boost
+    }
   }
 }

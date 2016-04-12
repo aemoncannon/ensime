@@ -16,6 +16,7 @@ import org.ensime.indexer.lucene._
 
 import org.ensime.util.list._
 
+import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 
 object IndexService extends SLF4JLogging {
@@ -84,15 +85,33 @@ class IndexService(path: File) {
 
   private val lucene = new SimpleLucene(path, analyzers)
 
+  private def computePenalty(fqn: String): Float = {
+    @tailrec
+    def compute(cs: List[Char], n: Int): Int =
+      cs match {
+        case '$' :: Nil | Nil => n
+        case '$' :: rest => compute(rest, n + 1)
+        case _ :: rest => compute(rest, n)
+      }
+    Math.max(0.0f, 1f - (0.25f * compute(fqn.toList, 0)))
+  }
+
   def persist(check: FileCheck, symbols: List[FqnSymbol], commit: Boolean, boost: Boolean): Unit = {
     val f = Some(check)
     val fqns: List[Document] = symbols.map {
       case FqnSymbol(_, _, _, fqn, Some(_), _, _, _, _) => MethodIndex(fqn, f).toDocument
       case FqnSymbol(_, _, _, fqn, _, Some(_), _, _, _) => FieldIndex(fqn, f).toDocument
-      case FqnSymbol(_, _, _, fqn, _, _, _, _, _) => ClassIndex(fqn, f).toDocument
+      case FqnSymbol(_, _, _, fqn, _, _, _, _, _) => {
+        val penalty = computePenalty(fqn)
+        val doc = ClassIndex(fqn, f).toDocument
+        doc.boostText("fqn", penalty)
+        doc
+      }
     }
     if (boost) {
-      fqns foreach { _.boostText("fqn", 1.1f) }
+      fqns foreach { f =>
+        f.boostText("fqn", math.min(1.1f, f.currentBoost("fqn")))
+      }
     }
 
     lucene.create(fqns, commit)
@@ -119,6 +138,7 @@ class IndexService(path: File) {
       add(new BoostedPrefixQuery(new Term("fqn", query)), Occur.MUST)
       add(ClassIndexT, Occur.MUST)
     }
+
     lucene.search(q, max).map(_.toEntity[ClassIndex]).distinct
   }
 
