@@ -8,6 +8,7 @@ import java.nio.charset.Charset
 import akka.actor._
 import akka.event.LoggingReceive.withLabel
 import org.ensime.api._
+import org.ensime.config._
 import org.ensime.vfs._
 import org.ensime.indexer.SearchService
 import org.ensime.model._
@@ -174,6 +175,20 @@ class Analyzer(
         restartCompiler(keepLoaded = false)
       }
       sender ! VoidResponse
+    case TypecheckModule(moduleName) =>
+      //consider the case of a project with no modules
+      config.modules get (moduleName) foreach {
+        case module =>
+          val files = module.scalaSourceFiles.map(SourceFileInfo(_, None, None)).toList
+          sender ! handleReloadFiles(files)
+      }
+    case UnloadModuleReq(moduleName) =>
+      config.modules get (moduleName) foreach {
+        case module =>
+          val files = module.scalaSourceFiles.toList
+          files.foreach(scalaCompiler.askRemoveDeleted)
+          sender ! VoidResponse
+      }
     case TypecheckFileReq(fileInfo) =>
       sender ! handleReloadFiles(List(fileInfo))
     case TypecheckFilesReq(files) =>

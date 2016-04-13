@@ -51,6 +51,16 @@ final case class RemoveFileReq(file: File) extends RpcAnalyserRequest
 final case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
 
 /**
+ * Response with a `VoidResponse`.
+ */
+final case class UnloadModuleReq(module: String) extends RpcAnalyserRequest
+
+/**
+ * Response with a `VoidResponse`.
+ */
+final case class TypecheckModule(module: String) extends RpcAnalyserRequest
+
+/**
  * Responds with a `VoidResponse`.
  */
 case object UnloadAllReq extends RpcAnalyserRequest

@@ -10,12 +10,19 @@ import org.ensime.util.file._
 package object config {
 
   implicit class RichEnsimeConfig(val c: EnsimeConfig) extends AnyVal {
-    def scalaSourceFiles: Set[File] = for {
-      module: EnsimeModule <- c.modules.values.toSet
-      root <- module.sourceRoots
-      file <- root.tree
-      if file.isFile && file.getName.endsWith(".scala")
-    } yield file
+    def scalaSourceFiles: Set[File] =
+      c.modules.values.toSet.flatMap((m: EnsimeModule) => m.scalaSourceFiles)
   }
 
+  implicit class RichEnsimeModule(val m: EnsimeModule) extends AnyVal {
+    def scalaSourceFiles: Set[File] = {
+      val s = for {
+        root <- m.sourceRoots
+        file <- root.tree
+        if file.isFile && file.getName.endsWith(".scala")
+      } yield file
+
+      s.toSet
+    }
+  }
 }

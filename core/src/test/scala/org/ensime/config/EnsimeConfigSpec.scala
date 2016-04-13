@@ -107,4 +107,5 @@ class EnsimeConfigSpec extends EnsimeSpec {
       }
     }
   }
+
 }

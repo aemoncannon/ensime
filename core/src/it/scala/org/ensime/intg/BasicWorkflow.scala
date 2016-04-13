@@ -27,6 +27,16 @@ class BasicWorkflow extends EnsimeSpec
           val fooFilePath = fooFile.getAbsolutePath
           val barFile = sourceRoot / "org/example/Bar.scala"
 
+          // typeCheck module
+
+          project ! TypecheckModule("testingSimple")
+          expectMsg(VoidResponse)
+          asyncHelper.expectMsgType[NewScalaNotesEvent]
+          asyncHelper.expectMsgType[FullTypeCheckCompleteEvent.type]
+
+          project ! UnloadModuleReq("testingSimple")
+          expectMsg(VoidResponse)
+
           // trigger typeCheck
           project ! TypecheckFilesReq(List(Left(fooFile)))
           expectMsg(VoidResponse)
@@ -183,7 +193,7 @@ class BasicWorkflow extends EnsimeSpec
               BasicTypeInfo("Test1$", DeclaredAs.Object, "org.example.Test1$", List(), List(), None),
               BasicTypeInfo("Test2", DeclaredAs.Class, "org.example.Test2", List(), List(), None),
               BasicTypeInfo("Test2$", DeclaredAs.Object, "org.example.Test2$", List(), List(), None),
-              BasicTypeInfo("package$", DeclaredAs.Object, "org.example.package$", List(), List(), None),
+              //BasicTypeInfo("package$", DeclaredAs.Object, "org.example.package$", List(), List(), None),
               BasicTypeInfo("package$", DeclaredAs.Object, "org.example.package$", List(), List(), None))) =>
           }
 
