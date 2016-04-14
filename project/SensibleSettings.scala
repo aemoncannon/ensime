@@ -103,7 +103,6 @@ object Sensible {
 
   val scalaModulesVersion = "1.0.4"
   val akkaVersion = "2.3.14"
-  val streamsVersion = "1.0"
   val scalatestVersion = "2.2.6"
   val logbackVersion = "1.7.19"
   val quasiquotesVersion = "2.0.1"
