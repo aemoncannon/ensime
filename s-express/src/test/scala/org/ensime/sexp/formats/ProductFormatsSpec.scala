@@ -3,6 +3,7 @@
 package org.ensime.sexp.formats
 
 import org.ensime.sexp._
+import shapeless._
 
 class ProductFormatsSpec extends FormatSpec
     with BasicFormats with StandardFormats with ProductFormats {
@@ -27,7 +28,7 @@ class ProductFormatsSpec extends FormatSpec
 
   it should "support 'fast' case classes" in {
     // can't really test - its a side effect optimisation
-    implicit lazy val FastFooFormat: SexpFormat[Foo] = SexpFormat[Foo]
+    implicit val FastFooFormat: SexpFormat[Foo] = cachedImplicit
     assertFormat(foo, fooexpect)
     assertFormat(foo, fooexpect)
     assertFormat(foo, fooexpect)
@@ -81,7 +82,7 @@ class ProductFormatsSpec extends FormatSpec
 
   it should "support 'fast' tuples" in {
     // can't really test - its a side effect optimisation
-    implicit lazy val FastBarFormat: SexpFormat[(Int, String)] = SexpFormat[(Int, String)]
+    implicit val FastBarFormat: SexpFormat[(Int, String)] = cachedImplicit
     assertFormat(bar, barexpect)
     assertFormat(bar, barexpect)
     assertFormat(bar, barexpect)

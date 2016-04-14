@@ -3,6 +3,7 @@
 package org.ensime.sexp.formats
 
 import org.ensime.sexp._
+import shapeless._
 
 trait BasicFormats {
 
@@ -79,14 +80,14 @@ trait BasicFormats {
     }
 
   // boilerplate for performance (uses ViaBigDecimal)
-  implicit val IntFormat: SexpFormat[Int] = SexpFormat[Int]
-  implicit val LongFormat: SexpFormat[Long] = SexpFormat[Long]
-  implicit val FloatFormat: SexpFormat[Float] = SexpFormat[Float]
-  implicit val DoubleFormat: SexpFormat[Double] = SexpFormat[Double]
-  implicit val ByteFormat: SexpFormat[Byte] = SexpFormat[Byte]
-  implicit val ShortFormat: SexpFormat[Short] = SexpFormat[Short]
-  implicit val BigIntFormat: SexpFormat[BigInt] = SexpFormat[BigInt]
-  implicit val BigDecimalFormat: SexpFormat[BigDecimal] = SexpFormat[BigDecimal]
+  implicit val IntFormat: SexpFormat[Int] = cachedImplicit
+  implicit val LongFormat: SexpFormat[Long] = cachedImplicit
+  implicit val FloatFormat: SexpFormat[Float] = cachedImplicit
+  implicit val DoubleFormat: SexpFormat[Double] = cachedImplicit
+  implicit val ByteFormat: SexpFormat[Byte] = cachedImplicit
+  implicit val ShortFormat: SexpFormat[Short] = cachedImplicit
+  implicit val BigIntFormat: SexpFormat[BigInt] = cachedImplicit
+  implicit val BigDecimalFormat: SexpFormat[BigDecimal] = cachedImplicit
 }
 
 trait SymbolAltFormat {
