@@ -2,7 +2,7 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.server.protocol.swank
 
-import shapeless.{ cachedImplicit, Lazy }
+import shapeless.cachedImplicit
 
 import org.ensime.sexp._
 import org.ensime.sexp.formats._
@@ -421,16 +421,17 @@ object SwankProtocolResponse {
     }
   }
 
-  private def lazyImplicit[T](implicit lzy: Lazy[SexpFormat[T]]): SexpFormat[T] = lzy.value
-
-  implicit def NamedTypeMemberInfoFormat: SexpFormat[NamedTypeMemberInfo] = lazyImplicit
-  implicit def PackageInfoFormat: SexpFormat[PackageInfo] = lazyImplicit
-  implicit def ParamSectionInfoFormat: SexpFormat[ParamSectionInfo] = lazyImplicit
-  implicit def ArrowTypeInfoFormat: SexpFormat[ArrowTypeInfo] = lazyImplicit
-  implicit def BasicTypeInfoFormat: SexpFormat[BasicTypeInfo] = lazyImplicit
-  implicit def SymbolInfoFormat: SexpFormat[SymbolInfo] = lazyImplicit
-  implicit def InterfaceInfoFormat: SexpFormat[InterfaceInfo] = lazyImplicit
-  implicit def TypeInspectInfoFormat: SexpFormat[TypeInspectInfo] = lazyImplicit
+  implicit def NamedTypeMemberInfoFormat: SexpFormat[NamedTypeMemberInfo] = {
+    def NamedTypeMemberInfoFormat = ???
+    implicitly[SexpFormat[NamedTypeMemberInfo]]
+  }
+  implicit def PackageInfoFormat: SexpFormat[PackageInfo] = { def PackageInfoFormat = ???; implicitly[SexpFormat[PackageInfo]] }
+  implicit def ParamSectionInfoFormat: SexpFormat[ParamSectionInfo] = { def ParamSectionInfoFormat = ???; implicitly[SexpFormat[ParamSectionInfo]] }
+  implicit def ArrowTypeInfoFormat: SexpFormat[ArrowTypeInfo] = { def ArrowTypeInfoFormat = ???; implicitly[SexpFormat[ArrowTypeInfo]] }
+  implicit def BasicTypeInfoFormat: SexpFormat[BasicTypeInfo] = { def BasicTypeInfoFormat = ???; implicitly[SexpFormat[BasicTypeInfo]] }
+  implicit def SymbolInfoFormat: SexpFormat[SymbolInfo] = { def SymbolInfoFormat = ???; implicitly[SexpFormat[SymbolInfo]] }
+  implicit def InterfaceInfoFormat: SexpFormat[InterfaceInfo] = { def InterfaceInfoFormat = ???; implicitly[SexpFormat[InterfaceInfo]] }
+  implicit def TypeInspectInfoFormat: SexpFormat[TypeInspectInfo] = { def TypeInspectInfoFormat = ???; implicitly[SexpFormat[TypeInspectInfo]] }
 
   implicit object FileEditFormat extends TraitFormatAlt[FileEdit] {
     def write(ti: FileEdit): Sexp = ti match {
@@ -513,9 +514,9 @@ object SwankProtocolResponse {
       case _ => deserializationError(hint)
     }
   }
-  implicit def StructureViewFormat: SexpFormat[StructureView] = lazyImplicit
+  implicit def StructureViewFormat: SexpFormat[StructureView] = { def StructureViewFormat = ???; implicitly[SexpFormat[StructureView]] }
 
-  implicit def AstInfoFormat: SexpFormat[AstInfo] = lazyImplicit
+  implicit def AstInfoFormat: SexpFormat[AstInfo] = { def AstInfoFormat = ???; implicitly[SexpFormat[AstInfo]] }
 
   implicit object RpcResponseFormat extends SexpFormat[RpcResponse] {
     def read(sexp: Sexp): RpcResponse = ???
@@ -758,47 +759,45 @@ object SwankProtocolRequest {
     }
   }
 
-  private def lazyImplicit[T](implicit lzy: Lazy[SexpFormat[T]]): SexpFormat[T] = lzy.value
-
   // incoming messages
-  implicit def RemoveFileReqFormat: SexpFormat[RemoveFileReq] = lazyImplicit
-  implicit def TypecheckFileReqFormat: SexpFormat[TypecheckFileReq] = lazyImplicit
-  implicit def TypecheckFilesReqFormat: SexpFormat[TypecheckFilesReq] = lazyImplicit
-  implicit def FormatSourceReqFormat: SexpFormat[FormatSourceReq] = lazyImplicit
-  implicit def FormatOneSourceReqFormat: SexpFormat[FormatOneSourceReq] = lazyImplicit
-  implicit def PublicSymbolSearchHint: SexpFormat[PublicSymbolSearchReq] = lazyImplicit
-  implicit def ImportSuggestionsReqFormat: SexpFormat[ImportSuggestionsReq] = lazyImplicit
-  implicit def DocUriAtPointReqFormat: SexpFormat[DocUriAtPointReq] = lazyImplicit
-  implicit def DocUriForSymbolReqFormat: SexpFormat[DocUriForSymbolReq] = lazyImplicit
-  implicit def CompletionsReqFormat: SexpFormat[CompletionsReq] = lazyImplicit
-  implicit def PackageMemberCompletionReqFormat: SexpFormat[PackageMemberCompletionReq] = lazyImplicit
-  implicit def UsesOfSymbolAtPointReqFormat: SexpFormat[UsesOfSymbolAtPointReq] = lazyImplicit
-  implicit def TypeByNameReqFormat: SexpFormat[TypeByNameReq] = lazyImplicit
-  implicit def TypeByNameAtPointReqFormat: SexpFormat[TypeByNameAtPointReq] = lazyImplicit
-  implicit def TypeAtPointReqFormat: SexpFormat[TypeAtPointReq] = lazyImplicit
-  implicit def InspectTypeAtPointReqFormat: SexpFormat[InspectTypeAtPointReq] = lazyImplicit
-  implicit def InspectTypeByNameReqFormat: SexpFormat[InspectTypeByNameReq] = lazyImplicit
-  implicit def SymbolAtPointReqFormat: SexpFormat[SymbolAtPointReq] = lazyImplicit
-  implicit def SymbolByNameReqFormat: SexpFormat[SymbolByNameReq] = lazyImplicit
-  implicit def InspectPackageByPathReqFormat: SexpFormat[InspectPackageByPathReq] = lazyImplicit
-  implicit def RefactorReqFormat: SexpFormat[RefactorReq] = lazyImplicit
-  implicit def SymbolDesignationsReqFormat: SexpFormat[SymbolDesignationsReq] = lazyImplicit
-  implicit def ImplicitInfoReqFormat: SexpFormat[ImplicitInfoReq] = lazyImplicit
-  implicit def ExpandSelectionReqFormat: SexpFormat[ExpandSelectionReq] = lazyImplicit
-  implicit def StructureViewReqFormat: SexpFormat[StructureViewReq] = lazyImplicit
-  implicit def AstAtPointReqFormat: SexpFormat[AstAtPointReq] = lazyImplicit
-  implicit def DebugAttachReqFormat: SexpFormat[DebugAttachReq] = lazyImplicit
-  implicit def DebugSetBreakReqFormat: SexpFormat[DebugSetBreakReq] = lazyImplicit
-  implicit def DebugClearBreakReqFormat: SexpFormat[DebugClearBreakReq] = lazyImplicit
-  implicit def DebugContinueReqFormat: SexpFormat[DebugContinueReq] = lazyImplicit
-  implicit def DebugStepReqFormat: SexpFormat[DebugStepReq] = lazyImplicit
-  implicit def DebugNextReqFormat: SexpFormat[DebugNextReq] = lazyImplicit
-  implicit def DebugStepOutReqFormat: SexpFormat[DebugStepOutReq] = lazyImplicit
-  implicit def DebugLocateNameReqFormat: SexpFormat[DebugLocateNameReq] = lazyImplicit
-  implicit def DebugValueReqFormat: SexpFormat[DebugValueReq] = lazyImplicit
-  implicit def DebugToStringReqFormat: SexpFormat[DebugToStringReq] = lazyImplicit
-  implicit def DebugSetValueueReqFormat: SexpFormat[DebugSetValueReq] = lazyImplicit
-  implicit def DebugBacktraceReqFormat: SexpFormat[DebugBacktraceReq] = lazyImplicit
+  implicit def RemoveFileReqFormat: SexpFormat[RemoveFileReq] = { def RemoveFileReqFormat = ???; implicitly[SexpFormat[RemoveFileReq]] }
+  implicit def TypecheckFileReqFormat: SexpFormat[TypecheckFileReq] = { def TypecheckFileReqFormat = ???; implicitly[SexpFormat[TypecheckFileReq]] }
+  implicit def TypecheckFilesReqFormat: SexpFormat[TypecheckFilesReq] = { def TypecheckFilesReqFormat = ???; implicitly[SexpFormat[TypecheckFilesReq]] }
+  implicit def FormatSourceReqFormat: SexpFormat[FormatSourceReq] = { def FormatSourceReqFormat = ???; implicitly[SexpFormat[FormatSourceReq]] }
+  implicit def FormatOneSourceReqFormat: SexpFormat[FormatOneSourceReq] = { def FormatOneSourceReqFormat = ???; implicitly[SexpFormat[FormatOneSourceReq]] }
+  implicit def PublicSymbolSearchHint: SexpFormat[PublicSymbolSearchReq] = { def PublicSymbolSearchHint = ???; implicitly[SexpFormat[PublicSymbolSearchReq]] }
+  implicit def ImportSuggestionsReqFormat: SexpFormat[ImportSuggestionsReq] = { def ImportSuggestionsReqFormat = ???; implicitly[SexpFormat[ImportSuggestionsReq]] }
+  implicit def DocUriAtPointReqFormat: SexpFormat[DocUriAtPointReq] = { def DocUriAtPointReqFormat = ???; implicitly[SexpFormat[DocUriAtPointReq]] }
+  implicit def DocUriForSymbolReqFormat: SexpFormat[DocUriForSymbolReq] = { def DocUriForSymbolReqFormat = ???; implicitly[SexpFormat[DocUriForSymbolReq]] }
+  implicit def CompletionsReqFormat: SexpFormat[CompletionsReq] = { def CompletionsReqFormat = ???; implicitly[SexpFormat[CompletionsReq]] }
+  implicit def PackageMemberCompletionReqFormat: SexpFormat[PackageMemberCompletionReq] = { def PackageMemberCompletionReqFormat = ???; implicitly[SexpFormat[PackageMemberCompletionReq]] }
+  implicit def UsesOfSymbolAtPointReqFormat: SexpFormat[UsesOfSymbolAtPointReq] = { def UsesOfSymbolAtPointReqFormat = ???; implicitly[SexpFormat[UsesOfSymbolAtPointReq]] }
+  implicit def TypeByNameReqFormat: SexpFormat[TypeByNameReq] = { def TypeByNameReqFormat = ???; implicitly[SexpFormat[TypeByNameReq]] }
+  implicit def TypeByNameAtPointReqFormat: SexpFormat[TypeByNameAtPointReq] = { def TypeByNameAtPointReqFormat = ???; implicitly[SexpFormat[TypeByNameAtPointReq]] }
+  implicit def TypeAtPointReqFormat: SexpFormat[TypeAtPointReq] = { def TypeAtPointReqFormat = ???; implicitly[SexpFormat[TypeAtPointReq]] }
+  implicit def InspectTypeAtPointReqFormat: SexpFormat[InspectTypeAtPointReq] = { def InspectTypeAtPointReqFormat = ???; implicitly[SexpFormat[InspectTypeAtPointReq]] }
+  implicit def InspectTypeByNameReqFormat: SexpFormat[InspectTypeByNameReq] = { def InspectTypeByNameReqFormat = ???; implicitly[SexpFormat[InspectTypeByNameReq]] }
+  implicit def SymbolAtPointReqFormat: SexpFormat[SymbolAtPointReq] = { def SymbolAtPointReqFormat = ???; implicitly[SexpFormat[SymbolAtPointReq]] }
+  implicit def SymbolByNameReqFormat: SexpFormat[SymbolByNameReq] = { def SymbolByNameReqFormat = ???; implicitly[SexpFormat[SymbolByNameReq]] }
+  implicit def InspectPackageByPathReqFormat: SexpFormat[InspectPackageByPathReq] = { def InspectPackageByPathReqFormat = ???; implicitly[SexpFormat[InspectPackageByPathReq]] }
+  implicit def RefactorReqFormat: SexpFormat[RefactorReq] = { def RefactorReqFormat = ???; implicitly[SexpFormat[RefactorReq]] }
+  implicit def SymbolDesignationsReqFormat: SexpFormat[SymbolDesignationsReq] = { def SymbolDesignationsReqFormat = ???; implicitly[SexpFormat[SymbolDesignationsReq]] }
+  implicit def ImplicitInfoReqFormat: SexpFormat[ImplicitInfoReq] = { def ImplicitInfoReqFormat = ???; implicitly[SexpFormat[ImplicitInfoReq]] }
+  implicit def ExpandSelectionReqFormat: SexpFormat[ExpandSelectionReq] = { def ExpandSelectionReqFormat = ???; implicitly[SexpFormat[ExpandSelectionReq]] }
+  implicit def StructureViewReqFormat: SexpFormat[StructureViewReq] = { def StructureViewReqFormat = ???; implicitly[SexpFormat[StructureViewReq]] }
+  implicit def AstAtPointReqFormat: SexpFormat[AstAtPointReq] = { def AstAtPointReqFormat = ???; implicitly[SexpFormat[AstAtPointReq]] }
+  implicit def DebugAttachReqFormat: SexpFormat[DebugAttachReq] = { def DebugAttachReqFormat = ???; implicitly[SexpFormat[DebugAttachReq]] }
+  implicit def DebugSetBreakReqFormat: SexpFormat[DebugSetBreakReq] = { def DebugSetBreakReqFormat = ???; implicitly[SexpFormat[DebugSetBreakReq]] }
+  implicit def DebugClearBreakReqFormat: SexpFormat[DebugClearBreakReq] = { def DebugClearBreakReqFormat = ???; implicitly[SexpFormat[DebugClearBreakReq]] }
+  implicit def DebugContinueReqFormat: SexpFormat[DebugContinueReq] = { def DebugContinueReqFormat = ???; implicitly[SexpFormat[DebugContinueReq]] }
+  implicit def DebugStepReqFormat: SexpFormat[DebugStepReq] = { def DebugStepReqFormat = ???; implicitly[SexpFormat[DebugStepReq]] }
+  implicit def DebugNextReqFormat: SexpFormat[DebugNextReq] = { def DebugNextReqFormat = ???; implicitly[SexpFormat[DebugNextReq]] }
+  implicit def DebugStepOutReqFormat: SexpFormat[DebugStepOutReq] = { def DebugStepOutReqFormat = ???; implicitly[SexpFormat[DebugStepOutReq]] }
+  implicit def DebugLocateNameReqFormat: SexpFormat[DebugLocateNameReq] = { def DebugLocateNameReqFormat = ???; implicitly[SexpFormat[DebugLocateNameReq]] }
+  implicit def DebugValueReqFormat: SexpFormat[DebugValueReq] = { def DebugValueReqFormat = ???; implicitly[SexpFormat[DebugValueReq]] }
+  implicit def DebugToStringReqFormat: SexpFormat[DebugToStringReq] = { def DebugToStringReqFormat = ???; implicitly[SexpFormat[DebugToStringReq]] }
+  implicit def DebugSetValueueReqFormat: SexpFormat[DebugSetValueReq] = { def DebugSetValueueReqFormat = ???; implicitly[SexpFormat[DebugSetValueReq]] }
+  implicit def DebugBacktraceReqFormat: SexpFormat[DebugBacktraceReq] = { def DebugBacktraceReqFormat = ???; implicitly[SexpFormat[DebugBacktraceReq]] }
 
   implicit object RpcRequestFormat extends SexpFormat[RpcRequest] {
     def write(o: RpcRequest): Sexp = ???
