@@ -13,9 +13,11 @@ import sbtbuildinfo.BuildInfoPlugin, BuildInfoPlugin.autoImport._
 
 object EnsimeBuild extends Build {
   lazy override val settings = super.settings ++ Seq(
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.11.8-tl-201604151108",
+    scalaBinaryVersion := CrossVersion.binaryScalaVersion("2.11"),
     organization := "org.ensime",
     version := "0.9.10-SNAPSHOT",
+    resolvers += "scalatl" at "http://milessabin.com/scalatl",
     resolvers += Resolver.jcenterRepo, // netbeans
     resolvers += Resolver.sonatypeRepo("snapshots") // scala-refactoring
   )
@@ -27,6 +29,12 @@ object EnsimeBuild extends Build {
        "com.typesafe.akka" %% "akka-actor" % Sensible.akkaVersion,
        "com.typesafe.akka" %% "akka-testkit" % Sensible.akkaVersion,
        "io.spray" %% "spray-json" % "1.3.2"
+    ),
+
+    // SI-2712
+    scalacOptions ++= Seq(
+      "-language:higherKinds",
+      "-Yhigher-order-unification"
     ),
 
     // disabling shared memory gives a small performance boost to tests
