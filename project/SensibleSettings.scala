@@ -64,7 +64,8 @@ object Sensible {
       "org.scala-lang.modules" %% "scala-xml" % scalaModulesVersion,
       "org.scala-lang.modules" %% "scala-parser-combinators" % scalaModulesVersion,
       "org.scalamacros" %% "quasiquotes" % quasiquotesVersion,
-      "org.scalatest" %% "scalatest" % scalatestVersion
+      "org.scalatest" %% "scalatest" % scalatestVersion,
+      "com.typesafe" % "config" % configVersion
     ) ++ logback ++ guava ++ shapeless(scalaVersion.value)
   ) ++ inConfig(Test)(testSettings) ++ scalariformSettings
 
@@ -102,12 +103,12 @@ object Sensible {
   )
 
   val scalaModulesVersion = "1.0.4"
-  val akkaVersion = "2.3.14"
-  val streamsVersion = "1.0"
+  val akkaVersion = "2.4.4"
   val scalatestVersion = "2.2.6"
   val logbackVersion = "1.7.19"
   val quasiquotesVersion = "2.0.1"
   val guavaVersion = "19.0"
+  val configVersion = "1.3.0"
 
   val macroParadise = Seq(
     compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
