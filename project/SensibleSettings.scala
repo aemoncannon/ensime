@@ -52,7 +52,7 @@ object Sensible {
     fork := true,
 
     concurrentRestrictions in Global := {
-      val limited = Properties.envOrElse("SBT_TASK_LIMIT", "8").toInt
+      val limited = Properties.envOrElse("SBT_TASK_LIMIT", "4").toInt
       Seq(Tags.limitAll(limited))
     },
 

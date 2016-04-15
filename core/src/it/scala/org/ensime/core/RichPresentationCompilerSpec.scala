@@ -564,7 +564,7 @@ class RichPresentationCompilerSpec extends EnsimeSpec
     Await.result(cc.search.refresh(), 180.seconds)
 
     val scalaVersion = scala.util.Properties.versionNumberString
-    val parts = scalaVersion.split("\\.").map { _.toInt }
+    val parts = scalaVersion.split("\\.").take(2).map { _.toInt }
     if (parts(0) > 2 || (parts(0) == 2 && parts(1) > 10)) {
       /* in Scala 2.10, the declaration position of "pacakge object" is
        different so we just skip this test */

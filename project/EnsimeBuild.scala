@@ -15,7 +15,9 @@ object EnsimeBuild extends Build {
   lazy override val settings = super.settings ++ Seq(
     scalaVersion := "2.11.8",
     organization := "org.ensime",
-    version := "0.9.10-SNAPSHOT"
+    version := "0.9.10-SNAPSHOT",
+    resolvers += Resolver.jcenterRepo, // netbeans
+    resolvers += Resolver.sonatypeRepo("snapshots") // scala-refactoring
   )
 
   lazy val commonSettings = Sensible.settings ++ Seq(
@@ -26,11 +28,6 @@ object EnsimeBuild extends Build {
        "com.typesafe.akka" %% "akka-testkit" % Sensible.akkaVersion,
        "io.spray" %% "spray-json" % "1.3.2"
     ),
-
-    // WORKAROUND https://github.com/ensime/ensime-emacs/issues/327
-    fullResolvers += Resolver.jcenterRepo,
-
-    resolvers += Resolver.sonatypeRepo("snapshots"),
 
     // disabling shared memory gives a small performance boost to tests
     javaOptions ++= Seq("-XX:+PerfDisableSharedMem"),

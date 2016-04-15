@@ -12,6 +12,7 @@ import akka.util.ByteString
 import org.ensime.fixture.SharedTestKitFixture
 import org.ensime.util.EnsimeSpec
 import spray.json._
+import scala.concurrent.duration._
 
 class WebSocketBoilerplateSpec extends EnsimeSpec with SharedTestKitFixture {
   import WebSocketBoilerplate._
@@ -35,7 +36,7 @@ class WebSocketBoilerplateSpec extends EnsimeSpec with SharedTestKitFixture {
 
     service.expectMsg("hello")
     service.send(target, 13L)
-    service.expectNoMsg()
+    service.expectNoMsg(3 seconds)
     client.expectMsg(13L)
 
     // it would be good to check that errors / closing will stop the
