@@ -72,11 +72,11 @@ trait WebServer {
     } ~ path("docs" / """[^/]+\.jar""".r / Rest) { (filename, entry) =>
       rejectEmptyResponse {
         complete {
+          val media = MediaTypes.forExtension(Files.getFileExtension(entry))
           for {
-            media <- MediaTypes.forExtension(Files.getFileExtension(entry))
             content <- docJarContent(filename, entry)
           } yield {
-            HttpResponse(entity = HttpEntity(ContentType(media, None), content))
+            HttpResponse(entity = HttpEntity(ContentType(media, () => HttpCharsets.`UTF-8`), content))
           }
         }
       }

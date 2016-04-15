@@ -20,6 +20,7 @@ import org.ensime.server.tcp.TCPServer
 import org.slf4j._
 import org.slf4j.bridge.SLF4JBridgeHandler
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Properties._
 import scala.util._
@@ -145,10 +146,10 @@ object Server {
           log.info(s"Shutdown requested: ${request.reason}")
 
         log.info("Shutting down the ActorSystem")
-        Try(system.shutdown())
+        Try(system.terminate())
 
         log.info("Awaiting actor system termination")
-        Try(system.awaitTermination())
+        Try(Await.ready(system.whenTerminated, Duration.Inf))
 
         log.info("Shutdown complete")
         if (!propIsSet("ensime.server.test")) {

@@ -167,7 +167,7 @@ object EnsimeBuild extends Build {
       )
 
   val luceneVersion = "4.7.2"
-  val streamsVersion = "1.0"
+  val streamsVersion = Sensible.akkaVersion
   lazy val server = Project("server", file("server")).dependsOn(
     core, swanky, jerky,
     s_express % "test->test",
@@ -181,12 +181,12 @@ object EnsimeBuild extends Build {
       commonSettings ++ commonItSettings
     ).settings(
         libraryDependencies ++= Seq(
-          "com.typesafe.akka" %% "akka-stream-experimental" % streamsVersion,
-          "com.typesafe.akka" %% "akka-http-core-experimental" % streamsVersion,
+          "com.typesafe.akka" %% "akka-stream" % streamsVersion,
+          "com.typesafe.akka" %% "akka-http-core" % streamsVersion,
           "com.typesafe.akka" %% "akka-http-experimental" % streamsVersion,
           "com.typesafe.akka" %% "akka-http-spray-json-experimental" % streamsVersion,
           "com.typesafe.akka" %% "akka-http-xml-experimental" % streamsVersion,
-          "com.typesafe.akka" %% "akka-http-testkit-experimental" % streamsVersion % "test,it"
+          "com.typesafe.akka" %% "akka-http-testkit" % streamsVersion % "test,it"
         ) ++ Sensible.testLibs("it,test") ++ Sensible.shapeless(scalaVersion.value)
       )
 
