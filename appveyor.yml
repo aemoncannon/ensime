@@ -31,6 +31,7 @@ cache:
   - C:\sbt\
   - C:\Users\appveyor\.m2
   - C:\Users\appveyor\.ivy2
+  - C:\Users\appveyor\.coursier
   - C:\Program Files\Java\jdk1.7.0\src.zip
 on_failure:
   - appveyor PushArtifact -Path '**\*.log' -FileName logs -Type zip

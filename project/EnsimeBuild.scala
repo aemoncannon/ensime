@@ -29,6 +29,9 @@ object EnsimeBuild extends Build {
        "io.spray" %% "spray-json" % "1.3.2"
     ),
 
+    // scala-refactoring snapshot releases
+    resolvers += Resolver.sonatypeRepo("snapshots"),
+
     // disabling shared memory gives a small performance boost to tests
     javaOptions ++= Seq("-XX:+PerfDisableSharedMem"),
 
