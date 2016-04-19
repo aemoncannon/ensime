@@ -18,6 +18,7 @@ import com.sun.source.tree.Scope
 import scala.collection.mutable.ArrayBuffer;
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.collection.breakOut
 
 trait JavaCompletion extends Helpers with SLF4JLogging {
 
@@ -209,7 +210,7 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
     caseSense: Boolean
   ): List[CompletionInfo] = {
 
-    typeElement(info, target).map {
+    typeElement(info, target).toList.flatMap {
 
       case tel: TypeElement =>
 
@@ -221,13 +222,12 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
 
         info.getElements.getAllMembers(tel).filter(isAccessible).flatMap { el =>
           filterElement(info, el, prefix, caseSense, importing, false)
-        }
+        }(breakOut)
 
       case e =>
         log.warn("Unrecognized type element " + e)
         List.empty
-
-    }.map(_.toList).getOrElse(List.empty)
+    }
   }
 
   private def methodInfo(e: ExecutableElement, relavence: Int): CompletionInfo = {
