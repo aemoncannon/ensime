@@ -36,3 +36,11 @@ cache:
   - C:\Program Files\Java\jdk1.7.0\src.zip
 on_failure:
   - appveyor PushArtifact -Path '**\*.log' -FileName logs -Type zip
+cache:
+  directories:
+  - $HOME/.sbt
+  - $HOME/.ivy2
+  - $HOME/.m2
+  - $HOME/.coursier
+notifications:
+  email: false
