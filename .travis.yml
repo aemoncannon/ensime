@@ -8,4 +8,6 @@ env:
     - COURSIER_MODE=update-local-changing,missing
 script:
   - curl https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt -o sbt ; chmod 755 sbt
-  - ./sbt gen-ensime test it:test
+  - ./sbt gen-ensime
+  - ./sbt test:compile it:compile
+  - ./sbt test it:test
