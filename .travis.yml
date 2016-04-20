@@ -1,0 +1,11 @@
+language: java
+os:
+  - osx
+env:
+  global:
+    - AKKA_TEST_TIMEFACTOR=10
+    - SBT_TASK_LIMIT=2
+    - COURSIER_MODE=update-local-changing,missing
+script:
+  - curl https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt -o sbt ; chmod 755 sbt
+  - ./sbt gen-ensime test it:test
