@@ -214,9 +214,10 @@ trait JavaCompletion extends Helpers with SLF4JLogging {
 
       case tel: TypeElement =>
 
+        val path = info.getTrees.getPath(info.getCompilationUnit, target)
+        val scope = info.getTrees.getScope(path)
+         
         def isAccessible(el: Element): Boolean = {
-          val path = info.getTrees.getPath(info.getCompilationUnit, target)
-          val scope = info.getTrees.getScope(path)
           info.getTrees.isAccessible(scope, el, info.getTypes.getDeclaredType(tel))
         }
 
