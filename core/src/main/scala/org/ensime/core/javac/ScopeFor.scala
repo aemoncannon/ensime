@@ -12,34 +12,30 @@ object ScopeFor {
 
   def apply(compilation: Compilation, position: Int): Option[Scope] = {
 
-    PathFor(compilation, position) match {
+    PathFor(compilation, position) map { path =>
 
-      case Some(path) =>
+      val sourcePositions = compilation.trees.getSourcePositions
 
-        val sourcePositions = compilation.trees.getSourcePositions
+      val root = path.getCompilationUnit
 
-        val root = path.getCompilationUnit
+      val statements: List[_ <: StatementTree] = path.getLeaf.getKind match {
+        case Kind.BLOCK => path.getLeaf.asInstanceOf[BlockTree].getStatements.toList
+        case Kind.FOR_LOOP => path.getLeaf.asInstanceOf[ForLoopTree].getInitializer.toList
+        case Kind.ENHANCED_FOR_LOOP => List(path.getLeaf.asInstanceOf[EnhancedForLoopTree].getStatement)
+        case Kind.CASE => path.getLeaf.asInstanceOf[CaseTree].getStatements.toList
+        case Kind.METHOD => path.getLeaf.asInstanceOf[MethodTree].getParameters.toList
+        case otherwise => Nil
+      }
 
-        val statements: List[_ <: StatementTree] = path.getLeaf.getKind match {
-          case Kind.BLOCK => path.getLeaf.asInstanceOf[BlockTree].getStatements.toList
-          case Kind.FOR_LOOP => path.getLeaf.asInstanceOf[ForLoopTree].getInitializer.toList
-          case Kind.ENHANCED_FOR_LOOP => List(path.getLeaf.asInstanceOf[EnhancedForLoopTree].getStatement)
-          case Kind.CASE => path.getLeaf.asInstanceOf[CaseTree].getStatements.toList
-          case Kind.METHOD => path.getLeaf.asInstanceOf[MethodTree].getParameters.toList
-          case otherwise => Nil
-        }
+      val isAtPosition: StatementTree => Boolean = {
+        sourcePositions.getStartPosition(root, _) <= position
+      }
 
-        val isAtPosition: StatementTree => Boolean = {
-          sourcePositions.getStartPosition(root, _) <= position
-        }
+      val treePathOption = for {
+        tree <- statements.reverse.find(isAtPosition)
+      } yield new TreePath(path, tree)
 
-        val treePathOption = for {
-          tree <- statements.reverse.find(isAtPosition)
-        } yield new TreePath(path, tree)
-
-        Some(compilation.trees.getScope(treePathOption.getOrElse(path)))
-
-      case None => None
+      compilation.trees.getScope(treePathOption.getOrElse(path))
     }
   }
 }
