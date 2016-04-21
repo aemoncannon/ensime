@@ -10,11 +10,9 @@ import scala.util.Try
 import scala.util.Failure
 import scala.util.Success
 
-import java.lang.Void
-
 case class Hit(path: TreePath) extends Exception
 
-class PathFor(private val sourcePositions: SourcePositions, private val position: Int) extends TreePathScanner[Void, Void] {
+class PathFor(private val sourcePositions: SourcePositions, private val position: Int) extends TreePathScanner[Unit, Unit] {
 
   private def isAtPosition(tree: Tree): Boolean = {
     val startPosition = sourcePositions.getStartPosition(getCurrentPath().getCompilationUnit(), tree)
@@ -22,7 +20,7 @@ class PathFor(private val sourcePositions: SourcePositions, private val position
     startPosition <= position && endPosition >= position
   }
 
-  override def scan(tree: Tree, p: Void): Void = {
+  override def scan(tree: Tree, p: Unit): Unit = {
 
     Option(tree) match {
 
@@ -34,7 +32,7 @@ class PathFor(private val sourcePositions: SourcePositions, private val position
         super.scan(t, p)
         throw Hit(new TreePath(getCurrentPath(), tree))
 
-      case _ => null.asInstanceOf[Void]
+      case _ =>
     }
   }
 }
@@ -46,7 +44,7 @@ object PathFor {
     val sourcePositions = c.trees.getSourcePositions
     val tree = new TreePath(c.compilationUnit)
 
-    Try(new PathFor(sourcePositions, position).scan(tree, null.asInstanceOf[Void])) match {
+    Try(new PathFor(sourcePositions, position).scan(tree, ())) match {
       case Success(x) => None
       case Failure(Hit(path)) => Some(path)
       case Failure(e) => None
