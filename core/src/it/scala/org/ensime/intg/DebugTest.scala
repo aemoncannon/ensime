@@ -11,7 +11,7 @@ import java.util.Scanner
 import org.ensime.api._
 import org.ensime.core._
 import org.ensime.fixture._
-import org.ensime.util.EnsimeSpec
+import org.ensime.util._
 import org.ensime.util.file._
 import org.scalatest.Matchers
 import scala.concurrent.{ Await, Future, Promise }
@@ -29,7 +29,7 @@ class DebugTest extends EnsimeSpec
     javaLibs = Nil // no need to index the JRE
   )
 
-  "Debug - stepping" should "handle basic stepping" ignore {
+  "Debug - stepping" should "handle basic stepping" taggedAs (Debugger) ignore {
     withEnsimeConfig { implicit config =>
       withTestKit { implicit testkit =>
         withProject { (project, asyncHelper) =>
@@ -52,7 +52,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  "Breakpoints" should "trigger/continue" in withEnsimeConfig { implicit config =>
+  "Breakpoints" should "trigger/continue" taggedAs (Debugger) in withEnsimeConfig { implicit config =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -122,7 +122,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  it should "list/clear" in withEnsimeConfig { implicit config =>
+  it should "list/clear" taggedAs (Debugger) in withEnsimeConfig { implicit config =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -169,7 +169,7 @@ class DebugTest extends EnsimeSpec
 
   // starting up a debug session for each variable is unneeded and wasteful of test time.
   // this approach means that there is one test method, but it still explores all of the paths.
-  "Debug Inspect variables" should "inspect variables" in withEnsimeConfig { implicit config =>
+  "Debug Inspect variables" should "inspect variables" taggedAs (Debugger) in withEnsimeConfig { implicit config =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)

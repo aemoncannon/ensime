@@ -13,6 +13,13 @@ import org.slf4j.bridge.SLF4JBridgeHandler
 import scala.concurrent.duration._
 
 /**
+ * Indicates a test that requires launching a JVM under debug mode.
+ *
+ * These are typically very unstable on Windows.
+ */
+object Debugger extends Tag("Debugger")
+
+/**
  * Boilerplate remover and preferred testing style in ENSIME.
  */
 trait EnsimeSpec extends FlatSpec

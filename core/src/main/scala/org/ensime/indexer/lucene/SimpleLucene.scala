@@ -19,6 +19,10 @@ import scala.collection.mutable
 
 object SimpleLucene {
   private val LuceneVersion = Version.LUCENE_47
+  // from DirectDocValuesFormat.MAX_SORTED_SET_ORDS = 2147483391 but
+  // it's kind of an insane number, so let's pick something halfway
+  // sensible.
+  val MaxResults = 10000
 }
 
 /**
