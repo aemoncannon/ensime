@@ -16,6 +16,7 @@ import org.ensime.util.{ PresentationReporter, ReportHandler, FileUtils }
 import org.slf4j.LoggerFactory
 import org.ensime.util.file._
 
+import scala.collection.breakOut
 import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
@@ -179,7 +180,7 @@ class Analyzer(
       //consider the case of a project with no modules
       config.modules get (moduleName) foreach {
         case module =>
-          val files = module.scalaSourceFiles.map(SourceFileInfo(_, None, None)).toList
+          val files: List[SourceFileInfo] = module.scalaSourceFiles.map(SourceFileInfo(_, None, None))(breakOut)
           sender ! handleReloadFiles(files)
       }
     case UnloadModuleReq(moduleName) =>

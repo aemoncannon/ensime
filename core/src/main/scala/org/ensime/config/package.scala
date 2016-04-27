@@ -7,11 +7,13 @@ import Predef.{ any2stringadd => _, _ => _ }
 import org.ensime.api._
 import org.ensime.util.file._
 
+import scala.collection.breakOut
+
 package object config {
 
   implicit class RichEnsimeConfig(val c: EnsimeConfig) extends AnyVal {
     def scalaSourceFiles: Set[File] =
-      c.modules.values.toSet.flatMap((m: EnsimeModule) => m.scalaSourceFiles)
+      c.modules.values.flatMap((m: EnsimeModule) => m.scalaSourceFiles)(breakOut)
   }
 
   implicit class RichEnsimeModule(val m: EnsimeModule) extends AnyVal {
@@ -19,7 +21,7 @@ package object config {
       val s = for {
         root <- m.sourceRoots
         file <- root.tree
-        if file.isFile && file.getName.endsWith(".scala")
+        if file.isFile && file.isScala
       } yield file
 
       s.toSet

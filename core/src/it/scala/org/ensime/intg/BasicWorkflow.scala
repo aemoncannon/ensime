@@ -34,8 +34,14 @@ class BasicWorkflow extends EnsimeSpec
           asyncHelper.expectMsgType[NewScalaNotesEvent]
           asyncHelper.expectMsgType[FullTypeCheckCompleteEvent.type]
 
+          project ! TypeByNameReq("org.example.Bloo")
+          expectMsgType[BasicTypeInfo]
+
           project ! UnloadModuleReq("testingSimple")
           expectMsg(VoidResponse)
+
+          project ! TypeByNameReq("org.example.Bloo")
+          expectMsg(FalseResponse)
 
           // trigger typeCheck
           project ! TypecheckFilesReq(List(Left(fooFile)))
