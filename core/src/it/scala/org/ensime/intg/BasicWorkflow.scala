@@ -199,7 +199,6 @@ class BasicWorkflow extends EnsimeSpec
               BasicTypeInfo("Test1$", DeclaredAs.Object, "org.example.Test1$", List(), List(), None),
               BasicTypeInfo("Test2", DeclaredAs.Class, "org.example.Test2", List(), List(), None),
               BasicTypeInfo("Test2$", DeclaredAs.Object, "org.example.Test2$", List(), List(), None),
-              //BasicTypeInfo("package$", DeclaredAs.Object, "org.example.package$", List(), List(), None),
               BasicTypeInfo("package$", DeclaredAs.Object, "org.example.package$", List(), List(), None))) =>
           }
 
