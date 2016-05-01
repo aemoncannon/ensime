@@ -24,7 +24,7 @@ install:
 build_script:
   - sbt clean compile test:compile it:compile
 before_test:
-  - sbt gen-ensime
+  - sbt ensimeConfig
 test_script:
   - sbt test "testOnly -- -l Debugger"
   - rmdir /s /q C:\Users\appveyor\.coursier\cache\v1\https\oss.sonatype.org

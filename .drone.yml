@@ -15,7 +15,7 @@ build:
       fi
     - git log | head -n 20
     - host `curl -s http://httpbin.org/ip | jq -r '.origin'` || true ;
-    - sbt ++$SCALA_VERSION gen-ensime ;
+    - sbt ++$SCALA_VERSION ensimeConfig ;
       sbt ++$SCALA_VERSION clean test:compile it:compile doc ;
       if $(! git diff --exit-code --quiet) ; then
         echo "Code formatting does not meet the project's standards:" ;
