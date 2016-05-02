@@ -246,7 +246,7 @@ class SearchService(
     batchSize: Int = 1000
   ): Future[Int] = {
     val removing = files.grouped(batchSize).map(delete)
-    Future.sequence(removing).map(_.sum)(executor = ex)
+    Future.sequence(removing).map(_.sum)
   }
 
   // returns number of rows removed
