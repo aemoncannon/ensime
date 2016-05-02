@@ -43,6 +43,7 @@ import akka.actor.ActorRef
 import akka.pattern.Patterns
 import akka.util.Timeout
 import org.ensime.api._
+import org.ensime.indexer.PackageName
 import org.ensime.indexer.lucene.SimpleLucene
 
 import scala.collection.mutable
@@ -330,16 +331,16 @@ object Keywords {
 trait Completion { self: RichPresentationCompiler =>
 
   def completePackageMember(path: String, prefix: String): List[CompletionInfo] = {
-    packageSymFromPath(path) match {
-      case Some(sym) =>
+    toSymbol(PackageName(path.split('.').toList)) match {
+      case NoSymbol => List.empty
+      case sym =>
         val memberSyms = packageMembers(sym).filterNot { s =>
           s == NoSymbol || s.nameString.contains("$")
         }
         memberSyms.flatMap { s =>
-          val name = if (s.hasPackageFlag) { s.nameString } else { typeShortName(s) }
+          val name = if (s.hasPackageFlag) { s.nameString } else { shortName(s).underlying }
           if (name.startsWith(prefix)) Some(CompletionInfo(name, CompletionSignature(List.empty, "", false), isCallable = false, 50, None)) else None
         }.toList.sortBy(ci => (ci.relevance, ci.name))
-      case _ => List.empty
     }
   }
 

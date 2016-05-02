@@ -2,21 +2,35 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.model
 
-import org.ensime.api._
-import org.ensime.util.file._
-
-import org.apache.commons.vfs2.FileObject
-import org.ensime.core.RichPresentationCompiler
-import org.ensime.indexer.DatabaseService._
-import org.ensime.vfs._
-
+import org.ensime.core.FqnToSymbol
+import org.ensime.indexer.{ MethodName, PackageName }
 import scala.collection.mutable
 import scala.reflect.internal.util.{ NoPosition, Position, RangePosition }
 import scala.tools.nsc.io.AbstractFile
 
-trait ModelBuilders { self: RichPresentationCompiler =>
+import org.apache.commons.vfs2.FileObject
+import org.ensime.api._
+import org.ensime.core.RichPresentationCompiler
+import org.ensime.indexer.database.DatabaseService._
+import org.ensime.util.file._
+import org.ensime.vfs._
+
+trait ModelBuilders {
+  self: RichPresentationCompiler with FqnToSymbol =>
 
   import rootMirror.RootPackage
+
+  def completionSignatureForType(tpe: Type): CompletionSignature = {
+    if (isArrowType(tpe)) {
+      CompletionSignature(
+        tpe.paramss.map { sect =>
+          sect.map { p => (p.name.toString, fullName(p.tpe).underlying) }
+        },
+        fullName(tpe.finalResultType).underlying,
+        tpe.paramss.exists { sect => sect.exists(_.isImplicit) }
+      )
+    } else CompletionSignature(List.empty, fullName(tpe).underlying, false)
+  }
 
   def locateSymbolPos(sym: Symbol, needPos: PosNeeded): Option[SourcePosition] = {
     _locateSymbolPos(sym, needPos).orElse({
@@ -39,11 +53,11 @@ trait ModelBuilders { self: RichPresentationCompiler =>
     } else {
       // only perform operations is actively requested - this is comparatively expensive
       if (needPos == PosNeededYes) {
-        // we might need this for some Java fqns but we need some evidence
-        // val name = genASM.jsymbol(sym).fullName
-        val name = symbolIndexerName(sym)
-        val hit = search.findUnique(name)
-        logger.debug(s"search: $name = $hit")
+        val fqn = toFqn(sym).fqnString
+        logger.debug(s"$sym ==> $fqn")
+
+        val hit = search.findUnique(fqn)
+        logger.debug(s"search: $fqn = $hit")
         hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)(config, vfs)).flatMap { sourcePos =>
           if (sourcePos.file.getName.endsWith(".scala"))
             askLinkPos(sym, AbstractFile.getFile(sourcePos.file)).
@@ -126,13 +140,11 @@ trait ModelBuilders { self: RichPresentationCompiler =>
   object PackageInfo {
     def root: PackageInfo = fromSymbol(RootPackage)
 
-    def fromPath(path: String): PackageInfo = {
-      val pack = packageSymFromPath(path)
-      pack match {
-        case Some(packSym) => fromSymbol(packSym)
-        case None => nullInfo
+    def fromPath(path: String): PackageInfo =
+      toSymbol(PackageName(path.split('.').toList)) match {
+        case NoSymbol => nullInfo
+        case packSym => fromSymbol(packSym)
       }
-    }
 
     val nullInfo = new PackageInfo("NA", "NA", List.empty)
 
@@ -184,9 +196,9 @@ trait ModelBuilders { self: RichPresentationCompiler =>
         val symbolToLocate = if (typeSym.isModuleClass) typeSym.sourceModule else typeSym
         val symPos = locateSymbolPos(symbolToLocate, needPos)
         new BasicTypeInfo(
-          typeShortName(tpe),
+          shortName(tpe).underlying,
           declaredAs(typeSym),
-          typeFullName(tpe),
+          fullName(tpe).underlying,
           tpe.typeArgs.map(TypeInfo(_)),
           members,
           symPos
@@ -225,7 +237,7 @@ trait ModelBuilders { self: RichPresentationCompiler =>
       val nameString = sym.nameString
       val (name, localName) = if (sym.isClass || sym.isTrait || sym.isModule ||
         sym.isModuleClass || sym.isPackageClass) {
-        (typeFullName(tpe), nameString)
+        (fullName(tpe).underlying, nameString)
       } else {
         (nameString, nameString)
       }
@@ -273,8 +285,11 @@ trait ModelBuilders { self: RichPresentationCompiler =>
     def apply(m: TypeMember): NamedTypeMemberInfo = {
       val decl = declaredAs(m.sym)
       val pos = if (m.sym.pos == NoPosition) None else Some(EmptySourcePosition())
-      val signatureString = if (decl == DeclaredAs.Method) Some(m.sym.signatureString) else None
-      new NamedTypeMemberInfo(m.sym.nameString, TypeInfo(m.tpe), pos, signatureString, decl)
+      val descriptor = toFqn(m.sym) match {
+        case MethodName(_, _, desc) => Some(desc.descriptorString)
+        case _ => None
+      }
+      new NamedTypeMemberInfo(m.sym.nameString, TypeInfo(m.tpe), pos, descriptor, decl)
     }
   }
 
@@ -290,14 +305,15 @@ trait ModelBuilders { self: RichPresentationCompiler =>
 
     def apply(tpe: Type, paramSections: List[ParamSectionInfo], finalResultType: Type): ArrowTypeInfo = {
       new ArrowTypeInfo(
-        tpe.toString(),
+        shortName(tpe).underlying,
+        fullName(tpe).underlying,
         TypeInfo(tpe.finalResultType),
         paramSections
       )
     }
 
     def nullInfo() = {
-      new ArrowTypeInfo("NA", TypeInfo.nullInfo, List.empty)
+      new ArrowTypeInfo("NA", "NA", TypeInfo.nullInfo, List.empty)
     }
   }
 }

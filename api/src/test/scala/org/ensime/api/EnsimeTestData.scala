@@ -111,7 +111,7 @@ trait EnsimeTestData {
 
   val noteList = NewScalaNotesEvent(isFull = true, List(note1, note2))
 
-  val entityInfo: TypeInfo = new ArrowTypeInfo("Arrow1", typeInfo, List(paramSectionInfo))
+  val entityInfo: TypeInfo = new ArrowTypeInfo("Arrow1", "example.Arrow1", typeInfo, List(paramSectionInfo))
 
   val sourceFileInfo = SourceFileInfo(file1, Some("{/* code here */}"), Some(file2))
   val dtid = DebugThreadId(13)

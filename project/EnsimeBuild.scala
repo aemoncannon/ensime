@@ -150,8 +150,11 @@ object EnsimeBuild extends Build {
         "org.scala-lang" % "scalap" % scalaVersion.value,
         "com.typesafe.akka" %% "akka-actor" % Sensible.akkaVersion,
         "com.typesafe.akka" %% "akka-slf4j" % Sensible.akkaVersion,
-        // see notes in https://github.com/ensime/ensime-server/pull/1446
-        "org.scala-refactoring" % ("org.scala-refactoring.library_" + scalaVersion.value) % "0.10.0",
+        scalaBinaryVersion.value match {
+          // see notes in https://github.com/ensime/ensime-server/pull/1446
+          case "2.10" => "org.scala-refactoring" % "org.scala-refactoring.library_2.10.6" % "0.10.0"
+          case "2.11" => "org.scala-refactoring" % "org.scala-refactoring.library_2.11.8" % "0.10.0"
+        },
         "commons-lang" % "commons-lang" % "2.6",
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",
         "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-M1"

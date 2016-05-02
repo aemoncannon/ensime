@@ -2,19 +2,19 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import scala.concurrent._
+import scala.concurrent.duration._
+import scala.util.{ Success, Failure }
+
 import akka.actor._
 import akka.dispatch.MessageDispatcher
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.ensime.api._
-import org.ensime.vfs._
-import org.ensime.indexer.DatabaseService._
+import org.ensime.indexer.database._
+import org.ensime.indexer.database.DatabaseService._
 import org.ensime.util.file._
-
-import scala.util.Failure
-import scala.util.Success
-import scala.concurrent._
-import scala.concurrent.duration._
+import org.ensime.vfs._
 
 /**
  * Provides methods to perform ENSIME-specific indexing tasks,
@@ -44,6 +44,8 @@ class SearchService(
   /**
    * Changelog:
    *
+   * 1.3 - methods include descriptors in (now unique) FQNs
+   *
    * 1.2 - added foreign key to FqnSymbols.file with cascade delete
    *
    * 1.0 - reverted index due to negative impact to startup time. The
@@ -54,7 +56,7 @@ class SearchService(
    *
    * 1.0 - initial schema
    */
-  private val version = "1.2"
+  private val version = "1.3"
 
   private val index = new IndexService(config.cacheDir / ("index-" + version))
   private val db = new DatabaseService(config.cacheDir / ("sql-" + version))
@@ -95,7 +97,6 @@ class SearchService(
 
     // a snapshot of everything that we want to index
     def findBases(): Set[FileObject] = {
-      log.info("findBases")
       config.modules.flatMap {
         case (name, m) =>
           m.targets.flatMap {
@@ -131,10 +132,14 @@ class SearchService(
       Future.sequence(basesWithChecks.map { case (file, check) => indexBase(file, check) }).map(_.flatten.sum)
     }
 
-    def commitIndex(): Future[Unit] = Future {
-      blocking {
-        log.debug("committing index to disk...")
-        index.commit()
+    def commitIndex(): Future[Unit] = {
+      log.debug("committing index to disk...")
+      val i = Future { blocking { index.commit() } }
+      val g = db.commit()
+      for {
+        _ <- i
+        _ <- g
+      } yield {
         log.debug("...done committing index")
       }
     }
@@ -197,17 +202,20 @@ class SearchService(
         val sourceUri = source.map(_.getName.getURI)
 
         if (clazz.access != Public) Nil
-        else FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
-          clazz.methods.toList.filter(_.access == Public).map { method =>
-            val descriptor = method.descriptor.descriptorString
-            FqnSymbol(None, name, path, method.name.fqnString, Some(descriptor), None, sourceUri, method.line)
-          } ::: clazz.fields.toList.filter(_.access == Public).map { field =>
-            val internal = field.clazz.internalString
-            FqnSymbol(None, name, path, field.name.fqnString, None, Some(internal), sourceUri, clazz.source.line)
-          } ::: depickler.getTypeAliases.toList.filter(_.access == Public).map { rawType =>
-            FqnSymbol(None, name, path, rawType.fqnString, None, None, sourceUri, None)
-          }
-
+        else {
+          FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
+            clazz.methods.toList.filter(_.access == Public).map { method =>
+              val descriptor = method.name.descriptor.descriptorString
+              FqnSymbol(None, name, path, method.name.fqnString, Some(descriptor), None, sourceUri, method.line)
+            } ::: clazz.fields.toList.filter(_.access == Public).map { field =>
+              val internal = field.clazz.internalString
+              FqnSymbol(None, name, path, field.name.fqnString, None, Some(internal), sourceUri, clazz.source.line)
+            } ::: depickler.getTypeAliases.toList.filter(_.access == Public).map { rawType =>
+              // this is a hack, we shouldn't be storing Scala names in the JVM name space
+              // in particular, it creates fqn names that clash with the above ones
+              FqnSymbol(None, name, path, rawType.fqn, None, None, sourceUri, None)
+            }
+        }
     }
   }.filterNot(sym => ignore.exists(sym.fqn.contains))
 

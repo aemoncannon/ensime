@@ -1,21 +1,19 @@
 // Copyright: 2010 - 2016 https://github.com/ensime/ensime-server/graphs
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
-package org.ensime.indexer
+package org.ensime.indexer.database
 
 import java.sql.Timestamp
-
-import akka.event.slf4j.SLF4JLogging
-import com.zaxxer.hikari.HikariDataSource
-import org.apache.commons.vfs2.FileObject
-import org.ensime.indexer.DatabaseService._
-
-import org.ensime.api._
-import org.ensime.vfs._
-import org.ensime.util.file._
 
 import scala.concurrent._
 import scala.concurrent.duration._
 
+import akka.event.slf4j.SLF4JLogging
+import com.zaxxer.hikari.HikariDataSource
+import org.apache.commons.vfs2.FileObject
+import org.ensime.api._
+import org.ensime.indexer.database.DatabaseService._
+import org.ensime.util.file._
+import org.ensime.vfs._
 import slick.driver.H2Driver.api._
 
 class DatabaseService(dir: File) extends SLF4JLogging {
@@ -33,6 +31,8 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     val executor = AsyncExecutor("Slick", numThreads = threads, queueSize = -1)
     (ds, Database.forDataSource(ds, executor = executor))
   }
+
+  def commit(): Future[Unit] = Future.successful(())
 
   def shutdown()(implicit ec: ExecutionContext): Future[Unit] = for {
     // call directly - using slick withSession barfs as it runs a how many rows were updated

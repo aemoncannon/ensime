@@ -445,7 +445,7 @@ final case class NamedTypeMemberInfo(
     name: String,
     `type`: TypeInfo,
     pos: Option[SourcePosition],
-    signatureString: Option[String],
+    signatureString: Option[String], // the FQN descriptor
     declAs: DeclaredAs
 ) extends EntityInfo {
   override def members = List.empty
@@ -475,11 +475,11 @@ final case class BasicTypeInfo(
 
 final case class ArrowTypeInfo(
     name: String,
+    fullName: String,
     resultType: TypeInfo,
     paramSections: Iterable[ParamSectionInfo]
 ) extends TypeInfo {
   def declAs = DeclaredAs.Nil
-  def fullName = name
   def typeArgs = List.empty
   def members = List.empty
   def pos = None
