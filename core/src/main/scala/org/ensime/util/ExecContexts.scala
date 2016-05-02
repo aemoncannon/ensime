@@ -2,7 +2,7 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.util
 
-import java.util.concurrent._
+import java.util.concurrent._ 
 
 import scala.concurrent.ExecutionContext
 
@@ -18,19 +18,8 @@ object BoundedExecutor {
   //unsafe 
   def callerBlockingExecutor(size: Int): ExecutionContext = {
     val q = new LinkedBlockingQueue[Runnable](1)
-    val handler = new RejectedExecutionHandler {
-      def rejectedExecution(r: Runnable, executor: ThreadPoolExecutor): Unit = {
-        q.synchronized {
-          while (!q.offer(r))
-            q.wait()
-        }
-      }
-    }
-
     val h = new ThreadPoolExecutor.CallerRunsPolicy()
-
-    val ex = new ThreadPoolExecutor(size, size, 30, TimeUnit.SECONDS, q, h) {
-    }
+    val ex = new ThreadPoolExecutor(size, size, 30, TimeUnit.SECONDS, q, h)
     ExecutionContext.fromExecutor(ex)
   }
 }
