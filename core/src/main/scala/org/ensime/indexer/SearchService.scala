@@ -10,6 +10,7 @@ import org.ensime.api._
 import org.ensime.vfs._
 import org.ensime.indexer.DatabaseService._
 import org.ensime.util.file._
+import org.ensime.util.BoundedExecutor
 
 import scala.util.Failure
 import scala.util.Success
@@ -35,6 +36,8 @@ class SearchService(
     with FileChangeListener
     with SLF4JLogging {
 
+  //Create a custom execution context that blocks the calling thread if no worker is available
+  private implicit val ex = BoundedExecutor.callerBlockingExecutor(4)
   private[indexer] def isUserFile(file: FileName): Boolean = {
     (config.allTargets map (vfs.vfile)) exists (file isAncestor _.getName)
   }
@@ -153,7 +156,7 @@ class SearchService(
   def refreshResolver(): Unit = resolver.update()
 
   def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean, boost: Boolean): Future[Option[Int]] = {
-    val iwork = Future { blocking { index.persist(check, symbols, commitIndex, boost) } }
+    val iwork = Future { blocking { index.persist(check, symbols, commitIndex, boost) } }(ex)
     val dwork = db.persist(check, symbols)
     iwork.flatMap { _ => dwork }
   }
@@ -167,7 +170,7 @@ class SearchService(
           try extractSymbols(classfile, classfile)
           finally classfile.close()
         }
-      }
+      }(ex)
     case jar =>
       log.debug(s"indexing $jar")
       val check = FileCheck(jar)
@@ -177,7 +180,7 @@ class SearchService(
           try scan(vJar) flatMap (extractSymbols(jar, _))
           finally vfs.nuke(vJar)
         }
-      }
+      }(ex)
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
@@ -243,14 +246,14 @@ class SearchService(
     batchSize: Int = 1000
   ): Future[Int] = {
     val removing = files.grouped(batchSize).map(delete)
-    Future.sequence(removing).map(_.sum)
+    Future.sequence(removing).map(_.sum)(executor = ex)
   }
 
   // returns number of rows removed
   def delete(files: List[FileObject]): Future[Int] = {
     // this doesn't speed up Lucene deletes, but it means that we
     // don't wait for Lucene before starting the H2 deletions.
-    val iwork = Future { blocking { index.remove(files) } }
+    val iwork = Future { blocking { index.remove(files) } }(ex)
     val dwork = db.removeFiles(files)
     iwork.flatMap(_ => dwork)
   }
