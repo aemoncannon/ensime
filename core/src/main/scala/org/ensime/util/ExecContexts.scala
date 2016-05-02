@@ -2,7 +2,7 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.util
 
-import java.util.concurrent._ 
+import java.util.concurrent._
 
 import scala.concurrent.ExecutionContext
 
