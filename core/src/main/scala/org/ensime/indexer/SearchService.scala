@@ -10,6 +10,7 @@ import org.ensime.api._
 import org.ensime.vfs._
 import org.ensime.indexer.DatabaseService._
 import org.ensime.util.file._
+import org.ensime.util.BoundedExecutor
 
 import scala.util.Failure
 import scala.util.Success
@@ -35,6 +36,8 @@ class SearchService(
     with FileChangeListener
     with SLF4JLogging {
 
+  //Create a custom execution context that blocks the calling thread if no worker is available
+  private val ex = BoundedExecutor.callerBlockingExecutor(4)
   private[indexer] def isUserFile(file: FileName): Boolean = {
     (config.allTargets map (vfs.vfile)) exists (file isAncestor _.getName)
   }
@@ -167,7 +170,7 @@ class SearchService(
           try extractSymbols(classfile, classfile)
           finally classfile.close()
         }
-      }
+      }(ex)
     case jar =>
       log.debug(s"indexing $jar")
       val check = FileCheck(jar)
@@ -177,7 +180,7 @@ class SearchService(
           try scan(vJar) flatMap (extractSymbols(jar, _))
           finally vfs.nuke(vJar)
         }
-      }
+      }(ex)
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
