@@ -31,9 +31,11 @@ class DebugTest extends EnsimeSpec
 
   // CHIP/Rory - create a basic stepping test - not a clever one.
   // CHIP/Rory - create a set value test
-  // CHIP/Roryr - DebugToStringReq test
+  // CHIP/Rory - DebugToStringReq test
 
   "Debug - stepping" should "handle stepping into a for loop" taggedAs Debugger ignore {
+    // this test is currently ignored - it fails beccause the debugger is stepping into the 'for' loop code
+    // rather than the next 'logical step'
     withEnsimeConfig { implicit config =>
       withTestKit { implicit testkit =>
         withProject { (project, asyncHelper) =>
@@ -45,11 +47,11 @@ class DebugTest extends EnsimeSpec
           ) { (threadId, breakpointsFile) =>
               import testkit._
 
-              checkTopStackFrame("stepping.ForComprehensionListString$", "main", 9)
+              checkTopStackFrame(threadId, "stepping.ForComprehensionListString$", "main", 9)
               project ! DebugNextReq(threadId)
               expectMsg(VoidResponse)
 
-              checkTopStackFrame("stepping.ForComprehensionListString$$anonfun$main$1", "apply", 10)
+              checkTopStackFrame(threadId, "stepping.ForComprehensionListString$$anonfun$main$1", "apply", 10)
             }
         }
       }
@@ -69,7 +71,7 @@ class DebugTest extends EnsimeSpec
 
             // NOTE: Can encounter scala/Predef.scala if picking stack trace
             //       at arbitrary point
-            project ! DebugBacktraceReq(DebugThreadId(1), 0, 3)
+            project ! DebugBacktraceReq(threadId, 0, 3)
             expectMsgType[DebugBacktrace] should matchPattern {
               case DebugBacktrace(List(
                 DebugStackFrame(0, List(), 0, "breakpoints.Breakpoints", "mainTest",
@@ -80,7 +82,7 @@ class DebugTest extends EnsimeSpec
                   LineSourcePosition(`breakpointsFile`, 42), _),
                 DebugStackFrame(2, List(), 1, "breakpoints.Breakpoints", "main",
                   LineSourcePosition(`breakpointsFile`, _), _)
-                ), DebugThreadId(1), "main") =>
+                ), `threadId`, "main") =>
             }
 
             project ! DebugSetBreakReq(breakpointsFile, 11)
@@ -89,23 +91,23 @@ class DebugTest extends EnsimeSpec
             project ! DebugSetBreakReq(breakpointsFile, 13)
             expectMsg(TrueResponse)
 
-            project ! DebugContinueReq(DebugThreadId(1))
+            project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(DebugThreadId(1), "main", breakpointsFile, 11))
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", breakpointsFile, 11))
 
-            project ! DebugContinueReq(DebugThreadId(1))
+            project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(DebugThreadId(1), "main", breakpointsFile, 13))
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", breakpointsFile, 13))
 
             project ! DebugClearBreakReq(breakpointsFile, 11)
             expectMsg(TrueResponse)
 
-            project ! DebugContinueReq(DebugThreadId(1))
+            project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(DebugThreadId(1), "main", breakpointsFile, 13))
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", breakpointsFile, 13))
 
             project ! DebugSetBreakReq(breakpointsFile, 11)
             expectMsg(TrueResponse)
@@ -113,17 +115,17 @@ class DebugTest extends EnsimeSpec
             project ! DebugClearBreakReq(breakpointsFile, 13)
             expectMsg(TrueResponse)
 
-            project ! DebugContinueReq(DebugThreadId(1))
+            project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(DebugThreadId(1), "main", breakpointsFile, 11))
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", breakpointsFile, 11))
 
-            project ! DebugContinueReq(DebugThreadId(1))
+            project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(DebugThreadId(1), "main", breakpointsFile, 11))
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", breakpointsFile, 11))
 
-            project ! DebugContinueReq(DebugThreadId(1))
+            project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
           }
       }
@@ -342,7 +344,7 @@ trait DebugTestUtils {
         expectMsg(TrueResponse)
         // no way to await the stopped condition so we let the app run
         // its course on the main thread
-        project ! DebugContinueReq(DebugThreadId(1))
+        project ! DebugContinueReq(threadId)
         expectMsg(TrueResponse)
         project ! DebugStopReq
         expectMsgPF() {
@@ -365,15 +367,15 @@ trait DebugTestUtils {
     expectMsgType[DebugValue]
   }
 
-  def checkTopStackFrame(className: String, method: String, line: Int)(implicit testkit: TestKitFix, p: (TestActorRef[Project], TestProbe)): Unit = {
+  def checkTopStackFrame(threadId: DebugThreadId, className: String, method: String, line: Int)(implicit testkit: TestKitFix, p: (TestActorRef[Project], TestProbe)): Unit = {
     import testkit._
     val project = p._1
 
-    project ! DebugBacktraceReq(DebugThreadId(1), 0, 1)
+    project ! DebugBacktraceReq(threadId, 0, 1)
     expectMsgType[DebugBacktrace] should matchPattern {
       case DebugBacktrace(List(DebugStackFrame(0, _, 1, `className`, `method`,
         LineSourcePosition(_, `line`), _)),
-        DebugThreadId(1), "main") =>
+        `threadId`, "main") =>
     }
   }
 }
