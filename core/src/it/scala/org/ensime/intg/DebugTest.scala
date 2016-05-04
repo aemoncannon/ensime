@@ -345,8 +345,8 @@ trait DebugTestUtils {
         // no way to await the stopped condition so we let the app run
         // its course on the main thread
         // CHIP/Rory Determine if there is any point doing this action at all.
-//        project ! DebugContinueReq(threadId)
-//        expectMsg(TrueResponse)
+        //        project ! DebugContinueReq(threadId)
+        //        expectMsg(TrueResponse)
         project ! DebugStopReq
         expectMsgPF() {
           case TrueResponse =>
