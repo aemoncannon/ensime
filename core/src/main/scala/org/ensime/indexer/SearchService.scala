@@ -2,6 +2,8 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import java.util.concurrent.{ Semaphore, Executors }
+
 import akka.actor._
 import akka.dispatch.MessageDispatcher
 import akka.event.slf4j.SLF4JLogging
@@ -35,6 +37,7 @@ class SearchService(
     with FileChangeListener
     with SLF4JLogging {
 
+  private implicit val execContext = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
   private[indexer] def isUserFile(file: FileName): Boolean = {
     (config.allTargets map (vfs.vfile)) exists (file isAncestor _.getName)
   }
@@ -59,7 +62,7 @@ class SearchService(
   private val index = new IndexService(config.cacheDir / ("index-" + version))
   private val db = new DatabaseService(config.cacheDir / ("sql-" + version))
 
-  implicit val workerEC: MessageDispatcher = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
+  val workerEC: MessageDispatcher = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
 
   private def scan(f: FileObject) = f.findFiles(ClassfileSelector) match {
     case null => Nil
@@ -117,7 +120,21 @@ class SearchService(
       else {
         val boost = isUserFile(base.getName())
         val check = FileCheck(base)
-        extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false, boost = boost))
+
+        extractSymbolsFromClassOrJar(base).flatMap {
+          case (symStream, vJar) =>
+            var x = 0
+            val fs = symStream.map { fqns =>
+              val f = persist(check, fqns, commitIndex = false, boost = boost)
+              f.map {
+                case Some(n) => check.synchronized { x += n }
+                case _ =>
+              }
+            }
+            val f = Future.sequence(fs.toList).map(_ => if (x > 0) Some(x) else None)
+            //f onComplete { case _ => vJar.fold[Unit](())(jar => vfs.nuke(jar)) }
+            f
+        }
       }
     }
 
@@ -151,21 +168,35 @@ class SearchService(
   }
 
   def refreshResolver(): Unit = resolver.update()
+  private val lock = new Semaphore(50)
 
+  var tmp = 0
   def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean, boost: Boolean): Future[Option[Int]] = {
+    tmp += 1
+    if (tmp % 1000 == 0) {
+      System.gc()
+      println(tmp)
+    }
     val iwork = Future { blocking { index.persist(check, symbols, commitIndex, boost) } }
+    iwork onComplete {
+      case _ =>
+        lock.release()
+    }
+
     val dwork = db.persist(check, symbols)
     iwork.flatMap { _ => dwork }
   }
 
-  def extractSymbolsFromClassOrJar(file: FileObject): Future[List[FqnSymbol]] = file match {
+  def extractSymbolsFromClassOrJar(file: FileObject): Future[(Iterator[List[FqnSymbol]], Option[FileObject])] = file match {
     case classfile if classfile.getName.getExtension == "class" =>
       // too noisy to log
       val check = FileCheck(classfile)
       Future {
         blocking {
-          try extractSymbols(classfile, classfile)
-          finally classfile.close()
+          try {
+            lock.acquire()
+            (Iterator(extractSymbols(classfile, classfile)), None)
+          } finally classfile.close()
         }
       }
     case jar =>
@@ -174,8 +205,11 @@ class SearchService(
       Future {
         blocking {
           val vJar = vfs.vjar(jar)
-          try scan(vJar) flatMap (extractSymbols(jar, _))
-          finally vfs.nuke(vJar)
+          val fs = scan(vJar).toIterator map { x =>
+            lock.acquire()
+            extractSymbols(jar, x)
+          }
+          (fs, Some(vJar))
         }
       }
   }
@@ -287,6 +321,7 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
     worker = system.scheduler.scheduleOnce(5 seconds, self, Process)
   }
 
+  private implicit val c = searchService.workerEC
   override def receive: Receive = {
     case IndexFile(f) =>
       todo += f.getName.getURI -> f
@@ -300,14 +335,12 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       if (remaining.nonEmpty)
         debounce()
 
-      import searchService.workerEC
-
       log.debug(s"Indexing ${batch.size} files")
 
       Future.sequence(batch.map {
         case (_, f) =>
           if (!f.exists()) Future.successful(f -> Nil)
-          else searchService.extractSymbolsFromClassOrJar(f).map(f -> )
+          else searchService.extractSymbolsFromClassOrJar(f).map(f -> _._1.flatten.toList)
       }).onComplete {
         case Failure(t) =>
           log.error(s"failed to index batch of ${batch.size} files", t)
