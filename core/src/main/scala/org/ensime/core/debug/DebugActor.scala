@@ -64,13 +64,14 @@ class DebugActor private (
       vmm.stop()
 
       // CHIP: Error will be a future timeout, need to see if can grab reason
-      Try(vmm.start(VmAttach(hostname, port))).failed.foreach(t => {
-        log.error(t, "Failure during VM startup")
-        val message = t.toString
-        DebugVmError(1, message)
-      })
-
-      sender ! DebugVmSuccess()
+      Try(vmm.start(VmAttach(hostname, port))) match {
+        case Success(_) =>
+          sender ! DebugVmSuccess()
+        case Failure(t) =>
+          log.error(t, "Failure during VM startup")
+          val message = t.toString
+          DebugVmError(1, message)
+      }
 
     // ========================================================================
     case DebugActiveVmReq =>
