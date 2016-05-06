@@ -180,15 +180,13 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  // starting up a debug session for each variable is unneeded and wasteful of test time.
-  // this approach means that there is one test method, but it still explores all of the paths.
-  "Debug Inspect variables" should "inspect variables" taggedAs Debugger in withEnsimeConfig { implicit config =>
+  "Debug variables" should "inspect variables" taggedAs Debugger in withEnsimeConfig { implicit config =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
         withDebugSession(
-          "debug.Variables",
-          "debug/Variables.scala",
+          "variables.ReadVariables",
+          "variables/ReadVariables.scala",
           21
         ) { (threadId, variablesFile) =>
             // boolean local
@@ -254,6 +252,133 @@ class DebugTest extends EnsimeSpec
             // object array local
             getVariableValue(threadId, "k") should matchPattern {
               case DebugArrayInstance(3, "java.lang.Object[]", "java.lang.Object", _) =>
+            }
+          }
+      }
+    }
+  }
+
+  they should "set variable values" taggedAs Debugger in withEnsimeConfig { implicit config =>
+    withTestKit { implicit testkit =>
+      withProject { (project, asyncHelper) =>
+        implicit val p = (project, asyncHelper)
+        withDebugSession(
+          "variables.WriteVariables",
+          "variables/WriteVariables.scala",
+          21
+        ) { (threadId, variablesFile) =>
+            import testkit._
+
+            /* boolean local */ {
+              val n = "a"
+
+              project ! DebugLocateNameReq(threadId, n)
+              val location = testkit.expectMsgType[DebugStackSlot]
+
+              project ! DebugSetValueReq(location, "false")
+              expectMsg(remaining, s"Unable to set boolean for '$n'!", TrueResponse)
+
+              getVariableValue(threadId, n) should matchPattern {
+                case DebugPrimitiveValue("false", "boolean") =>
+              }
+            }
+
+            /* char local */ {
+              val n = "b"
+
+              project ! DebugLocateNameReq(threadId, n)
+              val location = testkit.expectMsgType[DebugStackSlot]
+
+              project ! DebugSetValueReq(location, "a")
+              expectMsg(remaining, s"Unable to set char for '$n'!", TrueResponse)
+
+              getVariableValue(threadId, n) should matchPattern {
+                case DebugPrimitiveValue("'a'", "char") =>
+              }
+            }
+
+            /* short local */ {
+              val n = "c"
+
+              project ! DebugLocateNameReq(threadId, n)
+              val location = testkit.expectMsgType[DebugStackSlot]
+
+              project ! DebugSetValueReq(location, "99")
+              expectMsg(remaining, s"Unable to set short for '$n'!", TrueResponse)
+
+              getVariableValue(threadId, n) should matchPattern {
+                case DebugPrimitiveValue("99", "short") =>
+              }
+            }
+
+            /* int local */ {
+              val n = "d"
+
+              project ! DebugLocateNameReq(threadId, n)
+              val location = testkit.expectMsgType[DebugStackSlot]
+
+              project ! DebugSetValueReq(location, "99")
+              expectMsg(remaining, s"Unable to set int for '$n'!", TrueResponse)
+
+              getVariableValue(threadId, n) should matchPattern {
+                case DebugPrimitiveValue("99", "int") =>
+              }
+            }
+
+            /* long local */ {
+              val n = "e"
+
+              project ! DebugLocateNameReq(threadId, n)
+              val location = testkit.expectMsgType[DebugStackSlot]
+
+              project ! DebugSetValueReq(location, "99")
+              expectMsg(remaining, s"Unable to set long for '$n'!", TrueResponse)
+
+              getVariableValue(threadId, n) should matchPattern {
+                case DebugPrimitiveValue("99", "long") =>
+              }
+            }
+
+            /* float local */ {
+              val n = "f"
+
+              project ! DebugLocateNameReq(threadId, n)
+              val location = testkit.expectMsgType[DebugStackSlot]
+
+              project ! DebugSetValueReq(location, "99.5")
+              expectMsg(remaining, s"Unable to set float for '$n'!", TrueResponse)
+
+              getVariableValue(threadId, n) should matchPattern {
+                case DebugPrimitiveValue("99.5", "float") =>
+              }
+            }
+
+            /* double local */ {
+              val n = "g"
+
+              project ! DebugLocateNameReq(threadId, n)
+              val location = testkit.expectMsgType[DebugStackSlot]
+
+              project ! DebugSetValueReq(location, "99.5")
+              expectMsg(remaining, s"Unable to set double for '$n'!", TrueResponse)
+
+              getVariableValue(threadId, n) should matchPattern {
+                case DebugPrimitiveValue("99.5", "double") =>
+              }
+            }
+
+            /* string local */ {
+              val n = "h"
+
+              project ! DebugLocateNameReq(threadId, n)
+              val location = testkit.expectMsgType[DebugStackSlot]
+
+              project ! DebugSetValueReq(location, "\"fish\"")
+              expectMsg(remaining, s"Unable to set string for '$n'!", TrueResponse)
+
+              getVariableValue(threadId, n) should matchPattern {
+                case DebugStringInstance("\"fish\"", _, "java.lang.String", _) =>
+              }
             }
           }
       }

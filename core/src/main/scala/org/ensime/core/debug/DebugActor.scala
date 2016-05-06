@@ -255,21 +255,33 @@ class DebugActor private (
       sender ! withVM(s => {
         location match {
           case DebugStackSlot(threadId, frame, offset) => s.tryThread(threadId.id) match {
-            case Success(t) => suspendAndExecute(t, {
-              // Find the variable and set its value
-              t.findVariableByIndex(frame, offset).flatMap {
-                case v =>
-                  // NOTE: Casting only converts to AnyVal or String, so we can
-                  //       assume that a successful cast yielded one or the other,
-                  //       but this might not be the case in the future
-                  val actualNewValue = t.typeInfo.castLocal(newValue) match {
-                    case st: String => s.createRemotely(st)
-                    case av => s.createRemotely(av.asInstanceOf[AnyVal])
-                  }
+            case Success(t) =>
+              val response = suspendAndExecute(t, {
+                // Find the variable and set its value
+                val variable = t.findVariableByIndex(frame, offset)
+                val result = variable match {
+                  case Some(v) =>
+                    // NOTE: Casting only converts to AnyVal or String, so we can
+                    //       assume that a successful cast yielded one or the other,
+                    //       but this might not be the case in the future
+                    val actualNewValue = v.typeInfo.castLocal(newValue) match {
+                      case st: String => s.createRemotely(st)
+                      case av => s.createRemotely(av.asInstanceOf[AnyVal])
+                    }
 
-                  v.trySetValueFromInfo(actualNewValue).toOption
-              }.map(_ => TrueResponse).getOrElse(FalseResponse)
-            }).getOrElse(FalseResponse)
+                    v.trySetValueFromInfo(actualNewValue)
+                  case None =>
+                    Failure(new Throwable(s"Unable to find variable at frame $frame and offset $offset"))
+                }
+
+                result.map(_ => TrueResponse).getOrElse(FalseResponse)
+              })
+
+              response.failed.foreach(
+                log.error(_, s"Failed to set variable at $location to $newValue!")
+              )
+
+              response.getOrElse(FalseResponse)
 
             case Failure(_) =>
               log.error(s"Unknown thread $threadId for debug-set-value")
