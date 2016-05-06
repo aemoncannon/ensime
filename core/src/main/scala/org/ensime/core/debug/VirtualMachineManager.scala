@@ -72,7 +72,7 @@ class VirtualMachineManager(
         val s = d.start(timeout = 10.seconds, startProcessingEvents = false)
 
         // Place JVM in running state
-        s.underlyingVirtualMachine.resume()
+        s.resume()
 
         (d, s)
     }
@@ -90,7 +90,7 @@ class VirtualMachineManager(
     withVM(startFunc)
 
     // Begin processing events
-    s.lowlevel.eventManager.start()
+    s.startProcessingEvents()
 
     (d, s)
   }

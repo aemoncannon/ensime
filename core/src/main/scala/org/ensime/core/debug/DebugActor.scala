@@ -97,7 +97,7 @@ class DebugActor private (
     // ========================================================================
     case DebugRunReq =>
       sender ! withVM(s => {
-        s.underlyingVirtualMachine.resume()
+        s.resume()
         TrueResponse
       })
 
@@ -106,7 +106,7 @@ class DebugActor private (
       sender ! withThread(threadId.id, {
         case (s, t) =>
           // CHIP: Why is this resuming the entire VM instead of the single thread?
-          s.underlyingVirtualMachine.resume()
+          s.resume()
           TrueResponse
       })
 
