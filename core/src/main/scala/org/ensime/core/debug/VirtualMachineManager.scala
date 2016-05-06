@@ -140,10 +140,11 @@ class VirtualMachineManager(
    * @tparam T The expected return value from the action
    * @return Some containing the result if successful, otherwise None
    */
-  def withVM[T](action: (ScalaVirtualMachine => T)): Try[T] = vm.synchronized {
+  def withVM[T](action: (ScalaVirtualMachine => T)): Try[T] = synchronized {
     if (!hasActiveVM) {
-      log.error("No VM active for debugging!")
-      return Failure(new NoActiveVirtualMachineException)
+      val error = new NoActiveVirtualMachineException
+      log.error("No VM active for debugging!", error)
+      return Failure(error)
     }
 
     val result = Try(action(vm.get))
@@ -166,15 +167,14 @@ class VirtualMachineManager(
    * @tparam T The expected return value from the action
    * @return Some containing the result if successful, otherwise None
    */
-  def withDummyVM[T](action: (ScalaVirtualMachine => T)): Try[T] =
-    dummyScalaVirtualMachine.synchronized {
-      val result = Try(action(dummyScalaVirtualMachine))
+  def withDummyVM[T](action: (ScalaVirtualMachine => T)): Try[T] = synchronized {
+    val result = Try(action(dummyScalaVirtualMachine))
 
-      result.failed.foreach(e =>
-        log.error("Exception thrown whilst handling dummy vm action", e))
+    result.failed.foreach(e =>
+      log.error("Exception thrown whilst handling dummy vm action", e))
 
-      result
-    }
+    result
+  }
 
   /**
    * Attaches common event handlers to the virtual machine.

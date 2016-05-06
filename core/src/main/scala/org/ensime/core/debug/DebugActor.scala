@@ -142,10 +142,13 @@ class DebugActor private (
 
     // ========================================================================
     case DebugClearBreakReq(file, line: Int) =>
-      vmm.withVM(s => {
+      def clearBreakpoint(s: ScalaVirtualMachine) = {
         fullFileName(s, file.getName)
           .foreach(s.removeBreakpointRequests(_, line))
-      })
+      }
+
+      vmm.withVM(clearBreakpoint)
+      vmm.withDummyVM(clearBreakpoint)
 
       // Always send true response
       sender ! TrueResponse
@@ -153,6 +156,7 @@ class DebugActor private (
     // ========================================================================
     case DebugClearAllBreaksReq =>
       vmm.withVM(_.removeAllBreakpointRequests())
+      vmm.withDummyVM(_.removeAllBreakpointRequests())
       sender ! TrueResponse
 
     // ========================================================================
@@ -321,13 +325,7 @@ class DebugActor private (
     val result = vmm.withVM(action).orElse(vmm.withDummyVM(action))
 
     // Report error information
-    result.failed.foreach(e => {
-      // CHIP: Remove this once tests are stable
-      println("ERROR "
-        + Option(e.getLocalizedMessage).getOrElse(e.getClass.getName)
-        + e.getStackTrace.mkString("\n"))
-      log.warning("Failed to process VM action", e)
-    })
+    result.failed.foreach(log.warning("Failed to process VM action", _))
 
     result.getOrElse(FalseResponse)
   }
@@ -349,13 +347,7 @@ class DebugActor private (
       suspendAndExecute(t, action(s, t)))
 
     // Report error information
-    result.failed.foreach(e => {
-      // CHIP: Remove this once tests are stable
-      println("ERROR "
-        + Option(e.getLocalizedMessage).getOrElse(e.getClass.getName)
-        + e.getStackTrace.mkString("\n"))
-      log.warning(s"Unable to retrieve thread with id: $threadId", e)
-    })
+    result.failed.foreach(log.warning(s"Unable to retrieve thread with id: $threadId", _))
 
     result.getOrElse(FalseResponse)
   })
