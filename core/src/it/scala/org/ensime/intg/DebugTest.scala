@@ -20,40 +20,43 @@ import scala.concurrent.duration._
 
 // must be refreshing as the tests don't clean up after themselves properly
 class DebugTest extends EnsimeSpec
-    with SharedEnsimeConfigFixture
-    with SharedTestKitFixture
-    with SharedProjectFixture
+    with IsolatedEnsimeConfigFixture
+    with IsolatedTestKitFixture
+    with IsolatedProjectFixture
     with DebugTestUtils {
 
   val original = EnsimeConfigFixture.DebugTestProject.copy(
     javaLibs = Nil // no need to index the JRE
   )
 
-  // CHIP/Rory - create a basic stepping test - not a clever one.
   // CHIP/Rory - create a set value test
   // CHIP/Rory - DebugToStringReq test
 
-  "Debug - stepping" should "handle stepping into a for loop" taggedAs Debugger ignore {
-    // this test is currently ignored - it fails beccause the debugger is stepping into the 'for' loop code
-    // rather than the next 'logical step'
-    withEnsimeConfig { implicit config =>
-      withTestKit { implicit testkit =>
-        withProject { (project, asyncHelper) =>
-          implicit val p = (project, asyncHelper)
-          withDebugSession(
-            "stepping.ForComprehensionListString",
-            "stepping/ForComprehensionListString.scala",
-            9
-          ) { (threadId, breakpointsFile) =>
-              import testkit._
+  "Debug - stepping" should "be able to step over/in/out" taggedAs Debugger in withEnsimeConfig { implicit config =>
+    withTestKit { implicit testkit =>
+      withProject { (project, asyncHelper) =>
+        implicit val p = (project, asyncHelper)
 
-              checkTopStackFrame(threadId, "stepping.ForComprehensionListString$", "main", 9)
-              project ! DebugNextReq(threadId)
-              expectMsg(VoidResponse)
+        // Start on line 8, which is first line in main method
+        withDebugSession(
+          "stepping.BasicStepping",
+          "stepping/BasicStepping.scala",
+          8
+        ) { (threadId, breakpointsFile) =>
+            import testkit._
 
-              checkTopStackFrame(threadId, "stepping.ForComprehensionListString$$anonfun$main$1", "apply", 10)
-            }
-        }
+            // Should be able to step over a method call
+            project ! DebugNextReq(threadId)
+            expectMsg(remaining, "Failed to step over line!", TrueResponse)
+
+            // Should be able to step into a method call
+            project ! DebugStepReq(threadId)
+            expectMsg(remaining, "Failed to step into method call!", TrueResponse)
+
+            // Should be able to step out of a method call
+            project ! DebugStepOutReq(threadId)
+            expectMsg(remaining, "Failed to step out of method call!", TrueResponse)
+          }
       }
     }
   }
