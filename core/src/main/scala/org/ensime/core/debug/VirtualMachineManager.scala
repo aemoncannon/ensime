@@ -104,8 +104,10 @@ class VirtualMachineManager(
    */
   def stop(stopFunc: (ScalaVirtualMachine) => Unit = _ => {}): Unit = synchronized {
     // Invoke our stop function, ignoring any error that may arise
-    withVM(globalStopFunc)
-    withVM(stopFunc)
+    if (hasActiveVM) {
+      withVM(globalStopFunc)
+      withVM(stopFunc)
+    }
 
     clear()
   }
