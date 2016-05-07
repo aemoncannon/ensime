@@ -29,9 +29,6 @@ class DebugTest extends EnsimeSpec
     javaLibs = Nil // no need to index the JRE
   )
 
-  // CHIP/Rory - create a set value test
-  // CHIP/Rory - DebugToStringReq test
-
   "Debug - stepping" should "be able to step over/in/out" taggedAs Debugger in withEnsimeConfig { implicit config =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
@@ -253,6 +250,57 @@ class DebugTest extends EnsimeSpec
             getVariableValue(threadId, "k") should matchPattern {
               case DebugArrayInstance(3, "java.lang.Object[]", "java.lang.Object", _) =>
             }
+          }
+      }
+    }
+  }
+
+  they should "be able to convert variables to string representations" taggedAs Debugger in withEnsimeConfig { implicit config =>
+    withTestKit { implicit testkit =>
+      withProject { (project, asyncHelper) =>
+        implicit val p = (project, asyncHelper)
+        withDebugSession(
+          "variables.ReadVariables",
+          "variables/ReadVariables.scala",
+          21
+        ) { (threadId, variablesFile) =>
+            // boolean local
+            getVariableAsString(threadId, "a").text should be("true")
+
+            // char local
+            getVariableAsString(threadId, "b").text should be("'c'")
+
+            // short local
+            getVariableAsString(threadId, "c").text should be("3")
+
+            // int local
+            getVariableAsString(threadId, "d").text should be("4")
+
+            // long local
+            getVariableAsString(threadId, "e").text should be("5")
+
+            // float local
+            getVariableAsString(threadId, "f").text should be("1.0")
+
+            // double local
+            getVariableAsString(threadId, "g").text should be("2.0")
+
+            // String local
+            getVariableAsString(threadId, "h").text should be("\"test\"")
+
+            // primitive array local
+            getVariableAsString(threadId, "i").text should be("Array(length = 3)[1,2,3]")
+
+            // type local
+            getVariableAsString(threadId, "j").text should
+              startWith("Instance of scala.collection.immutable.$colon$colon")
+
+            // object array local
+            val objArrayText = getVariableAsString(threadId, "k").text
+            objArrayText should startWith("Array(length = 3)")
+            objArrayText should include("Instance of variables.One")
+            objArrayText should include("Instance of java.lang.Boolean")
+            objArrayText should include("Instance of java.lang.Integer")
           }
       }
     }
@@ -486,7 +534,12 @@ trait DebugTestUtils {
     }
   }
 
-  def getVariableValue(threadId: DebugThreadId, variableName: String)(implicit testkit: TestKitFix, p: (TestActorRef[Project], TestProbe)): DebugValue = {
+  def getVariableValue(
+    threadId: DebugThreadId,
+    variableName: String
+  )(implicit
+    testkit: TestKitFix,
+    p: (TestActorRef[Project], TestProbe)): DebugValue = {
     import testkit._
     val project = p._1
     project ! DebugLocateNameReq(threadId, variableName)
@@ -494,6 +547,21 @@ trait DebugTestUtils {
 
     project ! DebugValueReq(vLoc)
     expectMsgType[DebugValue]
+  }
+
+  def getVariableAsString(
+    threadId: DebugThreadId,
+    variableName: String
+  )(implicit
+    testkit: TestKitFix,
+    p: (TestActorRef[Project], TestProbe)): StringResponse = {
+    import testkit._
+    val project = p._1
+    project ! DebugLocateNameReq(threadId, variableName)
+    val vLoc = expectMsgType[DebugLocation]
+
+    project ! DebugToStringReq(threadId, vLoc)
+    expectMsgType[StringResponse]
   }
 
   def checkTopStackFrame(threadId: DebugThreadId, className: String, method: String, line: Int)(implicit testkit: TestKitFix, p: (TestActorRef[Project], TestProbe)): Unit = {
