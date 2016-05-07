@@ -142,13 +142,10 @@ class DebugActor private (
 
     // ========================================================================
     case DebugClearBreakReq(file, line: Int) =>
-      def clearBreakpoint(s: ScalaVirtualMachine) = {
-        fullFileName(s, file.getName)
-          .foreach(s.removeBreakpointRequests(_, line))
-      }
+      val filename = sourceMap.parsePath(file)
 
-      vmm.withVM(clearBreakpoint)
-      vmm.withDummyVM(clearBreakpoint)
+      vmm.withVM(_.removeBreakpointRequests(filename, line))
+      vmm.withDummyVM(_.removeBreakpointRequests(filename, line))
 
       // Always send true response
       sender ! TrueResponse
