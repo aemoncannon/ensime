@@ -149,6 +149,7 @@ class VirtualMachineManager(
       return Failure(error)
     }
 
+    log.trace("Applying action to remote vm")
     val result = Try(action(vm.get))
 
     result.failed.foreach {
@@ -170,6 +171,7 @@ class VirtualMachineManager(
    * @return Some containing the result if successful, otherwise None
    */
   def withDummyVM[T](action: (ScalaVirtualMachine => T)): Try[T] = synchronized {
+    log.trace("Applying action to dummy vm")
     val result = Try(action(dummyScalaVirtualMachine))
 
     result.failed.foreach(e =>
