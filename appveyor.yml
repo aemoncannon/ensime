@@ -22,11 +22,11 @@ install:
   - cmd: SET AKKA_TEST_TIMEFACTOR=10
   - cmd: SET SBT_TASK_LIMIT=2
 build_script:
-  - rmdir /s /q C:\Users\appveyor\.coursier\cache\v1\https\oss.sonatype.org
   - sbt ensimeConfig
   - sbt compile test:compile it:compile
 test_script:
   - sbt test "it:testOnly -- -l Debugger"
+  - rmdir /s /q C:\Users\appveyor\.coursier\cache\v1\https\oss.sonatype.org
 cache:
   - C:\sbt\
   - C:\Users\appveyor\.m2
