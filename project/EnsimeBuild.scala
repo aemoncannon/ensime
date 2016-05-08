@@ -16,8 +16,7 @@ object EnsimeBuild extends Build {
     scalaVersion := "2.11.8",
     organization := "org.ensime",
     version := "0.9.10-SNAPSHOT",
-    resolvers += Resolver.jcenterRepo, // netbeans
-    resolvers += Resolver.sonatypeRepo("snapshots") // scala-refactoring
+    resolvers += Resolver.sonatypeRepo("snapshots") // filewatchers
   )
 
   lazy val commonSettings = Sensible.settings ++ Seq(
@@ -151,7 +150,7 @@ object EnsimeBuild extends Build {
         "org.scala-lang" % "scalap" % scalaVersion.value,
         "com.typesafe.akka" %% "akka-actor" % Sensible.akkaVersion,
         "com.typesafe.akka" %% "akka-slf4j" % Sensible.akkaVersion,
-        "org.scala-refactoring" %% "org.scala-refactoring.library" % "0.10.0-SNAPSHOT",
+        "org.scala-refactoring" %% "org.scala-refactoring.library" % "0.10.0",
         "commons-lang" % "commons-lang" % "2.6",
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
       ) ++ Sensible.testLibs("it,test") ++ Sensible.shapeless(scalaVersion.value)
