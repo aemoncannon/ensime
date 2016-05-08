@@ -151,7 +151,7 @@ object EnsimeBuild extends Build {
         "com.typesafe.akka" %% "akka-actor" % Sensible.akkaVersion,
         "com.typesafe.akka" %% "akka-slf4j" % Sensible.akkaVersion,
         // see notes in https://github.com/ensime/ensime-server/pull/1446
-        "org.scala-refactoring" % "org.scala-refactoring.library_" + scalaVersion.value % "0.10.0",
+        "org.scala-refactoring" % ("org.scala-refactoring.library_" + scalaVersion.value) % "0.10.0",
         "commons-lang" % "commons-lang" % "2.6",
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
       ) ++ Sensible.testLibs("it,test") ++ Sensible.shapeless(scalaVersion.value)
