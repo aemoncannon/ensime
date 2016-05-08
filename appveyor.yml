@@ -26,7 +26,7 @@ build_script:
 before_test:
   - sbt ensimeConfig
 test_script:
-  - sbt test "testOnly -- -l Debugger"
+  - sbt test "it:testOnly -- -l Debugger"
   - rmdir /s /q C:\Users\appveyor\.coursier\cache\v1\https\oss.sonatype.org
 cache:
   - C:\sbt\
