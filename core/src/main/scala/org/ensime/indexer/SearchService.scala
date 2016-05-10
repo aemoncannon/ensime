@@ -37,6 +37,7 @@ class SearchService(
     with FileChangeListener
     with SLF4JLogging {
 
+  //we need to avoid threadpool-based deadlocks, hence the unbounded pool
   private implicit val execContext = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
   private[indexer] def isUserFile(file: FileName): Boolean = {
     (config.allTargets map (vfs.vfile)) exists (file isAncestor _.getName)
@@ -121,19 +122,21 @@ class SearchService(
         val boost = isUserFile(base.getName())
         val check = FileCheck(base)
 
+        // Using an iterator so each list of symbols may be collected as soon as its used. 
         extractSymbolsFromClassOrJar(base).flatMap {
           case (symStream, vJar) =>
             var x = 0
-            val fs = symStream.map { fqns =>
-              val f = persist(check, fqns, commitIndex = false, boost = boost)
-              f.map {
+            val fs = symStream map (
+              persist(check, _, commitIndex = false, boost = boost) map {
                 case Some(n) => check.synchronized { x += n }
                 case _ =>
               }
-            }
-            val f = Future.sequence(fs.toList).map(_ => if (x > 0) Some(x) else None)
-            //f onComplete { case _ => vJar.fold[Unit](())(jar => vfs.nuke(jar)) }
-            f
+            )
+
+            //Persist all classfiles, then return the count & cleanup if necessary
+            Future.sequence(fs.toList)
+              .map(_ => if (x > 0) Some(x) else None)
+              .map { x => vJar.fold[Unit](())(jar => vfs.nuke(jar)); x }
         }
       }
     }
@@ -168,19 +171,20 @@ class SearchService(
   }
 
   def refreshResolver(): Unit = resolver.update()
-  private val lock = new Semaphore(50)
+  private val lock = new Semaphore(25)
 
-  var tmp = 0
   def persist(check: FileCheck, symbols: List[FqnSymbol], commitIndex: Boolean, boost: Boolean): Future[Option[Int]] = {
-    tmp += 1
-    if (tmp % 1000 == 0) {
-      System.gc()
-      println(tmp)
-    }
-    val iwork = Future { blocking { index.persist(check, symbols, commitIndex, boost) } }
-    iwork onComplete {
-      case _ =>
+    val iwork = symbols match {
+      case Nil =>
         lock.release()
+        Future.successful(())
+      case _ =>
+        val f = Future { blocking { index.persist(check, symbols, commitIndex, boost) } }
+        f onComplete {
+          case _ =>
+            lock.release()
+        }
+        f
     }
 
     val dwork = db.persist(check, symbols)
