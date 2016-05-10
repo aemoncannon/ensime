@@ -71,9 +71,6 @@ class VirtualMachineManager(
 
         val s = d.start(timeout = 10.seconds, startProcessingEvents = false)
 
-        // Place JVM in running state
-        s.resume()
-
         (d, s)
     }
 
