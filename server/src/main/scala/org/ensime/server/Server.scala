@@ -96,6 +96,8 @@ class ServerActor(
   override def receive: Receive = {
     case req: ShutdownRequest =>
       triggerShutdown(req)
+    case CloseOnIndexUpdate =>
+      triggerShutdown(ShutdownRequest("Index only run", isError = false))
   }
 
   def triggerShutdown(request: ShutdownRequest): Unit = {
