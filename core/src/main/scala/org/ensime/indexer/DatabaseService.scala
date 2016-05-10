@@ -81,7 +81,8 @@ class DatabaseService(dir: File) extends SLF4JLogging {
 
   def persist(check: FileCheck, symbols: Seq[FqnSymbol])(implicit ec: ExecutionContext): Future[Option[Int]] =
     db.run(
-      fileChecks.filter(_.filename === check.filename).result.headOption.flatMap {
+      //Only try to insert the first time we see a check. Only called from refresh
+      fileChecks.filter(_.filename === check.filename).result.headOption.flatMap { 
         case Some(_) =>
           DBIO.successful(None)
         case _ =>

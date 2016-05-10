@@ -125,18 +125,14 @@ class SearchService(
         // Using an iterator so each list of symbols may be collected as soon as its used. 
         extractSymbolsFromClassOrJar(base).flatMap {
           case (symStream, vJar) =>
-            var x = 0
             val fs = symStream map (
-              persist(check, _, commitIndex = false, boost = boost) map {
-                case Some(n) => check.synchronized { x += n }
-                case _ =>
-              }
+              persist(check, _, commitIndex = false, boost = boost)
             )
 
             //Persist all classfiles, then return the count & cleanup if necessary
             Future.sequence(fs.toList)
-              .map(_ => if (x > 0) Some(x) else None)
-              .map { x => vJar.fold[Unit](())(jar => vfs.nuke(jar)); x }
+              .map(_.flatten.sum)
+              .map { x => vJar.fold[Unit](())(jar => vfs.nuke(jar)); if (x > 0) Some(x) else None }
         }
       }
     }
