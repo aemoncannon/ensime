@@ -141,23 +141,23 @@ class VirtualMachineManager(
    */
   def withVM[T](action: (ScalaVirtualMachine => T)): Try[T] = synchronized {
     if (!hasActiveVM) {
-      val error = new NoActiveVirtualMachineException
-      log.error("No VM active for debugging!", error)
-      return Failure(error)
+      val error = new IllegalStateException("No VM active for debugging!")
+      log.error("Unable to execute action with VM", error)
+      Failure(error)
+    } else {
+      log.trace("Applying action to remote vm")
+      val result = Try(action(vm.get))
+
+      result.failed.foreach {
+        case e: VMDisconnectedException =>
+          log.error("Attempted interaction with disconnected VM:", e)
+          clear()
+        case e: Throwable =>
+          log.error("Exception thrown whilst handling vm action", e)
+      }
+
+      result
     }
-
-    log.trace("Applying action to remote vm")
-    val result = Try(action(vm.get))
-
-    result.failed.foreach {
-      case e: VMDisconnectedException =>
-        log.error("Attempted interaction with disconnected VM:", e)
-        clear()
-      case e: Throwable =>
-        log.error("Exception thrown whilst handling vm action", e)
-    }
-
-    result
   }
 
   /**

@@ -133,6 +133,6 @@ class SourceMap(private val config: EnsimeConfig) {
    */
   private def parsePath(rootPaths: Seq[String], sourcePath: String): String = {
     rootPaths.find(sourcePath.startsWith).map(p => sourcePath.replace(p, ""))
-      .getOrElse(sourcePath).stripPrefix("/")
+      .getOrElse(sourcePath).stripPrefix(java.io.File.separator)
   }
 }

@@ -45,7 +45,6 @@ class DebugActor private (
   private val converter: StructureConverter = new StructureConverter(sourceMap)
   private val vmm: VirtualMachineManager = new VirtualMachineManager(
     // Signal to the user that the JVM has disconnected
-    // CHIP: Move active breakpoints to pending?
     globalStopFunc = s => broadcaster ! DebugVMDisconnectEvent
   )
 
@@ -82,7 +81,7 @@ class DebugActor private (
     case DebugStopReq =>
       sender ! withVM(s => {
         // Force JVM exit if mode indicates to do so
-        if (vmm.activeMode.nonEmpty && vmm.activeMode.get.shouldExit)
+        if (vmm.activeMode.exists(_.shouldExit))
           s.underlyingVirtualMachine.exit(0)
 
         vmm.stop()
@@ -164,10 +163,11 @@ class DebugActor private (
         (bps.filterNot(_.isPending), bps.filter(_.isPending))
       }).map {
         case (a, p) =>
-
           // Convert collection of BreakpointRequestInfo to Ensime Breakpoint
-          def convert(b: Seq[BreakpointRequestInfo]) = b.map(b2 =>
-            (sourceMap.sourceForFilePath(b2.fileName), b2.lineNumber)).filter(_._1.nonEmpty).map(t => Breakpoint(t._1.get, t._2))
+          def convert(b: Seq[BreakpointRequestInfo]) = {
+            b.map(b2 => (sourceMap.sourceForFilePath(b2.fileName), b2.lineNumber))
+              .filter(_._1.nonEmpty).map(t => Breakpoint(t._1.get, t._2))
+          }
 
           (convert(a).toList, convert(p).toList)
       }.getOrElse((Nil, Nil))
@@ -382,9 +382,9 @@ class DebugActor private (
    * @return Success containing the result of the action, otherwise a failure
    */
   private def suspendAndExecute[T](threadInfo: ThreadInfoProfile, action: => T): Try[T] = {
-    Try(threadInfo.toJdiInstance.suspend())
+    Try(threadInfo.suspend())
     val result = Try(action)
-    Try(threadInfo.toJdiInstance.resume())
+    Try(threadInfo.resume())
     result
   }
 
