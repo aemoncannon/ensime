@@ -5,7 +5,7 @@ import org.scaladebugger.api.dsl.Implicits._
 import org.scaladebugger.api.profiles.traits.info._
 
 /**
- * Converts normal JDI structures into their equivalent Ensime-oriented
+ * Converts normal debugger API structures into their equivalent Ensime-oriented
  * messages.
  *
  * @param sourceMap Used to include relevant source information when
@@ -16,38 +16,56 @@ class StructureConverter(private val sourceMap: SourceMap) {
    * Converts a debugger API value into an Ensime message.
    *
    * @param valueInfo The debugger API value
-   * @return The Ensime message
+   * @return The equivalent Ensime message
    */
-  def makeDebugValue(valueInfo: ValueInfoProfile): DebugValue = {
+  def convertValue(valueInfo: ValueInfoProfile): DebugValue = {
     valueInfo match {
-      case v if v.isNull => makeDebugNull()
-      case v if v.isVoid => makeDebugVoid(v)
-      case v if v.isArray => makeDebugArr(v.toArrayInfo)
-      case v if v.isString => makeDebugStr(v.toStringInfo)
-      case v if v.isObject => makeDebugObj(v.toObjectInfo)
-      case v if v.isPrimitive => makeDebugPrim(v.toPrimitiveInfo)
+      case v if v.isNull => newDebugNull()
+      case v if v.isVoid => convertDebugVoid(v)
+      case v if v.isArray => convertDebugArr(v.toArrayInfo)
+      case v if v.isString => convertDebugStr(v.toStringInfo)
+      case v if v.isObject => convertDebugObj(v.toObjectInfo)
+      case v if v.isPrimitive => convertDebugPrim(v.toPrimitiveInfo)
     }
   }
 
-  private def makeDebugObj(value: ObjectInfoProfile): DebugObjectInstance = {
+  /**
+   * Converts a remote object value to an equivalent Ensime message.
+   *
+   * @param value The object value to convert
+   * @return The new Ensime message
+   */
+  private def convertDebugObj(value: ObjectInfoProfile): DebugObjectInstance = {
     DebugObjectInstance(
       value.toPrettyString,
-      makeFields(value.referenceType, value),
+      extractFields(value.referenceType, value),
       value.referenceType.name,
       DebugObjectId(value.uniqueId)
     )
   }
 
-  private def makeDebugStr(value: StringInfoProfile): DebugStringInstance = {
+  /**
+   * Converts a remote string value to an equivalent Ensime message.
+   *
+   * @param value The string value to convert
+   * @return The new Ensime message
+   */
+  private def convertDebugStr(value: StringInfoProfile): DebugStringInstance = {
     DebugStringInstance(
       value.toPrettyString,
-      makeFields(value.referenceType, value),
+      extractFields(value.referenceType, value),
       value.referenceType.name,
       DebugObjectId(value.uniqueId)
     )
   }
 
-  private def makeDebugArr(value: ArrayInfoProfile): DebugArrayInstance = {
+  /**
+   * Converts a remote array to an equivalent Ensime message.
+   *
+   * @param value The array to convert
+   * @return The new Ensime message
+   */
+  private def convertDebugArr(value: ArrayInfoProfile): DebugArrayInstance = {
     DebugArrayInstance(
       value.length,
       value.referenceType.name,
@@ -56,25 +74,50 @@ class StructureConverter(private val sourceMap: SourceMap) {
     )
   }
 
-  private def makeDebugPrim(value: PrimitiveInfoProfile): DebugPrimitiveValue = {
+  /**
+   * Converts a remote primitive value to an equivalent Ensime message.
+   *
+   * @param value The primitive value to convert
+   * @return The new Ensime message
+   */
+  private def convertDebugPrim(value: PrimitiveInfoProfile): DebugPrimitiveValue = {
     DebugPrimitiveValue(
       value.toPrettyString,
       value.typeInfo.name
     )
   }
 
-  private def makeDebugVoid(value: ValueInfoProfile): DebugPrimitiveValue = {
+  /**
+   * Converts a remote void value to an equivalent Ensime message.
+   *
+   * @param value The void value to convert
+   * @return The new Ensime message
+   */
+  private def convertDebugVoid(value: ValueInfoProfile): DebugPrimitiveValue = {
     DebugPrimitiveValue(
       value.toPrettyString,
       value.typeInfo.name
     )
   }
 
-  private def makeDebugNull(): DebugNullValue = {
+  /**
+   * Creates a new Ensime message representing a null value.
+   *
+   * @return The new Ensime message
+   */
+  private def newDebugNull(): DebugNullValue = {
     DebugNullValue("Null")
   }
 
-  private def makeFields(
+  /**
+   * Extracts fields and their values from an object and its reference type.
+   *
+   * @param tpeIn The reference type for the object whose fields to acquire
+   * @param obj The actual remote object whose values for corresponding fields
+   *            to convert to messages
+   * @return The collection of Ensime messages representing the fields
+   */
+  private def extractFields(
     tpeIn: ReferenceTypeInfoProfile,
     obj: ObjectInfoProfile
   ): List[DebugClassField] = {
@@ -101,9 +144,15 @@ class StructureConverter(private val sourceMap: SourceMap) {
     fields
   }
 
-  private def makeStackFrame(frame: FrameInfoProfile): DebugStackFrame = {
+  /**
+   * Converts a single stack frame to an Ensime message.
+   *
+   * @param frame The stack frame to convert
+   * @return The resulting Ensime message
+   */
+  def convertStackFrame(frame: FrameInfoProfile): DebugStackFrame = {
     val locals = ignoreErr(
-      frame.indexedLocalVariables.map(makeStackLocal).toList,
+      frame.indexedLocalVariables.map(convertStackLocal).toList,
       List.empty
     )
 
@@ -122,7 +171,15 @@ class StructureConverter(private val sourceMap: SourceMap) {
     DebugStackFrame(frame.index, locals, numArgs, className, methodName, pcLocation, DebugObjectId(thisObjId))
   }
 
-  private def makeStackLocal(variableInfo: IndexedVariableInfoProfile): DebugStackLocal = {
+  /**
+   * Converts a local variable on the stack to an Ensime message.
+   *
+   * @param variableInfo The local variable to convert
+   * @return The resulting Ensime message
+   */
+  private def convertStackLocal(
+    variableInfo: IndexedVariableInfoProfile
+  ): DebugStackLocal = {
     DebugStackLocal(
       variableInfo.offsetIndex,
       variableInfo.name,

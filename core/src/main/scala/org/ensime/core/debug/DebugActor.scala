@@ -231,7 +231,7 @@ class DebugActor private (
           // Cache each stack frame's "this" reference
           frames.foreach(_.thisObjectOption.foreach(_.cache()))
 
-          val ensimeFrames = frames.map(converter.makeStackFrame)
+          val ensimeFrames = frames.map(converter.convertStackFrame)
 
           DebugBacktrace(ensimeFrames.toList, DebugThreadId(t.uniqueId), t.name)
       })
@@ -240,7 +240,7 @@ class DebugActor private (
     case DebugValueReq(location) =>
       sender ! withVM(s =>
         lookupValue(s.cache, location)
-          .map(converter.makeDebugValue)
+          .map(converter.convertValue)
           .getOrElse(FalseResponse))
 
     // ========================================================================
