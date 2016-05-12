@@ -21,82 +21,84 @@ class StructureConverter(private val sourceMap: SourceMap) {
   def convertValue(valueInfo: ValueInfoProfile): DebugValue = {
     valueInfo match {
       case v if v.isNull => newDebugNull()
-      case v if v.isVoid => convertDebugVoid(v)
-      case v if v.isArray => convertDebugArr(v.toArrayInfo)
-      case v if v.isString => convertDebugStr(v.toStringInfo)
-      case v if v.isObject => convertDebugObj(v.toObjectInfo)
-      case v if v.isPrimitive => convertDebugPrim(v.toPrimitiveInfo)
+      case v if v.isVoid => convertVoid(v)
+      case v if v.isArray => convertArray(v.toArrayInfo)
+      case v if v.isString => convertString(v.toStringInfo)
+      case v if v.isObject => convertObject(v.toObjectInfo)
+      case v if v.isPrimitive => convertPrimitive(v.toPrimitiveInfo)
     }
   }
 
   /**
    * Converts a remote object value to an equivalent Ensime message.
    *
-   * @param value The object value to convert
+   * @param objInfo The object value to convert
    * @return The new Ensime message
    */
-  private def convertDebugObj(value: ObjectInfoProfile): DebugObjectInstance = {
+  private def convertObject(objInfo: ObjectInfoProfile): DebugObjectInstance = {
     DebugObjectInstance(
-      value.toPrettyString,
-      extractFields(value.referenceType, value),
-      value.referenceType.name,
-      DebugObjectId(value.uniqueId)
+      objInfo.toPrettyString,
+      extractFields(objInfo.referenceType, objInfo),
+      objInfo.referenceType.name,
+      DebugObjectId(objInfo.uniqueId)
     )
   }
 
   /**
    * Converts a remote string value to an equivalent Ensime message.
    *
-   * @param value The string value to convert
+   * @param strInfo The string value to convert
    * @return The new Ensime message
    */
-  private def convertDebugStr(value: StringInfoProfile): DebugStringInstance = {
+  private def convertString(strInfo: StringInfoProfile): DebugStringInstance = {
     DebugStringInstance(
-      value.toPrettyString,
-      extractFields(value.referenceType, value),
-      value.referenceType.name,
-      DebugObjectId(value.uniqueId)
+      strInfo.toPrettyString,
+      extractFields(strInfo.referenceType, strInfo),
+      strInfo.referenceType.name,
+      DebugObjectId(strInfo.uniqueId)
     )
   }
 
   /**
    * Converts a remote array to an equivalent Ensime message.
    *
-   * @param value The array to convert
+   * @param arrayInfo The array to convert
    * @return The new Ensime message
    */
-  private def convertDebugArr(value: ArrayInfoProfile): DebugArrayInstance = {
+  private def convertArray(arrayInfo: ArrayInfoProfile): DebugArrayInstance = {
     DebugArrayInstance(
-      value.length,
-      value.referenceType.name,
-      value.referenceType.toArrayType.elementTypeName,
-      DebugObjectId(value.uniqueId)
+      arrayInfo.length,
+      arrayInfo.referenceType.name,
+      arrayInfo.referenceType.toArrayType.elementTypeName,
+      DebugObjectId(arrayInfo.uniqueId)
     )
   }
 
   /**
    * Converts a remote primitive value to an equivalent Ensime message.
    *
-   * @param value The primitive value to convert
+   * @param primitiveInfo The primitive value to convert
    * @return The new Ensime message
    */
-  private def convertDebugPrim(value: PrimitiveInfoProfile): DebugPrimitiveValue = {
+  private def convertPrimitive(
+    primitiveInfo: PrimitiveInfoProfile
+  ): DebugPrimitiveValue = {
     DebugPrimitiveValue(
-      value.toPrettyString,
-      value.typeInfo.name
+      primitiveInfo.toPrettyString,
+      primitiveInfo.typeInfo.name
     )
   }
 
   /**
    * Converts a remote void value to an equivalent Ensime message.
    *
-   * @param value The void value to convert
+   * @param void The void value to convert
    * @return The new Ensime message
    */
-  private def convertDebugVoid(value: ValueInfoProfile): DebugPrimitiveValue = {
+  private def convertVoid(void: ValueInfoProfile): DebugPrimitiveValue = {
     DebugPrimitiveValue(
-      value.toPrettyString,
-      value.typeInfo.name
+      void.toPrettyString,
+      void.typeInfo.name
     )
   }
 
@@ -178,7 +180,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
    * @return The resulting Ensime message
    */
   private def convertStackLocal(
-    variableInfo: IndexedVariableInfoProfile
+    variableInfo: VariableInfoProfile
   ): DebugStackLocal = {
     DebugStackLocal(
       variableInfo.offsetIndex,
