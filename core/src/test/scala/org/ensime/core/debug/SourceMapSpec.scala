@@ -16,7 +16,11 @@ import scala.collection.mutable
 import scala.util.Success
 
 class SourceMapSpec extends EnsimeSpec with OneInstancePerTest with MockFactory {
-  private val testRoots = Seq(s"${sep}some${sep}file${sep}path", "other", "path")
+  private val testRoots = Seq(
+    s"${sep}some${sep}file${sep}path",
+    "other",
+    "path"
+  ).map(new File(_)).map(_.getCanonicalPath)
   private val testFileName = "file.scala"
   private val testSources = testRoots.map(_ + sep + testFileName).map(new File(_)).toSet
   private val testPathMap = new mutable.HashMap[String, File]()
