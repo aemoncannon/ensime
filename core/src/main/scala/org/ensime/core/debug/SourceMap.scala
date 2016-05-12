@@ -22,8 +22,8 @@ import scala.collection.mutable
  *                as file.scala rather than org/ensime/file.scala
  */
 class SourceMap(
-  private val config: EnsimeConfig,
-  private val pathMap: mutable.Map[String, File] = new ConcurrentHashMap[String, File]().asScala
+    private val config: EnsimeConfig,
+    private val pathMap: mutable.Map[String, File] = new ConcurrentHashMap[String, File]().asScala
 ) {
   /** Contains a collection of root paths where source files are located */
   private lazy val roots: Seq[String] = retrieveRoots

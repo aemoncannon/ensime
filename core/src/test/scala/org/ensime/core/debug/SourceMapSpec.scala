@@ -7,7 +7,7 @@ import java.io.File
 import org.ensime.util.EnsimeSpec
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OneInstancePerTest
-import java.io.File.{separator => sep}
+import java.io.File.{ separator => sep }
 
 import org.ensime.api.LineSourcePosition
 import org.scaladebugger.api.profiles.traits.info.LocationInfoProfile
@@ -46,7 +46,7 @@ class SourceMapSpec extends EnsimeSpec with OneInstancePerTest with MockFactory 
     (mockLocationInfo.lineNumber _).expects().returning(lineNumber).once()
 
     sourceMap.newLineSourcePosition(mockLocationInfo) should
-      contain (LineSourcePosition(testSources.head, lineNumber))
+      contain(LineSourcePosition(testSources.head, lineNumber))
   }
 
   it should "use the source path of a location to find the associated local file" in {
@@ -55,11 +55,11 @@ class SourceMapSpec extends EnsimeSpec with OneInstancePerTest with MockFactory 
     (mockLocationInfo.trySourcePath _).expects()
       .returning(Success(testSources.head.getPath)).once()
 
-    sourceMap.findFileByLocation(mockLocationInfo) should contain (testSources.head)
+    sourceMap.findFileByLocation(mockLocationInfo) should contain(testSources.head)
   }
 
   it should "be able to return all matching sources whose file name match the provided" in {
-    sourceMap.sourcesForFileName(testFileName) should be (testSources)
+    sourceMap.sourcesForFileName(testFileName) should be(testSources)
   }
 
   it should "check requests for a source against the path map first" in {
@@ -67,11 +67,11 @@ class SourceMapSpec extends EnsimeSpec with OneInstancePerTest with MockFactory 
     val filePath = "something"
     testPathMap.put(filePath, expected)
 
-    sourceMap.sourceForFilePath(filePath) should contain (expected)
+    sourceMap.sourceForFilePath(filePath) should contain(expected)
   }
 
   it should "look for files whose absolute paths end with the given file path" in {
-    sourceMap.sourceForFilePath(testFileName) should contain (testSources.head)
+    sourceMap.sourceForFilePath(testFileName) should contain(testSources.head)
   }
 
   it should "cache retrieved files given a shorter path in the path map" in {
@@ -82,23 +82,23 @@ class SourceMapSpec extends EnsimeSpec with OneInstancePerTest with MockFactory 
   }
 
   it should "be able to return a set of files representing scala sources" in {
-    sourceMap.canonicalSources should be (testSources)
+    sourceMap.canonicalSources should be(testSources)
   }
 
   it should "be able to strip common roots from files" in {
     val matching = new File(testRoots.head + sep + testFileName)
-    sourceMap.parsePath(matching) should be (testFileName)
+    sourceMap.parsePath(matching) should be(testFileName)
 
     val nonMatching = new File("something" + sep + testFileName)
     sourceMap.parsePath(nonMatching) should
-      be (nonMatching.getCanonicalPath.stripPrefix(java.io.File.separator))
+      be(nonMatching.getCanonicalPath.stripPrefix(java.io.File.separator))
   }
 
   it should "be able to strip common roots from file paths" in {
     val matching = testRoots.head + sep + testFileName
-    sourceMap.parsePath(matching) should be (testFileName)
+    sourceMap.parsePath(matching) should be(testFileName)
 
     val nonMatching = "something" + sep + testFileName
-    sourceMap.parsePath(nonMatching) should be (nonMatching)
+    sourceMap.parsePath(nonMatching) should be(nonMatching)
   }
 }
