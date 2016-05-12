@@ -488,49 +488,41 @@ trait DebugTestUtils {
     expectMsg(TrueResponse)
 
     val vm = VMStarter(config, className)
-    Await.result(vm._4, (5 seconds).dilated)
-
-    project ! DebugAttachReq(vm._2, vm._3.toString)
-
-    expectMsg(DebugVmSuccess())
-
-    asyncHelper.expectMsg(DebugVMStartEvent)
-
-    val gotOnStartup = asyncHelper.expectMsgType[EnsimeServerMessage]
-    // weird! we sometimes see a duplicate break event instantly, not really expected
-    val additionalOnStartup = Try(asyncHelper.expectMsgType[EnsimeServerMessage](1 second)).toOption.toSeq
-    // but it doesn't always come through
-
-    val allEvents = gotOnStartup +: additionalOnStartup
-    val threadId = allEvents.flatMap {
-      case DebugBreakEvent(foundThreadId, "main", `resolvedFile`, `breakLine`) =>
-        List(foundThreadId)
-      case _ =>
-        Nil
-    }.headOption.getOrElse(fail("Cannot work out main threadId"))
-
-    project ! DebugClearBreakReq(resolvedFile, breakLine)
-    expectMsg(TrueResponse)
 
     try {
+      Await.result(vm._4, (5 seconds).dilated)
+
+      project ! DebugAttachReq(vm._2, vm._3.toString)
+
+      expectMsg(DebugVmSuccess())
+
+      asyncHelper.expectMsg(DebugVMStartEvent)
+
+      val gotOnStartup = asyncHelper.expectMsgType[EnsimeServerMessage]
+      // weird! we sometimes see a duplicate break event instantly, not really expected
+      val additionalOnStartup = Try(asyncHelper.expectMsgType[EnsimeServerMessage](1 second)).toOption.toSeq
+      // but it doesn't always come through
+
+      val allEvents = gotOnStartup +: additionalOnStartup
+      val threadId = allEvents.flatMap {
+        case DebugBreakEvent(foundThreadId, "main", `resolvedFile`, `breakLine`) =>
+          List(foundThreadId)
+        case _ =>
+          Nil
+      }.headOption.getOrElse(fail("Cannot work out main threadId"))
+
+      project ! DebugClearBreakReq(resolvedFile, breakLine)
+      expectMsg(TrueResponse)
+
       func(threadId, resolvedFile)
     } finally {
-      try {
-        project ! DebugClearAllBreaksReq
-        expectMsg(TrueResponse)
-        // no way to await the stopped condition so we let the app run
-        // its course on the main thread
-        // CHIP/Rory Determine if there is any point doing this action at all.
-        //        project ! DebugContinueReq(threadId)
-        //        expectMsg(TrueResponse)
-        project ! DebugStopReq
-        expectMsgPF() {
-          case TrueResponse =>
-          case FalseResponse => // windows does this sometimes
-        }
-      } finally {
-        vm._1.destroy()
-      }
+      // Attempt graceful shutdown (disposes of JVM, clearing all requests
+      // to let it finish naturally)
+      project ! DebugStopReq
+
+      // If shutdown fails, attempt to forcefully kill the process
+      Try(expectMsgPF() { case TrueResponse => })
+        .failed.foreach(_ => vm._1.destroy())
     }
   }
 
@@ -608,7 +600,7 @@ object VMStarter extends SLF4JLogging {
     val args = Seq(
       java,
       "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=" + port,
-      "-Xms128m", "-Xmx128m",
+      "-Xms32m", "-Xmx64m",
       "-classpath", classpath,
       clazz
     )
