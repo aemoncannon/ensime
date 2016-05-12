@@ -10,7 +10,6 @@ import org.ensime.api.{ EnsimeConfig, LineSourcePosition }
 import org.ensime.config._
 import org.ensime.util.file.RichFile
 import org.scaladebugger.api.profiles.traits.info.LocationInfoProfile
-import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
