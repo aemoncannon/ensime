@@ -350,30 +350,6 @@ class DebugActor private (
   })
 
   /**
-   * Retrieves the proper full file name from the virtual machine.
-   *
-   * @param scalaVirtualMachine The virtual machine whose classes to search
-   *                            through for the file name
-   * @param fileName            The short file name to match against full names
-   * @return Some file name if a match is found, otherwise None
-   */
-  private def fullFileName(
-    scalaVirtualMachine: ScalaVirtualMachine,
-    fileName: String
-  ): Option[String] = {
-    val fileNames = scalaVirtualMachine.sourceNameToPaths(fileName)
-
-    val choice = fileNames.headOption
-
-    if (fileNames.isEmpty)
-      log.warning(s"$fileName was not found in available classes!")
-    else if (fileNames.size > 1)
-      log.warning(s"Ambiguous file $fileName, choosing ${choice.get}")
-
-    choice
-  }
-
-  /**
    * Suspends the given thread, performs the action, and resumes the thread.
    *
    * @param threadInfo The thread to suspend
