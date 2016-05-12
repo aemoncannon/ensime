@@ -154,7 +154,7 @@ object EnsimeBuild extends Build {
         "org.scala-refactoring" % ("org.scala-refactoring.library_" + scalaVersion.value) % "0.10.0",
         "commons-lang" % "commons-lang" % "2.6",
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",
-        "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-SNAPSHOT"
+        "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-M1"
       ) ++ Sensible.testLibs("it,test") ++ Sensible.shapeless(scalaVersion.value)
     ) enablePlugins BuildInfoPlugin settings (
         buildInfoPackage := organization.value,
