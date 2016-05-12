@@ -2,6 +2,7 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core.debug
 
+import scala.collection.JavaConverters._
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
@@ -18,25 +19,21 @@ import scala.collection.mutable
  * JDI locations.
  *
  * @param config The Ensime configuration used to load source files
+ * @param pathMap Represents a cache of files indexed by short file paths such
+ *                as file.scala rather than org/ensime/file.scala
  */
-class SourceMap(private val config: EnsimeConfig) {
-  /** Logger used within source map class. */
-  private val logger = LoggerFactory.getLogger(this.getClass)
+class SourceMap(
+  private val config: EnsimeConfig,
+  private val pathMap: mutable.Map[String, File] = new ConcurrentHashMap[String, File]().asScala
+) {
+  /** Contains a collection of root paths where source files are located */
+  private lazy val roots: Seq[String] = retrieveRoots
 
-  /** Represents internal storage of local source files. */
-  private lazy val roots: Seq[String] = (
-    config.compileClasspath.map(_.getCanonicalPath).toSeq ++
-    config.referenceSourceRoots.map(_.getCanonicalPath) ++
-    config.subprojects.flatMap(_.sourceRoots).map(_.getCanonicalPath)
-  ).distinct
-  private lazy val sources: Set[File] = config.scalaSourceFiles.map(_.canon)
+  /** Contains a set of local Scala source files */
+  private lazy val sources: Set[File] = retrieveSources
+
+  /** Contains a mapping of filename (file.scala) to local file */
   private lazy val sourceMap: Map[String, Set[File]] = sources.groupBy(_.getName)
-
-  // CHIP: Provide cleaner generation of path map by finding root directory
-  //       (or multiple directories) and filling in the map in advance
-  import scala.collection.JavaConverters._
-  private lazy val pathMap: mutable.Map[String, File] =
-    new ConcurrentHashMap[String, File]().asScala
 
   /**
    * Creates a new LineSourcePosition instance from the given location.
@@ -135,4 +132,24 @@ class SourceMap(private val config: EnsimeConfig) {
     rootPaths.find(sourcePath.startsWith).map(p => sourcePath.replace(p, ""))
       .getOrElse(sourcePath).stripPrefix(java.io.File.separator)
   }
+
+  /**
+   * Retrieves a collection of file paths representing the root locations of
+   * source files managed by Ensime.
+   *
+   * @return The distinct root paths as strings
+   */
+  protected def retrieveRoots: Seq[String] = (
+    config.compileClasspath.map(_.getCanonicalPath).toSeq ++
+    config.referenceSourceRoots.map(_.getCanonicalPath) ++
+    config.subprojects.flatMap(_.sourceRoots).map(_.getCanonicalPath)
+  ).distinct
+
+  /**
+   * Retrieves a set of local files representing available Scala source files
+   * managed by Ensime.
+   *
+   * @return The set of local files
+   */
+  protected def retrieveSources: Set[File] = config.scalaSourceFiles.map(_.canon)
 }
