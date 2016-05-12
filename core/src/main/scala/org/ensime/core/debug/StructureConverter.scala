@@ -12,7 +12,6 @@ import org.scaladebugger.api.profiles.traits.info._
  *                  constructing various Ensime messages
  */
 class StructureConverter(private val sourceMap: SourceMap) {
-
   /**
    * Converts a debugger API value into an Ensime message.
    *
@@ -30,7 +29,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
     }
   }
 
-  def makeDebugObj(value: ObjectInfoProfile): DebugObjectInstance = {
+  private def makeDebugObj(value: ObjectInfoProfile): DebugObjectInstance = {
     DebugObjectInstance(
       value.toPrettyString,
       makeFields(value.referenceType, value),
@@ -39,7 +38,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
     )
   }
 
-  def makeDebugStr(value: StringInfoProfile): DebugStringInstance = {
+  private def makeDebugStr(value: StringInfoProfile): DebugStringInstance = {
     DebugStringInstance(
       value.toPrettyString,
       makeFields(value.referenceType, value),
@@ -48,7 +47,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
     )
   }
 
-  def makeDebugArr(value: ArrayInfoProfile): DebugArrayInstance = {
+  private def makeDebugArr(value: ArrayInfoProfile): DebugArrayInstance = {
     DebugArrayInstance(
       value.length,
       value.referenceType.name,
@@ -57,25 +56,25 @@ class StructureConverter(private val sourceMap: SourceMap) {
     )
   }
 
-  def makeDebugPrim(value: PrimitiveInfoProfile): DebugPrimitiveValue = {
+  private def makeDebugPrim(value: PrimitiveInfoProfile): DebugPrimitiveValue = {
     DebugPrimitiveValue(
       value.toPrettyString,
       value.typeInfo.name
     )
   }
 
-  def makeDebugVoid(value: ValueInfoProfile): DebugPrimitiveValue = {
+  private def makeDebugVoid(value: ValueInfoProfile): DebugPrimitiveValue = {
     DebugPrimitiveValue(
       value.toPrettyString,
       value.typeInfo.name
     )
   }
 
-  def makeDebugNull(): DebugNullValue = {
+  private def makeDebugNull(): DebugNullValue = {
     DebugNullValue("Null")
   }
 
-  def makeFields(
+  private def makeFields(
     tpeIn: ReferenceTypeInfoProfile,
     obj: ObjectInfoProfile
   ): List[DebugClassField] = {
@@ -102,7 +101,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
     fields
   }
 
-  def makeStackFrame(frame: FrameInfoProfile): DebugStackFrame = {
+  private def makeStackFrame(frame: FrameInfoProfile): DebugStackFrame = {
     val locals = ignoreErr(
       frame.indexedLocalVariables.map(makeStackLocal).toList,
       List.empty
@@ -123,7 +122,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
     DebugStackFrame(frame.index, locals, numArgs, className, methodName, pcLocation, DebugObjectId(thisObjId))
   }
 
-  def makeStackLocal(variableInfo: IndexedVariableInfoProfile): DebugStackLocal = {
+  private def makeStackLocal(variableInfo: IndexedVariableInfoProfile): DebugStackLocal = {
     DebugStackLocal(
       variableInfo.offsetIndex,
       variableInfo.name,
