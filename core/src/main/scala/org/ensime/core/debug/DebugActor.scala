@@ -62,7 +62,6 @@ class DebugActor private (
     case DebugAttachReq(hostname, port) =>
       vmm.stop()
 
-      // CHIP: Error will be a future timeout, need to see if can grab reason
       Try(vmm.start(VmAttach(hostname, port))) match {
         case Success(_) =>
           sender ! DebugVmSuccess()
@@ -104,7 +103,6 @@ class DebugActor private (
     case DebugContinueReq(threadId) =>
       sender ! withThread(threadId.id, {
         case (s, t) =>
-          // CHIP: Why is this resuming the entire VM instead of the single thread?
           s.resume()
           TrueResponse
       })
@@ -115,13 +113,6 @@ class DebugActor private (
         // Retrieve org/path/file.scala from file
         val fileName = sourceMap.parsePath(file)
 
-        // CHIP: Figure out why location examining needed to compare the
-        //       sourcePath, sourceName, and lineNumber for each location
-        //       pulled from the file's reference types AND its methods, why
-        //       do we need to look up the line that way?
-        // NOTE: If Scala Debugger API needs to change to match the old
-        //       functionality, just need to change the low-level class
-        //       manager's linesAndLocationsForFile method.
         val options = Seq(SuspendPolicyProperty.AllThreads, NoResume)
         s.tryGetOrCreateBreakpointRequest(fileName, line, options: _*) match {
           case Success(bp) =>
@@ -413,7 +404,6 @@ class DebugActor private (
    * @param scalaVirtualMachine The JVM whose events to listen to
    */
   private def bindEventHandlers(scalaVirtualMachine: ScalaVirtualMachine): Unit = {
-    // CHIP: Provide specific event listeners (versus generic with casting)
     import com.sun.jdi.event._
 
     // Send start event to client when received
@@ -517,13 +507,6 @@ class DebugActor private (
     scalaVirtualMachine.onUnsafeThreadDeath(SuspendPolicyProperty.NoThread).foreach(t => {
       val ti = scalaVirtualMachine.thread(t.thread())
       broadcaster ! DebugThreadDeathEvent(DebugThreadId(ti.uniqueId))
-    })
-
-    // Class Prepare Event - log new class name
-    scalaVirtualMachine.createEventListener(EventType.ClassPrepareEventType).foreach(e => {
-      val cpe = e.asInstanceOf[ClassPrepareEvent]
-      // CHIP: Add ReferenceType wrapper method
-      log.info(s"ClassPrepareEvent: ${cpe.referenceType().name()}")
     })
   }
 }

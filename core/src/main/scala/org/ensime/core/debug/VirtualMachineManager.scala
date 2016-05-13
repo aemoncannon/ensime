@@ -74,13 +74,11 @@ class VirtualMachineManager(
         (d, s)
     }
 
-    // Bind our event handles like class prepare and thread start/stop
+    // Bind our event handlers like class prepare and thread start/stop
     bindEvents(s)
 
     // Mark our debugger and acquired virtual machine as ready
-    debugger = Some(d)
-    vm = Some(s)
-    this.mode = Some(mode)
+    update(d, s, mode)
 
     // Invoke our start function, ignoring any error that may arise
     withVM(globalStartFunc)
@@ -90,6 +88,23 @@ class VirtualMachineManager(
     s.startProcessingEvents()
 
     (d, s)
+  }
+
+  /**
+   * Sets the active debugger, virtual machine, and mode.
+   *
+   * @param debugger The new debugger managing virtual machines
+   * @param scalaVirtualMachine The remote, connected virtual machine
+   * @param vmMode The mode associated with the debugger
+   */
+  private def update(
+    debugger: Debugger,
+    scalaVirtualMachine: ScalaVirtualMachine,
+    vmMode: VmMode
+  ) = synchronized {
+    this.debugger = Some(debugger)
+    vm = Some(scalaVirtualMachine)
+    mode = Some(vmMode)
   }
 
   /**
@@ -186,8 +201,8 @@ class VirtualMachineManager(
     import org.scaladebugger.api.dsl.Implicits._
 
     // If our VM disconnects/dies, stop the debugger
-    // CHIP: This is not wise if we are using a Listening debugger which can have
-    //       more than one JVM connected at once
+    // NOTE: This is not wise if we are using a Listening debugger which can
+    //       have more than one JVM connected at once
     s.onUnsafeVMDisconnect().foreach(_ => stop())
     s.onUnsafeVMDeath().foreach(_ => stop())
   }
