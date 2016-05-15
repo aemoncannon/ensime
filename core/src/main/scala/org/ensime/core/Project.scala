@@ -72,8 +72,8 @@ class Project(
         // we could also just blindly send this on each connection.
         broadcaster ! Broadcaster.Persist(IndexerReadyEvent)
         log.debug(s"created $inserts and removed $deletes searchable rows")
-        val ensimeFlag = propOrNone("ensime.flag").getOrElse("")
-        if (ensimeFlag == "indexOnly")
+        val exitAfterIndex = propOrFalse("ensime.exitAfterIndex")
+        if (exitAfterIndex)
           context.parent ! CloseOnIndexUpdate
       case Failure(problem) =>
         log.warning(problem.toString)
