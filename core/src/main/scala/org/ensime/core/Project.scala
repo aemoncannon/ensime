@@ -17,7 +17,7 @@ import scala.util._
 import org.ensime.util.file._
 import org.ensime.util.FileUtils
 
-case object CloseOnIndexUpdate
+final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
 /**
  * The Project actor simply forwards messages coming from the user to
@@ -74,7 +74,7 @@ class Project(
         log.debug(s"created $inserts and removed $deletes searchable rows")
         val exitAfterIndex = propOrFalse("ensime.exitAfterIndex")
         if (exitAfterIndex)
-          context.parent ! CloseOnIndexUpdate
+          context.parent ! ShutdownRequest("Index only run", isError = false)
       case Failure(problem) =>
         log.warning(problem.toString)
         throw problem

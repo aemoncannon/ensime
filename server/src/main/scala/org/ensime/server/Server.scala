@@ -24,8 +24,6 @@ import scala.concurrent.duration._
 import scala.util.Properties._
 import scala.util._
 
-final case class ShutdownRequest(reason: String, isError: Boolean = false)
-
 class ServerActor(
     config: EnsimeConfig,
     protocol: Protocol,
@@ -96,8 +94,6 @@ class ServerActor(
   override def receive: Receive = {
     case req: ShutdownRequest =>
       triggerShutdown(req)
-    case CloseOnIndexUpdate =>
-      triggerShutdown(ShutdownRequest("Index only run", isError = false))
   }
 
   def triggerShutdown(request: ShutdownRequest): Unit = {
