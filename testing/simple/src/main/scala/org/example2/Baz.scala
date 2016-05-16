@@ -4,8 +4,8 @@ package org.example2
 
 class Baz {
   class Wibble {
-    class baz
-    object baz
+    class Baz
+    object Baz
   }
   object Wibble
 }

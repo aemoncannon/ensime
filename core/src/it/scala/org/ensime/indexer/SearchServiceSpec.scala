@@ -149,13 +149,18 @@ class SearchServiceSpec extends EnsimeSpec
     val hits = service.searchClasses("Baz", 10).map(_.fqn)
     hits should contain theSameElementsAs (Seq(
       "org.example2.Baz",
-      "org.example2.Baz$Wibble$baz",
-      "org.example2.Baz$Wibble$baz$",
+      "org.example2.Baz$Wibble$Baz",
+      "org.example2.Baz$Wibble$Baz$",
       "org.example2.Baz$Wibble$",
       "org.example2.Baz$",
       "org.example2.Baz$Wibble"
     ))
     hits.head shouldBe "org.example2.Baz"
+    hits(1) shouldBe oneOf(
+      "org.example2.Baz$Wibble",
+      "org.example2.Baz$",
+      "org.example2.Baz$Wibble$"
+    )
   }
 
   it should "return user created classes first" in withSearchService { implicit service =>
