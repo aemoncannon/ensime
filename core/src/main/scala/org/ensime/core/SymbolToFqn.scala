@@ -21,7 +21,7 @@ import org.slf4j.Logger
  * See also `DocFinding.javaFqnString` (which should be rewritten to
  * use this).
  */
-trait SymbolToFqn { self: Global =>
+trait SymbolToFqn { self: Global with PresentationCompilerBackCompat =>
   def logger: Logger
 
   import ClassName._
