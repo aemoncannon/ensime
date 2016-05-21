@@ -127,9 +127,11 @@ object Sensible {
   )
 
   def testLibs(config: String = "test") = Seq(
+    "org.codehaus.janino" % "janino" % "2.7.8" % config,
     "org.scalatest" %% "scalatest" % scalatestVersion % config,
     "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % config,
-    // scalacheck 1.13.0 is java 7+
+    // scalacheck 1.13.0 is incompatible with scalatest 2.2
+    // https://github.com/rickynils/scalacheck/issues/217
     "org.scalacheck" %% "scalacheck" % "1.12.5" % config,
     "com.typesafe.akka" %% "akka-testkit" % akkaVersion % config,
     "com.typesafe.akka" %% "akka-slf4j" % akkaVersion % config
