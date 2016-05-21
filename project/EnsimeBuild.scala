@@ -15,8 +15,7 @@ object EnsimeBuild extends Build {
   lazy override val settings = super.settings ++ Seq(
     scalaVersion := "2.11.8",
     organization := "org.ensime",
-    version := "0.9.10-SNAPSHOT",
-    resolvers += Resolver.sonatypeRepo("snapshots") // filewatchers
+    version := "0.9.10-SNAPSHOT"
   )
 
   lazy val commonSettings = Sensible.settings ++ Seq(
@@ -73,7 +72,7 @@ object EnsimeBuild extends Build {
   lazy val testutil = Project("testutil", file("testutil")) settings (commonSettings) dependsOn (
     util, api
   ) settings (
-      libraryDependencies += "commons-io" % "commons-io" % "2.4",
+      libraryDependencies += "commons-io" % "commons-io" % "2.5",
       libraryDependencies ++= Sensible.testLibs("compile")
     )
 
@@ -135,9 +134,9 @@ object EnsimeBuild extends Build {
       commonSettings, commonItSettings
     ).settings(
       unmanagedJars in Compile += JavaTools,
-      EnsimeKeys.unmanagedSourceArchives += file(".").getCanonicalFile / "openjdk-langtools/openjdk6-langtools-src.zip",
+      EnsimeKeys.unmanagedSourceArchives += (baseDirectory in ThisBuild).value / "openjdk-langtools/openjdk6-langtools-src.zip",
       libraryDependencies ++= Seq(
-        "org.ensime" %% "java7-file-watcher" % "1.0.0-SNAPSHOT" intransitive () exclude ("commons-logging", "commons-logging"),
+        "org.ensime" %% "java7-file-watcher" % "1.0.0",
         "com.h2database" % "h2" % "1.4.191",
         "com.typesafe.slick" %% "slick" % "3.1.1",
         "com.zaxxer" % "HikariCP-java6" % "2.3.13",
@@ -217,7 +216,7 @@ object EnsimeBuild extends Build {
     dependencyOverrides ++= Set("com.google.guava" % "guava" % "18.0"),
     libraryDependencies ++= Seq(
       "com.github.dvdme" % "ForecastIOLib" % "1.5.1" intransitive (),
-      "commons-io" % "commons-io" % "2.4" intransitive ()
+      "commons-io" % "commons-io" % "2.5" intransitive ()
     ) ++ Sensible.guava
   )
 

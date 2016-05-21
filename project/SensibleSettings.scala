@@ -102,9 +102,9 @@ object Sensible {
   )
 
   val scalaModulesVersion = "1.0.4"
-  val akkaVersion = "2.3.14"
+  val akkaVersion = "2.3.15"
   val scalatestVersion = "2.2.6"
-  val logbackVersion = "1.7.19"
+  val logbackVersion = "1.7.21"
   val quasiquotesVersion = "2.0.1"
   val guavaVersion = "19.0"
 
@@ -114,9 +114,9 @@ object Sensible {
   def shapeless(scalaVersion: String) = {
     if (scalaVersion.startsWith("2.10.")) macroParadise
     else Nil
-  } :+ "com.chuusai" %% "shapeless" % "2.3.0"
+  } :+ "com.chuusai" %% "shapeless" % "2.3.1"
   val logback = Seq(
-    "ch.qos.logback" % "logback-classic" % "1.1.6",
+    "ch.qos.logback" % "logback-classic" % "1.1.7",
     "org.slf4j" % "slf4j-api" % logbackVersion,
     "org.slf4j" % "jul-to-slf4j" % logbackVersion,
     "org.slf4j" % "jcl-over-slf4j" % logbackVersion
