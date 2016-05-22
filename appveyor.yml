@@ -34,6 +34,4 @@ cache:
   - C:\Users\appveyor\.coursier
   - C:\Program Files\Java\jdk1.7.0\src.zip
 on_finish:
-  - ps: Get-ChildItem gc-.\*.log | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
-  - appveyor PushArtifact -Path core/test.log
-  - appveyor PushArtifact -Path core/it.log
+  - ps: Get-ChildItem -Path .\* -Include *.log -Recurse | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
