@@ -54,7 +54,7 @@ object Sensible {
     javaOptions in run ++= {
       if (sys.env.get("GC_LOGGING").isEmpty) Nil
       else {
-        Seq(s"-Xloggc:gc-${forkCount.incrementAndGet()}.log")
+        Seq(s"-Xloggc:gc-${name.value}-${forkCount.incrementAndGet()}.log")
       }
     },
 
