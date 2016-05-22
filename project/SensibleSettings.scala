@@ -106,7 +106,14 @@ object Sensible {
       else {
         val count = forkCount.incrementAndGet() // subject to task evaluation
         val out = { base / s"gc-$config-$n.log" }.getCanonicalPath
-        Seq("-XX:+PrintGCDetails", s"-Xloggc:$out")
+        Seq(
+          // https://github.com/fommil/lions-share
+          s"-Xloggc:$out",
+          "-XX:+PrintGCDetails",
+          "-XX:+PrintGCDateStamps",
+          "-XX:+PrintTenuringDistribution",
+          "-XX:+PrintHeapAtGC"
+        )
       }
     },
 
