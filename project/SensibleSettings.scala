@@ -51,12 +51,6 @@ object Sensible {
     javaOptions += "-Dfile.encoding=UTF8",
     javaOptions ++= Seq("-XX:+UseConcMarkSweepGC", "-XX:+CMSIncrementalMode"),
     javaOptions in run ++= yourkitAgent,
-    javaOptions in run ++= {
-      if (sys.env.get("GC_LOGGING").isEmpty) Nil
-      else {
-        Seq(s"-Xloggc:gc-${name.value}-${forkCount.incrementAndGet()}.log")
-      }
-    },
 
     maxErrors := 1,
     fork := true,
@@ -106,6 +100,15 @@ object Sensible {
           Tests.Group(test.name, Seq(test), Tests.SubProcess(opts))
         }
       },
+
+    javaOptions <++= (baseDirectory in ThisBuild, configuration, name).map { (base, config, n) =>
+      if (sys.env.get("GC_LOGGING").isEmpty) Nil
+      else {
+        val count = forkCount.incrementAndGet() // subject to task evaluation
+        val out = { base / s"gc-$config-$n.log" }.getCanonicalPath
+        Seq("-XX:+PrintGCDetails", s"-Xloggc:$out")
+      }
+    },
 
     testOptions ++= noColorIfEmacs,
     testFrameworks := Seq(TestFrameworks.ScalaTest, TestFrameworks.JUnit)
