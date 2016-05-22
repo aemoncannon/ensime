@@ -1,6 +1,7 @@
 // Copyright 2016 Sam Halliday
 // Licence: http://www.apache.org/licenses/LICENSE-2.0
 import com.typesafe.sbt.SbtScalariform._
+import java.util.concurrent.atomic.AtomicLong
 import sbt.Keys._
 import sbt._
 
@@ -10,6 +11,9 @@ import scala.util.Properties
  * A bunch of sensible defaults that fommil typically uses.
  */
 object Sensible {
+
+  // used for unique gclog naming
+  private val forkCount = new AtomicLong()
 
   lazy val settings = Seq(
     ivyLoggingLevel := UpdateLogging.Quiet,
@@ -47,6 +51,12 @@ object Sensible {
     javaOptions += "-Dfile.encoding=UTF8",
     javaOptions ++= Seq("-XX:+UseConcMarkSweepGC", "-XX:+CMSIncrementalMode"),
     javaOptions in run ++= yourkitAgent,
+    javaOptions in run ++= {
+      if (sys.env.get("GC_LOGGING").isEmpty) Nil
+      else {
+        Seq(s"-Xloggc:gc-${forkCount.incrementAndGet()}.log")
+      }
+    },
 
     maxErrors := 1,
     fork := true,

@@ -21,6 +21,7 @@ install:
   - cmd: SET SBT_OPTS=-XX:MaxPermSize=256m -Xss2m -Xms750m -Xmx750m
   - cmd: SET AKKA_TEST_TIMEFACTOR=10
   - cmd: SET SBT_TASK_LIMIT=2
+  - cmd: SET GC_LOGGING=true
 build_script:
   - sbt ensimeConfig
   - sbt compile test:compile it:compile
@@ -32,7 +33,7 @@ cache:
   - C:\Users\appveyor\.ivy2
   - C:\Users\appveyor\.coursier
   - C:\Program Files\Java\jdk1.7.0\src.zip
-on_failure:
+on_finish:
+  - ps: Get-ChildItem gc-.\*.log | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
   - appveyor PushArtifact -Path core/test.log
   - appveyor PushArtifact -Path core/it.log
-
