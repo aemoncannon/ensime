@@ -29,7 +29,7 @@ trait TypeToScalaName { self: Global with Helpers =>
       val parts = tpe.typeArgs.map(scalaName(_, full).underlying)
       new ScalaName(parts.mkString("(", ", ", ")"))
 
-    case args: ArgsTypeRef if args.typeSymbol.decodedName.endsWith(":") =>
+    case args: ArgsTypeRef if !args.typeSymbol.decodedName.last.isLetterOrDigit =>
       val parts = tpe.typeArgs.map(scalaName(_, full).underlying)
       val name =
         if (full) tpe.typeSymbol.fullNameString
