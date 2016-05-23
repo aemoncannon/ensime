@@ -29,6 +29,14 @@ trait TypeToScalaName { self: Global with Helpers =>
       val parts = tpe.typeArgs.map(scalaName(_, full).underlying)
       new ScalaName(parts.mkString("(", ", ", ")"))
 
+    case args: ArgsTypeRef if args.typeSymbol.decodedName.endsWith(":") =>
+      val parts = tpe.typeArgs.map(scalaName(_, full).underlying)
+      val name =
+        if (full) tpe.typeSymbol.fullNameString
+        else tpe.typeSymbol.nameString
+
+      new ScalaName(parts.init.mkString(" ")) + s" $name ${parts.last}"
+
     case _ =>
       val name = tpe match {
         case c: ConstantType =>
@@ -36,7 +44,7 @@ trait TypeToScalaName { self: Global with Helpers =>
         case r: RefinedType =>
           r.parents.map(scalaName(_, full).underlying).mkString(" with ")
         case _ =>
-          if (full) tpe.typeSymbol.fullName
+          if (full) tpe.typeSymbol.fullNameString
           else tpe.typeSymbol.nameString
       }
       new ScalaName(name) + {

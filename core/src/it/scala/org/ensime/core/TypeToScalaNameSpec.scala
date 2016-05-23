@@ -96,14 +96,13 @@ class TypeToScalaNameSpec extends EnsimeSpec
                 )
 
               case "hlist" =>
-                // canary
                 BasicTypeInfo(
-                  "::[Int, ::[String, HNil]]",
+                  "Int :: String :: HNil",
                   Class,
-                  "shapeless.$colon$colon[scala.Int, shapeless.$colon$colon[java.lang.String, shapeless.HNil]]",
+                  "scala.Int shapeless.:: java.lang.String shapeless.:: shapeless.HNil",
                   List(
                     BasicTypeInfo("Int", Class, "scala.Int", Nil, Nil, None),
-                    BasicTypeInfo("::[String, HNil]", Class, "shapeless.$colon$colon[java.lang.String, shapeless.HNil]",
+                    BasicTypeInfo("String :: HNil", Class, "java.lang.String shapeless.:: shapeless.HNil",
                       List(
                         BasicTypeInfo("String", Class, "java.lang.String", Nil, Nil, None),
                         BasicTypeInfo("HNil", Trait, "shapeless.HNil", Nil, Nil, None)
