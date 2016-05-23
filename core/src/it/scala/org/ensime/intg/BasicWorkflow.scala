@@ -148,7 +148,7 @@ class BasicWorkflow extends EnsimeSpec
           project ! SymbolAtPointReq(Left(fooFile), 343)
           expectMsgPF() {
             case SymbolInfo("fn", "fn", Some(OffsetSourcePosition(`fooFile`, 304)),
-              BasicTypeInfo("Function1[String, Int]", DeclaredAs.Trait, "scala.Function1[java.lang.String, scala.Int]",
+              BasicTypeInfo("(String) => Int", DeclaredAs.Trait, "(java.lang.String) => scala.Int",
                 List(
                   BasicTypeInfo("String", DeclaredAs.Class, "java.lang.String", Nil, Nil, None),
                   BasicTypeInfo("Int", DeclaredAs.Class, "scala.Int", Nil, Nil, None)),
