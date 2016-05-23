@@ -195,7 +195,7 @@ trait ModelBuilders {
         val typeSym = tpe.typeSymbol
         val symbolToLocate = if (typeSym.isModuleClass) typeSym.sourceModule else typeSym
         val symPos = locateSymbolPos(symbolToLocate, needPos)
-        new BasicTypeInfo(
+        BasicTypeInfo(
           shortName(tpe).underlying,
           declaredAs(typeSym),
           fullName(tpe).underlying,
@@ -213,9 +213,7 @@ trait ModelBuilders {
       }
     }
 
-    def nullInfo = {
-      new BasicTypeInfo("NA", DeclaredAs.Nil, "NA", List.empty, List.empty, None)
-    }
+    def nullInfo = BasicTypeInfo("NA", DeclaredAs.Nil, "NA", List.empty, List.empty, None)
   }
 
   object ParamSectionInfo {

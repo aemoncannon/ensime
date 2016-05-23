@@ -21,7 +21,15 @@ trait TypeToScalaName { self: Global with Helpers =>
       }.mkString(" => ")
       new ScalaName(tparams) + " => " + scalaName(tpe.finalResultType, full).underlying
     } else {
-      val name = if (full) tpe.typeSymbol.fullName else tpe.typeSymbol.nameString
+      val name = tpe match {
+        case c: ConstantType =>
+          scalaName(c.underlying, full).underlying + "(" + c.value.escapedStringValue + ")"
+        case r: RefinedType =>
+          r.parents.map(scalaName(_, full).underlying).mkString(" with ")
+        case _ =>
+          if (full) tpe.typeSymbol.fullName
+          else tpe.typeSymbol.nameString
+      }
       new ScalaName(name) + {
         if (tpe.typeArgs.nonEmpty)
           tpe.typeArgs.map(scalaName(_, full).underlying).mkString("[", ", ", "]")

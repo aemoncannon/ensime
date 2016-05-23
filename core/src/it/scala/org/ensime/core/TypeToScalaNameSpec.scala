@@ -17,7 +17,7 @@ class TypeToScalaNameSpec extends EnsimeSpec
     runForPositionInCompiledSource(
       config, cc,
       "package com.example",
-      "import shapeless._, syntax.singleton._",
+      "import shapeless._, labelled._, syntax.singleton._",
       "class Thing {",
       "    val in@int@t: Int = 13",
       "    def met@method1@hod1(i: Int): String = i.toString",
@@ -27,6 +27,7 @@ class TypeToScalaNameSpec extends EnsimeSpec
       "    def tu@tuple2@ple2: (String, Int) = null",
       "    def hl@hlist@ist: Int :: String :: HNil = null",
       "    def re@refined@fined = 1.narrow",
+      "    def ex@exciting@citing = 'f' ->> 23.narrow",
       "}"
     ) { (p, label, cc) =>
         withClue(label) {
@@ -101,13 +102,22 @@ class TypeToScalaNameSpec extends EnsimeSpec
                 )
 
               case "refined" =>
-                // canary
                 BasicTypeInfo(
-                  "<refinement>",
+                  "Int(1)",
                   Class,
-                  "shapeless.syntax.SingletonOps.<refinement>",
+                  "scala.Int(1)",
                   Nil, Nil, None
                 )
+
+              case "exciting" =>
+                // potential canary, we might want to prettify KeyTag
+                BasicTypeInfo(
+                  "Int(23) with KeyTag[Char('f'), Int(23)]",
+                  Class,
+                  "scala.Int(23) with shapeless.labelled.KeyTag[scala.Char('f'), scala.Int(23)]",
+                  Nil, Nil, None
+                )
+
             }
           }
         }

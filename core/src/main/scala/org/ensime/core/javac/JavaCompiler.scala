@@ -98,7 +98,7 @@ class JavaCompiler(
         def withName(name: String): Option[SymbolInfo] = {
 
           val tpeMirror = Option(c.trees.getTypeMirror(path))
-          val nullTpe = new BasicTypeInfo("NA", DeclaredAs.Nil, "NA", List.empty, List.empty, None)
+          val nullTpe = BasicTypeInfo("NA", DeclaredAs.Nil, "NA", List.empty, List.empty, None)
 
           Some(SymbolInfo(
             fqn(c, path).map(_.toFqnString).getOrElse(name),
