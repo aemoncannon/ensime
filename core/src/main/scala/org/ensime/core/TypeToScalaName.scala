@@ -17,10 +17,7 @@ trait TypeToScalaName { self: Global with Helpers =>
   def scalaName(tpe: Type, full: Boolean): ScalaName = {
     if (isArrowType(tpe)) {
       val tparams = tpe.paramss.map { sect =>
-        sect.map { p => scalaName(p.tpe, full).underlying } match {
-          case one :: Nil => one
-          case many => many.mkString("(", ", ", ")")
-        }
+        sect.map { p => scalaName(p.tpe, full).underlying }.mkString("(", ", ", ")")
       }.mkString(" => ")
       new ScalaName(tparams) + " => " + scalaName(tpe.finalResultType, full).underlying
     } else {

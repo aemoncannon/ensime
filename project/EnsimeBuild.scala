@@ -128,6 +128,7 @@ object EnsimeBuild extends Build {
     // test config needed to get the test jar
     testingSimpleJar % "test,it->test",
     testingTiming % "test,it",
+    testingShapeless % "test,it",
     testingDebug % "test,it",
     testingJava % "test,it"
   ).configs(It).settings(
@@ -207,6 +208,11 @@ object EnsimeBuild extends Build {
   )
 
   lazy val testingTiming = Project("testingTiming", file("testing/timing"))
+
+  // just to have access to shapeless
+  lazy val testingShapeless = Project("testingShapeless", file("testing/shapeless")).settings (
+    libraryDependencies ++= Sensible.shapeless(scalaVersion.value)
+  )
 
   lazy val testingDebug = Project("testingDebug", file("testing/debug")).settings(
     scalacOptions in Compile := Seq()

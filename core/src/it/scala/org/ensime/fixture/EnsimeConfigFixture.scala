@@ -72,6 +72,10 @@ object EnsimeConfigFixture {
     subprojects = EnsimeTestProject.subprojects.filter(_.name == "testingTiming"),
     javaLibs = Nil
   )
+  lazy val ShapelessTestProject: EnsimeConfig = EnsimeTestProject.copy(
+    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testingShapeless"),
+    javaLibs = Nil
+  )
   lazy val DebugTestProject: EnsimeConfig = EnsimeTestProject.copy(
     subprojects = EnsimeTestProject.subprojects.filter(_.name == "testingDebug")
   )
