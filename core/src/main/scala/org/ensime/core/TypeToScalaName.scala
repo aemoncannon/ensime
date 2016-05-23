@@ -25,9 +25,11 @@ trait TypeToScalaName { self: Global with Helpers =>
       val parts = tpe.typeArgs.map(scalaName(_, full).underlying)
       new ScalaName(parts.init.mkString("(", ", ", ")")) + " => " + parts.last
 
-    case _ =>
-      //println(tpe.getClass + " -> " + tpe)
+    case args: ArgsTypeRef if args.typeSymbol.fullName.startsWith("scala.Tuple") =>
+      val parts = tpe.typeArgs.map(scalaName(_, full).underlying)
+      new ScalaName(parts.mkString("(", ", ", ")"))
 
+    case _ =>
       val name = tpe match {
         case c: ConstantType =>
           scalaName(c.underlying, full).underlying + "(" + c.value.escapedStringValue + ")"

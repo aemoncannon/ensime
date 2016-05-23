@@ -24,6 +24,7 @@ class TypeToScalaNameSpec extends EnsimeSpec
       "    val ar@arrow1@row1: Int => String = (i: Int) => met@call1@hod1(i)",
       "    def met@method2@hod2(i: Int, j: Long): String = i.toString",
       "    val arrow2: Int => Long => String = (i: Int, j: Long) => met@call2@hod2(i, j)",
+      "    val arrow0: () => Int = null ; ar@call0@row0()",
       "    def tu@tuple2@ple2: (String, Int) = null",
       "    def hl@hlist@ist: Int :: String :: HNil = null",
       "    def re@refined@fined = 1.narrow",
@@ -63,6 +64,15 @@ class TypeToScalaNameSpec extends EnsimeSpec
                   ),
                   Nil, None
                 )
+
+              case "call0" =>
+                ArrowTypeInfo(
+                  "() => Int",
+                  "() => scala.Int",
+                  BasicTypeInfo("Int", Class, "scala.Int", Nil, Nil, None),
+                  List(ParamSectionInfo(Nil, false))
+                )
+
               case "call2" =>
                 ArrowTypeInfo(
                   "(Int, Long) => String",
@@ -75,15 +85,16 @@ class TypeToScalaNameSpec extends EnsimeSpec
                 )
               case "tuple2" =>
                 BasicTypeInfo(
-                  "Tuple2[String, Int]",
+                  "(String, Int)",
                   Class,
-                  "scala.Tuple2[java.lang.String, scala.Int]",
+                  "(java.lang.String, scala.Int)",
                   List(
                     BasicTypeInfo("String", Class, "java.lang.String", Nil, Nil, None),
                     BasicTypeInfo("Int", Class, "scala.Int", Nil, Nil, None)
                   ),
                   Nil, None
                 )
+
               case "hlist" =>
                 // canary
                 BasicTypeInfo(
@@ -116,7 +127,6 @@ class TypeToScalaNameSpec extends EnsimeSpec
                   "scala.Int(23) with shapeless.labelled.KeyTag[scala.Char('f'), scala.Int(23)]",
                   Nil, Nil, None
                 )
-
             }
           }
         }
