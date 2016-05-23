@@ -14,13 +14,20 @@ final class ScalaName(val underlying: String) extends AnyVal {
 }
 
 trait TypeToScalaName { self: Global with Helpers =>
-  def scalaName(tpe: Type, full: Boolean): ScalaName = {
-    if (isArrowType(tpe)) {
+  def scalaName(tpe: Type, full: Boolean): ScalaName = tpe match {
+    case _: MethodType | _: PolyType =>
       val tparams = tpe.paramss.map { sect =>
         sect.map { p => scalaName(p.tpe, full).underlying }.mkString("(", ", ", ")")
       }.mkString(" => ")
       new ScalaName(tparams) + " => " + scalaName(tpe.finalResultType, full).underlying
-    } else {
+
+    case args: ArgsTypeRef if args.typeSymbol.fullName.startsWith("scala.Function") =>
+      val parts = tpe.typeArgs.map(scalaName(_, full).underlying)
+      new ScalaName(parts.init.mkString("(", ", ", ")")) + " => " + parts.last
+
+    case _ =>
+      //println(tpe.getClass + " -> " + tpe)
+
       val name = tpe match {
         case c: ConstantType =>
           scalaName(c.underlying, full).underlying + "(" + c.value.escapedStringValue + ")"
@@ -31,11 +38,9 @@ trait TypeToScalaName { self: Global with Helpers =>
           else tpe.typeSymbol.nameString
       }
       new ScalaName(name) + {
-        if (tpe.typeArgs.nonEmpty)
-          tpe.typeArgs.map(scalaName(_, full).underlying).mkString("[", ", ", "]")
-        else ""
+        if (tpe.typeArgs.isEmpty) ""
+        else tpe.typeArgs.map(scalaName(_, full).underlying).mkString("[", ", ", "]")
       }
-    }
   }
 
   def fullName(tpe: Type): ScalaName = scalaName(tpe, full = true)

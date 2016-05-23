@@ -30,6 +30,7 @@ trait Helpers { self: Global =>
     members.toList.filter { _.isConstructor }
   }
 
+  // usually better to just do the pattern match instead of relying on this
   def isArrowType(tpe: Type): Boolean = {
     tpe match {
       case _: MethodType => true

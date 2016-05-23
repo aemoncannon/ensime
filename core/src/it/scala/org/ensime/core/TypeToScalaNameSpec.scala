@@ -53,11 +53,10 @@ class TypeToScalaNameSpec extends EnsimeSpec
                   List(ParamSectionInfo(List(("i", BasicTypeInfo("Int", Class, "scala.Int", Nil, Nil, None))), false))
                 )
               case "arrow1" =>
-                // this is a canary, we'd prefer it to return an ArrowTypeInfo
                 BasicTypeInfo(
-                  "Function1[Int, String]",
+                  "(Int) => String",
                   Trait,
-                  "scala.Function1[scala.Int, java.lang.String]",
+                  "(scala.Int) => java.lang.String",
                   List(
                     BasicTypeInfo("Int", Class, "scala.Int", Nil, Nil, None),
                     BasicTypeInfo("String", Class, "java.lang.String", Nil, Nil, None)
