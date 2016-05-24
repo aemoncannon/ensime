@@ -39,17 +39,17 @@
  */
 package org.ensime.core
 
+import scala.collection.mutable
+import scala.concurrent.{ Await, Future }
+import scala.concurrent.duration._
+import scala.reflect.internal.util.{ BatchSourceFile, SourceFile }
+
 import akka.actor.ActorRef
 import akka.pattern.Patterns
 import akka.util.Timeout
 import org.ensime.api._
 import org.ensime.indexer.PackageName
 import org.ensime.indexer.lucene.SimpleLucene
-
-import scala.collection.mutable
-import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
-import scala.reflect.internal.util.{ BatchSourceFile, SourceFile }
 
 trait CompletionControl {
   self: RichPresentationCompiler =>
@@ -194,16 +194,16 @@ trait CompletionControl {
         sym.owner != definitions.AnyRefClass &&
         sym.owner != definitions.ObjectClass) score += 30
 
-      val infos = List(CompletionInfo.fromSymbolAndType(sym, tpe, score))
+      val infos = List(CompletionInfoBuilder.fromSymbolAndType(sym, tpe, score))
 
       if (context.constructing) {
         val constructorSyns = constructorSynonyms(sym).map {
-          c => CompletionInfo.fromSymbolAndType(sym, c.tpe, score + 50)
+          c => CompletionInfoBuilder.fromSymbolAndType(sym, c.tpe, score + 50)
         }
         infos ++ constructorSyns
       } else {
         val applySyns = applySynonyms(sym).map {
-          c => CompletionInfo.fromSymbolAndType(sym, c.tpe, score)
+          c => CompletionInfoBuilder.fromSymbolAndType(sym, c.tpe, score)
         }
         infos ++ applySyns
       }
@@ -323,8 +323,8 @@ object Keywords {
     "yield"
   )
 
-  val keywordCompletions = keywords map {
-    CompletionInfo(_, CompletionSignature(List(), "", hasImplicit = false), false, 100, None)
+  val keywordCompletions = keywords map { keyword =>
+    CompletionInfo(None, keyword, CompletionSignature(Nil, "", hasImplicit = false), false, 100, None)
   }
 }
 
@@ -339,7 +339,10 @@ trait Completion { self: RichPresentationCompiler =>
         }
         memberSyms.flatMap { s =>
           val name = if (s.hasPackageFlag) { s.nameString } else { shortName(s).underlying }
-          if (name.startsWith(prefix)) Some(CompletionInfo(name, CompletionSignature(List.empty, "", false), isCallable = false, 50, None)) else None
+          if (name.startsWith(prefix))
+            Some(CompletionInfo(None, name, CompletionSignature(Nil, "", false), isCallable = false, 50, None))
+          else
+            None
         }.toList.sortBy(ci => (ci.relevance, ci.name))
     }
   }
@@ -373,6 +376,7 @@ object CompletionUtil {
       case s: SymbolSearchResults =>
         s.syms.map { s =>
           CompletionInfo(
+            None,
             s.localName, CompletionSignature(List.empty, s.name, false),
             isCallable = false, 40, None
           )

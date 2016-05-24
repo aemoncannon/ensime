@@ -2,15 +2,14 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.model
 
-import org.ensime.core.FqnToSymbol
-import org.ensime.indexer.{ MethodName, PackageName }
 import scala.collection.mutable
 import scala.reflect.internal.util.{ NoPosition, Position, RangePosition }
 import scala.tools.nsc.io.AbstractFile
 
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
-import org.ensime.core.RichPresentationCompiler
+import org.ensime.core.{ RichPresentationCompiler, FqnToSymbol }
+import org.ensime.indexer.{ MethodName, PackageName }
 import org.ensime.indexer.database.DatabaseService._
 import org.ensime.util.file._
 import org.ensime.vfs._
@@ -252,30 +251,19 @@ trait ModelBuilders {
     }
   }
 
-  object CompletionInfo {
-
-    def apply(
-      name: String,
-      tpeSig: CompletionSignature,
-      isCallable: Boolean,
-      relevance: Int,
-      toInsert: Option[String]
-    ) = new CompletionInfo(
-      name, tpeSig, isCallable, relevance, toInsert
-    )
-
+  object CompletionInfoBuilder {
     def fromSymbol(sym: Symbol, relevance: Int): CompletionInfo =
-      CompletionInfo.fromSymbolAndType(sym, sym.tpe, relevance)
+      fromSymbolAndType(sym, sym.tpe, relevance)
 
-    def fromSymbolAndType(sym: Symbol, tpe: Type, relevance: Int): CompletionInfo = {
+    def fromSymbolAndType(sym: Symbol, tpe: Type, relevance: Int): CompletionInfo =
       CompletionInfo(
+        Some(TypeInfo(tpe)),
         sym.nameString,
         completionSignatureForType(tpe),
         isArrowType(tpe.underlying),
         relevance,
         None
       )
-    }
 
   }
 

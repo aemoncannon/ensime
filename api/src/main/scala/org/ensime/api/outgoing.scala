@@ -306,6 +306,7 @@ final case class MethodBytecode(
   endLine: Int
 )
 
+@deprecating("not type safe")
 final case class CompletionSignature(
   sections: List[List[(String, String)]],
   result: String,
@@ -313,9 +314,10 @@ final case class CompletionSignature(
 )
 
 final case class CompletionInfo(
+  typeInfo: Option[TypeInfo],
   name: String,
-  typeSig: CompletionSignature,
-  isCallable: Boolean,
+  @deprecating("use `typeInfo`") typeSig: CompletionSignature,
+  @deprecating("not needed with `typeInfo`") isCallable: Boolean,
   relevance: Int,
   toInsert: Option[String]
 ) extends RpcResponse
@@ -517,7 +519,7 @@ final case class EnsimeImplementation(
 final case class ConnectionInfo(
   pid: Option[Int] = None,
   implementation: EnsimeImplementation = EnsimeImplementation("ENSIME"),
-  version: String = "0.8.20"
+  version: String = "0.8.21"
 ) extends RpcResponse
 
 sealed trait ImplicitInfo
