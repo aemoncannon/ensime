@@ -5,6 +5,7 @@ package org.ensime.config
 import java.io.File
 import akka.event.slf4j.Logger
 import scala.util.Properties
+import shapeless._
 
 import org.ensime.sexp._
 import org.ensime.sexp.formats._
@@ -21,10 +22,10 @@ object EnsimeConfigProtocol {
     with CamelCaseToDashes
   import org.ensime.config.EnsimeConfigProtocol.Protocol._
 
-  private val log = Logger(this.getClass.getName)
+  private def log = Logger(this.getClass.getName)
 
-  private implicit val moduleFormat = SexpFormat[EnsimeModule]
-  private implicit val configFormat = SexpFormat[EnsimeConfig]
+  private implicit val moduleFormat: SexpFormat[EnsimeModule] = cachedImplicit
+  private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit
 
   def parse(config: String): EnsimeConfig = {
     val raw = config.parseSexp.convertTo[EnsimeConfig]

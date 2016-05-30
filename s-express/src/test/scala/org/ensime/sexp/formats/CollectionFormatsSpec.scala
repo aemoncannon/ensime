@@ -3,7 +3,6 @@
 package org.ensime.sexp.formats
 
 import collection.{ immutable => im }
-
 import org.ensime.sexp._
 
 // http://docs.scala-lang.org/overviews/collections/overview.html
@@ -151,7 +150,7 @@ class CollectionFormatsSpec extends FormatSpec
   }
 
   it should "support im.NumericRange" in {
-    implicit val DoubleIntegral = Numeric.DoubleAsIfIntegral
+    implicit val DoubleIntegral: Numeric.DoubleAsIfIntegral.type = Numeric.DoubleAsIfIntegral
 
     assertFormat(
       -100.0 to 100.0 by 1.5,

@@ -29,6 +29,16 @@ class DocResolverSpec extends EnsimeSpec
       )) shouldBe Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/index.html#scala.Some@map[B](f:A=>B):Option[B]")
 
       serv.resolve(DocSigPair(
+        DocSig(DocFqn("scala", "Some"), None),
+        DocSig(DocFqn("scala", "Some"), None)
+      )) shouldBe Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/index.html#scala.Some")
+
+      serv.resolve(DocSigPair(
+        DocSig(DocFqn("scala", "Some$"), None),
+        DocSig(DocFqn("scala", "Some"), None)
+      )) shouldBe Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/index.html#scala.Some")
+
+      serv.resolve(DocSigPair(
         DocSig(DocFqn("com.google.common.io", "Files$"), Some("simplifyPath(x$1:String):String")),
         DocSig(DocFqn("com.google.common.io", "Files"), Some("simplifyPath(java.lang.String)"))
       )) shouldBe Some("docs/guava-18.0-javadoc.jar/com/google/common/io/Files.html#simplifyPath(java.lang.String)")
@@ -346,11 +356,11 @@ class DocResolverSpec extends EnsimeSpec
       ) shouldBe Some("http://docs.oracle.com/javase/8/docs/api/java/io/File.html#delete--")
 
       serv.resolve(
-        DocSig(DocFqn("java.lang", "Math"), Some("max(int, int)"))
+        DocSig(DocFqn("java.lang", "Math"), Some("max(int,int)"))
       ) shouldBe Some("http://docs.oracle.com/javase/8/docs/api/java/lang/Math.html#max-int-int-")
 
       serv.resolve(
-        DocSig(DocFqn("java.util", "Arrays"), Some("binarySearch(int[], int)"))
+        DocSig(DocFqn("java.util", "Arrays"), Some("binarySearch(int[],int)"))
       ) shouldBe Some("http://docs.oracle.com/javase/8/docs/api/java/util/Arrays.html#binarySearch-int:A-int-")
     }
   }

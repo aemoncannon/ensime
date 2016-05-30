@@ -27,11 +27,6 @@ object EnsimeBuild extends Build {
        "io.spray" %% "spray-json" % "1.3.2"
     ),
 
-    // WORKAROUND https://github.com/ensime/ensime-emacs/issues/327
-    fullResolvers += Resolver.jcenterRepo,
-
-    resolvers += Resolver.sonatypeRepo("snapshots"),
-
     // disabling shared memory gives a small performance boost to tests
     javaOptions ++= Seq("-XX:+PerfDisableSharedMem"),
 
@@ -77,7 +72,7 @@ object EnsimeBuild extends Build {
   lazy val testutil = Project("testutil", file("testutil")) settings (commonSettings) dependsOn (
     util, api
   ) settings (
-      libraryDependencies += "commons-io" % "commons-io" % "2.4",
+      libraryDependencies += "commons-io" % "commons-io" % "2.5",
       libraryDependencies ++= Sensible.testLibs("compile")
     )
 
@@ -133,20 +128,19 @@ object EnsimeBuild extends Build {
     // test config needed to get the test jar
     testingSimpleJar % "test,it->test",
     testingTiming % "test,it",
+    testingShapeless % "test,it",
     testingDebug % "test,it",
     testingJava % "test,it"
   ).configs(It).settings(
       commonSettings, commonItSettings
     ).settings(
       unmanagedJars in Compile += JavaTools,
-      EnsimeKeys.unmanagedSourceArchives += file(".").getCanonicalFile / "openjdk-langtools/openjdk6-langtools-src.zip",
+      EnsimeKeys.unmanagedSourceArchives += (baseDirectory in ThisBuild).value / "openjdk-langtools/openjdk6-langtools-src.zip",
       libraryDependencies ++= Seq(
+        "org.ensime" %% "java7-file-watcher" % "1.0.0",
         "com.h2database" % "h2" % "1.4.191",
         "com.typesafe.slick" %% "slick" % "3.1.1",
         "com.zaxxer" % "HikariCP-java6" % "2.3.13",
-        // Netbeans 7.4+ needs Java 7 (7.3 only needs it at runtime)
-        "org.netbeans.api" % "org-netbeans-api-java" % "RELEASE731",
-        "org.netbeans.api" % "org-netbeans-modules-java-source" % "RELEASE731",
         // lucene 4.8+ needs Java 7: http://www.gossamer-threads.com/lists/lucene/general/225300
         "org.apache.lucene" % "lucene-core" % luceneVersion,
         "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
@@ -156,9 +150,14 @@ object EnsimeBuild extends Build {
         "org.scala-lang" % "scalap" % scalaVersion.value,
         "com.typesafe.akka" %% "akka-actor" % Sensible.akkaVersion,
         "com.typesafe.akka" %% "akka-slf4j" % Sensible.akkaVersion,
-        "org.scala-refactoring" %% "org.scala-refactoring.library" % "0.10.0-SNAPSHOT",
+        scalaBinaryVersion.value match {
+          // see notes in https://github.com/ensime/ensime-server/pull/1446
+          case "2.10" => "org.scala-refactoring" % "org.scala-refactoring.library_2.10.6" % "0.10.0"
+          case "2.11" => "org.scala-refactoring" % "org.scala-refactoring.library_2.11.8" % "0.10.0"
+        },
         "commons-lang" % "commons-lang" % "2.6",
-        "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
+        "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",
+        "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-M1"
       ) ++ Sensible.testLibs("it,test") ++ Sensible.shapeless(scalaVersion.value)
     ) enablePlugins BuildInfoPlugin settings (
         buildInfoPackage := organization.value,
@@ -167,7 +166,7 @@ object EnsimeBuild extends Build {
       )
 
   val luceneVersion = "4.7.2"
-  val streamsVersion = "1.0"
+  val streamsVersion = "2.0.4"
   lazy val server = Project("server", file("server")).dependsOn(
     core, swanky, jerky,
     s_express % "test->test",
@@ -210,6 +209,11 @@ object EnsimeBuild extends Build {
 
   lazy val testingTiming = Project("testingTiming", file("testing/timing"))
 
+  // just to have access to shapeless
+  lazy val testingShapeless = Project("testingShapeless", file("testing/shapeless")).settings (
+    libraryDependencies ++= Sensible.shapeless(scalaVersion.value)
+  )
+
   lazy val testingDebug = Project("testingDebug", file("testing/debug")).settings(
     scalacOptions in Compile := Seq()
   )
@@ -218,7 +222,7 @@ object EnsimeBuild extends Build {
     dependencyOverrides ++= Set("com.google.guava" % "guava" % "18.0"),
     libraryDependencies ++= Seq(
       "com.github.dvdme" % "ForecastIOLib" % "1.5.1" intransitive (),
-      "commons-io" % "commons-io" % "2.4" intransitive ()
+      "commons-io" % "commons-io" % "2.5" intransitive ()
     ) ++ Sensible.guava
   )
 
@@ -236,10 +240,6 @@ object EnsimeBuild extends Build {
       test in assembly := {},
       aggregate in assembly := false,
       assemblyMergeStrategy in assembly := {
-        case PathList("META-INF", "namedservices", xs @ _*) => MergeStrategy.filterDistinctLines
-        case "META-INF/netbeans/translate.names" => MergeStrategy.filterDistinctLines
-        case "META-INF/namedservices.index" => MergeStrategy.filterDistinctLines
-        case "META-INF/generated-layer.xml" => MergeStrategy.rename
         case PathList("org", "apache", "commons", "vfs2", xs @ _*) => MergeStrategy.first // assumes our classpath is setup correctly
         case other => MergeStrategy.defaultMergeStrategy(other)
       },

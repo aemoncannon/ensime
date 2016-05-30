@@ -113,7 +113,7 @@ abstract class HttpFlatSpec
     with Matchers with SLF4JLogging {
   def actorRefFactory = system
   implicit val routeTimeout: RouteTestTimeout = RouteTestTimeout(timeout.duration.dilated)
-  implicit val mat = ActorMaterializer()
+  implicit val mat: ActorMaterializer = ActorMaterializer()
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()

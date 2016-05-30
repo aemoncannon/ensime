@@ -7,7 +7,7 @@ import java.io.File
 import akka.actor._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
-import akka.http.scaladsl.model.{ HttpEntity, _ }
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
 import akka.stream._
 import akka.util.{ ByteString, Timeout }
@@ -73,10 +73,10 @@ trait WebServer {
       rejectEmptyResponse {
         complete {
           for {
-            media <- MediaTypes.forExtension(Files.getFileExtension(entry))
+            media <- MediaTypes.forExtensionOption(Files.getFileExtension(entry))
             content <- docJarContent(filename, entry)
           } yield {
-            HttpResponse(entity = HttpEntity(ContentType(media, None), content))
+            HttpResponse(entity = HttpEntity(ContentType(media, () => HttpCharsets.`UTF-8`), content))
           }
         }
       }

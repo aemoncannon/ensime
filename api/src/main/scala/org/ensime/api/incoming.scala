@@ -51,6 +51,16 @@ final case class RemoveFileReq(file: File) extends RpcAnalyserRequest
 final case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
 
 /**
+ * Response with a `VoidResponse`.
+ */
+final case class UnloadModuleReq(module: String) extends RpcAnalyserRequest
+
+/**
+ * Response with a `VoidResponse`.
+ */
+final case class TypecheckModule(module: String) extends RpcAnalyserRequest
+
+/**
  * Responds with a `VoidResponse`.
  */
 case object UnloadAllReq extends RpcAnalyserRequest
@@ -300,7 +310,9 @@ case object DebugListBreakpointsReq extends RpcDebuggerRequest
 case object DebugRunReq extends RpcDebuggerRequest
 
 /**
+ * Request to continue the execution of the given thread.
  * Responds with a `FalseResponse` or a `TrueResponse`.
+ * @param threadId the target debugged VM thread
  */
 final case class DebugContinueReq(threadId: DebugThreadId) extends RpcDebuggerRequest
 
@@ -335,11 +347,17 @@ final case class DebugValueReq(loc: DebugLocation) extends RpcDebuggerRequest
 final case class DebugToStringReq(threadId: DebugThreadId, loc: DebugLocation) extends RpcDebuggerRequest
 
 /**
- * Responds with a `FalseResponse` or a `TrueResponse`.
+ * Request to update a field value within the debugged VM.
+ * Responds with a `TrueResponse` on success or a `FalseResponse` on failure.
+ * @param loc The variable to update.
+ * @param newValue The value to set, encoded as a String
  */
 final case class DebugSetValueReq(loc: DebugLocation, newValue: String) extends RpcDebuggerRequest
 
 /**
  * Responds with a `DebugBacktrace`.
+ * @param threadId The target debugging thread
+ * @param index The index of the first frame where 0 is the lowest frame
+ * @param count The number of frames to return
  */
 final case class DebugBacktraceReq(threadId: DebugThreadId, index: Int, count: Int) extends RpcDebuggerRequest

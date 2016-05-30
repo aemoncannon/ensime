@@ -77,13 +77,13 @@ object WebSocketBoilerplate {
   ): Flow[Incoming, Outgoing, Unit] = {
     val (target, pub) = Source.actorRef[Outgoing](
       0, OverflowStrategy.fail
-    ).toMat(Sink.publisher)(Keep.both).run()
-    val source = Source(pub)
+    ).toMat(Sink.asPublisher(false))(Keep.both).run()
+    val source = Source.fromPublisher(pub)
 
     val handler = actor(target)
     val sink = Sink.actorRef[Incoming](handler, PoisonPill)
 
-    Flow.wrap(sink, source)((_, _) => ())
+    Flow.fromSinkAndSourceMat(sink, source)((_, _) => ())
   }
 
   /**

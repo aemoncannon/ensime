@@ -4,17 +4,14 @@ package org.ensime.core
 
 import java.io.File
 
-import org.ensime.api.OffsetSourcePosition
-import org.ensime.api.LineSourcePosition
-import org.ensime.api.SourceFileInfo
+import org.ensime.api.{ LineSourcePosition, OffsetSourcePosition, SourceFileInfo }
 import org.ensime.core.javac.JavaFqn
 import org.ensime.fixture._
-import org.ensime.indexer.SearchServiceTestUtils
+import org.ensime.indexer.SearchServiceTestUtils._
 import org.ensime.util.EnsimeSpec
 
 class JavaCompilerSpec extends EnsimeSpec
-    with IsolatedJavaCompilerFixture
-    with SearchServiceTestUtils {
+    with IsolatedJavaCompilerFixture {
 
   val original = EnsimeConfigFixture.SimpleTestProject
 
@@ -64,8 +61,8 @@ class JavaCompilerSpec extends EnsimeSpec
   }
 
   it should "find symbol at point" in withJavaCompiler { (_, config, cc, store, search) =>
-    implicit val searchService = search
-    refresh()
+    refresh()(search)
+
     runForPositionInCompiledSource(config, cc,
       "package org.example;",
       "import java.io.File;",
@@ -183,6 +180,7 @@ class JavaCompilerSpec extends EnsimeSpec
         "  public static final int MAX_VALUE = 10;",
         "  public static class TestInner {",
         "    public int maxValue = 10;",
+        "    private int privateValue = 10;",
         "    private void main(String foo, String bar) {",
         "      File f = new File(\".\");",
         "      f.toSt@0@;",
@@ -198,6 +196,8 @@ class JavaCompilerSpec extends EnsimeSpec
         "      int testinner = 5;",
         "      System.out.println(f.toStr@1@);",
         "      System.out.@14@",
+        "      privateVa@15@",
+        "      int hashCode = \"Blah\".has@16@;",
         "    }",
         "  }",
         "}") { (sf, offset, label, cc) =>
@@ -225,6 +225,8 @@ class JavaCompilerSpec extends EnsimeSpec
               info.completions(1).name shouldBe "testinner"
 
             case "14" => forAtLeast(1, info.completions)(_.name shouldBe "println")
+            case "15" => forAtLeast(1, info.completions)(_.name shouldBe "privateValue")
+            case "16" => forAll(info.completions)(_.name shouldNot be("hash"))
           }
         }
     }
