@@ -30,9 +30,9 @@ trait Helpers { self: Global =>
     members.toList.filter { _.isConstructor }
   }
 
-  // usually better to just do the pattern match instead of relying on this
   def isArrowType(tpe: Type): Boolean = {
     tpe match {
+      case args: ArgsTypeRef if args.typeSymbol.fullName.startsWith("scala.Function") => true
       case _: MethodType => true
       case _: PolyType => true
       case _ =>

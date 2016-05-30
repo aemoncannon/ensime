@@ -204,8 +204,7 @@ trait ModelBuilders {
         )
       }
       tpe match {
-        case tpe: MethodType => ArrowTypeInfo(tpe)
-        case tpe: PolyType => ArrowTypeInfo(tpe)
+        case arrow if isArrowType(arrow) => ArrowTypeInfoBuilder(tpe)
         case tpe: NullaryMethodType => basicTypeInfo(tpe.resultType)
         case tpe: Type => basicTypeInfo(tpe)
         case _ => nullInfo
@@ -215,7 +214,7 @@ trait ModelBuilders {
     def nullInfo = BasicTypeInfo("NA", DeclaredAs.Nil, "NA", List.empty, List.empty, None)
   }
 
-  object ParamSectionInfo {
+  object ParamSectionInfoBuilder {
     def apply(params: Iterable[Symbol]): ParamSectionInfo = {
       new ParamSectionInfo(
         params.map { s => (s.nameString, TypeInfo(s.tpe)) },
@@ -279,12 +278,19 @@ trait ModelBuilders {
     }
   }
 
-  object ArrowTypeInfo {
-
+  object ArrowTypeInfoBuilder {
     def apply(tpe: Type): ArrowTypeInfo = {
       tpe match {
-        case tpe: MethodType => apply(tpe, tpe.paramss.map(ParamSectionInfo.apply), tpe.finalResultType)
-        case tpe: PolyType => apply(tpe, tpe.paramss.map(ParamSectionInfo.apply), tpe.finalResultType)
+        case args: ArgsTypeRef if args.typeSymbol.fullName.startsWith("scala.Function") =>
+          val tparams = args.args
+          val result = TypeInfo(tparams.last)
+          val params =
+            if (tparams.isEmpty) Nil
+            else tparams.init.zipWithIndex.map { case (tpe, idx) => ("_" + idx, TypeInfo(tpe)) }
+          ArrowTypeInfo(shortName(tpe).underlying, fullName(tpe).underlying, result, ParamSectionInfo(params, isImplicit = false) :: Nil)
+
+        case tpe: MethodType => apply(tpe, tpe.paramss.map(ParamSectionInfoBuilder.apply), tpe.finalResultType)
+        case tpe: PolyType => apply(tpe, tpe.paramss.map(ParamSectionInfoBuilder.apply), tpe.finalResultType)
         case _ => nullInfo()
       }
     }
