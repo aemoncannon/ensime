@@ -30,12 +30,15 @@ final case class PackageName(path: List[String]) extends FullyQualifiedName {
     case PackageName(pn) => pn.startsWith(path)
     case ClassName(p, _) => contains(p)
     case MemberName(c, _) => contains(c)
+    case _ => false
   }
   def fqnString = path.mkString(".")
   def parent = PackageName(path.init)
 }
 
-final case class ClassName(pack: PackageName, name: String) extends FullyQualifiedName with DescriptorType {
+case class ClassName(pack: PackageName, name: String)
+    extends FullyQualifiedName with DescriptorType with SignatureType {
+
   def contains(o: FullyQualifiedName) = o match {
     case ClassName(op, on) if pack == op && on.startsWith(name) =>
       (on == name) || on.startsWith(name + "$")
@@ -113,6 +116,115 @@ final case class MemberName(
   def fqnString = ClassName.cleanupPackage(owner.fqnString + "." + name)
 }
 
+/**
+ * Generics signature
+ */
+
+trait GenericArg extends FullyQualifiedName
+trait SignatureType extends FullyQualifiedName
+
+case class GenericClass(
+    genericParam: Seq[GenericParam],
+    superClasses: Seq[GenericClassName]
+) extends SignatureType {
+
+  override def contains(o: FullyQualifiedName): Boolean = o match {
+    case g: GenericClass => g == this
+    case sthElse =>
+      genericParam.exists(_.contains(sthElse)) ||
+        superClasses.exists(_.contains(sthElse))
+  }
+
+  override def fqnString: String = {
+    "<" + genericParam.map(_.fqnString).mkString + ">" +
+      superClasses.map(_.fqnString).mkString
+  }
+}
+
+case class GenericParam(
+    name: String,
+    classNames: Seq[GenericClassName]
+) extends SignatureType {
+
+  override def contains(o: FullyQualifiedName): Boolean = o match {
+    case gp: GenericParam => this == gp
+    case sthElse => classNames.exists(_.contains(o))
+  }
+
+  override def fqnString: String = {
+    classNames.map(_.fqnString).mkString
+  }
+}
+
+case class GenericClassName(
+    className: ClassName,
+    genericArg: Seq[GenericArg] = Seq.empty
+) extends SignatureType {
+
+  override def contains(o: FullyQualifiedName): Boolean = o match {
+    case gc: GenericClassName => this == gc
+    case sthElse =>
+      className.contains(o) ||
+        genericArg.exists(_.contains(o))
+  }
+
+  override def fqnString: String = {
+    className.fqnString + "<" + genericArg.map(_.fqnString).mkString + ">"
+  }
+}
+
+case class ExtendsObjectGenericArg()
+    extends GenericArg {
+
+  override def contains(o: FullyQualifiedName): Boolean = this == o
+
+  override def fqnString: String = {
+    "*"
+  }
+}
+
+case class SpecifiedGenericArg(
+    boundType: Option[String],
+    genericSignature: SignatureType
+) extends GenericArg {
+
+  override def contains(o: FullyQualifiedName): Boolean = o match {
+    case sga: SpecifiedGenericArg => this == sga
+    case sthElse => genericSignature.contains(o)
+  }
+
+  override def fqnString: String = {
+    boundType.getOrElse("") + genericSignature.fqnString
+  }
+}
+
+case class GenericArray(className: GenericClassName)
+    extends SignatureType {
+
+  override def contains(o: FullyQualifiedName): Boolean = o match {
+    case ga: GenericArray => this == ga
+    case sthElse => className.contains(sthElse)
+  }
+
+  override def fqnString: String = {
+    "[" + className.fqnString
+  }
+}
+
+case class GenericVar(name: String)
+    extends SignatureType {
+
+  override def contains(o: FullyQualifiedName): Boolean = {
+    this == o
+  }
+
+  override def fqnString: String = name
+}
+
+/**
+ * Descriptors
+ */
+
 sealed trait DescriptorType {
   def internalString: String
 }
@@ -131,7 +243,7 @@ final case class Descriptor(params: List[DescriptorType], ret: DescriptorType) {
 
 final case class RawClassfile(
   name: ClassName,
-  generics: Option[String],
+  generics: Option[GenericClass],
   superClass: Option[ClassName],
   interfaces: List[ClassName],
   access: Access,
