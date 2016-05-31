@@ -95,4 +95,7 @@ class SignatureParser(val input: ParserInput) extends ClassParser {
   private def TypeVar: Rule1[GenericVar] = rule {
     'T' ~ capture(oneOrMore(SignatureParser.GenericNameCharPredicate)) ~ ';' ~> GenericVar.apply _
   }
+
+  override val PackageNamePredicate = CharPredicate.All -- "<;/ "
+  override val ClassNameCharPredicate = CharPredicate.All -- "<;/ "
 }

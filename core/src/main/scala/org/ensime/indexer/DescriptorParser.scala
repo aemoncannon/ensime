@@ -21,16 +21,19 @@ trait ClassParser extends Parser {
   }
 
   protected def Name: Rule1[String] = rule {
-    capture(oneOrMore(DescriptorParser.ClassNameCharPredicate))
+    capture(oneOrMore(ClassNameCharPredicate))
   }
 
   protected def Package: Rule1[PackageName] = rule {
-    zeroOrMore(capture(oneOrMore(DescriptorParser.PackageNamePredicate)) ~ '/') ~> { seq: Seq[String] => PackageName(seq.toList) }
+    zeroOrMore(capture(oneOrMore(PackageNamePredicate)) ~ '/') ~> { seq: Seq[String] => PackageName(seq.toList) }
   }
 
   protected def PrimitiveClass: Rule1[ClassName] = rule {
     Boolean | Byte | Char | Short | Int | Long | Float | Double | Void
   }
+
+  protected def PackageNamePredicate: CharPredicate
+  protected def ClassNameCharPredicate: CharPredicate
 
   protected def Boolean: Rule1[ClassName] = rule { 'Z' ~ push(PrimitiveBoolean) }
   protected def Byte: Rule1[ClassName] = rule { 'B' ~ push(PrimitiveByte) }
@@ -67,8 +70,6 @@ object DescriptorParser {
         throw new Exception("Failed to parse descriptor type: ", other)
     }
   }
-  val PackageNamePredicate = CharPredicate.All -- "<;/ "
-  val ClassNameCharPredicate = CharPredicate.All -- "<;/ "
 }
 
 class DescriptorParser(val input: ParserInput) extends ClassParser {
@@ -103,4 +104,7 @@ class DescriptorParser(val input: ParserInput) extends ClassParser {
   private def Array: Rule1[DescriptorType] = rule {
     '[' ~ Type ~> { c => ArrayDescriptor(c) }
   }
+
+  override val PackageNamePredicate = CharPredicate.All -- ";/ "
+  override val ClassNameCharPredicate = CharPredicate.All -- ";/ "
 }
