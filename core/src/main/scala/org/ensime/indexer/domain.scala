@@ -38,7 +38,7 @@ final case class PackageName(path: List[String]) extends FullyQualifiedName {
 }
 
 case class ClassName(pack: PackageName, name: String)
-    extends FullyQualifiedName with DescriptorType with SignatureType {
+    extends FullyQualifiedName with DescriptorType {
 
   def contains(o: FullyQualifiedName) = o match {
     case ClassName(op, on) if pack == op && on.startsWith(name) =>
