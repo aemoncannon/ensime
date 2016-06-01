@@ -48,12 +48,15 @@ class PresentationReporter(handler: ReportHandler) extends Reporter with Positio
               pos.column
             }
 
+            val start = pos.startOrCursor
+            val end = pos.endOrCursor
             val note = new Note(
               f,
               formatMessage(msg),
               NoteSeverity(severity.id),
-              pos.startOrCursor,
-              pos.endOrCursor,
+              start,
+              // sometimes the compiler flags the entire file
+              if ((end - start) >= source.length - 1) start else end,
               pos.line,
               posColumn
             )

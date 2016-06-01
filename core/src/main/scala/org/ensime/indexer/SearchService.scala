@@ -2,12 +2,13 @@
 // Licence: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import java.util.concurrent.Semaphore
+
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.util.{ Success, Failure }
+import scala.util.{ Failure, Properties, Success }
 
 import akka.actor._
-import akka.dispatch.MessageDispatcher
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.ensime.api._
@@ -44,6 +45,8 @@ class SearchService(
   /**
    * Changelog:
    *
+   * 1.4 - remove redundant descriptors, doh!
+   *
    * 1.3 - methods include descriptors in (now unique) FQNs
    *
    * 1.2 - added foreign key to FqnSymbols.file with cascade delete
@@ -56,12 +59,17 @@ class SearchService(
    *
    * 1.0 - initial schema
    */
-  private val version = "1.3"
+  private val version = "1.4"
 
   private val index = new IndexService(config.cacheDir / ("index-" + version))
   private val db = new DatabaseService(config.cacheDir / ("sql-" + version))
 
-  implicit val workerEC: MessageDispatcher = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
+  import ExecutionContext.Implicits.global
+
+  // each jar / directory must acquire a permit, released when the
+  // data is persisted. This is to keep the heap usage down and is a
+  // poor man's backpressure.
+  val semaphore = new Semaphore(Properties.propOrElse("ensime.index.parallel", "10").toInt, true)
 
   private def scan(f: FileObject) = f.findFiles(ClassfileSelector) match {
     case null => Nil
@@ -80,7 +88,7 @@ class SearchService(
     // known files from the DB then and check against the disk, than
     // check each file against DatabaseService.outOfDate
     def findStaleFileChecks(checks: Seq[FileCheck]): List[FileCheck] = {
-      log.info("findStaleFileChecks")
+      log.debug("findStaleFileChecks")
       for {
         check <- checks
         name = check.file.getName.getURI
@@ -91,7 +99,7 @@ class SearchService(
     // delete the stale data before adding anything new
     // returns number of rows deleted
     def deleteReferences(checks: List[FileCheck]): Future[Int] = {
-      log.info(s"removing ${checks.size} stale files from the index")
+      log.debug(s"removing ${checks.size} stale files from the index")
       deleteInBatches(checks.map(_.file))
     }
 
@@ -118,13 +126,15 @@ class SearchService(
       else {
         val boost = isUserFile(base.getName())
         val check = FileCheck(base)
-        extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false, boost = boost))
+        val indexed = extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false, boost = boost))
+        indexed.onComplete { _ => semaphore.release() }
+        indexed
       }
     }
 
     // index all the given bases and return number of rows written
     def indexBases(bases: Set[FileObject], checks: Seq[FileCheck]): Future[Int] = {
-      log.info("Indexing bases...")
+      log.debug("Indexing bases...")
       val checksLookup: Map[String, FileCheck] = checks.map(check => (check.filename -> check)).toMap
       val basesWithChecks: Set[(FileObject, Option[FileCheck])] = bases.map { base =>
         (base, checksLookup.get(base.getName().getURI()))
@@ -163,26 +173,31 @@ class SearchService(
     iwork.flatMap { _ => dwork }
   }
 
-  def extractSymbolsFromClassOrJar(file: FileObject): Future[List[FqnSymbol]] = file match {
-    case classfile if classfile.getName.getExtension == "class" =>
-      // too noisy to log
-      val check = FileCheck(classfile)
-      Future {
-        blocking {
-          try extractSymbols(classfile, classfile)
-          finally classfile.close()
+  // this method leak semaphore on every call, which must be released
+  // when the List[FqnSymbol] has been processed (even if it is empty)
+  def extractSymbolsFromClassOrJar(file: FileObject): Future[List[FqnSymbol]] = {
+    def global: ExecutionContext = null // detach the global implicit
+    val ec = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
+
+    Future {
+      blocking {
+        semaphore.acquire()
+
+        file match {
+          case classfile if classfile.getName.getExtension == "class" =>
+            // too noisy to log
+            val check = FileCheck(classfile)
+            try extractSymbols(classfile, classfile)
+            finally classfile.close()
+          case jar =>
+            log.debug(s"indexing $jar")
+            val check = FileCheck(jar)
+            val vJar = vfs.vjar(jar)
+            try scan(vJar) flatMap (extractSymbols(jar, _))
+            finally vfs.nuke(vJar)
         }
       }
-    case jar =>
-      log.debug(s"indexing $jar")
-      val check = FileCheck(jar)
-      Future {
-        blocking {
-          val vJar = vfs.vjar(jar)
-          try scan(vJar) flatMap (extractSymbols(jar, _))
-          finally vfs.nuke(vJar)
-        }
-      }
+    }(ec)
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
@@ -203,17 +218,16 @@ class SearchService(
 
         if (clazz.access != Public) Nil
         else {
-          FqnSymbol(None, name, path, clazz.name.fqnString, None, None, sourceUri, clazz.source.line) ::
+          FqnSymbol(None, name, path, clazz.name.fqnString, None, sourceUri, clazz.source.line) ::
             clazz.methods.toList.filter(_.access == Public).map { method =>
-              val descriptor = method.name.descriptor.descriptorString
-              FqnSymbol(None, name, path, method.name.fqnString, Some(descriptor), None, sourceUri, method.line)
+              FqnSymbol(None, name, path, method.name.fqnString, None, sourceUri, method.line)
             } ::: clazz.fields.toList.filter(_.access == Public).map { field =>
               val internal = field.clazz.internalString
-              FqnSymbol(None, name, path, field.name.fqnString, None, Some(internal), sourceUri, clazz.source.line)
-            } ::: depickler.getTypeAliases.toList.filter(_.access == Public).map { rawType =>
+              FqnSymbol(None, name, path, field.name.fqnString, Some(internal), sourceUri, clazz.source.line)
+            } ::: depickler.getTypeAliases.toList.filter(_.access == Public).filterNot(_.fqn.contains("<refinement>")).map { rawType =>
               // this is a hack, we shouldn't be storing Scala names in the JVM name space
               // in particular, it creates fqn names that clash with the above ones
-              FqnSymbol(None, name, path, rawType.fqn, None, None, sourceUri, None)
+              FqnSymbol(None, name, path, rawType.fqn, None, sourceUri, None)
             }
         }
     }
@@ -308,7 +322,7 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       if (remaining.nonEmpty)
         debounce()
 
-      import searchService.workerEC
+      import ExecutionContext.Implicits.global
 
       log.debug(s"Indexing ${batch.size} files")
 
@@ -321,12 +335,19 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
           log.error(s"failed to index batch of ${batch.size} files", t)
         case Success(indexed) =>
           searchService.delete(indexed.map(_._1)(collection.breakOut)).onComplete {
-            case Failure(t) => log.error(s"failed to remove stale entries in ${batch.size} files", t)
-            case Success(_) => indexed.collect {
-              case (file, syms) if syms.isEmpty =>
+            case Failure(t) =>
+              searchService.semaphore.release()
+              log.error(s"failed to remove stale entries in ${batch.size} files", t)
+            case Success(_) => indexed.foreach {
               case (file, syms) =>
                 val boost = searchService.isUserFile((file.getName))
-                searchService.persist(FileCheck(file), syms, commitIndex = true, boost = boost).onComplete {
+                val persisting = searchService.persist(FileCheck(file), syms, commitIndex = true, boost = boost)
+
+                persisting.onComplete {
+                  case _ => searchService.semaphore.release()
+                }
+
+                persisting.onComplete {
                   case Failure(t) => log.error(s"failed to persist entries in $file", t)
                   case Success(_) =>
                 }

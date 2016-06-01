@@ -34,18 +34,12 @@ trait JavaCompletion { this: JavaCompiler =>
 
     val preceding = s.slice(Math.max(0, offset - 100), offset)
 
-    log.debug("PRECEDING: " + preceding)
-
     val defaultPrefix = JavaIdentRegexp.findFirstMatchIn(preceding) match {
       case Some(m) => m.group(1)
       case _ => ""
     }
 
-    log.debug("PREFIX: " + defaultPrefix)
-
     val constructing = ConstructingRegexp.findFirstMatchIn(preceding).isDefined
-
-    log.debug("CONSTRUCTING: " + constructing)
 
     val indexAfterTarget = Math.max(0, offset - defaultPrefix.length - 1)
 

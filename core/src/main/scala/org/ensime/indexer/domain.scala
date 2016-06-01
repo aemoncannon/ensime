@@ -114,6 +114,8 @@ sealed trait MemberName extends FullyQualifiedName {
 case class FieldName(
     owner: ClassName,
     name: String
+// not always available in the ASM parser
+//ret: DescriptorType
 ) extends MemberName {
   def fqnString = owner.fqnString + "." + name
 }
@@ -213,8 +215,8 @@ final case class RawType(
 )
 
 final case class RawField(
-  name: MemberName,
-  clazz: ClassName,
+  name: FieldName,
+  clazz: DescriptorType,
   generics: Option[String],
   access: Access
 )

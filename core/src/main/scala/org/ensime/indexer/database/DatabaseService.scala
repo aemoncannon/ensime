@@ -34,13 +34,18 @@ class DatabaseService(dir: File) extends SLF4JLogging {
 
   def commit(): Future[Unit] = Future.successful(())
 
-  def shutdown()(implicit ec: ExecutionContext): Future[Unit] = for {
-    // call directly - using slick withSession barfs as it runs a how many rows were updated
-    // after shutdown is executed.
-    _ <- db.run(sqlu"shutdown")
-    _ <- db.shutdown
-    _ = datasource.close()
-  } yield ()
+  // only used for chaining Futures, not for any IO
+  import ExecutionContext.Implicits.global
+
+  def shutdown(): Future[Unit] = {
+    for {
+      // call directly - using slick withSession barfs as it runs a how many rows were updated
+      // after shutdown is executed.
+      _ <- db.run(sqlu"shutdown")
+      _ <- db.shutdown
+      _ = datasource.close()
+    } yield ()
+  }
 
   if (!dir.exists) {
     log.info("creating the search database...")
@@ -57,7 +62,7 @@ class DatabaseService(dir: File) extends SLF4JLogging {
   // file with last modified time
   def knownFiles(): Future[Seq[FileCheck]] = db.run(fileChecks.result)
 
-  def removeFiles(files: List[FileObject])(implicit ec: ExecutionContext): Future[Int] =
+  def removeFiles(files: List[FileObject]): Future[Int] =
     db.run {
       val restrict = files.map(_.getName.getURI)
       // Deletion from fqnSymbols relies on fk cascade delete action
@@ -68,7 +73,7 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     filename: Rep[String] => fileChecks.filter(_.filename === filename).take(1)
   }
 
-  def outOfDate(f: FileObject)(implicit vfs: EnsimeVFS, ec: ExecutionContext): Future[Boolean] = {
+  def outOfDate(f: FileObject)(implicit vfs: EnsimeVFS): Future[Boolean] = {
     val uri = f.getName.getURI
     val modified = f.getContent.getLastModifiedTime
 
@@ -79,8 +84,9 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     )
   }
 
-  def persist(check: FileCheck, symbols: Seq[FqnSymbol])(implicit ec: ExecutionContext): Future[Option[Int]] =
-    db.run(
+  def persist(check: FileCheck, symbols: Seq[FqnSymbol]): Future[Option[Int]] =
+    if (symbols.isEmpty) Future.successful(Option(0))
+    else db.run(
       (fileChecksCompiled += check) andThen (fqnSymbolsCompiled ++= symbols)
     )
 
@@ -93,7 +99,7 @@ class DatabaseService(dir: File) extends SLF4JLogging {
   )
 
   import org.ensime.indexer.IndexService._
-  def find(fqns: List[FqnIndex])(implicit ec: ExecutionContext): Future[List[FqnSymbol]] = {
+  def find(fqns: List[FqnIndex]): Future[List[FqnSymbol]] = {
     val restrict = fqns.map(_.fqn)
     db.run(
       fqnSymbols.filter(_.fqn inSet restrict).result
@@ -132,12 +138,10 @@ object DatabaseService {
       file: String, // the underlying file
       path: String, // the VFS handle (e.g. classes in jars)
       fqn: String,
-      descriptor: Option[String], // for methods
       internal: Option[String], // for fields
       source: Option[String], // VFS
       line: Option[Int],
       offset: Option[Int] = None // future features:
-  //    type: ??? --- better than descriptor/internal
   ) {
     // this is just as a helper until we can use more sensible
     // domain objects with slick
@@ -145,7 +149,7 @@ object DatabaseService {
 
     // legacy: note that we can't distinguish class/trait
     def declAs: DeclaredAs =
-      if (descriptor.isDefined) DeclaredAs.Method
+      if (fqn.contains("(")) DeclaredAs.Method
       else if (internal.isDefined) DeclaredAs.Field
       else DeclaredAs.Class
   }
@@ -159,9 +163,12 @@ object DatabaseService {
     def source = column[Option[String]]("source handle")
     def line = column[Option[Int]]("line in source")
     def offset = column[Option[Int]]("offset in source")
-    def * = (id.?, file, path, fqn, descriptor, internal, source, line, offset) <> (FqnSymbol.tupled, FqnSymbol.unapply)
-    def fqnIdx = index("idx_fqn", fqn, unique = false) // fqns are unique by type and sig
-    def uniq = index("idx_uniq", (fqn, descriptor, internal), unique = true)
+    def * = (id.?, file, path, fqn, internal, source, line, offset) <> (FqnSymbol.tupled, FqnSymbol.unapply)
+    // our FQNs have descriptors, making them unique. but when scala
+    // aliases use the same namespace we get collisions
+    def fqnIdx = index("idx_fqn", fqn, unique = false)
+
+    def fileIdx = index("idx_file", file, unique = false) // FASTER DELETES
     def filename = foreignKey("filename_fk", file, fileChecks)(_.filename, onDelete = ForeignKeyAction.Cascade)
   }
   private val fqnSymbols = TableQuery[FqnSymbols]

@@ -124,7 +124,6 @@ class DocResolver(
   private def resolveLocalUri(sig: DocSigPair): Option[String] = {
     guessJar(sig) match {
       case Some((jar, sig)) =>
-        log.debug(s"Resolved to jar: $jar")
         Some(makeLocalUri(jar, sig))
       case _ =>
         log.debug(s"Failed to resolve doc jar for: $sig")

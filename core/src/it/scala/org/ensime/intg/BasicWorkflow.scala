@@ -115,8 +115,6 @@ class BasicWorkflow extends EnsimeSpec
           //-----------------------------------------------------------------------------------------------
           // uses of symbol at point
 
-          log.info("------------------------------------222-")
-
           project ! TypecheckFilesReq(List(Left(fooFile)))
           expectMsg(VoidResponse)
 
@@ -126,8 +124,6 @@ class BasicWorkflow extends EnsimeSpec
           expectMsgType[ERangePositions].positions should contain theSameElementsAs List(
             ERangePosition(`fooFilePath`, 114, 110, 172), ERangePosition(`fooFilePath`, 273, 269, 283)
           )
-
-          log.info("------------------------------------222-")
 
           // note that the line numbers appear to have been stripped from the
           // scala library classfiles, so offset/line comes out as zero unless

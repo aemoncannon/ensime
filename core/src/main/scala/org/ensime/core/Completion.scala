@@ -125,7 +125,8 @@ trait CompletionControl {
 
       val contextOpt = x.get match {
         case Left(tree) =>
-          logger.debug("Completing at tree:" + tree.summaryString)
+          if (logger.isTraceEnabled())
+            logger.trace("Completing at tree:" + tree.summaryString)
           tree match {
             case Apply(fun, _) =>
               fun match {
@@ -237,8 +238,6 @@ trait CompletionControl {
       }
     } while (!x.isComplete)
 
-    logger.info("Found " + members.size + " members.")
-
     // Any interaction with the members (their types and symbols) must be done
     // on the compiler thread.
     askOption[Unit] {
@@ -246,7 +245,6 @@ trait CompletionControl {
         val s = m.sym.nameString
         matchesPrefix(s, context.prefix, matchEntire = false, caseSens = caseSens) && !s.contains("$")
       }
-      logger.info("Filtered down to " + filtered.size + ".")
       for (m <- filtered) {
         m match {
           case m @ ScopeMember(sym, tpe, accessible, viaView) =>
