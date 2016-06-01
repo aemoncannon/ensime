@@ -9,7 +9,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.reflect.internal.util.{ BatchSourceFile, OffsetPosition }
 import scala.tools.nsc.Settings
-import scala.tools.nsc.reporters.ConsoleReporter
+import scala.tools.nsc.reporters.StoreReporter
 import scala.util.Properties
 
 import ReallyRichPresentationCompilerFixture._
@@ -464,7 +464,7 @@ trait RichPresentationCompilerTestUtils {
   def compileScala(paths: List[String], target: File, classPath: String): Unit = {
     val settings = new Settings
     settings.outputDirs.setSingleOutput(target.getAbsolutePath)
-    val reporter = new ConsoleReporter(settings)
+    val reporter = new StoreReporter
     settings.classpath.value = classPath
     val g = new scala.tools.nsc.Global(settings, reporter)
     val run = new g.Run

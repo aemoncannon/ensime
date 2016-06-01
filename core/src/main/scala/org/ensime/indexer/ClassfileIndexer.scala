@@ -74,7 +74,7 @@ trait ClassfileIndexer {
     override def visitField(access: Int, name: String, desc: String, signature: String, value: AnyRef): FieldVisitor = {
       val field = RawField(
         FieldName(clazz.name, name),
-        ClassName.fromDescriptor(desc),
+        DescriptorParser.parseType(desc),
         Option(signature), Access(access)
       )
       clazz = clazz.copy(fields = clazz.fields enqueue field)

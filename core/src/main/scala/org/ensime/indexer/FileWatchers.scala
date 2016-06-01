@@ -54,8 +54,8 @@ class ClassfileWatcher(
               (JarSelector, target.getParentFile, false)
             else
               (ClassfileSelector, target, true)
-          if (log.isDebugEnabled())
-            log.debug(s"creating a ApachePollingFileWatcher watcher for $dir")
+          if (log.isTraceEnabled())
+            log.trace(s"creating an ApachePollingFileWatcher watcher for $dir")
           new ApachePollingFileWatcher(dir, selector, rec, listeners).asInstanceOf[Watcher]
         }
       }
@@ -64,12 +64,12 @@ class ClassfileWatcher(
         val classJava7WatcherBuilder = new ClassJava7WatcherBuilder()
         config.targetClasspath.map { target =>
           if (target.isJar) {
-            if (log.isDebugEnabled())
-              log.debug(s"creating a Java 7 jar watcher for ${target}")
+            if (log.isTraceEnabled())
+              log.trace(s"creating a Java 7 jar watcher for ${target}")
             jarJava7WatcherBuilder.build(target, listeners)
           } else {
-            if (log.isDebugEnabled())
-              log.debug(s"creating a Java 7 class watcher for ${target}")
+            if (log.isTraceEnabled())
+              log.trace(s"creating a Java 7 class watcher for ${target}")
             classJava7WatcherBuilder.build(target, listeners)
           }
         }
@@ -104,8 +104,8 @@ class SourceWatcher(
           module <- config.modules.values
           root <- module.sourceRoots
         } yield {
-          if (log.isDebugEnabled())
-            log.debug(s"creating ApachPollingFileWatcher source watcher for $root")
+          if (log.isTraceEnabled())
+            log.trace(s"creating an ApachePollingFileWatcher source watcher for $root")
           new ApachePollingFileWatcher(root, SourceSelector, true, listeners)
         }
 
@@ -115,8 +115,8 @@ class SourceWatcher(
           module <- config.modules.values
           root <- module.sourceRoots
         } yield {
-          if (log.isDebugEnabled())
-            log.debug(s"creating a Java 7 source watcher for $root")
+          if (log.isTraceEnabled())
+            log.trace(s"creating a Java 7 source watcher for $root")
           sourceJava7WatcherBuilder.build(root, listeners)
         }
       }
@@ -151,28 +151,28 @@ private class ApachePollingFileWatcher(
 
     def fileChanged(event: FileChangeEvent): Unit = {
       if (watched(event)) {
-        if (log.isDebugEnabled())
-          log.debug(s"${event.getFile} was changed")
+        if (log.isTraceEnabled())
+          log.trace(s"${event.getFile} was changed")
         listeners foreach (_.fileChanged(event.getFile))
       }
     }
     def fileCreated(event: FileChangeEvent): Unit =
       if (watched(event)) {
-        if (log.isDebugEnabled())
-          log.debug(s"${event.getFile} was created")
+        if (log.isTraceEnabled())
+          log.trace(s"${event.getFile} was created")
         listeners foreach (_.fileAdded(event.getFile))
       }
     def fileDeleted(event: FileChangeEvent): Unit =
       if (base == event.getFile.getName.getURI) {
-        log.info(s"$base (a watched base) was deleted")
+        log.debug(s"$base (a watched base) was deleted")
         listeners foreach (_.baseRemoved(event.getFile))
         // this is a best efforts thing, subject to race conditions
         fm.stop() // the delete stack is a liability
         fm = create()
         init(restarted = true)
       } else if (watched(event)) {
-        if (log.isDebugEnabled())
-          log.debug(s"${event.getFile} was deleted")
+        if (log.isTraceEnabled())
+          log.trace(s"${event.getFile} was deleted")
         listeners foreach (_.fileRemoved(event.getFile))
       }
   })
@@ -350,8 +350,8 @@ class Java7WatchServiceBuilder extends SLF4JLogging {
     base: File,
     listeners: Seq[WatcherListener]
   )(implicit vfs: EnsimeVFS) = {
-    if (log.isDebugEnabled())
-      log.debug("watching {}", base)
+    if (log.isTraceEnabled())
+      log.trace("watching {}", base)
 
     trait EnsimeWatcher extends Watcher {
       val w = fileWatchService.spawnWatcher(watcherId, base, listeners.toSet)

@@ -50,7 +50,7 @@ object Sensible {
     javaOptions := Seq("-Xss2m", "-XX:MaxPermSize=256m", "-Xms384m", "-Xmx384m"),
     javaOptions += "-Dfile.encoding=UTF8",
     javaOptions ++= Seq("-XX:+UseConcMarkSweepGC", "-XX:+CMSIncrementalMode"),
-    javaOptions in run ++= yourkitAgent,
+    javaOptions in run ++= yourkitAgent, // interferes with sockets
 
     maxErrors := 1,
     fork := true,
@@ -161,7 +161,7 @@ object Sensible {
   val yourkitAgent = Properties.envOrNone("YOURKIT_AGENT").map { name =>
     val agent = file(name)
     require(agent.exists(), s"Yourkit agent specified ($agent) does not exist")
-    Seq(s"-agentpath:${agent.getCanonicalPath}")
+    Seq(s"-agentpath:${agent.getCanonicalPath}=quiet")
   }.getOrElse(Nil)
 
   // WORKAROUND: https://github.com/scalatest/scalatest/issues/511
