@@ -155,7 +155,7 @@ class SignatureParserSpec extends EnsimeSpec {
               None,
               GenericClassName(
                 ClassName(JavaUtilPackage, "List"),
-                Vector(ExtendsObjectGenericArg())
+                Vector(ExtendsObjectGenericArg)
               )
             ))
           )
@@ -173,7 +173,7 @@ class SignatureParserSpec extends EnsimeSpec {
               SpecifiedGenericArg(None, GenericClassName(
                 ClassName(JavaUtilPackage, "List"),
                 Vector(SpecifiedGenericArg(
-                  Some("+"), GenericClassName(ClassName(JavaLangPackage, "Number"))
+                  Some(UpperBound), GenericClassName(ClassName(JavaLangPackage, "Number"))
                 ))
               ))
             )
@@ -191,7 +191,7 @@ class SignatureParserSpec extends EnsimeSpec {
             Vector(SpecifiedGenericArg(None, GenericClassName(
               ClassName(JavaUtilPackage, "List"),
               Vector(SpecifiedGenericArg(
-                Some("-"), GenericClassName(
+                Some(LowerBound), GenericClassName(
                   ClassName(JavaLangPackage, "Number")
                 )
               ))
@@ -342,7 +342,7 @@ class SignatureParserSpec extends EnsimeSpec {
                 GenericArray(GenericClassName(
                   ClassName(JavaUtilPackage, "List"),
                   Vector(SpecifiedGenericArg(
-                    Some("-"),
+                    Some(LowerBound),
                     GenericArray(
                       GenericClassName(ClassName.PrimitiveDouble)
                     )

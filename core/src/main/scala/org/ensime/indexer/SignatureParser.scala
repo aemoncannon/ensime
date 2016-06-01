@@ -81,7 +81,23 @@ class SignatureParser(val input: ParserInput) extends ClassParser {
   }
 
   private def GenericArgWithSignature: Rule1[GenericArg] = rule {
-    optional(capture(anyOf("+-"))) ~ FieldTypeSignature ~> SpecifiedGenericArg.apply _
+    optional(LowerBoundary | UpperBoundary) ~ FieldTypeSignature ~> SpecifiedGenericArg.apply _
+  }
+
+  private def LowerBoundary: Rule1[BoundType] = rule {
+    LowerB ~> LowerBound.apply _
+  }
+
+  private def LowerB: Rule0 = rule {
+    '-'
+  }
+
+  private def UpperBoundary: Rule1[BoundType] = rule {
+    UpperB ~> UpperBound.apply _
+  }
+
+  private def UpperB: Rule0 = rule {
+    '+'
   }
 
   private def FieldTypeSignature: Rule1[SignatureType] = rule {

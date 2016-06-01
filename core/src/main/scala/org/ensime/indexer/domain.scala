@@ -37,7 +37,7 @@ final case class PackageName(path: List[String]) extends FullyQualifiedName {
   def parent = PackageName(path.init)
 }
 
-case class ClassName(pack: PackageName, name: String)
+final case class ClassName(pack: PackageName, name: String)
     extends FullyQualifiedName with DescriptorType {
 
   def contains(o: FullyQualifiedName) = o match {
@@ -128,12 +128,18 @@ final case class MethodName(
   def fqnString = owner.fqnString + "." + name + descriptor.descriptorString
 }
 
-/**
- * Generics signature
- */
+// Generics signature
 
-trait GenericArg
-trait SignatureType
+sealed trait GenericArg
+sealed trait SignatureType
+sealed trait BoundType
+
+object UpperBound extends BoundType {
+  def apply(): BoundType = this
+}
+object LowerBound extends BoundType {
+  def apply(): BoundType = this
+}
 
 final case class GenericClass(
   genericParam: Seq[GenericParam],
@@ -150,11 +156,13 @@ final case class GenericClassName(
   genericArg: Seq[GenericArg] = Seq.empty
 ) extends SignatureType
 
-final case class ExtendsObjectGenericArg()
-  extends GenericArg
+object ExtendsObjectGenericArg
+    extends GenericArg {
+  def apply(): GenericArg = this
+}
 
 final case class SpecifiedGenericArg(
-  boundType: Option[String],
+  boundType: Option[BoundType],
   genericSignature: SignatureType
 ) extends GenericArg
 
@@ -164,9 +172,7 @@ final case class GenericArray(className: GenericClassName)
 final case class GenericVar(name: String)
   extends SignatureType
 
-/**
- * Descriptors
- */
+// Descriptors
 
 sealed trait DescriptorType {
   def internalString: String
