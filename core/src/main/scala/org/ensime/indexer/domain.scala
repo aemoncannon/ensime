@@ -135,10 +135,12 @@ final case class MethodName(
 sealed trait GenericArg
 sealed trait SignatureType
 sealed trait BoundType
+sealed trait RealTypeSignature
 
 object UpperBound extends BoundType {
   def apply(): BoundType = this
 }
+
 object LowerBound extends BoundType {
   def apply(): BoundType = this
 }
@@ -156,7 +158,7 @@ final case class GenericParam(
 final case class GenericClassName(
   className: ClassName,
   genericArg: Seq[GenericArg] = Seq.empty
-) extends SignatureType
+) extends SignatureType with RealTypeSignature
 
 object ExtendsObjectGenericArg
     extends GenericArg {
@@ -168,8 +170,8 @@ final case class SpecifiedGenericArg(
   genericSignature: SignatureType
 ) extends GenericArg
 
-final case class GenericArray(className: GenericClassName)
-  extends SignatureType
+final case class GenericArray(className: RealTypeSignature)
+  extends SignatureType with RealTypeSignature
 
 final case class GenericVar(name: String)
   extends SignatureType

@@ -354,5 +354,31 @@ class SignatureParserSpec extends EnsimeSpec {
         )
       )
     )
+
+    parseGeneric("Lorg/ensime/Dummy<[Ljava/util/List<-[[[D>;>;") should ===(
+      GenericClass(
+        Seq.empty,
+        Vector(
+          GenericClassName(
+            ClassName(EnsimePackage, "Dummy"),
+            Vector(
+              SpecifiedGenericArg(
+                None,
+                GenericArray(GenericClassName(
+                  ClassName(JavaUtilPackage, "List"),
+                  Vector(SpecifiedGenericArg(
+                    Some(LowerBound),
+                    GenericArray(GenericArray(GenericArray(
+                      GenericClassName(ClassName.PrimitiveDouble)
+                    )))
+                  ))
+                ))
+              )
+            )
+          )
+        )
+      )
+    )
   }
+
 }

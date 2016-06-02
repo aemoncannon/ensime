@@ -105,7 +105,7 @@ class SignatureParser(val input: ParserInput) extends ClassParser {
   }
 
   private def GenericArraySig: Rule1[GenericArray] = rule {
-    '[' ~ (PrimitiveClassSig | GenericClassSig) ~> GenericArray.apply _
+    '[' ~ (PrimitiveClassSig | GenericClassSig | GenericArraySig) ~> GenericArray.apply _
   }
 
   private def TypeVar: Rule1[GenericVar] = rule {
