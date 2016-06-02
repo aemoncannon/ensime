@@ -310,6 +310,47 @@ class SignatureParserSpec extends EnsimeSpec {
         )
       )
     )
+
+    parseGeneric("Lorg/scalatest/SuperEngine<TT;>.Node;") should ===(
+      GenericClass(
+        Seq.empty,
+        Vector(
+          GenericClassName(
+            ClassName(PackageName(List("org", "scalatest")), "SuperEngine"),
+            Vector(
+              SpecifiedGenericArg(
+                None,
+                GenericVar("T")
+              )
+            ),
+            Some(InnerClassName("Node"))
+          )
+        )
+      )
+    )
+
+    parseGeneric("Lorg/ensime/Outer<TT;>.Inner<Ljava/lang/Object;>;") should ===(
+      GenericClass(
+        Seq.empty,
+        Vector(
+          GenericClassName(
+            ClassName(EnsimePackage, "Outer"),
+            Vector(
+              SpecifiedGenericArg(
+                None,
+                GenericVar("T")
+              )
+            ),
+            Some(InnerClassName("Inner", Vector(
+              SpecifiedGenericArg(
+                None,
+                GenericClassName(ObjectSignature)
+              )
+            )))
+          )
+        )
+      )
+    )
   }
 
   it should "parse class with array in generic super class" in {

@@ -157,8 +157,14 @@ final case class GenericParam(
 
 final case class GenericClassName(
   className: ClassName,
-  genericArg: Seq[GenericArg] = Seq.empty
+  genericArg: Seq[GenericArg] = Seq.empty,
+  innerClass: Option[InnerClassName] = None
 ) extends SignatureType with RealTypeSignature
+
+final case class InnerClassName(
+  name: String,
+  genericArg: Seq[GenericArg] = Seq.empty
+)
 
 object ExtendsObjectGenericArg
     extends GenericArg {
