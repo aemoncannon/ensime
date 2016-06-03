@@ -453,5 +453,30 @@ class SignatureParserSpec extends EnsimeSpec {
         )
       )
     )
+
+    parseGeneric("<T:Ljava/lang/Object;>Lscala/collection/mutable/ArrayLike<TT;[TT;>;") should ===(
+      GenericClass(
+        Vector(
+          GenericParam(
+            "T",
+            Vector(GenericClassName(ObjectSignature))
+          )
+        ), Vector(
+          GenericClassName(
+            ClassName(PackageName(List("scala", "collection", "mutable")), "ArrayLike"),
+            Vector(
+              SpecifiedGenericArg(
+                None,
+                GenericVar("T")
+              ),
+              SpecifiedGenericArg(
+                None,
+                GenericArray(GenericVar("T"))
+              )
+            )
+          )
+        )
+      )
+    )
   }
 }

@@ -180,7 +180,7 @@ final case class GenericArray(className: RealTypeSignature)
   extends SignatureType with RealTypeSignature
 
 final case class GenericVar(name: String)
-  extends SignatureType
+  extends SignatureType with RealTypeSignature
 
 // Descriptors
 
