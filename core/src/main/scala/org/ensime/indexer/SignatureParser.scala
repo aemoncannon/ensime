@@ -59,11 +59,11 @@ class SignatureParser(val input: ParserInput) extends ClassParser {
   }
 
   protected def GenericClassSigWithArgs: Rule1[GenericClassName] = rule {
-    ClassNameSig ~ '<' ~ GenericArgs ~ '>' ~ optional(InnerClassSig) ~ ';' ~> GenericClassName.apply _
+    ClassNameSig ~ '<' ~ GenericArgs ~ '>' ~ zeroOrMore(InnerClassSig) ~ ';' ~> GenericClassName.apply _
   }
 
   protected def GenericClassSigWithoutArgs: Rule1[GenericClassName] = rule {
-    ClassNameSig ~ optional(InnerClassSig) ~ ';' ~> (GenericClassName(_: ClassName, Seq.empty, _: Option[InnerClassName]))
+    ClassNameSig ~ zeroOrMore(InnerClassSig) ~ ';' ~> (GenericClassName(_: ClassName, Seq.empty, _: Seq[InnerClassName]))
   }
 
   protected def InnerClassSig: Rule1[InnerClassName] = rule {

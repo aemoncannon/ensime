@@ -323,7 +323,7 @@ class SignatureParserSpec extends EnsimeSpec {
                 GenericVar("T")
               )
             ),
-            Some(InnerClassName("Node"))
+            Vector(InnerClassName("Node"))
           )
         )
       )
@@ -341,12 +341,43 @@ class SignatureParserSpec extends EnsimeSpec {
                 GenericVar("T")
               )
             ),
-            Some(InnerClassName("Inner", Vector(
+            Vector(InnerClassName("Inner", Vector(
               SpecifiedGenericArg(
                 None,
                 GenericClassName(ObjectSignature)
               )
             )))
+          )
+        )
+      )
+    )
+
+    parseGeneric("Lorg/ensime/Outer<TT;>.Inner<Ljava/lang/Object;>.InnerInner<Ljava/lang/Object;>;") should ===(
+      GenericClass(
+        Seq.empty,
+        Vector(
+          GenericClassName(
+            ClassName(EnsimePackage, "Outer"),
+            Vector(
+              SpecifiedGenericArg(
+                None,
+                GenericVar("T")
+              )
+            ),
+            Vector(
+              InnerClassName("Inner", Vector(
+                SpecifiedGenericArg(
+                  None,
+                  GenericClassName(ObjectSignature)
+                )
+              )),
+              InnerClassName("InnerInner", Vector(
+                SpecifiedGenericArg(
+                  None,
+                  GenericClassName(ObjectSignature)
+                )
+              ))
+            )
           )
         )
       )
@@ -423,5 +454,4 @@ class SignatureParserSpec extends EnsimeSpec {
       )
     )
   }
-
 }
