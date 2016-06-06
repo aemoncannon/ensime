@@ -87,7 +87,7 @@ class SignatureParser(val input: ParserInput) extends ClassParser {
   }
 
   private def ExtendsObject: Rule1[GenericArg] = rule {
-    ExtendsObjectStar ~> ExtendsObjectGenericArg.apply _
+    ExtendsObjectStar ~> (() => ExtendsObjectGenericArg)
   }
 
   private def ExtendsObjectStar: Rule0 = rule {
@@ -99,7 +99,7 @@ class SignatureParser(val input: ParserInput) extends ClassParser {
   }
 
   private def LowerBoundary: Rule1[BoundType] = rule {
-    LowerB ~> LowerBound.apply _
+    LowerB ~> (() => LowerBound)
   }
 
   private def LowerB: Rule0 = rule {
@@ -107,7 +107,7 @@ class SignatureParser(val input: ParserInput) extends ClassParser {
   }
 
   private def UpperBoundary: Rule1[BoundType] = rule {
-    UpperB ~> UpperBound.apply _
+    UpperB ~> (() => UpperBound)
   }
 
   private def UpperB: Rule0 = rule {

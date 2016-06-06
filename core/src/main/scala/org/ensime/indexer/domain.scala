@@ -137,13 +137,9 @@ sealed trait SignatureType
 sealed trait BoundType
 sealed trait RealTypeSignature
 
-object UpperBound extends BoundType {
-  def apply(): BoundType = this
-}
+object UpperBound extends BoundType
 
-object LowerBound extends BoundType {
-  def apply(): BoundType = this
-}
+object LowerBound extends BoundType
 
 final case class GenericClass(
   genericParam: Seq[GenericParam],
@@ -167,9 +163,7 @@ final case class InnerClassName(
 )
 
 object ExtendsObjectGenericArg
-    extends GenericArg {
-  def apply(): GenericArg = this
-}
+  extends GenericArg
 
 final case class SpecifiedGenericArg(
   boundType: Option[BoundType],
