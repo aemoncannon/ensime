@@ -207,7 +207,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askSymbolDesignationsInRegion(p: RangePosition, tpes: List[SourceSymbol]): SymbolDesignations =
     askOption(
       new SemanticHighlighting(this).symbolDesignationsInRegion(p, tpes)
-    ).getOrElse(SymbolDesignations(new File("."), List.empty))
+    ).getOrElse(SymbolDesignations(new File(".").toPath, List.empty))
 
   def askImplicitInfoInRegion(p: Position): ImplicitInfos =
     ImplicitInfos(
@@ -227,7 +227,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   // the same compilation unit. see
   // https://github.com/ensime/ensime-server/issues/1160
   def createSourceFile(file: File): BatchSourceFile =
-    createSourceFile(SourceFileInfo(file, None, None))
+    createSourceFile(SourceFileInfo(file.toPath, None, None))
   def createSourceFile(path: String): BatchSourceFile =
     createSourceFile(new File(path))
   def createSourceFile(file: AbstractFile): BatchSourceFile =
@@ -235,19 +235,19 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def createSourceFile(file: SourceFileInfo): BatchSourceFile = file match {
     case SourceFileInfo(f, None, None) =>
       new BatchSourceFile(
-        new PlainFile(f.getPath),
-        f.readString()(charset).toCharArray
+        new PlainFile(f.toFile),
+        f.toFile.readString()(charset).toCharArray
       )
 
     case SourceFileInfo(f, Some(contents), None) =>
       new BatchSourceFile(
-        new PlainFile(f.getPath),
+        new PlainFile(f.toFile),
         contents.toCharArray
       )
 
     case SourceFileInfo(f, None, Some(contentsIn)) =>
       new BatchSourceFile(
-        new PlainFile(f.getPath),
+        new PlainFile(f.toFile),
         contentsIn.readString()(charset).toCharArray
       )
   }

@@ -4,6 +4,7 @@ package org.ensime.core.debug
 
 import scala.collection.JavaConverters._
 import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 
 import org.ensime.api.{ EnsimeConfig, LineSourcePosition }
@@ -55,10 +56,14 @@ class SourceMap(
    * @param location The location whose source file to find
    * @return Some file representing the local source, otherwise None
    */
-  def findFileByLocation(location: LocationInfoProfile): Option[File] = {
-    val path = location.trySourcePath.toOption
-
-    path.flatMap(sourceForFilePath)
+  def findFileByLocation(location: LocationInfoProfile): Option[Path] = {
+    location.trySourcePath.toOption match {
+      case Some(f) => Some(new File(f).toPath)
+      case None => None
+    }
+    //val path = location.trySourcePath.toOption
+    //uri
+    //path.flatMap(sourceForFilePath)
   }
 
   /**
@@ -123,6 +128,7 @@ class SourceMap(
 
   /**
    * Parses a source path, removing the matching root path from the source path.
+   *
    * @param rootPaths The root paths to remove from the source path
    * @param sourcePath The source path to strip of the root path
    * @return The stripped source path
