@@ -69,7 +69,7 @@ class JavaCompiler(
 
   def internSource(sf: SourceFileInfo): JavaFileObject = {
     val jfo = getJavaFileObject(sf)
-    workingSet.put(sf.file.getAbsolutePath, jfo)
+    workingSet.put(sf.path.toAbsolutePath.toString, jfo)
     jfo
   }
 
@@ -211,9 +211,9 @@ class JavaCompiler(
   }
 
   private def getJavaFileObject(sf: SourceFileInfo): JavaFileObject = sf match {
-    case SourceFileInfo(f, None, None) => new JavaObjectFromFile(f)
-    case SourceFileInfo(f, Some(contents), None) => new JavaObjectWithContents(f, contents)
-    case SourceFileInfo(f, None, Some(contentsIn)) => new JavaObjectWithContents(f, contentsIn.readString)
+    case SourceFileInfo(f, None, None) => new JavaObjectFromFile(f.toFile)
+    case SourceFileInfo(f, Some(contents), None) => new JavaObjectWithContents(f.toFile, contents)
+    case SourceFileInfo(f, None, Some(contentsIn)) => new JavaObjectWithContents(f.toFile, contentsIn.readString)
   }
 
   private class JavaDiagnosticListener extends DiagnosticListener[JavaFileObject] with ReportHandler {
