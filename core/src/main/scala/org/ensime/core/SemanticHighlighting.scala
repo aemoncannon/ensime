@@ -173,9 +173,9 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
       case Some(tree) =>
         val traverser = new SymDesigsTraverser(p, requestedTypes.toSet)
         traverser.traverse(tree)
-        SymbolDesignations(p.source.file.file, traverser.syms.toList)
+        SymbolDesignations(p.source.file.file.toPath, traverser.syms.toList)
       case None =>
-        SymbolDesignations(new File("."), List.empty)
+        SymbolDesignations(new File(".").toPath, List.empty)
     }
   }
 
