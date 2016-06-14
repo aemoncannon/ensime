@@ -15,6 +15,7 @@ import com.sun.source.util.{ JavacTask, TreePath }
 import com.sun.tools.javac.util.Abort
 import javax.lang.model.`type`.{ TypeMirror }
 import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Element
 import javax.tools._
 import org.ensime.api._
 import org.ensime.core.DocSigPair
@@ -22,6 +23,7 @@ import org.ensime.indexer.SearchService
 import org.ensime.util.ReportHandler
 import org.ensime.util.file._
 import org.ensime.vfs._
+import scala.collection.JavaConversions._
 
 class JavaCompiler(
     val config: EnsimeConfig,
@@ -93,26 +95,62 @@ class JavaCompiler(
     }
   }
 
+  private def executableElementToTypeInfo(e: ExecutableElement): TypeInfo = {
+
+    val params = e.getParameters.zipWithIndex.map {
+      case (tpe, idx) => ("_" + idx, typeMirrorToTypeInfo(tpe.asType()))
+    }
+
+    val paramList = e.getParameters
+      .map(_.asType())
+      .mkString("(", ", ", ")")
+
+    val returnType = e.getReturnType
+
+    val name = s"$paramList => $returnType"
+
+    ArrowTypeInfo(
+      name,
+      name,
+      typeMirrorToTypeInfo(e.getReturnType),
+      ParamSectionInfo(params, isImplicit = false) :: Nil
+    )
+  }
+
+  private def elementToTypeInfo(e: Element): TypeInfo = {
+    typeMirrorToTypeInfo(e.asType())
+  }
+
+  private def pathToSymbol(c: Compilation, path: TreePath): Option[SymbolInfo] = {
+
+    val nameOption: Option[String] = path.getLeaf match {
+      case t: IdentifierTree => Some(t.getName.toString)
+      case t: MemberSelectTree => Some(t.getIdentifier.toString)
+      case _ => None
+    }
+
+    for {
+      name <- nameOption
+      elem <- Option(c.trees.getElement(path))
+    } yield {
+
+      val typeInfo = elem match {
+        case e: ExecutableElement => executableElementToTypeInfo(e)
+        case e => elementToTypeInfo(e)
+      }
+
+      SymbolInfo(
+        fqn(c, path).map(_.toFqnString).getOrElse(name),
+        name,
+        findDeclPos(c, path),
+        typeInfo
+      )
+    }
+  }
+
   def askSymbolAtPoint(file: SourceFileInfo, offset: Int): Option[SymbolInfo] = {
     pathToPoint(file, offset) flatMap {
-      case (c: Compilation, path: TreePath) =>
-        def withName(name: String): Option[SymbolInfo] = {
-
-          val tpeMirror = Option(c.trees.getTypeMirror(path))
-          val nullTpe = BasicTypeInfo("NA", DeclaredAs.Nil, "NA", List.empty, List.empty, None)
-
-          Some(SymbolInfo(
-            fqn(c, path).map(_.toFqnString).getOrElse(name),
-            name,
-            findDeclPos(c, path),
-            tpeMirror.map(typeMirrorToTypeInfo).getOrElse(nullTpe)
-          ))
-        }
-        path.getLeaf match {
-          case t: IdentifierTree => withName(t.getName.toString)
-          case t: MemberSelectTree => withName(t.getIdentifier.toString)
-          case _ => None
-        }
+      case (c: Compilation, path: TreePath) => pathToSymbol(c, path)
     }
   }
 

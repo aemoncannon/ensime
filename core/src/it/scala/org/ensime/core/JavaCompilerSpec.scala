@@ -113,7 +113,7 @@ class JavaCompilerSpec extends EnsimeSpec
           case "3" =>
             info.name shouldBe "java.io.PrintStream.println(java.lang.Object)"
             info.localName shouldBe "println"
-            info.`type`.name shouldBe "(java.lang.Object)void"
+            info.`type`.name shouldBe "(java.lang.Object) => void"
           case "4" =>
             info.name shouldBe "java.io.File"
             info.localName shouldBe "File"
@@ -128,7 +128,7 @@ class JavaCompilerSpec extends EnsimeSpec
           case "6" =>
             info.name shouldBe "org.example.Test2.compute()"
             info.localName shouldBe "compute"
-            info.`type`.name shouldBe "()int"
+            info.`type`.name shouldBe "() => int"
             info.declPos should matchPattern {
               case Some(LineSourcePosition(f, 8)) if f.getName == "Test2.java" =>
               case Some(OffsetSourcePosition(f, 48)) if f.getName == "Test2.java" =>
@@ -137,7 +137,7 @@ class JavaCompilerSpec extends EnsimeSpec
             {}
             info.name shouldBe "org.example.Test1.compute(int,int)"
             info.localName shouldBe "compute"
-            info.`type`.name shouldBe "(int,int)int"
+            info.`type`.name shouldBe "(int, int) => int"
             info.declPos should matchPattern { case Some(OffsetSourcePosition(f, 481)) if f.getName == "Test1.java" => }
           case "8" =>
             info.name shouldBe "org.example.Test1.CONST"
