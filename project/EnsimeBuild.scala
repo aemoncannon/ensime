@@ -2,7 +2,7 @@ import SonatypeSupport._
 import com.typesafe.sbt.SbtScalariform._
 import java.io._
 import org.ensime.EnsimePlugin.JdkDir
-import org.ensime.Imports.EnsimeKeys
+import org.ensime.Imports.EnsimeKeys._
 import sbt.{ IntegrationTest => It, _ }
 import sbt.Keys._
 import sbtassembly.{ AssemblyKeys, MergeStrategy, PathList }
@@ -36,9 +36,7 @@ object EnsimeBuild extends Build {
 
     dependencyOverrides ++= Set(
       "org.apache.lucene" % "lucene-core" % luceneVersion
-    ),
-
-    EnsimeKeys.scalariform := ScalariformKeys.preferences.value
+    )
 
   // https://github.com/sbt/sbt/issues/2459 --- misses shapeless in core/it:test
   // updateOptions := updateOptions.value.withCachedResolution(true)
@@ -136,7 +134,7 @@ object EnsimeBuild extends Build {
       commonSettings, commonItSettings
     ).settings(
       unmanagedJars in Compile += JavaTools,
-      EnsimeKeys.unmanagedSourceArchives += (baseDirectory in ThisBuild).value / "openjdk-langtools/openjdk6-langtools-src.zip",
+      ensimeUnmanagedSourceArchives += (baseDirectory in ThisBuild).value / "openjdk-langtools/openjdk6-langtools-src.zip",
       libraryDependencies ++= Seq(
         "org.ensime" %% "java7-file-watcher" % "1.0.0",
         "com.h2database" % "h2" % "1.4.191", // 1.4.192 uses Java 7
@@ -200,8 +198,8 @@ object EnsimeBuild extends Build {
 
   lazy val testingSimpleJar = Project("testingSimpleJar", file("testing/simpleJar")).settings(
     exportJars := true,
-    EnsimeKeys.useTarget in Compile := Some((artifactPath in (Compile, packageBin)).value),
-    EnsimeKeys.useTarget in Test := Some((artifactPath in (Test, packageBin)).value)
+    ensimeUseTarget in Compile := Some((artifactPath in (Compile, packageBin)).value),
+    ensimeUseTarget in Test := Some((artifactPath in (Test, packageBin)).value)
   )
 
   lazy val testingImplicits = Project("testingImplicits", file("testing/implicits")) settings (
