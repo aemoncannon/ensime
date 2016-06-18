@@ -148,7 +148,7 @@ final case class GenericClass(
 
 final case class GenericParam(
   name: String,
-  classNames: Seq[GenericClassName]
+  classNames: Seq[RealTypeSignature]
 ) extends SignatureType
 
 final case class GenericClassName(
