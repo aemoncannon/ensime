@@ -167,7 +167,7 @@ object ExtendsObjectGenericArg
 
 final case class SpecifiedGenericArg(
   boundType: Option[BoundType],
-  genericSignature: SignatureType
+  genericSignature: RealTypeSignature
 ) extends GenericArg
 
 final case class GenericArray(className: RealTypeSignature)
