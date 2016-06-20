@@ -306,6 +306,33 @@ class DebugTest extends EnsimeSpec
     }
   }
 
+  they should "be retrievable for the BugFromGitter scenario" taggedAs Debugger in withEnsimeConfig { implicit config =>
+    withTestKit { implicit testkit =>
+      withProject { (project, asyncHelper) =>
+        implicit val p = (project, asyncHelper)
+        withDebugSession(
+          "variables.BugFromGitter",
+          "variables/BugFromGitter.scala",
+          31
+        ) { (threadId, variablesFile) =>
+            getVariableAsString(threadId, "actualTimes").text should be("10")
+
+            getVariableAsString(threadId, "name").text should be("\"Rory\"")
+
+            getVariableAsString(threadId, "times").text should be("5")
+
+            getVariableAsString(threadId, "arrayTest").text should be("Array(length = 4)[1,2,3,...]")
+
+            getVariableAsString(threadId, "listTest").text should
+              startWith("Instance of scala.collection.immutable.$colon$colon")
+
+            getVariableAsString(threadId, "person").text should
+              startWith("Instance of variables.Person")
+          }
+      }
+    }
+  }
+
   they should "set variable values" taggedAs Debugger in withEnsimeConfig { implicit config =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
