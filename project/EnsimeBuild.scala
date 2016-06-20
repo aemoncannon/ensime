@@ -27,7 +27,10 @@ object EnsimeBuild extends Build {
        "io.spray" %% "spray-json" % "1.3.2"
     ),
 
-    // disabling shared memory gives a small performance boost to tests
+    // NOTE: Temporary for testing, will not be included in final version
+    resolvers += Resolver.sonatypeRepo("snapshots"),
+
+      // disabling shared memory gives a small performance boost to tests
     javaOptions ++= Seq("-XX:+PerfDisableSharedMem"),
 
     javaOptions in Test ++= Seq(
