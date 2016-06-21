@@ -27,9 +27,6 @@ object EnsimeBuild extends Build {
        "io.spray" %% "spray-json" % "1.3.2"
     ),
 
-    // NOTE: Temporary for testing, will not be included in final version
-    resolvers += Resolver.sonatypeRepo("snapshots"),
-
       // disabling shared memory gives a small performance boost to tests
     javaOptions ++= Seq("-XX:+PerfDisableSharedMem"),
 
@@ -159,7 +156,7 @@ object EnsimeBuild extends Build {
         },
         "commons-lang" % "commons-lang" % "2.6",
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",
-        "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-SNAPSHOT"
+        "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-M2"
       ) ++ Sensible.testLibs("it,test") ++ Sensible.shapeless(scalaVersion.value)
     ) enablePlugins BuildInfoPlugin settings (
         buildInfoPackage := organization.value,
