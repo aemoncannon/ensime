@@ -305,6 +305,8 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
   // debounce and give us a chance to batch (which is *much* faster)
   var worker: Cancellable = _
 
+  private val advice = "If the problem persists, you may need to restart ensime."
+
   private def debounce(): Unit = {
     Option(worker).foreach(_.cancel())
     import context.dispatcher
@@ -328,10 +330,15 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
 
       log.debug(s"Indexing ${batch.size} files")
 
+      def retry(): Unit = {
+        batch.foreach(self !)
+      }
+
       Future.sequence(batch.map {
         case (url, f) =>
-          // paranoid check because I don't trust VFS
-          if (!f.exists() || !File(url).exists()) {
+          val filename = f.getName.getPath
+          // I don't trust VFS's f.exists()
+          if (!File(filename).exists()) {
             Future {
               searchService.semaphore.acquire() // nasty, but otherwise we leak
               f -> Nil
@@ -340,12 +347,14 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       }).onComplete {
         case Failure(t) =>
           searchService.semaphore.release()
-          log.error(t, s"failed to index batch of ${batch.size} files")
+          log.error(t, s"failed to index batch of ${batch.size} files. $advice")
+          retry()
         case Success(indexed) =>
           searchService.delete(indexed.map(_._1)(collection.breakOut)).onComplete {
             case Failure(t) =>
               searchService.semaphore.release()
-              log.error(t, s"failed to remove stale entries in ${batch.size} files")
+              log.error(t, s"failed to remove stale entries in ${batch.size} files. $advice")
+              retry()
             case Success(_) => indexed.foreach {
               case (file, syms) =>
                 val boost = searchService.isUserFile(file.getName)
@@ -356,7 +365,9 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
                 }
 
                 persisting.onComplete {
-                  case Failure(t) => log.error(t, s"failed to persist entries in $file")
+                  case Failure(t) =>
+                    log.error(t, s"failed to persist entries in $file. $advice")
+                    retry()
                   case Success(_) =>
                 }
             }
