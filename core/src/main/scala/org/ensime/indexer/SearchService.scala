@@ -329,11 +329,17 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       log.debug(s"Indexing ${batch.size} files")
 
       Future.sequence(batch.map {
-        case (_, f) =>
-          if (!f.exists()) Future.successful(f -> Nil)
-          else searchService.extractSymbolsFromClassOrJar(f).map(f -> )
+        case (url, f) =>
+          // paranoid check because I don't trust VFS
+          if (!f.exists() || !File(url).exists()) {
+            Future {
+              searchService.semaphore.acquire() // nasty, but otherwise we leak
+              f -> Nil
+            }
+          } else searchService.extractSymbolsFromClassOrJar(f).map(f -> )
       }).onComplete {
         case Failure(t) =>
+          searchService.semaphore.release()
           log.error(t, s"failed to index batch of ${batch.size} files")
         case Success(indexed) =>
           searchService.delete(indexed.map(_._1)(collection.breakOut)).onComplete {
