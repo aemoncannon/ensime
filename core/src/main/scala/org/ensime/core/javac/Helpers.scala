@@ -9,6 +9,9 @@ import javax.lang.model.`type`.{ DeclaredType, PrimitiveType, TypeKind, TypeMirr
 import javax.lang.model.element.{ ElementKind, Element, TypeElement }
 import org.ensime.api.deprecating
 import org.ensime.core.{ DocFqn, DocSig }
+import javax.lang.model.element.ExecutableElement
+import scala.collection.JavaConversions._
+import org.ensime.util.Show
 
 @deprecating("prefer FullyQualifiedName")
 final case class JavaFqn(pack: Option[String], typename: Option[String], fieldOrMethod: Option[String]) {
@@ -95,4 +98,24 @@ trait Helpers extends UnsafeHelpers with SLF4JLogging {
       case _ => None
     }
   }
+
+  def elementName(e: ExecutableElement)(implicit showType: Show[TypeMirror]): String = {
+
+    val params = e.getParameters.map { p =>
+      val paramType = showType(p.asType())
+      val paramName = p.getSimpleName
+      s"$paramType $paramName"
+    }.mkString("(", ", ", ")")
+
+    val returns = showType(e.getReturnType)
+
+    val modifiers = e.getModifiers.mkString(" ")
+
+    val name = e.getSimpleName
+
+    s"$modifiers $returns $name$params"
+  }
+
+  def fullName(e: ExecutableElement): String = elementName(e)(Show.fromToString)
+  def shortName(e: ExecutableElement): String = elementName(e)(Show.show(_.toString.split("\\.").last))
 }

@@ -91,66 +91,35 @@ class JavaCompiler(
   def askTypeAtPoint(file: SourceFileInfo, offset: Int): Option[TypeInfo] = {
     pathToPoint(file, offset) flatMap {
       case (c: Compilation, path: TreePath) =>
-        getTypeMirror(c, offset).map(typeMirrorToTypeInfo)
+        getElement(c, path).map(elementToTypeInfo)
     }
   }
 
-  private def executableElementToTypeInfo(e: ExecutableElement): TypeInfo = {
-
-    val params = e.getParameters.zipWithIndex.map {
-      case (tpe, idx) => ("_" + idx, typeMirrorToTypeInfo(tpe.asType()))
-    }
-
-    val paramList = e.getParameters
-      .map(_.asType())
-      .mkString("(", ", ", ")")
-
-    val returnType = e.getReturnType
-
-    val name = s"$paramList => $returnType"
-
-    ArrowTypeInfo(
-      name,
-      name,
-      typeMirrorToTypeInfo(e.getReturnType),
-      ParamSectionInfo(params, isImplicit = false) :: Nil
-    )
+  private def elementToTypeInfo(element: Element): TypeInfo = element match {
+    case e: ExecutableElement => methodToTypeInfo(e)
+    case e => typeMirrorToTypeInfo(e.asType())
   }
 
-  private def elementToTypeInfo(e: Element): TypeInfo = {
-    typeMirrorToTypeInfo(e.asType())
-  }
-
-  private def pathToSymbol(c: Compilation, path: TreePath): Option[SymbolInfo] = {
-
-    val nameOption: Option[String] = path.getLeaf match {
-      case t: IdentifierTree => Some(t.getName.toString)
-      case t: MemberSelectTree => Some(t.getIdentifier.toString)
-      case _ => None
-    }
-
-    for {
-      name <- nameOption
-      elem <- Option(c.trees.getElement(path))
-    } yield {
-
-      val typeInfo = elem match {
-        case e: ExecutableElement => executableElementToTypeInfo(e)
-        case e => elementToTypeInfo(e)
-      }
-
-      SymbolInfo(
-        fqn(c, path).map(_.toFqnString).getOrElse(name),
-        name,
-        findDeclPos(c, path),
-        typeInfo
-      )
-    }
-  }
+  private def getElement(c: Compilation, path: TreePath): Option[Element] = Option(c.trees.getElement(path))
 
   def askSymbolAtPoint(file: SourceFileInfo, offset: Int): Option[SymbolInfo] = {
     pathToPoint(file, offset) flatMap {
-      case (c: Compilation, path: TreePath) => pathToSymbol(c, path)
+      case (c: Compilation, path: TreePath) =>
+        for {
+          name <- path.getLeaf match {
+            case t: IdentifierTree => Some(t.getName.toString)
+            case t: MemberSelectTree => Some(t.getIdentifier.toString)
+            case _ => None
+          }
+          typeInfo <- getElement(c, path).map(elementToTypeInfo)
+        } yield {
+          SymbolInfo(
+            fqn(c, path).map(_.toFqnString).getOrElse(name),
+            name,
+            findDeclPos(c, path),
+            typeInfo
+          )
+        }
     }
   }
 
@@ -184,11 +153,11 @@ class JavaCompiler(
   }
 
   protected def typeMirrorToTypeInfo(tm: TypeMirror): TypeInfo =
-    BasicTypeInfo(tm.toString, DeclaredAs.Class, tm.toString, Nil, Nil, None)
+    BasicTypeInfo(tm.toString(), DeclaredAs.Class, tm.toString, Nil, Nil, None)
 
-  protected def methodToTypeInfo(e: ExecutableElement): TypeInfo =
+  protected def methodToTypeInfo(e: ExecutableElement): TypeInfo = {
     ArrowTypeInfo(
-      e.getSimpleName.toString, e.toString,
+      shortName(e), fullName(e),
       typeMirrorToTypeInfo(e.getReturnType),
       ParamSectionInfo(
         e.getParameters.asScala.map { param =>
@@ -197,6 +166,7 @@ class JavaCompiler(
         isImplicit = false
       ) :: Nil
     )
+  }
 
   private def getTypeMirror(c: Compilation, offset: Int): Option[TypeMirror] = {
     val path: Option[TreePath] = PathFor(c, offset)
