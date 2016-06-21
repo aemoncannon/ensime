@@ -240,7 +240,7 @@ class DebugTest extends EnsimeSpec
                 summary should startWith("Instance of scala.collection.immutable.$colon$colon")
                 exactly(1, debugFields) should matchPattern {
                   case DebugClassField(_, head, "java.lang.Object", summary) if (
-                    (head == "head" || head == "scala$collection$immutable$$colon$colon$$hd") &&
+                    (head == "head" || head == "hd") &&
                     summary.startsWith("Instance of java.lang.Integer")
                   ) =>
                 }
