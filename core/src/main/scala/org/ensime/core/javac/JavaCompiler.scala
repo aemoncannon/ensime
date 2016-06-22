@@ -14,7 +14,6 @@ import com.sun.source.tree.{ Scope, IdentifierTree, MemberSelectTree }
 import com.sun.source.util.{ JavacTask, TreePath }
 import com.sun.tools.javac.util.Abort
 import javax.lang.model.`type`.{ TypeMirror }
-import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.Element
 import javax.tools._
 import org.ensime.api._
@@ -23,7 +22,6 @@ import org.ensime.indexer.SearchService
 import org.ensime.util.ReportHandler
 import org.ensime.util.file._
 import org.ensime.vfs._
-import scala.collection.JavaConversions._
 
 class JavaCompiler(
     val config: EnsimeConfig,
@@ -89,20 +87,23 @@ class JavaCompiler(
   }
 
   def askTypeAtPoint(file: SourceFileInfo, offset: Int): Option[TypeInfo] = {
+
+    import JavaNameFormat.defaultTypeNameFormat
+    import JavaNameFormat.typeAtPointMethodNameFormat
+
     pathToPoint(file, offset) flatMap {
       case (c: Compilation, path: TreePath) =>
-        getElement(c, path).map(elementToTypeInfo)
+        getElement(c, path).map(ElementToTypeInfo(_))
     }
-  }
-
-  private def elementToTypeInfo(element: Element): TypeInfo = element match {
-    case e: ExecutableElement => methodToTypeInfo(e)
-    case e => typeMirrorToTypeInfo(e.asType())
   }
 
   private def getElement(c: Compilation, path: TreePath): Option[Element] = Option(c.trees.getElement(path))
 
   def askSymbolAtPoint(file: SourceFileInfo, offset: Int): Option[SymbolInfo] = {
+
+    import JavaNameFormat.defaultTypeNameFormat
+    import JavaNameFormat.symbolAtPointMethodNameFormat
+
     pathToPoint(file, offset) flatMap {
       case (c: Compilation, path: TreePath) =>
         for {
@@ -111,7 +112,7 @@ class JavaCompiler(
             case t: MemberSelectTree => Some(t.getIdentifier.toString)
             case _ => None
           }
-          typeInfo <- getElement(c, path).map(elementToTypeInfo)
+          typeInfo <- getElement(c, path).map(ElementToTypeInfo(_))
         } yield {
           SymbolInfo(
             fqn(c, path).map(_.toFqnString).getOrElse(name),
@@ -154,19 +155,6 @@ class JavaCompiler(
 
   protected def typeMirrorToTypeInfo(tm: TypeMirror): TypeInfo =
     BasicTypeInfo(tm.toString(), DeclaredAs.Class, tm.toString, Nil, Nil, None)
-
-  protected def methodToTypeInfo(e: ExecutableElement): TypeInfo = {
-    ArrowTypeInfo(
-      shortName(e), fullName(e),
-      typeMirrorToTypeInfo(e.getReturnType),
-      ParamSectionInfo(
-        e.getParameters.asScala.map { param =>
-          param.getSimpleName.toString -> typeMirrorToTypeInfo(param.asType)
-        },
-        isImplicit = false
-      ) :: Nil
-    )
-  }
 
   private def getTypeMirror(c: Compilation, offset: Int): Option[TypeMirror] = {
     val path: Option[TreePath] = PathFor(c, offset)

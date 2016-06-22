@@ -224,12 +224,17 @@ trait JavaCompletion { this: JavaCompiler =>
     }
   }
 
-  private def methodInfo(e: ExecutableElement, relevance: Int): CompletionInfo =
+  private def methodInfo(e: ExecutableElement, relevance: Int): CompletionInfo = {
+
+    import JavaNameFormat.defaultTypeNameFormat
+    import JavaNameFormat.completionAtPointMethodNameFormat
+
     CompletionInfo(
-      Some(methodToTypeInfo(e)),
+      Some(MethodToTypeInfo(e)),
       e.getSimpleName.toString,
       relevance, None
     )
+  }
 
   private def fieldInfo(e: VariableElement, relevance: Int): CompletionInfo = {
     val s = e.getSimpleName.toString

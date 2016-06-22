@@ -113,7 +113,19 @@ class JavaCompilerSpec extends EnsimeSpec
           case "3" =>
             info.name shouldBe "java.io.PrintStream.println(java.lang.Object)"
             info.localName shouldBe "println"
-            info.`type`.name shouldBe "public void println(Object arg0)"
+            info.`type` shouldBe ArrowTypeInfo(
+              "void println(Object arg0)", "void println(java.lang.Object arg0)",
+              BasicTypeInfo("void", DeclaredAs.Class, "void", Nil, Nil, None),
+              ParamSectionInfo(
+                ("arg0" -> BasicTypeInfo(
+                  "java.lang.Object",
+                  DeclaredAs.Class,
+                  "java.lang.Object",
+                  Nil, Nil, None
+                )) :: Nil,
+                isImplicit = false
+              ) :: Nil
+            )
           case "4" =>
             info.name shouldBe "java.io.File"
             info.localName shouldBe "File"
@@ -128,7 +140,14 @@ class JavaCompilerSpec extends EnsimeSpec
           case "6" =>
             info.name shouldBe "org.example.Test2.compute()"
             info.localName shouldBe "compute"
-            info.`type`.name shouldBe "public static int compute()"
+            info.`type` shouldBe ArrowTypeInfo(
+              "int compute()", "int compute()",
+              BasicTypeInfo("int", DeclaredAs.Class, "int", Nil, Nil, None),
+              ParamSectionInfo(
+                Nil,
+                isImplicit = false
+              ) :: Nil
+            )
             info.declPos should matchPattern {
               case Some(LineSourcePosition(f, 8)) if f.getName == "Test2.java" =>
               case Some(OffsetSourcePosition(f, 48)) if f.getName == "Test2.java" =>
@@ -137,7 +156,26 @@ class JavaCompilerSpec extends EnsimeSpec
             {}
             info.name shouldBe "org.example.Test1.compute(int,int)"
             info.localName shouldBe "compute"
-            info.`type`.name shouldBe "private static int compute(int a, int b)"
+            info.`type` shouldBe ArrowTypeInfo(
+              "int compute(int a, int b)", "int compute(int a, int b)",
+              BasicTypeInfo("int", DeclaredAs.Class, "int", Nil, Nil, None),
+              ParamSectionInfo(
+                ("a" -> BasicTypeInfo(
+                  "int",
+                  DeclaredAs.Class,
+                  "int",
+                  Nil, Nil, None
+                )) ::
+                  ("b" -> BasicTypeInfo(
+                    "int",
+                    DeclaredAs.Class,
+                    "int",
+                    Nil, Nil, None
+                  )) :: Nil,
+                isImplicit = false
+              ) :: Nil
+            )
+            // "private static int compute(int a, int b)"
             info.declPos should matchPattern { case Some(OffsetSourcePosition(f, 481)) if f.getName == "Test1.java" => }
           case "8" =>
             info.name shouldBe "org.example.Test1.CONST"
