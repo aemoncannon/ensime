@@ -14,8 +14,8 @@ import scala.collection.immutable.ListSet
 import scala.concurrent.duration._
 import scala.util.Properties._
 import scala.util._
-import org.ensime.util.file._
 import org.ensime.util.FileUtils
+import org.ensime.util.path._
 
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
@@ -121,16 +121,16 @@ class Project(
         5 seconds, scalac, ReloadExistingFilesEvent
       )
     // HACK: to expedite initial dev, Java requests use the Scala API
-    case m @ TypecheckFileReq(sfi) if sfi.path.toFile.isJava => javac forward m
-    case m @ CompletionsReq(sfi, _, _, _, _) if sfi.path.toFile.isJava => javac forward m
-    case m @ DocUriAtPointReq(sfi, _) if sfi.path.toFile.isJava => javac forward m
-    case m @ TypeAtPointReq(sfi, _) if sfi.path.toFile.isJava => javac forward m
-    case m @ SymbolDesignationsReq(sfi, _, _, _) if sfi.path.toFile.isJava => javac forward m
-    case m @ SymbolAtPointReq(sfi, _) if sfi.path.toFile.isJava => javac forward m
+    case m @ TypecheckFileReq(sfi) if sfi.path.isJava => javac forward m
+    case m @ CompletionsReq(sfi, _, _, _, _) if sfi.path.isJava => javac forward m
+    case m @ DocUriAtPointReq(sfi, _) if sfi.path.isJava => javac forward m
+    case m @ TypeAtPointReq(sfi, _) if sfi.path.isJava => javac forward m
+    case m @ SymbolDesignationsReq(sfi, _, _, _) if sfi.path.isJava => javac forward m
+    case m @ SymbolAtPointReq(sfi, _) if sfi.path.isJava => javac forward m
 
     // mixed mode query
     case TypecheckFilesReq(files) =>
-      val (javas, scalas) = files.partition(_.path.toFile.isJava)
+      val (javas, scalas) = files.partition(_.path.isJava)
       if (javas.nonEmpty) javac forward TypecheckFilesReq(javas)
       if (scalas.nonEmpty) scalac forward TypecheckFilesReq(scalas)
 
