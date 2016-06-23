@@ -167,7 +167,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
     import org.ensime.util.file._
     val pcLocation = sourceMap.newLineSourcePosition(frame.location).getOrElse(
       LineSourcePosition(
-        File(frame.location.sourcePath).toPath,
+        File(frame.location.sourcePath).canon.toPath,
         frame.location.lineNumber
       )
     )
