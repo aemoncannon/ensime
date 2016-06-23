@@ -9,16 +9,17 @@ import scala.collection.breakOut
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-
 import akka.actor.ActorRef
-import com.sun.source.tree.{ Scope, IdentifierTree, MemberSelectTree, Tree }
+import com.sun.source.tree.{ IdentifierTree, MemberSelectTree, Scope, Tree }
 import com.sun.source.util.TreePath
 import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.{ Element, ExecutableElement, PackageElement, TypeElement, VariableElement }
 import javax.lang.model.util.ElementFilter
+
 import org.ensime.api._
 import org.ensime.core.CompletionUtil
 import org.ensime.util.file._
+import org.ensime.util.path.EnrichPath
 
 trait JavaCompletion { this: JavaCompiler =>
 
@@ -259,7 +260,7 @@ trait JavaCompletion { this: JavaCompiler =>
   }
 
   private def contentsAsString(sf: SourceFileInfo, charset: Charset) = sf match {
-    case SourceFileInfo(f, None, None) => f.toFile.readString()
+    case SourceFileInfo(f, None, None) => f.readString
     case SourceFileInfo(f, Some(contents), None) => contents
     case SourceFileInfo(f, None, Some(contentsIn)) => contentsIn.readString()
   }

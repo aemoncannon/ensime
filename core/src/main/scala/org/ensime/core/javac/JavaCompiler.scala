@@ -2,25 +2,27 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core.javac
 
-import java.io.{ File, FileInputStream, InputStream }
+import java.io.{ File, InputStream }
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.JavaConverters._
-
 import akka.actor.ActorRef
 import akka.event.slf4j.SLF4JLogging
-import com.sun.source.tree.{ Scope, IdentifierTree, MemberSelectTree }
+import com.sun.source.tree.{ IdentifierTree, MemberSelectTree, Scope }
 import com.sun.source.util.{ JavacTask, TreePath }
 import com.sun.tools.javac.util.Abort
-import javax.lang.model.`type`.{ TypeMirror }
+import javax.lang.model.`type`.TypeMirror
 import javax.lang.model.element.ExecutableElement
 import javax.tools._
+
 import org.ensime.api._
 import org.ensime.core.DocSigPair
 import org.ensime.indexer.SearchService
 import org.ensime.util.ReportHandler
+import org.ensime.util.PathUtils._
 import org.ensime.util.file._
+import org.ensime.util.path.{ EnrichPath, Path }
 import org.ensime.vfs._
 
 class JavaCompiler(
@@ -69,7 +71,7 @@ class JavaCompiler(
 
   def internSource(sf: SourceFileInfo): JavaFileObject = {
     val jfo = getJavaFileObject(sf)
-    workingSet.put(sf.path.toAbsolutePath.toString, jfo)
+    workingSet.put(generateMd5(sf.path.toString), jfo)
     jfo
   }
 
@@ -199,21 +201,21 @@ class JavaCompiler(
     }
   }
 
-  private class JavaObjectWithContents(val f: File, val contents: String)
+  private class JavaObjectWithContents(val f: Path, val contents: String)
       extends SimpleJavaFileObject(f.toURI, JavaFileObject.Kind.SOURCE) {
     override def getCharContent(ignoreEncodingErrors: Boolean): CharSequence = contents
   }
 
-  private class JavaObjectFromFile(val f: File)
+  private class JavaObjectFromFile(val f: Path)
       extends SimpleJavaFileObject(f.toURI, JavaFileObject.Kind.SOURCE) {
     override def getCharContent(ignoreEncodingErrors: Boolean): CharSequence = f.readString
-    override def openInputStream(): InputStream = new FileInputStream(f)
+    override def openInputStream(): InputStream = getInputStream(f)
   }
 
   private def getJavaFileObject(sf: SourceFileInfo): JavaFileObject = sf match {
-    case SourceFileInfo(f, None, None) => new JavaObjectFromFile(f.toFile)
-    case SourceFileInfo(f, Some(contents), None) => new JavaObjectWithContents(f.toFile, contents)
-    case SourceFileInfo(f, None, Some(contentsIn)) => new JavaObjectWithContents(f.toFile, contentsIn.readString)
+    case SourceFileInfo(f, None, None) => new JavaObjectFromFile(f)
+    case SourceFileInfo(f, Some(contents), None) => new JavaObjectWithContents(f, contents)
+    case SourceFileInfo(f, None, Some(contentsIn)) => new JavaObjectWithContents(f, contentsIn.readString)
   }
 
   private class JavaDiagnosticListener extends DiagnosticListener[JavaFileObject] with ReportHandler {
