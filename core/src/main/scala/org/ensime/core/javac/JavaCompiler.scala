@@ -10,11 +10,10 @@ import scala.collection.JavaConverters._
 
 import akka.actor.ActorRef
 import akka.event.slf4j.SLF4JLogging
-import com.sun.source.tree.{ Scope, IdentifierTree, MemberSelectTree }
+import com.sun.source.tree.Scope
 import com.sun.source.util.{ JavacTask, TreePath }
 import com.sun.tools.javac.util.Abort
 import javax.lang.model.`type`.{ TypeMirror }
-import javax.lang.model.element.Element
 import javax.tools._
 import org.ensime.api._
 import org.ensime.core.DocSigPair
@@ -24,12 +23,18 @@ import org.ensime.util.file._
 import org.ensime.vfs._
 
 class JavaCompiler(
-    val config: EnsimeConfig,
-    val reportHandler: ReportHandler,
-    val indexer: ActorRef,
-    val search: SearchService,
-    val vfs: EnsimeVFS
-) extends JavaDocFinding with JavaCompletion with JavaSourceFinding with Helpers with SLF4JLogging {
+  val config: EnsimeConfig,
+  val reportHandler: ReportHandler,
+  val indexer: ActorRef,
+  val search: SearchService,
+  val vfs: EnsimeVFS
+) extends JavaDocFinding
+    with JavaCompletionsAtPoint
+    with JavaTypeAtPoint
+    with JavaSymbolAtPoint
+    with JavaSourceFinding
+    with Helpers
+    with SLF4JLogging {
 
   private val listener = new JavaDiagnosticListener()
   private val silencer = new SilencedDiagnosticListener()
@@ -86,55 +91,11 @@ class JavaCompiler(
     infos.headOption.flatMap { c => findInCompiledUnit(c, fqn) }
   }
 
-  def askTypeAtPoint(file: SourceFileInfo, offset: Int): Option[TypeInfo] = {
-
-    import JavaNameFormat.defaultTypeNameFormat
-    import JavaNameFormat.typeAtPointMethodNameFormat
-
-    pathToPoint(file, offset) flatMap {
-      case (c: Compilation, path: TreePath) =>
-        getElement(c, path).map(ElementToTypeInfo(_))
-    }
-  }
-
-  private def getElement(c: Compilation, path: TreePath): Option[Element] = Option(c.trees.getElement(path))
-
-  def askSymbolAtPoint(file: SourceFileInfo, offset: Int): Option[SymbolInfo] = {
-
-    import JavaNameFormat.defaultTypeNameFormat
-    import JavaNameFormat.symbolAtPointMethodNameFormat
-
-    pathToPoint(file, offset) flatMap {
-      case (c: Compilation, path: TreePath) =>
-        for {
-          name <- path.getLeaf match {
-            case t: IdentifierTree => Some(t.getName.toString)
-            case t: MemberSelectTree => Some(t.getIdentifier.toString)
-            case _ => None
-          }
-          typeInfo <- getElement(c, path).map(ElementToTypeInfo(_))
-        } yield {
-          SymbolInfo(
-            fqn(c, path).map(_.toFqnString).getOrElse(name),
-            name,
-            findDeclPos(c, path),
-            typeInfo
-          )
-        }
-    }
-  }
-
   def askDocSignatureAtPoint(file: SourceFileInfo, offset: Int): Option[DocSigPair] = {
     pathToPoint(file, offset) flatMap {
       case (c: Compilation, path: TreePath) =>
         docSignature(c, path)
     }
-  }
-
-  def askCompletionsAtPoint(
-    file: SourceFileInfo, offset: Int, maxResults: Int, caseSens: Boolean
-  ): CompletionInfoList = {
-    completionsAt(file, offset, maxResults, caseSens)
   }
 
   protected def pathToPoint(file: SourceFileInfo, offset: Int): Option[(Compilation, TreePath)] = {
@@ -153,8 +114,8 @@ class JavaCompiler(
     }
   }
 
-  protected def typeMirrorToTypeInfo(tm: TypeMirror): TypeInfo =
-    BasicTypeInfo(tm.toString(), DeclaredAs.Class, tm.toString, Nil, Nil, None)
+  // protected def typeMirrorToTypeInfo(tm: TypeMirror): TypeInfo =
+  //   BasicTypeInfo(tm.toString(), DeclaredAs.Class, tm.toString, Nil, Nil, None)
 
   private def getTypeMirror(c: Compilation, offset: Int): Option[TypeMirror] = {
     val path: Option[TreePath] = PathFor(c, offset)

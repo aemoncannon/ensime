@@ -34,14 +34,27 @@ class JavaCompilerSpec extends EnsimeSpec
         "class Tes@0@t1 {",
         "  private void main() {",
         "    int fo@1@o = 1;",
-        "    System.out.println(fo@2@o);",
+        "    System.out.pri@2@ntln(fo@3@o);",
         "  }",
         "}") { (sf, offset, label, cc) =>
           val info = cc.askTypeAtPoint(sf, offset).get
           label match {
             case "0" => info.name shouldBe "Test1"
             case "1" => info.name shouldBe "int"
-            case "2" => info.name shouldBe "int"
+            case "2" => info shouldBe ArrowTypeInfo(
+              "void (int)", "void (int)",
+              BasicTypeInfo("void", DeclaredAs.Class, "void", Nil, Nil, None),
+              ParamSectionInfo(
+                ("arg0" -> BasicTypeInfo(
+                  "int",
+                  DeclaredAs.Class,
+                  "int",
+                  Nil, Nil, None
+                )) :: Nil,
+                isImplicit = false
+              ) :: Nil
+            )
+            case "3" => info.name shouldBe "int"
           }
         }
     }
@@ -157,16 +170,16 @@ class JavaCompilerSpec extends EnsimeSpec
             info.name shouldBe "org.example.Test1.compute(int,int)"
             info.localName shouldBe "compute"
             info.`type` shouldBe ArrowTypeInfo(
-              "int compute(int a, int b)", "int compute(int a, int b)",
+              "int compute(int arg0, int arg1)", "int compute(int arg0, int arg1)",
               BasicTypeInfo("int", DeclaredAs.Class, "int", Nil, Nil, None),
               ParamSectionInfo(
-                ("a" -> BasicTypeInfo(
+                ("arg0" -> BasicTypeInfo(
                   "int",
                   DeclaredAs.Class,
                   "int",
                   Nil, Nil, None
                 )) ::
-                  ("b" -> BasicTypeInfo(
+                  ("arg1" -> BasicTypeInfo(
                     "int",
                     DeclaredAs.Class,
                     "int",
