@@ -5,9 +5,9 @@ package org.ensime.util
 import java.io._
 import java.net.URI
 import java.nio.charset.Charset
+import java.nio.file.Files
 
 import org.apache.commons.vfs2.FileObject
-
 import org.ensime.api._
 import org.ensime.util.file._
 
@@ -32,10 +32,10 @@ object RichFileObject {
 object FileUtils {
 
   implicit def toSourceFileInfo(f: Either[File, SourceFileInfo]): SourceFileInfo =
-    f.fold(l => SourceFileInfo(l, None, None), r => r)
+    f.fold(l => SourceFileInfo(l.toPath, None, None), r => r)
 
   def exists(f: SourceFileInfo) = f match {
-    case SourceFileInfo(f, _, _) if f.exists() => true
+    case SourceFileInfo(f, _, _) if Files.exists(f) => true
     case SourceFileInfo(_, Some(c), _) => true
     case SourceFileInfo(_, _, Some(f)) if f.exists() => true
     case _ => false

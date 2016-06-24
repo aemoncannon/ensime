@@ -3,6 +3,8 @@
 package org.ensime.api
 
 import java.io.File
+import java.nio.file.Path
+
 import scala.annotation.StaticAnnotation
 
 /**
@@ -91,10 +93,10 @@ object RefactorType {
 }
 
 final case class SourceFileInfo(
-    file: File,
+    path: Path,
     contents: Option[String] = None,
     contentsIn: Option[File] = None
 ) {
   // keep the log file sane for unsaved files
-  override def toString = s"SourceFileInfo($file,${contents.map(_ => "...")},$contentsIn)"
+  override def toString = s"SourceFileInfo($path ,${contents.map(_ => "...")},$contentsIn)"
 }

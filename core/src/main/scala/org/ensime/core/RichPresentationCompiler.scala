@@ -43,20 +43,21 @@ import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
-import scala.reflect.io.PlainFile
+import scala.reflect.io.VirtualFile
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.nsc.util._
 import scala.tools.refactoring.analysis.GlobalIndexes
-
 import akka.actor.ActorRef
 import org.ensime.api._
 import org.ensime.config._
 import org.ensime.indexer._
 import org.ensime.model._
+import org.ensime.util.PathUtils._
 import org.ensime.util.file._
+import org.ensime.util.path.EnrichPath
 import org.ensime.vfs._
 import org.slf4j.LoggerFactory
 
@@ -207,7 +208,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askSymbolDesignationsInRegion(p: RangePosition, tpes: List[SourceSymbol]): SymbolDesignations =
     askOption(
       new SemanticHighlighting(this).symbolDesignationsInRegion(p, tpes)
-    ).getOrElse(SymbolDesignations(new File("."), List.empty))
+    ).getOrElse(SymbolDesignations(new File(".").toPath, List.empty))
 
   def askImplicitInfoInRegion(p: Position): ImplicitInfos =
     ImplicitInfos(
@@ -219,7 +220,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askNotifyWhenReady(): Unit = ask(setNotifyWhenReady)
 
   // WARNING: be really careful when creating BatchSourceFiles. there
-  // are multiple constructers which do weird things, best to be very
+  // are multiple constructors which do weird things, best to be very
   // explicit about what we're doing and only use the primary
   // constructor. Note that scalac appears to have a bug in it whereby
   // it is unable to tell that a VirtualFile (i.e. in-memory) and a
@@ -227,7 +228,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   // the same compilation unit. see
   // https://github.com/ensime/ensime-server/issues/1160
   def createSourceFile(file: File): BatchSourceFile =
-    createSourceFile(SourceFileInfo(file, None, None))
+    createSourceFile(SourceFileInfo(file.toPath, None, None))
   def createSourceFile(path: String): BatchSourceFile =
     createSourceFile(new File(path))
   def createSourceFile(file: AbstractFile): BatchSourceFile =
@@ -235,19 +236,19 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def createSourceFile(file: SourceFileInfo): BatchSourceFile = file match {
     case SourceFileInfo(f, None, None) =>
       new BatchSourceFile(
-        new PlainFile(f.getPath),
-        f.readString()(charset).toCharArray
+        new VirtualFile(generateMd5(f.toString), f.toString),
+        f.readString(charset).toCharArray
       )
 
     case SourceFileInfo(f, Some(contents), None) =>
       new BatchSourceFile(
-        new PlainFile(f.getPath),
+        new VirtualFile(generateMd5(f.toString), f.toString),
         contents.toCharArray
       )
 
     case SourceFileInfo(f, None, Some(contentsIn)) =>
       new BatchSourceFile(
-        new PlainFile(f.getPath),
+        new VirtualFile(generateMd5(f.toString), f.toString),
         contentsIn.readString()(charset).toCharArray
       )
   }

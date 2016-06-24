@@ -3,6 +3,7 @@
 package org.ensime.api
 
 import java.io.File
+import java.nio.file.Path
 
 /**
  * There should be exactly one `RpcResponseEnvelope` in response to an
@@ -98,7 +99,7 @@ final case class NewJavaNotesEvent(
 final case class DebugStepEvent(
   threadId: DebugThreadId,
   threadName: String,
-  file: File,
+  path: Path,
   line: Int
 ) extends DebugEvent
 
@@ -106,7 +107,7 @@ final case class DebugStepEvent(
 final case class DebugBreakEvent(
   threadId: DebugThreadId,
   threadName: String,
-  file: File,
+  path: Path,
   line: Int
 ) extends DebugEvent
 
@@ -121,7 +122,7 @@ final case class DebugExceptionEvent(
   exception: Long,
   threadId: DebugThreadId,
   threadName: String,
-  file: Option[File],
+  path: Option[Path],
   line: Option[Int]
 ) extends DebugEvent
 
@@ -234,7 +235,7 @@ case object PosNeededYes extends PosNeeded
 sealed trait SourcePosition extends RpcResponse
 final case class EmptySourcePosition() extends SourcePosition
 final case class OffsetSourcePosition(file: File, offset: Int) extends SourcePosition
-final case class LineSourcePosition(file: File, line: Int) extends SourcePosition
+final case class LineSourcePosition(path: Path, line: Int) extends SourcePosition
 
 final case class PackageInfo(
     name: String,
@@ -272,7 +273,7 @@ final case class ImportSuggestions(symLists: List[List[SymbolSearchResult]]) ext
 final case class SymbolSearchResults(syms: List[SymbolSearchResult]) extends RpcResponse
 
 final case class SymbolDesignations(
-  file: File,
+  path: Path,
   syms: List[SymbolDesignation]
 ) extends RpcResponse
 
