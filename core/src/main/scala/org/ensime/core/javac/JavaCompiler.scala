@@ -16,9 +16,10 @@ import com.sun.tools.javac.util.Abort
 import javax.lang.model.`type`.{ TypeMirror, TypeKind }
 import javax.lang.model.element.ExecutableElement
 import javax.tools._
-import org.ensime.api._
+import org.ensime.api.{ BasicTypeInfo => _, _ }
 import org.ensime.core.DocSigPair
 import org.ensime.indexer.SearchService
+import org.ensime.model.BasicTypeInfo
 import org.ensime.util.ReportHandler
 import org.ensime.util.file._
 import org.ensime.vfs._
@@ -99,7 +100,7 @@ class JavaCompiler(
         def withName(name: String): Option[SymbolInfo] = {
 
           val tpeMirror = Option(c.trees.getTypeMirror(path))
-          val nullTpe = BasicTypeInfo("NA", DeclaredAs.Nil, "NA", List.empty, List.empty, None)
+          val nullTpe = BasicTypeInfo("NA", DeclaredAs.Nil, "NA")
 
           Some(SymbolInfo(
             fqn(c, path).map(_.toFqnString).getOrElse(name),
@@ -147,7 +148,7 @@ class JavaCompiler(
   }
 
   protected def typeMirrorToTypeInfo(tm: TypeMirror): TypeInfo =
-    BasicTypeInfo(tm.toString, DeclaredAs.Class, tm.toString, Nil, Nil, None)
+    BasicTypeInfo(tm.toString, DeclaredAs.Class, tm.toString)
 
   protected def methodToTypeInfo(e: ExecutableElement): TypeInfo =
     ArrowTypeInfo(
@@ -158,7 +159,7 @@ class JavaCompiler(
           param.getSimpleName.toString -> typeMirrorToTypeInfo(param.asType)
         },
         isImplicit = false
-      ) :: Nil
+      ) :: Nil, Nil
     )
 
   private def getTypeMirror(c: Compilation, offset: Int): Option[TypeMirror] = {
