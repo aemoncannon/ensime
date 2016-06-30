@@ -15,7 +15,7 @@ object EnsimeBuild extends Build {
   lazy override val settings = super.settings ++ Seq(
     scalaVersion := "2.11.8",
     organization := "org.ensime",
-    version := "1.0.1-SNAPSHOT"
+    version := "1.0.1-SNAPSHOT" // don't forget to update .drone.yml
   )
 
   lazy val commonSettings = Sensible.settings ++ Seq(
