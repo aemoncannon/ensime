@@ -13,7 +13,7 @@ import akka.stream._
 import akka.util.{ ByteString, Timeout }
 import com.google.common.io.Files
 import org.ensime.api._
-import org.ensime.jerk._
+import org.ensime.jerky._
 
 import scala.concurrent.Future
 
@@ -39,23 +39,14 @@ trait WebServer {
   def docJars(): Set[File]
 
   import Directives._
-  import JerkEnvelopeFormats._
-  import JerkFormats._
+  import JerkyFormats._
   import Route._
   import ScalaXmlSupport._
   import SprayJsonSupport._
   import WebSocketBoilerplate._
 
   val route = seal {
-    path("rpc") {
-      post {
-        entity(as[RpcRequest]) { request =>
-          complete {
-            restHandler(request)
-          }
-        }
-      }
-    } ~ path("docs") {
+    path("docs") {
       complete {
         <html>
           <head></head>
