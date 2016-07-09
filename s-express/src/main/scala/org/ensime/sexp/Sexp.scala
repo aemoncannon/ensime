@@ -78,6 +78,8 @@ object SexpList {
 /**
  * Sugar for (:k1 v1 :k2 v2)
  * [keyword symbols](https://www.gnu.org/software/emacs/manual/html_node/elisp/Symbol-Type.html):
+ *
+ * `SexpData` is defined as a type alias in `package.scala`
  */
 object SexpData {
   def apply(kvs: (SexpSymbol, Sexp)*): Sexp = apply(kvs.toList)
@@ -92,7 +94,7 @@ object SexpData {
       SexpList(kvs.flatMap { case (k, v) => k :: v :: Nil }(breakOut): List[Sexp])
     }
 
-  def unapply(sexp: Sexp): Option[Map[SexpSymbol, Sexp]] = sexp match {
+  def unapply(sexp: Sexp): Option[SexpData] = sexp match {
     case SexpList(values) =>
       // order can be important in serialised forms
       val props = {

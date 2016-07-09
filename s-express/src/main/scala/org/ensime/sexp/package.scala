@@ -9,6 +9,8 @@ package sexp {
 }
 
 package object sexp {
+  type SexpData = Map[SexpSymbol, Sexp]
+
   implicit class EnrichedAny[T](val any: T) extends AnyVal {
     def toSexp(implicit writer: SexpWriter[T]): Sexp = writer.write(any)
   }

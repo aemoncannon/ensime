@@ -14,7 +14,7 @@ import org.ensime.sexp._
  *
  * Will be replaced by a port of spray-json-shapeless.
  */
-trait FamilyFormats {
+trait LegacyFamilyFormats {
   case class TypeHint[T](hint: SexpSymbol)
   implicit def typehint[T](implicit t: Typeable[T]): TypeHint[T] =
     TypeHint(SexpSymbol(":" + t.describe.replaceAll("\\.type$", "")))

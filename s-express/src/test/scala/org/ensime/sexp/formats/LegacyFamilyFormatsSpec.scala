@@ -4,11 +4,11 @@ package org.ensime.sexp.formats
 
 import org.ensime.sexp._
 
-class FamilyFormatsSpec extends FormatSpec with FamilyFormats {
+class LegacyFamilyFormatsSpec extends FormatSpec with LegacyFamilyFormats {
 
   case object Bloo
 
-  "FamilyFormats" should "support case objects" in {
+  "LegacyFamilyFormats" should "support case objects" in {
     assertFormat(Bloo, SexpNil)
   }
 
