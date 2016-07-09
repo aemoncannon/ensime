@@ -44,7 +44,7 @@ private[formats] trait LowPriorityFamilyFormats
       tpe: Typeable[Wrapped]
   ) {
     final def read(s: Sexp): SubRepr = s match {
-      case SexpNil => readData(Map.empty)
+      case SexpNil => readData(ListMap.empty)
       case SexpData(data) => readData(data)
       case other => deserializationError(other)
     }
@@ -123,7 +123,7 @@ private[formats] trait LowPriorityFamilyFormats
 
       override def writeData(lr: FieldType[Name, Instance] :+: Remaining) = lr match {
         case Inl(l) => sfh.value.write(l) match {
-          case SexpNil => th.write(Map.empty, key.value)
+          case SexpNil => th.write(ListMap.empty, key.value)
           case SexpData(data) => th.write(data, key.value)
           case other => serializationError(s"expected SexpData, got $other")
         }
@@ -212,12 +212,12 @@ trait SexpFormatHints {
 
     def read[Name <: Symbol](d: SexpData, n: Name): Option[SexpData] = {
       d.get(field(n.name)).collect {
-        case SexpNil => Map.empty
+        case SexpNil => ListMap.empty
         case SexpData(data) => data
       }
     }
     def write[Name <: Symbol](d: SexpData, n: Name): SexpData = {
-      Map(field(n.name) -> squash(d))
+      ListMap(field(n.name) -> squash(d))
     }
   }
 

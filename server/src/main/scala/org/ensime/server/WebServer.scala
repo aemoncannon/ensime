@@ -5,7 +5,6 @@ package org.ensime.server
 import java.io.File
 
 import akka.actor._
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshallers.xml.ScalaXmlSupport
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
@@ -14,6 +13,7 @@ import akka.util.{ ByteString, Timeout }
 import com.google.common.io.Files
 import org.ensime.api._
 import org.ensime.jerky._
+import org.ensime.swanky._
 
 import scala.concurrent.Future
 
@@ -39,10 +39,8 @@ trait WebServer {
   def docJars(): Set[File]
 
   import Directives._
-  import JerkyFormats._
   import Route._
   import ScalaXmlSupport._
-  import SprayJsonSupport._
   import WebSocketBoilerplate._
 
   val route = seal {
@@ -73,7 +71,13 @@ trait WebServer {
       }
     } ~ path("jerky") {
       get {
+        import JerkyFormats._
         jsonWebsocket[RpcRequestEnvelope, RpcResponseEnvelope](websocketHandler)
+      }
+    } ~ path("swanky") {
+      get {
+        import SwankyFormats._
+        sexpWebsocket[RpcRequestEnvelope, RpcResponseEnvelope](websocketHandler)
       }
     }
   }
