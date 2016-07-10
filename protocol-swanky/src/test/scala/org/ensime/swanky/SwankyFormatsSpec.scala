@@ -244,47 +244,47 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       DebugContinueReq(dtid): RpcRequest,
-      s"""(:DebugContinueReq (:threadId (:id 13)))"""
+      s"""(:DebugContinueReq (:threadId 13))"""
     )
 
     roundtrip(
       DebugStepReq(dtid): RpcRequest,
-      s"""(:DebugStepReq (:threadId (:id 13)))"""
+      s"""(:DebugStepReq (:threadId 13))"""
     )
 
     roundtrip(
       DebugNextReq(dtid): RpcRequest,
-      s"""(:DebugNextReq (:threadId (:id 13)))"""
+      s"""(:DebugNextReq (:threadId 13))"""
     )
 
     roundtrip(
       DebugStepOutReq(dtid): RpcRequest,
-      s"""(:DebugStepOutReq (:threadId (:id 13)))"""
+      s"""(:DebugStepOutReq (:threadId 13))"""
     )
 
     roundtrip(
       DebugLocateNameReq(dtid, "foo"): RpcRequest,
-      s"""(:DebugLocateNameReq (:threadId (:id 13) :name "foo"))"""
+      s"""(:DebugLocateNameReq (:threadId 13 :name "foo"))"""
     )
 
     roundtrip(
       DebugValueReq(debugLocationArray): RpcRequest,
-      s"""(:DebugValueReq (:loc (:DebugArrayElement (:objectId (:id 13) :index 14))))"""
+      s"""(:DebugValueReq (:loc (:DebugArrayElement (:objectId 13 :index 14))))"""
     )
 
     roundtrip(
       DebugToStringReq(dtid, debugLocationArray): RpcRequest,
-      s"""(:DebugToStringReq (:threadId (:id 13) :loc (:DebugArrayElement (:objectId (:id 13) :index 14))))"""
+      s"""(:DebugToStringReq (:threadId 13 :loc (:DebugArrayElement (:objectId 13 :index 14))))"""
     )
 
     roundtrip(
       DebugSetValueReq(debugLocationArray, "bar"): RpcRequest,
-      s"""(:DebugSetValueReq (:loc (:DebugArrayElement (:objectId (:id 13) :index 14)) :newValue "bar"))"""
+      s"""(:DebugSetValueReq (:loc (:DebugArrayElement (:objectId 13 :index 14)) :newValue "bar"))"""
     )
 
     roundtrip(
       DebugBacktraceReq(dtid, 100, 200): RpcRequest,
-      s"""(:DebugBacktraceReq (:threadId (:id 13) :index 100 :count 200))"""
+      s"""(:DebugBacktraceReq (:threadId 13 :index 100 :count 200))"""
     )
 
   }
@@ -332,12 +332,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       DebugStepEvent(DebugThreadId(207), "threadNameStr", sourcePos1.file, sourcePos1.line): EnsimeEvent,
-      s"""(:DebugStepEvent (:threadId (:id 207) :threadName "threadNameStr" :file "$file1" :line 57))"""
+      s"""(:DebugStepEvent (:threadId 207 :threadName "threadNameStr" :file "$file1" :line 57))"""
     )
 
     roundtrip(
       DebugBreakEvent(DebugThreadId(209), "threadNameStr", sourcePos1.file, sourcePos1.line): EnsimeEvent,
-      s"""(:DebugBreakEvent (:threadId (:id 209) :threadName "threadNameStr" :file "$file1" :line 57))"""
+      s"""(:DebugBreakEvent (:threadId 209 :threadName "threadNameStr" :file "$file1" :line 57))"""
     )
 
     roundtrip(
@@ -352,44 +352,44 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       DebugExceptionEvent(33L, dtid, "threadNameStr", Some(sourcePos1.file), Some(sourcePos1.line)): EnsimeEvent,
-      s"""(:DebugExceptionEvent (:exception 33 :threadId (:id 13) :threadName "threadNameStr" :file "$file1" :line 57))"""
+      s"""(:DebugExceptionEvent (:exception 33 :threadId 13 :threadName "threadNameStr" :file "$file1" :line 57))"""
     )
 
     roundtrip(
       DebugExceptionEvent(33L, dtid, "threadNameStr", None, None): EnsimeEvent,
-      """(:DebugExceptionEvent (:exception 33 :threadId (:id 13) :threadName "threadNameStr"))"""
+      """(:DebugExceptionEvent (:exception 33 :threadId 13 :threadName "threadNameStr"))"""
     )
 
     roundtrip(
       DebugThreadStartEvent(dtid): EnsimeEvent,
-      """(:DebugThreadStartEvent (:threadId (:id 13)))"""
+      """(:DebugThreadStartEvent (:threadId 13))"""
     )
 
     roundtrip(
       DebugThreadDeathEvent(dtid): EnsimeEvent,
-      """(:DebugThreadDeathEvent (:threadId (:id 13)))"""
+      """(:DebugThreadDeathEvent (:threadId 13))"""
     )
   }
 
   it should "roundtrip DebugLocation" in {
     roundtrip(
       DebugObjectReference(57L): DebugLocation,
-      """(:DebugObjectReference (:objectId (:id 57)))"""
+      """(:DebugObjectReference (:objectId 57))"""
     )
 
     roundtrip(
       DebugArrayElement(DebugObjectId(58L), 2): DebugLocation,
-      """(:DebugArrayElement (:objectId (:id 58) :index 2))"""
+      """(:DebugArrayElement (:objectId 58 :index 2))"""
     )
 
     roundtrip(
       DebugObjectField(DebugObjectId(58L), "fieldName"): DebugLocation,
-      """(:DebugObjectField (:objectId (:id 58) :field "fieldName"))"""
+      """(:DebugObjectField (:objectId 58 :field "fieldName"))"""
     )
 
     roundtrip(
       DebugStackSlot(DebugThreadId(27), 12, 23): DebugLocation,
-      """(:DebugStackSlot (:threadId (:id 27) :frame 12 :offset 23))"""
+      """(:DebugStackSlot (:threadId 27 :frame 12 :offset 23))"""
     )
   }
 
@@ -401,12 +401,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       DebugStringInstance("summaryStr", List(debugClassField), "typeNameStr", DebugObjectId(5L)): DebugValue,
-      """(:DebugStringInstance (:summary "summaryStr" :fields ((:index 19 :name "nameStr" :typeName "typeNameStr" :summary "summaryStr")) :typeName "typeNameStr" :objectId (:id 5)))"""
+      """(:DebugStringInstance (:summary "summaryStr" :fields ((:index 19 :name "nameStr" :typeName "typeNameStr" :summary "summaryStr")) :typeName "typeNameStr" :objectId 5))"""
     )
 
     roundtrip(
       DebugObjectInstance("summaryStr", List(debugClassField), "typeNameStr", DebugObjectId(5L)): DebugValue,
-      """(:DebugObjectInstance (:summary "summaryStr" :fields ((:index 19 :name "nameStr" :typeName "typeNameStr" :summary "summaryStr")) :typeName "typeNameStr" :objectId (:id 5)))"""
+      """(:DebugObjectInstance (:summary "summaryStr" :fields ((:index 19 :name "nameStr" :typeName "typeNameStr" :summary "summaryStr")) :typeName "typeNameStr" :objectId 5))"""
     )
 
     roundtrip(
@@ -416,7 +416,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       DebugArrayInstance(3, "typeName", "elementType", DebugObjectId(5L)): DebugValue,
-      """(:DebugArrayInstance (:length 3 :typeName "typeName" :elementTypeName "elementType" :objectId (:id 5)))"""
+      """(:DebugArrayInstance (:length 3 :typeName "typeName" :elementTypeName "elementType" :objectId 5))"""
     )
 
     roundtrip(
@@ -431,12 +431,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       debugStackFrame: DebugStackFrame,
-      s"""(:DebugStackFrame (:index 7 :locals ((:index 3 :name "name1" :summary "summary1" :typeName "type1") (:index 4 :name "name2" :summary "summary2" :typeName "type2")) :numArgs 4 :className "class1" :methodName "method1" :pcLocation (:file "$file1" :line 57) :thisObjectId (:id 7)))"""
+      s"""(:DebugStackFrame (:index 7 :locals ((:index 3 :name "name1" :summary "summary1" :typeName "type1") (:index 4 :name "name2" :summary "summary2" :typeName "type2")) :numArgs 4 :className "class1" :methodName "method1" :pcLocation (:file "$file1" :line 57) :thisObjectId 7))"""
     )
 
     roundtrip(
       DebugBacktrace(List(debugStackFrame), dtid, "thread1"): DebugBacktrace,
-      s"""(:DebugBacktrace (:frames ((:index 7 :locals ((:index 3 :name "name1" :summary "summary1" :typeName "type1") (:index 4 :name "name2" :summary "summary2" :typeName "type2")) :numArgs 4 :className "class1" :methodName "method1" :pcLocation (:file "$file1" :line 57) :thisObjectId (:id 7))) :threadId (:id 13) :threadName "thread1"))"""
+      s"""(:DebugBacktrace (:frames ((:index 7 :locals ((:index 3 :name "name1" :summary "summary1" :typeName "type1") (:index 4 :name "name2" :summary "summary2" :typeName "type2")) :numArgs 4 :className "class1" :methodName "method1" :pcLocation (:file "$file1" :line 57) :thisObjectId 7)) :threadId 13 :threadName "thread1"))"""
     )
 
     roundtrip(

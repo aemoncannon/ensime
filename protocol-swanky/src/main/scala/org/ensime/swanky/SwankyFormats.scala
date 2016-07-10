@@ -15,6 +15,16 @@ private object SwankyConversions
     with OptionAltFormat
     with FamilyFormats {
 
+  implicit object DebugThreadIdFormat extends SexpFormat[DebugThreadId] {
+    override def read(s: Sexp): DebugThreadId = DebugThreadId(LongFormat.read(s))
+    override def write(t: DebugThreadId): Sexp = LongFormat.write(t.id)
+  }
+
+  implicit object DebugObjectIdFormat extends SexpFormat[DebugObjectId] {
+    override def read(s: Sexp): DebugObjectId = DebugObjectId(LongFormat.read(s))
+    override def write(t: DebugObjectId): Sexp = LongFormat.write(t.id)
+  }
+
   implicit val RpcRequestEnvelopeFormat: SexpFormat[RpcRequestEnvelope] = cachedImplicit
   implicit val RpcResponseEnvelopeFormat: SexpFormat[RpcResponseEnvelope] = cachedImplicit
 
