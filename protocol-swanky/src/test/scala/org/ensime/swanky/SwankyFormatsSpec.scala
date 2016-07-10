@@ -341,13 +341,13 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      DebugVMStartEvent: EnsimeEvent,
-      """(:debug-v-m-start-event nil)"""
+      DebugVmStartEvent: EnsimeEvent,
+      """(:debug-vm-start-event nil)"""
     )
 
     roundtrip(
-      DebugVMDisconnectEvent: EnsimeEvent,
-      """(:debug-v-m-disconnect-event nil)"""
+      DebugVmDisconnectEvent: EnsimeEvent,
+      """(:debug-vm-disconnect-event nil)"""
     )
 
     roundtrip(
