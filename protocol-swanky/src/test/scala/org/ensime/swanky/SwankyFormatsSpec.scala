@@ -32,7 +32,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
   "SWANK Formats" should "roundtrip startup messages" in {
     roundtrip(
       ConnectionInfoReq: RpcRequest,
-      "(:connection-info-req nil)"
+      ":connection-info-req"
     )
   }
 
@@ -71,12 +71,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       UnloadAllReq: RpcRequest,
-      """(:unload-all-req nil)"""
+      """:unload-all-req"""
     )
 
     roundtrip(
       TypecheckAllReq: RpcRequest,
-      """(:typecheck-all-req nil)"""
+      """:typecheck-all-req"""
     )
 
     roundtrip(
@@ -169,7 +169,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
         Left(file1), 1, 100,
         List(ObjectSymbol, ValSymbol)
       ): RpcRequest,
-      s"""(:symbol-designations-req (:file "$file1" :start 1 :end 100 :requested-types ((:object-symbol nil) (:val-symbol nil))))"""
+      s"""(:symbol-designations-req (:file "$file1" :start 1 :end 100 :requested-types (:object-symbol :val-symbol)))"""
     )
 
     roundtrip(
@@ -177,7 +177,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
         Right(SourceFileInfo(file1, None, None)), 1, 100,
         List(ObjectSymbol, ValSymbol)
       ): RpcRequest,
-      s"""(:symbol-designations-req (:file (:file "$file1") :start 1 :end 100 :requested-types ((:object-symbol nil) (:val-symbol nil))))"""
+      s"""(:symbol-designations-req (:file (:file "$file1") :start 1 :end 100 :requested-types (:object-symbol :val-symbol)))"""
     )
 
     roundtrip(
@@ -204,7 +204,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
   it should "roundtrip RpcDebugRequests" in {
     roundtrip(
       DebugActiveVmReq: RpcRequest,
-      """(:debug-active-vm-req nil)"""
+      """:debug-active-vm-req"""
     )
 
     roundtrip(
@@ -214,7 +214,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       DebugStopReq: RpcRequest,
-      """(:debug-stop-req nil)"""
+      """:debug-stop-req"""
     )
 
     roundtrip(
@@ -229,17 +229,17 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       DebugClearAllBreaksReq: RpcRequest,
-      s"""(:debug-clear-all-breaks-req nil)"""
+      s""":debug-clear-all-breaks-req"""
     )
 
     roundtrip(
       DebugListBreakpointsReq: RpcRequest,
-      s"""(:debug-list-breakpoints-req nil)"""
+      s""":debug-list-breakpoints-req"""
     )
 
     roundtrip(
       DebugRunReq: RpcRequest,
-      s"""(:debug-run-req nil)"""
+      s""":debug-run-req"""
     )
 
     roundtrip(
@@ -297,17 +297,17 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       AnalyzerReadyEvent: EnsimeEvent,
-      "(:analyzer-ready-event nil)"
+      ":analyzer-ready-event"
     )
 
     roundtrip(
       FullTypeCheckCompleteEvent: EnsimeEvent,
-      "(:full-type-check-complete-event nil)"
+      ":full-type-check-complete-event"
     )
 
     roundtrip(
       IndexerReadyEvent: EnsimeEvent,
-      "(:indexer-ready-event nil)"
+      ":indexer-ready-event"
     )
 
     roundtrip(
@@ -315,12 +315,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
         isFull = false,
         List(Note("foo.scala", "testMsg", NoteWarn, 50, 55, 77, 5))
       ): EnsimeEvent,
-      """(:new-scala-notes-event (:notes ((:file "foo.scala" :msg "testMsg" :severity (:note-warn nil) :beg 50 :end 55 :line 77 :col 5))))"""
+      """(:new-scala-notes-event (:notes ((:file "foo.scala" :msg "testMsg" :severity :note-warn :beg 50 :end 55 :line 77 :col 5))))"""
     )
 
     roundtrip(
       ClearAllScalaNotesEvent: EnsimeEvent,
-      "(:clear-all-scala-notes-event nil)"
+      ":clear-all-scala-notes-event"
     )
   }
 
@@ -342,12 +342,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       DebugVmStartEvent: EnsimeEvent,
-      """(:debug-vm-start-event nil)"""
+      """:debug-vm-start-event"""
     )
 
     roundtrip(
       DebugVmDisconnectEvent: EnsimeEvent,
-      """(:debug-vm-disconnect-event nil)"""
+      """:debug-vm-disconnect-event"""
     )
 
     roundtrip(
@@ -451,7 +451,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       sourcePos3: SourcePosition,
-      "(:empty-source-position nil)"
+      ":empty-source-position"
     )
 
     roundtrip(
@@ -483,12 +483,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
   it should "roundtrip various informational types" in {
     roundtrip(
       note1: Note,
-      """(:note (:file "file1" :msg "note1" :severity (:note-error nil) :beg 23 :end 33 :line 19 :col 8))"""
+      """(:note (:file "file1" :msg "note1" :severity :note-error :beg 23 :end 33 :line 19 :col 8))"""
     )
 
     roundtrip(
       completionInfo: CompletionInfo,
-      """(:completion-info (:type-info (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")) :name "name" :relevance 90 :to-insert "BAZ"))"""
+      """(:completion-info (:type-info (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")) :name "name" :relevance 90 :to-insert "BAZ"))"""
     )
 
     roundtrip(
@@ -498,32 +498,32 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       CompletionInfoList("fooBar", List(completionInfo)): CompletionInfoList,
-      """(:completion-info-list (:prefix "fooBar" :completions ((:type-info (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")) :name "name" :relevance 90 :to-insert "BAZ"))))"""
+      """(:completion-info-list (:prefix "fooBar" :completions ((:type-info (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")) :name "name" :relevance 90 :to-insert "BAZ"))))"""
     )
 
     roundtrip(
       SymbolInfo("name", "localName", None, typeInfo): SymbolInfo,
-      """(:symbol-info (:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1"))))"""
+      """(:symbol-info (:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1"))))"""
     )
 
     roundtrip(
       NamedTypeMemberInfo("typeX", typeInfo, None, None, DeclaredAs.Method): EntityInfo,
-      """(:named-type-member-info (:name "typeX" :type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")) :decl-as (:method nil)))"""
+      """(:named-type-member-info (:name "typeX" :type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")) :decl-as :method))"""
     )
 
     roundtrip(
       entityInfo: EntityInfo,
-      """(:arrow-type-info (:name "Arrow1" :full-name "example.Arrow1" :result-type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")) :param-sections ((:params ((:_1 "ABC" :_2 (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1"))))))))"""
+      """(:arrow-type-info (:name "Arrow1" :full-name "example.Arrow1" :result-type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")) :param-sections ((:params ((:_1 "ABC" :_2 (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1"))))))))"""
     )
 
     roundtrip(
       entityInfoTypeParams: EntityInfo,
-      s"""(:arrow-type-info (:name "Arrow1" :full-name "example.Arrow1" :result-type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")) :param-sections ((:params ((:_1 "ABC" :_2 (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")))))) :type-params ((:basic-type-info (:name "A" :decl-as (:nil nil) :full-name "example.Arrow1.A")) (:basic-type-info (:name "B" :decl-as (:nil nil) :full-name "example.Arrow1.B")))))"""
+      s"""(:arrow-type-info (:name "Arrow1" :full-name "example.Arrow1" :result-type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")) :param-sections ((:params ((:_1 "ABC" :_2 (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")))))) :type-params ((:basic-type-info (:name "A" :decl-as :nil :full-name "example.Arrow1.A")) (:basic-type-info (:name "B" :decl-as :nil :full-name "example.Arrow1.B")))))"""
     )
 
     roundtrip(
       typeInfo: EntityInfo,
-      """(:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1"))"""
+      """(:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1"))"""
     )
 
     roundtrip(
@@ -533,12 +533,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       interfaceInfo: InterfaceInfo,
-      """(:interface-info (:type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")) :via-view "DEF"))"""
+      """(:interface-info (:type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")) :via-view "DEF"))"""
     )
 
     roundtrip(
       TypeInspectInfo(typeInfo, List(interfaceInfo)): TypeInspectInfo,
-      """(:type-inspect-info (:type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")) :interfaces ((:type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")) :via-view "DEF")) :info-type typeInspect))"""
+      """(:type-inspect-info (:type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")) :interfaces ((:type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")) :via-view "DEF")) :info-type typeInspect))"""
     )
 
     roundtrip(
@@ -555,22 +555,22 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
   it should "roundtrip search related responses" in {
     roundtrip(
       SymbolSearchResults(List(methodSearchRes, typeSearchRes)): SymbolSearchResults,
-      s"""(:symbol-search-results (:syms ((:method-search-result (:name "abc" :local-name "a" :decl-as (:method nil) :pos (:line-source-position (:file "$abd" :line 10)) :owner-name "ownerStr")) (:type-search-result (:name "abc" :local-name "a" :decl-as (:trait nil) :pos (:line-source-position (:file "$abd" :line 10)))))))"""
+      s"""(:symbol-search-results (:syms ((:method-search-result (:name "abc" :local-name "a" :decl-as :method :pos (:line-source-position (:file "$abd" :line 10)) :owner-name "ownerStr")) (:type-search-result (:name "abc" :local-name "a" :decl-as :trait :pos (:line-source-position (:file "$abd" :line 10)))))))"""
     )
 
     roundtrip(
       ImportSuggestions(List(List(methodSearchRes, typeSearchRes))): ImportSuggestions,
-      s"""(:import-suggestions (:sym-lists (((:method-search-result (:name "abc" :local-name "a" :decl-as (:method nil) :pos (:line-source-position (:file "$abd" :line 10)) :owner-name "ownerStr")) (:type-search-result (:name "abc" :local-name "a" :decl-as (:trait nil) :pos (:line-source-position (:file "$abd" :line 10))))))))"""
+      s"""(:import-suggestions (:sym-lists (((:method-search-result (:name "abc" :local-name "a" :decl-as :method :pos (:line-source-position (:file "$abd" :line 10)) :owner-name "ownerStr")) (:type-search-result (:name "abc" :local-name "a" :decl-as :trait :pos (:line-source-position (:file "$abd" :line 10))))))))"""
     )
 
     roundtrip(
       methodSearchRes: SymbolSearchResult,
-      s"""(:method-search-result (:name "abc" :local-name "a" :decl-as (:method nil) :pos (:line-source-position (:file "$abd" :line 10)) :owner-name "ownerStr"))"""
+      s"""(:method-search-result (:name "abc" :local-name "a" :decl-as :method :pos (:line-source-position (:file "$abd" :line 10)) :owner-name "ownerStr"))"""
     )
 
     roundtrip(
       typeSearchRes: SymbolSearchResult,
-      s"""(:type-search-result (:name "abc" :local-name "a" :decl-as (:trait nil) :pos (:line-source-position (:file "$abd" :line 10))))"""
+      s"""(:type-search-result (:name "abc" :local-name "a" :decl-as :trait :pos (:line-source-position (:file "$abd" :line 10))))"""
     )
   }
 
@@ -592,17 +592,17 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
         SymbolDesignation(11, 22, ClassSymbol)
       )
       ): SymbolDesignations,
-      s"""(:symbol-designations (:file "$symFile" :syms ((:start 7 :end 9 :sym-type (:var-field-symbol nil)) (:start 11 :end 22 :sym-type (:class-symbol nil)))))"""
+      s"""(:symbol-designations (:file "$symFile" :syms ((:start 7 :end 9 :sym-type :var-field-symbol) (:start 11 :end 22 :sym-type :class-symbol))))"""
     )
 
     roundtrip(
       ImplicitInfos(List(ImplicitConversionInfo(5, 6, symbolInfo))): ImplicitInfos,
-      """(:implicit-infos (:infos ((:implicit-conversion-info (:start 5 :end 6 :fun (:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1"))))))))"""
+      """(:implicit-infos (:infos ((:implicit-conversion-info (:start 5 :end 6 :fun (:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1"))))))))"""
     )
 
     roundtrip(
       ImplicitInfos(List(ImplicitParamInfo(5, 6, symbolInfo, List(symbolInfo, symbolInfo), true))): ImplicitInfos,
-      s"""(:implicit-infos (:infos ((:implicit-param-info (:start 5 :end 6 :fun (:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1"))) :params ((:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1"))) (:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as (:method nil) :full-name "FOO.type1")))) :fun-is-implicit t)))))"""
+      s"""(:implicit-infos (:infos ((:implicit-param-info (:start 5 :end 6 :fun (:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1"))) :params ((:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1"))) (:name "name" :local-name "localName" :type (:basic-type-info (:name "type1" :decl-as :method :full-name "FOO.type1")))) :fun-is-implicit t)))))"""
     )
   }
 
@@ -614,7 +614,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       refactorDiffEffect: RefactorDiffEffect,
-      s"""(:refactor-diff-effect (:procedure-id 9 :refactor-type (:add-import nil) :diff "$file2"))"""
+      s"""(:refactor-diff-effect (:procedure-id 9 :refactor-type :add-import :diff "$file2"))"""
     )
 
   }
@@ -622,12 +622,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
   it should "roundtrip legacy raw response types" in {
     roundtrip(
       FalseResponse,
-      "(:false-response nil)"
+      ":false-response"
     )
 
     roundtrip(
       TrueResponse,
-      "(:true-response nil)"
+      ":true-response"
     )
 
     roundtrip(
@@ -637,7 +637,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       VoidResponse,
-      """(:void-response nil)"""
+      """:void-response"""
     )
 
   }
