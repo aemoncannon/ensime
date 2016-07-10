@@ -15,6 +15,13 @@ private object SwankyConversions
     with OptionAltFormat
     with FamilyFormats {
 
+  def dashify(field: String): String =
+    ":" + field.replaceAll("([A-Z])", "-$1").toLowerCase.replaceAll("^-", "")
+
+  implicit override def productHint[T]: ProductHint[T] = new BasicProductHint[T] {
+    override def field[Key <: Symbol](key: Key): SexpSymbol = SexpSymbol(dashify(key.name))
+  }
+
   implicit object DebugThreadIdFormat extends SexpFormat[DebugThreadId] {
     override def read(s: Sexp): DebugThreadId = DebugThreadId(LongFormat.read(s))
     override def write(t: DebugThreadId): Sexp = LongFormat.write(t.id)
