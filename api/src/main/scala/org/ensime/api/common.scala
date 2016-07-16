@@ -93,10 +93,20 @@ object RefactorType {
 }
 
 final case class SourceFileInfo(
-    path: Path,
+    file: Path,
     contents: Option[String] = None,
     contentsIn: Option[File] = None
 ) {
   // keep the log file sane for unsaved files
-  override def toString = s"SourceFileInfo($path ,${contents.map(_ => "...")},$contentsIn)"
+  override def toString = s"SourceFileInfo($file ,${contents.map(_ => "...")},$contentsIn)"
 }
+
+sealed trait EnsimeFile
+final case class RawFile(file: Path) extends EnsimeFile
+
+/**
+ * Represents a path with archive location and the entry being reffered to
+ * @param archive the container of entry
+ * @param entry is absolute
+ */
+final case class ArchiveFile(archive: Path, entry: Path) extends EnsimeFile
