@@ -423,7 +423,7 @@ class DebugActor private (
           broadcaster ! DebugBreakEvent(
             DebugThreadId(t.uniqueId),
             t.name,
-            lsp.path,
+            lsp.file,
             lsp.line
           )
         case None =>
@@ -444,7 +444,7 @@ class DebugActor private (
           broadcaster ! DebugStepEvent(
             DebugThreadId(t.uniqueId),
             t.name,
-            lsp.path,
+            lsp.file,
             lsp.line
           )
         case None =>
@@ -467,7 +467,7 @@ class DebugActor private (
         ex.uniqueId,
         DebugThreadId(t.uniqueId),
         t.name,
-        lsp.map(_.path),
+        lsp.map(_.file),
         lsp.map(_.line)
       )
     })
@@ -494,7 +494,7 @@ class DebugActor private (
         ex.uniqueId,
         DebugThreadId(t.uniqueId),
         t.name,
-        lsp.map(_.path),
+        lsp.map(_.file),
         lsp.map(_.line)
       )
     })

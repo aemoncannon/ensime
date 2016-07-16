@@ -70,7 +70,7 @@ class JavaAnalyzer(
 
     case SymbolDesignationsReq(f, start, end, tpes) =>
       // NOT IMPLEMENTED YET
-      sender ! SymbolDesignations(f.path, Nil)
+      sender ! SymbolDesignations(f.file, Nil)
 
     case SymbolAtPointReq(file, point) =>
       sender() ! javaCompiler.askSymbolAtPoint(file, point).getOrElse(FalseResponse)

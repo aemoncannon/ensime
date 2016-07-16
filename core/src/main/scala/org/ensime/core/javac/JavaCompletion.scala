@@ -51,7 +51,7 @@ trait JavaCompletion { this: JavaCompiler =>
     val candidates: List[CompletionInfo] = (if (ImportSubtypeRegexp.findFirstMatchIn(preceding).isDefined) {
       // Erase the trailing partial subtype (it breaks type resolution).
       val patched = s.substring(0, indexAfterTarget) + " " + s.substring(indexAfterTarget + defaultPrefix.length + 1);
-      (pathToPoint(SourceFileInfo(info.path, Some(patched), None), indexAfterTarget - 1) map {
+      (pathToPoint(SourceFileInfo(info.file, Some(patched), None), indexAfterTarget - 1) map {
         case (c: Compilation, path: TreePath) => {
           memberCandidates(c, path.getLeaf, defaultPrefix, true, caseSens)
         }
@@ -67,7 +67,7 @@ trait JavaCompletion { this: JavaCompiler =>
     } else if (isMemberAccess) {
       // Erase the trailing partial member (it breaks type resolution).
       val patched = s.substring(0, indexAfterTarget) + ".wait()" + s.substring(indexAfterTarget + defaultPrefix.length + 1);
-      (pathToPoint(SourceFileInfo(info.path, Some(patched), None), indexAfterTarget + 1) flatMap {
+      (pathToPoint(SourceFileInfo(info.file, Some(patched), None), indexAfterTarget + 1) flatMap {
         case (c: Compilation, path: TreePath) => {
           getEnclosingMemberSelectTree(path).map { m =>
             memberCandidates(c, m.getExpression(), defaultPrefix, false, caseSens)

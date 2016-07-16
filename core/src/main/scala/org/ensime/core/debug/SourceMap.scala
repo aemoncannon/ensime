@@ -4,11 +4,12 @@ package org.ensime.core.debug
 
 import scala.collection.JavaConverters._
 import java.io.File
-import java.nio.file.Path
+import java.nio.file.{ Path, Paths }
 import java.util.concurrent.ConcurrentHashMap
 
-import org.ensime.api.{ EnsimeConfig, LineSourcePosition }
+import org.ensime.api.{ EnsimeConfig, EnsimeFile, LineSourcePosition }
 import org.ensime.config._
+import org.ensime.util.EnsimeFileUtil
 import org.ensime.util.file.RichFile
 import org.scaladebugger.api.profiles.traits.info.LocationInfoProfile
 
@@ -56,9 +57,9 @@ class SourceMap(
    * @param location The location whose source file to find
    * @return Some file representing the local source, otherwise None
    */
-  def findFileByLocation(location: LocationInfoProfile): Option[Path] = {
+  def findFileByLocation(location: LocationInfoProfile): Option[EnsimeFile] = {
     location.trySourcePath.toOption match {
-      case Some(f) => Some(new File(f).toPath)
+      case Some(f) => Some(EnsimeFileUtil.create(f))
       case None => None
     }
     //val path = location.trySourcePath.toOption

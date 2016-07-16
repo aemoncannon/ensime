@@ -250,7 +250,7 @@ class Analyzer(
         scalaCompiler.askTypeInfoByNameAt(name, p).getOrElse(FalseResponse)
       }
     case SymbolDesignationsReq(f, start, end, Nil) =>
-      sender ! SymbolDesignations(f.path, List.empty)
+      sender ! SymbolDesignations(f.file, List.empty)
     case SymbolDesignationsReq(f, start, end, tpes) =>
       sender ! withExisting(f) {
         val sf = createSourceFile(f)
@@ -290,10 +290,10 @@ class Analyzer(
   def handleReloadFiles(files: List[SourceFileInfo]): RpcResponse = {
     val (existing, missingFiles) = files.partition(FileUtils.exists)
     if (missingFiles.nonEmpty) {
-      val missingFilePaths = missingFiles.map { f => "\"" + f.path + "\"" }.mkString(",")
+      val missingFilePaths = missingFiles.map { f => "\"" + f.file + "\"" }.mkString(",")
       EnsimeServerError(s"file(s): $missingFilePaths do not exist")
     } else {
-      val (javas, scalas) = existing.partition(_.path.endsWith(".java"))
+      val (javas, scalas) = existing.partition(_.file.endsWith(".java"))
       if (scalas.nonEmpty) {
         val sourceFiles = scalas.map(createSourceFile)
         scalaCompiler.askReloadFiles(sourceFiles)
@@ -304,7 +304,7 @@ class Analyzer(
   }
 
   def withExisting(x: SourceFileInfo)(f: => RpcResponse): RpcResponse =
-    if (FileUtils.exists(x)) f else EnsimeServerError(s"File does not exist: ${x.path}")
+    if (FileUtils.exists(x)) f else EnsimeServerError(s"File does not exist: ${x.file}")
 
   def pos(file: File, range: OffsetRange): OffsetPosition =
     pos(createSourceFile(file), range)

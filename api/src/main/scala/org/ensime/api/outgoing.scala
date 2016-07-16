@@ -99,7 +99,7 @@ final case class NewJavaNotesEvent(
 final case class DebugStepEvent(
   threadId: DebugThreadId,
   threadName: String,
-  path: Path,
+  file: EnsimeFile,
   line: Int
 ) extends DebugEvent
 
@@ -107,7 +107,7 @@ final case class DebugStepEvent(
 final case class DebugBreakEvent(
   threadId: DebugThreadId,
   threadName: String,
-  path: Path,
+  file: EnsimeFile,
   line: Int
 ) extends DebugEvent
 
@@ -122,7 +122,7 @@ final case class DebugExceptionEvent(
   exception: Long,
   threadId: DebugThreadId,
   threadName: String,
-  path: Option[Path],
+  file: Option[EnsimeFile],
   line: Option[Int]
 ) extends DebugEvent
 
@@ -235,7 +235,7 @@ case object PosNeededYes extends PosNeeded
 sealed trait SourcePosition extends RpcResponse
 final case class EmptySourcePosition() extends SourcePosition
 final case class OffsetSourcePosition(file: File, offset: Int) extends SourcePosition
-final case class LineSourcePosition(path: Path, line: Int) extends SourcePosition
+final case class LineSourcePosition(file: EnsimeFile, line: Int) extends SourcePosition
 
 final case class PackageInfo(
     name: String,

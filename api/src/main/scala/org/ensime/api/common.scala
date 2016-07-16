@@ -3,7 +3,7 @@
 package org.ensime.api
 
 import java.io.File
-import java.nio.file.Path
+import java.nio.file.{ Path, Paths }
 
 import scala.annotation.StaticAnnotation
 

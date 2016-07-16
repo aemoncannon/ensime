@@ -71,7 +71,7 @@ class JavaCompiler(
 
   def internSource(sf: SourceFileInfo): JavaFileObject = {
     val jfo = getJavaFileObject(sf)
-    workingSet.put(generateMd5(sf.path.toString), jfo)
+    workingSet.put(generateMd5(sf.file.toString), jfo)
     jfo
   }
 

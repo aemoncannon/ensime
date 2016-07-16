@@ -3,6 +3,7 @@
 package org.ensime.core.debug
 
 import org.ensime.api._
+import org.ensime.util.EnsimeFileUtil
 import org.scaladebugger.api.dsl.Implicits._
 import org.scaladebugger.api.profiles.traits.info._
 
@@ -167,7 +168,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
     import org.ensime.util.file._
     val pcLocation = sourceMap.newLineSourcePosition(frame.location).getOrElse(
       LineSourcePosition(
-        File(frame.location.sourcePath).canon.toPath,
+        EnsimeFileUtil.create(frame.location.sourcePath),
         frame.location.lineNumber
       )
     )

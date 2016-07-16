@@ -43,7 +43,7 @@ import java.nio.charset.Charset
 
 import scala.collection.mutable
 import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
-import scala.reflect.io.VirtualFile
+import scala.reflect.io.{ PlainFile, VirtualFile }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
 import scala.tools.nsc.io.AbstractFile
@@ -235,22 +235,41 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     createSourceFile(file.file)
   def createSourceFile(file: SourceFileInfo): BatchSourceFile = file match {
     case SourceFileInfo(f, None, None) =>
-      new BatchSourceFile(
-        new VirtualFile(generateMd5(f.toString), f.toString),
-        f.readString(charset).toCharArray
-      )
+      f.isJarUrl match {
+        case true => new BatchSourceFile(
+          new VirtualFile(generateMd5(f.toString), f.toString),
+          f.readString(charset).toCharArray
+        )
+        case false => new BatchSourceFile(
+          new PlainFile(f.toFile),
+          f.toFile.readString()(charset).toCharArray
+        )
+      }
 
     case SourceFileInfo(f, Some(contents), None) =>
-      new BatchSourceFile(
-        new VirtualFile(generateMd5(f.toString), f.toString),
-        contents.toCharArray
-      )
+      f.isJarUrl match {
+        case true => new BatchSourceFile(
+          new VirtualFile(generateMd5(f.toString), f.toString),
+          contents.toCharArray
+        )
+        case false => new BatchSourceFile(
+          new PlainFile(f.toFile),
+          contents.toCharArray
+        )
+      }
 
     case SourceFileInfo(f, None, Some(contentsIn)) =>
-      new BatchSourceFile(
-        new VirtualFile(generateMd5(f.toString), f.toString),
-        contentsIn.readString()(charset).toCharArray
-      )
+      f.isJarUrl match {
+        case true => new BatchSourceFile(
+          new VirtualFile(generateMd5(f.toString), f.toString),
+          contentsIn.readString()(charset).toCharArray
+        )
+        case false => new BatchSourceFile(
+          new PlainFile(f.toFile),
+          contentsIn.readString()(charset).toCharArray
+        )
+      }
+
   }
 
   def askLinkPos(sym: Symbol, path: AbstractFile): Option[Position] =
