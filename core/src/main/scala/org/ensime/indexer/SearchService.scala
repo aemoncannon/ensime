@@ -2,7 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.util.concurrent.Semaphore
+import java.util.concurrent.Executors
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -74,10 +74,11 @@ class SearchService(
 
   import ExecutionContext.Implicits.global
 
-  // each jar / directory must acquire a permit, released when the
-  // data is persisted. This is to keep the heap usage down and is a
-  // poor man's backpressure.
-  val semaphore = new Semaphore(Properties.propOrElse("ensime.index.parallel", "10").toInt, true)
+  // We run memory intensive tasks on a limited thread pool, in order to
+  // keep memory usage down.
+  val limitedThreadPool = ExecutionContext.fromExecutor(
+    Executors.newFixedThreadPool(Properties.propOrElse("ensime.index.parallel", "10").toInt)
+  )
 
   private[indexer] def getTopLevelClassFile(f: FileObject): FileObject = {
     import scala.reflect.NameTransformer
@@ -155,7 +156,6 @@ class SearchService(
       else {
         val boost = isUserFile(base.getName)
         val indexed = extractSymbolsFromClassOrJar(base, grouped).flatMap(persist(_, commitIndex = false, boost = boost))
-        indexed.onComplete { _ => semaphore.release() }
         indexed
       }
     }
@@ -207,34 +207,25 @@ class SearchService(
     iwork.flatMap { _ => dwork }
   }
 
-  // this method leak semaphore on every call, which must be released
-  // when the List[FqnSymbol] has been processed (even if it is empty)
   def extractSymbolsFromClassOrJar(
     file: FileObject,
     grouped: Map[FileObject, Set[FileObject]]
   ): Future[List[SourceSymbolInfo]] = {
-    def global: ExecutionContext = null // detach the global implicit
-    val ec = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
-
     Future {
-      blocking {
-        semaphore.acquire()
-
-        file match {
-          case classfile if classfile.getName.getExtension == "class" =>
-            // too noisy to log
-            val files = grouped(classfile)
-            try extractSymbols(classfile, files, classfile)
-            finally classfile.close()
-          case jar =>
-            log.debug(s"indexing $jar")
-            val check = FileCheck(jar)
-            val vJar = vfs.vjar(jar)
-            try { (scanGrouped(vJar) flatMap { case (root, files) => extractSymbols(jar, files, root) }).toList }
-            finally { log.debug(s"finished indexing $jar"); vfs.nuke(vJar) }
-        }
+      file match {
+        case classfile if classfile.getName.getExtension == "class" =>
+          // too noisy to log
+          val files = grouped(classfile)
+          try extractSymbols(classfile, files, classfile)
+          finally classfile.close()
+        case jar =>
+          log.debug(s"indexing $jar")
+          val check = FileCheck(jar)
+          val vJar = vfs.vjar(jar)
+          try { (scanGrouped(vJar) flatMap { case (root, files) => extractSymbols(jar, files, root) }).toList }
+          finally { log.debug(s"finished indexing $jar"); vfs.nuke(vJar) }
       }
-    }(ec)
+    }(limitedThreadPool)
   }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
@@ -399,7 +390,7 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       if (todo.nonEmpty)
         debounce()
 
-      import ExecutionContext.Implicits.global
+      import scala.concurrent.ExecutionContext.Implicits.global
 
       log.debug(s"Indexing ${batch.size} groups of files")
 
@@ -413,29 +404,22 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
           // I don't trust VFS's f.exists()
           if (!File(filename).exists()) {
             Future {
-              searchService.semaphore.acquire() // nasty, but otherwise we leak
               outerClassFile -> Nil
-            }
+            }(searchService.limitedThreadPool)
           } else searchService.extractSymbolsFromClassOrJar(outerClassFile, batch).map(outerClassFile -> )
       }).onComplete {
         case Failure(t) =>
-          searchService.semaphore.release()
           log.error(t, s"failed to index batch of ${batch.size} files. $advice")
           retry()
         case Success(indexed) =>
           searchService.delete(indexed.flatMap(f => batch(f._1))(collection.breakOut)).onComplete {
             case Failure(t) =>
-              searchService.semaphore.release()
               log.error(t, s"failed to remove stale entries in ${batch.size} files. $advice")
               retry()
             case Success(_) => indexed.foreach {
               case (file, syms) =>
                 val boost = searchService.isUserFile(file.getName)
                 val persisting = searchService.persist(syms, commitIndex = true, boost = boost)
-
-                persisting.onComplete {
-                  case _ => searchService.semaphore.release()
-                }
 
                 persisting.onComplete {
                   case Failure(t) =>
@@ -445,8 +429,6 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
                 }
             }
           }
-
       })
   }
-
 }
