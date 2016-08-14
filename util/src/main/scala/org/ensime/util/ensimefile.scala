@@ -36,14 +36,21 @@ package object ensimefile {
     implicit val DefaultCharset: Charset = Charset.defaultCharset()
   }
 
-  private val ArchiveRegex = "(?:jar:)?(?:file:)?([^!]++)!(.++)".r
-  private val FileRegex = "(?:file:)?(.++)".r
+  private val ArchiveRegex = "(?:(?:jar:)?file:)?([^!]++)!(.++)".r
+  private val FileRegex = "(?:(?:jar:)?file:)?(.++)".r
   def EnsimeFile(path: String): EnsimeFile = path match {
-    case ArchiveRegex(file, entry) => ArchiveFile(Paths.get(file), entry)
-    case FileRegex(file) => RawFile(Paths.get(file))
+    case ArchiveRegex(file, entry) => ArchiveFile(Paths.get(cleanBadWindows(file)), entry)
+    case FileRegex(file) => RawFile(Paths.get(cleanBadWindows(file)))
   }
   def EnsimeFile(path: File): EnsimeFile = RawFile(path.toPath)
   def EnsimeFile(url: URL): EnsimeFile = EnsimeFile(URLDecoder.decode(url.toExternalForm(), "UTF-8"))
+
+  // URIs on Windows can look like /C:/path/to/file, which are malformed
+  private val BadWindowsRegex = "/+([^:]+:[^:]+)".r
+  private def cleanBadWindows(file: String): String = file match {
+    case BadWindowsRegex(clean) => clean
+    case other => other
+  }
 
   implicit class RichRawFile(val raw: RawFile) extends RichEnsimeFile {
     // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247

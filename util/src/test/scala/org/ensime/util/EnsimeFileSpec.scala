@@ -44,6 +44,13 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
     EnsimeFile(s"jar:$srcUrl!/") shouldBe ArchiveFile(src, "/")
   }
 
+  it should "create instances from Windows URLs" in {
+    val file = """C:\Program Files\Java\jdk1.7.0\src.zip"""
+    val url = s"jar:file:/$file"
+
+    EnsimeFile(url) shouldBe RawFile(Paths.get(file))
+  }
+
   "RichRawFile" should "support isJava / isScala" in {
     RawFile(Paths.get("/foo/bar/baz.scala")).isScala shouldBe true
     RawFile(Paths.get("/foo/bar/baz.java")).isJava shouldBe true
