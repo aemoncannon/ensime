@@ -30,7 +30,7 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
     val jar = "/foo/bar/baz.jar"
     val entry = "/faz/gaz.scala"
     val full = s"$jar!$entry"
-    EnsimeFile(full) shouldBe ArchiveFile(Paths.get(jar), Paths.get(entry))
+    EnsimeFile(full) shouldBe ArchiveFile(Paths.get(jar), entry)
   }
 
   it should "provide access to RichEnsimeFile" in {
@@ -41,7 +41,7 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
     val srcUrl = src.toUri.toURL
 
     EnsimeFile(srcUrl) shouldBe RawFile(src)
-    EnsimeFile(s"jar:$srcUrl!/") shouldBe ArchiveFile(src, Paths.get("/"))
+    EnsimeFile(s"jar:$srcUrl!/") shouldBe ArchiveFile(src, "/")
   }
 
   "RichRawFile" should "support isJava / isScala" in {
@@ -60,8 +60,8 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
 
   "RichArchiveFile" should "support isJava / isScala" in {
     val jar = Paths.get("/foo/bar/baz.jar")
-    ArchiveFile(jar, Paths.get("/foo.scala")).isScala shouldBe true
-    ArchiveFile(jar, Paths.get("/foo.java")).isJava shouldBe true
+    ArchiveFile(jar, "/foo.scala").isScala shouldBe true
+    ArchiveFile(jar, "/foo.java").isJava shouldBe true
   }
 
   it should "check for jar and entry existence with exists()" in {

@@ -114,4 +114,4 @@ final case class RawFile(file: Path) extends EnsimeFile
  * @param jar the container of entry (in nio terms, the FileSystem)
  * @param entry is relative to the container (this needs to be loaded by a FileSystem to be usable)
  */
-final case class ArchiveFile(jar: Path, entry: Path) extends EnsimeFile
+final case class ArchiveFile(jar: Path, entry: String) extends EnsimeFile

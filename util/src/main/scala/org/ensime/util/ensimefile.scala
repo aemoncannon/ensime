@@ -39,15 +39,16 @@ package object ensimefile {
   private val ArchiveRegex = "(?:jar:)?(?:file:)?([^!]++)!(.++)".r
   private val FileRegex = "(?:file:)?(.++)".r
   def EnsimeFile(path: String): EnsimeFile = path match {
-    case ArchiveRegex(file, entry) => ArchiveFile(Paths.get(file), Paths.get(entry))
+    case ArchiveRegex(file, entry) => ArchiveFile(Paths.get(file), entry)
     case FileRegex(file) => RawFile(Paths.get(file))
   }
   def EnsimeFile(path: File): EnsimeFile = RawFile(path.toPath)
   def EnsimeFile(url: URL): EnsimeFile = EnsimeFile(url.toString())
 
   implicit class RichRawFile(val raw: RawFile) extends RichEnsimeFile {
-    override def isJava: Boolean = raw.file.isJava
-    override def isScala: Boolean = raw.file.isScala
+    // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247
+    override def isJava: Boolean = raw.file.toString.toLowerCase.endsWith(".java")
+    override def isScala: Boolean = raw.file.toString.toLowerCase.endsWith(".scala")
     override def exists(): Boolean = raw.file.exists()
     override def readStringDirect()(implicit cs: Charset): String = raw.file.readString()
     override def uri: URI = raw.file.toUri()
@@ -57,20 +58,23 @@ package object ensimefile {
   // context of the archive file, and ensuring that we close the
   // resource afterwards (which is slow for random access)
   implicit class RichArchiveFile(val archive: ArchiveFile) extends RichEnsimeFile {
-    override def isJava: Boolean = archive.entry.isJava
-    override def isScala: Boolean = archive.entry.isScala
+    override def isJava: Boolean = archive.entry.toLowerCase.endsWith(".java")
+    override def isScala: Boolean = archive.entry.toLowerCase.endsWith(".scala")
     override def exists(): Boolean = archive.jar.exists() && withEntry(_.exists())
     override def readStringDirect()(implicit cs: Charset): String = withEntry(_.readString())
-    override def uri: URI = URI.create(s"jar:file://${archive.jar}!${archive.entry}") // path is null (opaque)
+    override def uri: URI = URI.create(s"jar:${archive.jar.toUri}!${archive.entry}") // path is null (opaque)
 
-    private def fileSystem(): FileSystem = FileSystems.newFileSystem(uri, new HashMap[String, String])
+    private def fileSystem(): FileSystem = FileSystems.newFileSystem(
+      URI.create(s"jar:${archive.jar.toUri}"),
+      new HashMap[String, String]
+    )
     private def withFs[T](action: FileSystem => T): T = {
       val fs = fileSystem()
       try action(fs)
       finally fs.close()
     }
     private def withEntry[T](action: Path => T): T = withFs { fs =>
-      action(fs.getPath(archive.entry.toString))
+      action(fs.getPath(archive.entry))
     }
 
     def fullPath: String = s"${archive.jar}!${archive.entry}"

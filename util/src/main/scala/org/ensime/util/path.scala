@@ -14,9 +14,6 @@ import java.nio.file.{ Files, Path }
 package object path {
 
   implicit class RichPath(val path: Path) extends AnyVal {
-    // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247
-    def isJava: Boolean = path.toString.toLowerCase.endsWith(".java")
-    def isScala: Boolean = path.toString.toLowerCase.endsWith(".scala")
     def exists(): Boolean = Files.exists(path)
     def readBytes(): Array[Byte] = Files.readAllBytes(path)
     def readString()(implicit cs: Charset): String = new String(readBytes(), cs)
