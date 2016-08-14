@@ -43,7 +43,7 @@ package object ensimefile {
     case FileRegex(file) => RawFile(Paths.get(file))
   }
   def EnsimeFile(path: File): EnsimeFile = RawFile(path.toPath)
-  def EnsimeFile(url: URL): EnsimeFile = EnsimeFile(url.toString())
+  def EnsimeFile(url: URL): EnsimeFile = EnsimeFile(URLDecoder.decode(url.toExternalForm(), "UTF-8"))
 
   implicit class RichRawFile(val raw: RawFile) extends RichEnsimeFile {
     // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247
