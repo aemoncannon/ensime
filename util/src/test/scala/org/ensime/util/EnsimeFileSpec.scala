@@ -3,6 +3,7 @@
 package org.ensime.util.ensimefile
 
 import java.io.File
+import java.net._
 import java.nio.file._
 
 import scala.util.Properties.jdkHome
@@ -41,7 +42,7 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
     val srcUrl = src.toUri.toURL
 
     EnsimeFile(srcUrl) shouldBe RawFile(src)
-    EnsimeFile(s"jar:$srcUrl!/") shouldBe ArchiveFile(src, "/")
+    EnsimeFile(new URL(s"jar:$srcUrl!/")) shouldBe ArchiveFile(src, "/")
   }
 
   it should "create instances from Windows URLs" in {
