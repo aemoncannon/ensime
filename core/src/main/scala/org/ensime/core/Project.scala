@@ -47,7 +47,7 @@ class Project(
   private val reTypecheck = new FileChangeListener {
     def reTypeCheck(): Unit = self ! AskReTypecheck
     def fileAdded(f: FileObject): Unit = reTypeCheck()
-    def fileChanged(f: FileObject): Unit = reTypeCheck()
+    def fileChanged(f: FileObject): Unit = ()
     def fileRemoved(f: FileObject): Unit = reTypeCheck()
     override def baseReCreated(f: FileObject): Unit = reTypeCheck()
   }
