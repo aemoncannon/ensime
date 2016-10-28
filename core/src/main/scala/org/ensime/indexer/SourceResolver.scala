@@ -2,7 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import akka.event.slf4j.SLF4JLogging
+import akka.actor._
 import java.io.File
 import org.apache.commons.vfs2._
 
@@ -13,6 +13,7 @@ import org.ensime.util.file._
 import org.ensime.util.list._
 import org.ensime.util.map._
 import scala.annotation.tailrec
+import scala.concurrent.duration._
 
 // mutable: lookup of user's source files are atomically updated
 class SourceResolver(
@@ -20,8 +21,13 @@ class SourceResolver(
 )(
     implicit
     vfs: EnsimeVFS
-) extends FileChangeListener with SLF4JLogging {
+) extends Actor with ActorLogging with FileChangeListener {
+  import context.{ system, dispatcher }
 
+  case object AskReCalculate
+  case object ReCalculate
+
+  // FileChanger API
   def fileAdded(f: FileObject) = if (relevant(f)) update()
   def fileRemoved(f: FileObject) = if (relevant(f)) update()
   def fileChanged(f: FileObject) = {}
@@ -63,9 +69,13 @@ class SourceResolver(
       }
     }
 
-  def update(): Unit = {
+  private def doUpdate(): Unit = {
     log.debug("updating sources")
     all = recalculate
+  }
+
+  def update(): Unit = {
+    self ! AskReCalculate
   }
 
   private def scan(f: FileObject) = f.findFiles(SourceSelector) match {
@@ -111,6 +121,18 @@ class SourceResolver(
     val relative = base.getName.getRelativeName(file.getName)
     // vfs separator char is always /
     PackageName((relative split "/").toList.init)
+  }
+
+  // debounces recalculate
+  private var rechecking: Cancellable = _
+
+  def receive: Receive = {
+    case AskReCalculate ⇒
+      Option(rechecking).foreach(_.cancel())
+      rechecking = system.scheduler.scheduleOnce(
+        5 seconds, self, ReCalculate
+      )
+    case ReCalculate ⇒ doUpdate()
   }
 
 }
