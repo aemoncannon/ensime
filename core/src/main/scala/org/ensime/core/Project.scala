@@ -15,7 +15,6 @@ import scala.concurrent.duration._
 import scala.util.Properties._
 import scala.util._
 import org.ensime.util.file._
-import org.ensime.util.FileUtils
 
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
@@ -26,10 +25,10 @@ final case class ShutdownRequest(reason: String, isError: Boolean = false)
 class Project(
     broadcaster: ActorRef,
     implicit val config: EnsimeConfig
-) extends Actor with ActorLogging with Stash {
+) extends Actor with ActorLogging {
   import context.{ dispatcher, system }
 
-  import FileUtils._
+  import org.ensime.util.FileUtils._
 
   /* The main components of the ENSIME server */
   private var scalac: ActorRef = _
@@ -53,19 +52,9 @@ class Project(
   }
   private val classfileWatcher = context.actorOf(Props(new ClassfileWatcher(config, searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
-  def receive: Receive = awaitingConnectionInfoReq
+  def receive: Receive = handleRequests
 
-  def awaitingConnectionInfoReq: Receive = withLabel("awaitingConnectionInfoReq") {
-    case ConnectionInfoReq =>
-      sender() ! ConnectionInfo()
-      context.become(handleRequests)
-      init()
-      unstashAll()
-    case other =>
-      stash()
-  }
-
-  private def init(): Unit = {
+  override def preStart(): Unit = {
     searchService.refresh().onComplete {
       case Success((deletes, inserts)) =>
         // legacy clients expect to see IndexerReady on connection.
@@ -78,7 +67,9 @@ class Project(
         log.warning(s"Refresh failed: ${problem.toString}")
         throw problem
     }(context.dispatcher)
+
     indexer = context.actorOf(Indexer(searchService), "indexer")
+
     if (config.scalaLibrary.isDefined || Set("scala", "dotty")(config.name)) {
 
       // we merge scala and java AnalyzerReady messages into a single
