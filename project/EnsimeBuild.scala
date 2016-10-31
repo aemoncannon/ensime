@@ -265,8 +265,8 @@ object EnsimeBuild {
         case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.concat // assumes our classpath is setup correctly
         case other => MergeStrategy.defaultMergeStrategy(other)
       },
-      assemblyExcludedJars in assembly <<= (fullClasspath in assembly).map { everything =>
-        everything.filter { attr =>
+      assemblyExcludedJars in assembly := {
+        (fullClasspath in assembly).value.filter { attr =>
           val n = attr.data.getName
           n.startsWith("scala-library") | n.startsWith("scala-compiler") |
             n.startsWith("scala-reflect") | n.startsWith("scalap")
