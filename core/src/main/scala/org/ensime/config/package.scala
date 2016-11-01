@@ -27,4 +27,16 @@ package object config {
       s.toSet
     }
   }
+
+  implicit class RichEnsimeConfiguration(val c: EnsimeConfiguration) extends AnyVal {
+    def scalaSourceFiles: Set[File] = {
+      val s = for {
+        source <- c.sources
+        file <- source.tree
+        if file.isFile && file.isScala
+      } yield file
+
+      s.toSet
+    }
+  }
 }
