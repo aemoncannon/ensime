@@ -19,6 +19,7 @@ final case class EnsimeConfig(
     compilerArgs: List[String],
     referenceSourceRoots: List[File],
     subprojects: List[EnsimeModule],
+    projects: List[EnsimeProject],
     javaLibs: List[File]
 ) {
   (rootDir :: cacheDir :: javaHome :: referenceSourceRoots ::: javaLibs).foreach { f =>
@@ -32,6 +33,8 @@ final case class EnsimeConfig(
 
   // some marshalling libs (e.g. spray-json) might not like extra vals
   val modules = subprojects.map { module => (module.name, module) }.toMap
+
+  val ensimeProjects = projects.map { project => (project.name, project) }.toMap
 
   def compileClasspath: Set[File] = modules.values.toSet.flatMap {
     m: EnsimeModule => m.compileDeps ++ m.testDeps
@@ -80,5 +83,26 @@ final case class EnsimeModule(
 
   def dependencies(implicit config: EnsimeConfig): List[EnsimeModule] =
     dependsOnModules.map(config.modules)
+}
 
+final case class EnsimeProject(
+    name: String,
+    dependsOn: List[String],
+    runtimeJars: List[File],
+    sourceJars: List[File],
+    docJars: List[File],
+    configurations: List[EnsimeConfiguration]
+) {
+  sourceJars.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
+}
+
+final case class EnsimeConfiguration(
+    name: String,
+    sources: List[File],
+    targets: List[File],
+    scalacOptions: List[String],
+    javacOptions: List[String],
+    libraryDependencies: List[File]
+) {
+  libraryDependencies.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
 }
