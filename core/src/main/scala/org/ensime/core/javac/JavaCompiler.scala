@@ -2,12 +2,15 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core.javac
 
-import java.io.{ File, FileInputStream, InputStream }
-import java.util.Locale
+import java.io.{ InputStream, OutputStream, Reader, StringReader, Writer, File => JFile }
+import java.net.URI
+import java.nio.charset.Charset
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
+import java.util.Locale
+import javax.lang.model.element.{ Modifier, NestingKind }
 
 import scala.collection.JavaConverters._
-
 import akka.actor.ActorRef
 import akka.event.slf4j.SLF4JLogging
 import com.sun.source.tree.Scope
@@ -15,12 +18,14 @@ import com.sun.source.util.{ JavacTask, TreePath }
 import com.sun.tools.javac.util.Abort
 import javax.lang.model.`type`.TypeMirror
 import javax.tools._
+
+import com.sun.tools.javac.file.{ BaseFileObject, JavacFileManager }
 import org.ensime.api._
 import org.ensime.core.DocSigPair
 import org.ensime.indexer.{ FullyQualifiedName, SearchService }
 import org.ensime.util.ReportHandler
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.file._
+import org.ensime.util.ensimefile._
 import org.ensime.vfs._
 
 class JavaCompiler(
@@ -39,11 +44,14 @@ class JavaCompiler(
 
   private val listener = new JavaDiagnosticListener()
   private val silencer = new SilencedDiagnosticListener()
-  private val cp = (config.allJars ++ config.targetClasspath).mkString(File.pathSeparator)
+  private val cp = (config.allJars ++ config.targetClasspath).mkString(JFile.pathSeparator)
   private val workingSet = new ConcurrentHashMap[String, JavaFileObject]()
 
+  private implicit def charset: Charset = Charset.defaultCharset() // how can we infer this?
+  val context = new com.sun.tools.javac.util.Context() //Need to have a single context and not one for each source??
+  val javacFileManager: JavacFileManager = new JavacFileManager(context, false, charset)
   lazy val compiler = ToolProvider.getSystemJavaCompiler()
-  lazy val fileManager: JavaFileManager = compiler.getStandardFileManager(listener, null, DefaultCharset)
+  lazy val fileManager: JavaFileManager = compiler.getStandardFileManager(listener, null, charset)
 
   def getTask(
     lint: String,
@@ -55,9 +63,18 @@ class JavaCompiler(
     ).asJava, null, files).asInstanceOf[JavacTask]
   }
 
+  def createJavaFileObject(sf: SourceFileInfo): JavaFileObject = sf match {
+    case SourceFileInfo(f, None, None) =>
+      new NotSoSimpleJavaFileObject(f, None, javacFileManager)
+    case SourceFileInfo(f, None, Some(contentsIn)) =>
+      new NotSoSimpleJavaFileObject(f, Some(contentsIn.readString), javacFileManager)
+    case SourceFileInfo(f, contents, _) =>
+      new NotSoSimpleJavaFileObject(f, contents, javacFileManager)
+  }
+
   def internSource(sf: SourceFileInfo): JavaFileObject = {
-    val jfo = getJavaFileObject(sf)
-    workingSet.put(sf.file.getAbsolutePath, jfo)
+    val jfo = createJavaFileObject(sf)
+    workingSet.put(sf.file.uri.toString, jfo)
     jfo
   }
 
@@ -141,23 +158,6 @@ class JavaCompiler(
     }
   }
 
-  private class JavaObjectWithContents(val f: File, val contents: String)
-      extends SimpleJavaFileObject(f.toURI, JavaFileObject.Kind.SOURCE) {
-    override def getCharContent(ignoreEncodingErrors: Boolean): CharSequence = contents
-  }
-
-  private class JavaObjectFromFile(val f: File)
-      extends SimpleJavaFileObject(f.toURI, JavaFileObject.Kind.SOURCE) {
-    override def getCharContent(ignoreEncodingErrors: Boolean): CharSequence = f.readString
-    override def openInputStream(): InputStream = new FileInputStream(f)
-  }
-
-  private def getJavaFileObject(sf: SourceFileInfo): JavaFileObject = sf match {
-    case SourceFileInfo(f, None, None) => new JavaObjectFromFile(f)
-    case SourceFileInfo(f, Some(contents), None) => new JavaObjectWithContents(f, contents)
-    case SourceFileInfo(f, None, Some(contentsIn)) => new JavaObjectWithContents(f, contentsIn.readString)
-  }
-
   private class JavaDiagnosticListener extends DiagnosticListener[JavaFileObject] with ReportHandler {
     def report(diag: Diagnostic[_ <: JavaFileObject]): Unit = {
       reportHandler.reportJavaNotes(List(
@@ -184,5 +184,57 @@ class JavaCompiler(
 
   private class SilencedDiagnosticListener extends DiagnosticListener[JavaFileObject] with ReportHandler {
     def report(diag: Diagnostic[_ <: JavaFileObject]): Unit = {}
+  }
+}
+
+// as opposed to javax.tools.SimpleFileObject which doesn't handle archive entries
+private class NotSoSimpleJavaFileObject(
+    val f: EnsimeFile,
+    val contents: Option[String],
+    val javacFileManager: JavacFileManager
+)(
+    implicit
+    charset: Charset
+) extends BaseFileObject(javacFileManager) {
+  @inline private def unsupported = throw new UnsupportedOperationException
+  override def inferBinaryName(path: java.lang.Iterable[_ <: java.io.File]): String = f match {
+    case RawFile(rf) => rf.toFile.toString
+    case ArchiveFile(p, e) => p.toFile.toString.replace(".jar", "") + s"""${if (e.startsWith("/")) "" else "/"}""" + e
+  }
+  override def delete(): Boolean = unsupported
+  override def getCharContent(ignoreEncodingErrors: Boolean): CharSequence = contents.getOrElse(f.readStringDirect)
+  override def getLastModified(): Long = f.lastModified
+  override def getName(): String = f.uri.toString
+  override def openInputStream(): InputStream = unsupported
+  override def openOutputStream(): OutputStream = unsupported
+  override def openReader(ignoreEncodingErrors: Boolean): Reader = new StringReader(getCharContent(ignoreEncodingErrors).toString)
+  override def openWriter(): Writer = unsupported
+  override def toUri(): URI = f.uri
+
+  override def getAccessLevel(): Modifier = null
+  override def getKind(): JavaFileObject.Kind = JavaFileObject.Kind.SOURCE
+  override def getNestingKind(): NestingKind = null
+  override def isNameCompatible(
+    simpleName: String,
+    kind: JavaFileObject.Kind
+  ): Boolean = false // this can probably be optimised, but the intended javac use is not clear
+  override def equals(other: Any): Boolean = this.f match {
+    case RawFile(rf) => other match {
+      case p: Path => rf.toString == p.toString
+      case r: RawFile => rf.toString == r.file.toString
+      case _ => false
+    }
+    case ArchiveFile(p, e) => other match {
+      case af: ArchiveFile => af.entry.toString == e && af.jar.toFile.toString == p.toFile.toString
+      case _ => false
+    }
+  }
+  override def hashCode(): Int = f match {
+    case rf @ RawFile(_) => rf.hashCode()
+    case af @ ArchiveFile(_, _) => af.hashCode()
+  }
+  override def getShortName: String = f match {
+    case RawFile(rf) => rf.getFileName.toString
+    case ArchiveFile(p, e) => s"""${p.getFileName.toString.replace(".jar", "")}(${e.substring(e.lastIndexOf("/"))})"""
   }
 }
