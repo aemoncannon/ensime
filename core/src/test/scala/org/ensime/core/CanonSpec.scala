@@ -3,12 +3,10 @@
 package org.ensime.core
 
 import java.io.File
-import java.nio.file._
-
-import scala.util.Properties.jdkHome
 
 import org.ensime.util.file._
 import org.ensime.util.path._
+import org.ensime.util.TestPaths.src
 import org.ensime.util.ensimefile._
 import org.ensime.util.EnsimeSpec
 import org.ensime.api._
@@ -64,7 +62,6 @@ class CanonSpec extends EnsimeSpec {
   }
 
   it should "canon an ArchiveFile" in withTempDir { dir =>
-    val src = Paths.get(jdkHome) / "src.zip"
 
     val entry = EnsimeFile(s"$src!/java/lang/String.java")
     val extracted = RawFile(dir.toPath / "dep-src/source-jars/java/lang/String.java")

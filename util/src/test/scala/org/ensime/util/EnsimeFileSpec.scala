@@ -6,18 +6,15 @@ import java.io.File
 import java.net._
 import java.nio.file._
 
-import scala.util.Properties.jdkHome
-
 import org.ensime.api._
 import org.ensime.util.LegacyArchiveExtraction
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.file.withTempDir
 import org.ensime.util.path._
+import org.ensime.util.TestPaths.src
 import org.scalatest._
 
 class EnsimeFileSpec extends FlatSpec with Matchers {
-
-  lazy val src: Path = Paths.get(jdkHome) / "src.zip"
 
   "EnsimeFile" should "construct instances from file paths" in {
     val filepath = "/foo/bar/baz.scala"
