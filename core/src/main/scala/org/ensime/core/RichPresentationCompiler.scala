@@ -250,12 +250,12 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     case SourceFileInfo(rf @ RawFile(f), Some(contents), None) =>
       new BatchSourceFile(new PlainFile(f.toFile), contents.toCharArray)
     case SourceFileInfo(ac @ ArchiveFile(a, e), Some(contents), None) => new BatchSourceFile(
-            new VirtualFile(ac.fullPath), contents.toCharArray
+      new VirtualFile(ac.fullPath), contents.toCharArray
     )
     case SourceFileInfo(rf @ RawFile(f), None, Some(contentsIn)) =>
       new BatchSourceFile(new PlainFile(f.toFile), contentsIn.readString()(charset).toCharArray)
     case SourceFileInfo(ac @ ArchiveFile(a, e), None, Some(contentsIn)) => new BatchSourceFile(
-          new VirtualFile(ac.fullPath), contentsIn.readString()(charset).toCharArray
+      new VirtualFile(ac.fullPath), contentsIn.readString()(charset).toCharArray
     )
 
   }
