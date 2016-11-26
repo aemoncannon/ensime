@@ -175,7 +175,7 @@ object EnsimeBuild {
     dtf.format(new java.util.Date())
   }
 
-  val luceneVersion = "6.2.1"
+  val luceneVersion = "6.3.0"
   val nettyVersion = "4.1.6.Final"
   lazy val server = Project("server", file("server")).dependsOn(
     core, swanky, jerky,

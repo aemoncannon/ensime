@@ -122,13 +122,13 @@ object Sensible {
   
   def akkaVersion: Def.Initialize[String] = Def.setting {
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, minor)) if minor >= 11 => "2.4.12"
+      case Some((2, minor)) if minor >= 11 => "2.4.14"
       case Some((2, minor)) => "2.3.16"
       case _ => ???
     }
   }
 
-  val scalatestVersion = "3.0.0"
+  val scalatestVersion = "3.0.1"
   val logbackVersion = "1.7.21"
   val quasiquotesVersion = "2.0.1"
   val guavaVersion = "19.0"
