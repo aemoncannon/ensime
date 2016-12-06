@@ -93,7 +93,7 @@ object EnsimeBuild {
       "com.typesafe.akka" %% "akka-actor" % akkaVersion.value,
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.apache.commons" % "commons-vfs2" % "2.1" exclude ("commons-logging", "commons-logging"),
-      "com.google.guava" % "guava" % "19.0",
+      "com.google.guava" % "guava" % "20.0",
       "com.google.code.findbugs" % "jsr305" % "3.0.1" % "provided"
     ) ++ logback
   )
@@ -111,7 +111,7 @@ object EnsimeBuild {
   lazy val s_express = Project("s-express", file("s-express")) settings (commonSettings) settings (
       licenses := Seq(LGPL3),
       libraryDependencies ++= Seq(
-        "com.lihaoyi" %% "fastparse" % "0.4.1",
+        "com.lihaoyi" %% "fastparse" % "0.4.2",
         "org.scalacheck" %% "scalacheck" % "1.13.4" % Test
       ) ++ shapeless.value ++ logback
     )
@@ -180,7 +180,7 @@ object EnsimeBuild {
         "commons-lang" % "commons-lang" % "2.6",
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",
         "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-M2",
-        "org.scalamock" %% "scalamock-scalatest-support" % "3.3.0" % Test
+        "org.scalamock" %% "scalamock-scalatest-support" % "3.4.2" % Test
       ) ++ shapeless.value
     ) enablePlugins BuildInfoPlugin settings (
         buildInfoPackage := organization.value,
@@ -221,10 +221,13 @@ object EnsimeBuild {
   ) dependsOn (server) settings (
       // e.g. `sbt ++2.11.8 ensime/assembly`
       test in assembly := {},
+      sourceDirectories in Compile := Nil,
+      resources in Compile := Nil,
       aggregate in assembly := false,
       assemblyMergeStrategy in assembly := {
         case PathList("org", "apache", "commons", "vfs2", xs @ _*) => MergeStrategy.first // assumes our classpath is setup correctly
         case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.concat // assumes our classpath is setup correctly
+        case PathList("LICENSE") => MergeStrategy.concat // WORKAROUND https://github.com/sbt/sbt-assembly/issues/224
         case other => MergeStrategy.defaultMergeStrategy(other)
       },
       assemblyExcludedJars in assembly := {
