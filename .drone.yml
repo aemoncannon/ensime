@@ -54,6 +54,6 @@ deploy:
     host: ensime.typelevel.org
     username: typelevel
     destination_path: ensime.typelevel.org/
-    files: 
+    files:
       - target/scala-2.10/*-assembly.jar
       - target/scala-2.11/*-assembly.jar
