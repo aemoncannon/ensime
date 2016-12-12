@@ -26,6 +26,7 @@ import org.slf4j._
 
 class ServerActor(
     config: EnsimeConfig,
+    serverConfig: EnsimeServerConfig,
     protocol: Protocol,
     interface: String = "127.0.0.1"
 ) extends Actor with ActorLogging {
@@ -43,12 +44,12 @@ class ServerActor(
 
     implicit val config: EnsimeConfig = this.config
     implicit val timeout: Timeout = Timeout(10 seconds)
-
+    implicit val ensimeServerConfig: EnsimeServerConfig = this.serverConfig
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
     val project = context.actorOf(Project(broadcaster), "project")
 
     val preferredTcpPort = PortUtil.port(config.cacheDir, "port")
-    val shutdownOnLastDisconnect = Environment.shutdownOnDisconnectFlag
+    val shutdownOnLastDisconnect = serverConfig.shutDownOnDisconnect
     context.actorOf(Props(
       new TCPServer(
         config.cacheDir, protocol, project,
@@ -109,7 +110,7 @@ class ServerActor(
   }
 
   def triggerShutdown(request: ShutdownRequest): Unit = {
-    Server.shutdown(context.system, channel, request)
+    Server.shutdown(context.system, channel, request)(serverConfig)
   }
 
 }
@@ -123,32 +124,38 @@ object Server extends AkkaBackCompat {
     val ensimeFileStr = propOrNone("ensime.config").getOrElse(
       throw new RuntimeException("ensime.config (the location of the .ensime file) must be set")
     )
+    val serverFileStr = propOrNone("server.config").getOrElse(
+      throw new RuntimeException("ensime.config (the location of the .server file) must be set")
+    )
 
     val ensimeFile = new File(ensimeFileStr)
+    val serverFile = new File(serverFileStr)
     if (!ensimeFile.exists() || !ensimeFile.isFile)
       throw new RuntimeException(s".ensime file ($ensimeFile) not found")
+    if (!serverFile.exists() || !serverFile.isFile)
+      throw new RuntimeException(s".server file ($serverFile) not found")
 
     implicit val config: EnsimeConfig = try {
-      EnsimeConfigProtocol.parse(Files.toString(ensimeFile, Charsets.UTF_8))
+      EnsimeConfigProtocol.parse(Files.toString(ensimeFile, Charsets.UTF_8), Files.toString(serverFile, Charsets.UTF_8))
     } catch {
       case e: Throwable =>
         log.error(s"There was a problem parsing $ensimeFile", e)
         throw e
     }
-
+    implicit val serverConfig: EnsimeServerConfig = ???
     Canon.config = config
 
-    val protocol: Protocol = propOrElse("ensime.protocol", "swank") match {
+    val protocol: Protocol = serverConfig.protocol match {
       case "swanki" => new SwankiProtocol
       case "swank" => new SwankProtocol
       case other => throw new IllegalArgumentException(s"$other is not a valid ENSIME protocol")
     }
 
     val system = ActorSystem("ENSIME")
-    system.actorOf(Props(new ServerActor(config, protocol)), "ensime-main")
+    system.actorOf(Props(new ServerActor(config, serverConfig, protocol)), "ensime-main")
   }
 
-  def shutdown(system: ActorSystem, channel: Channel, request: ShutdownRequest): Unit = {
+  def shutdown(system: ActorSystem, channel: Channel, request: ShutdownRequest)(implicit serverConf: EnsimeServerConfig): Unit = {
     val t = new Thread(new Runnable {
       def run(): Unit = {
         if (request.isError)
@@ -166,7 +173,7 @@ object Server extends AkkaBackCompat {
         Try(channel.close().sync())
 
         log.info("Shutdown complete")
-        if (!propIsSet("ensime.server.test")) {
+        if (!serverConf.test) {
           if (request.isError)
             System.exit(1)
           else

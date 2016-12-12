@@ -31,7 +31,4 @@ object Environment {
   private def ensimeVersion: String =
     BuildInfo.version
 
-  def shutdownOnDisconnectFlag: Boolean = {
-    Option(System.getProperty("ensime.explode.on.disconnect")).isDefined
-  }
 }

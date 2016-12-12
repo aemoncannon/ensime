@@ -16,10 +16,10 @@ import org.ensime.util.file._
 import org.ensime.vfs._
 import slick.driver.H2Driver.api._
 
-class DatabaseService(dir: File) extends SLF4JLogging {
+class DatabaseService(dir: File, serverConfig: EnsimeServerConfig) extends SLF4JLogging {
   lazy val (datasource, db) = {
     // MVCC plus connection pooling speeds up the tests ~10%
-    val backend = sys.env.get("ENSIME_EXPERIMENTAL_H2").getOrElse("jdbc:h2:file:")
+    val backend = serverConfig.ENSIME_EXPERIMENTAL_H2
     val url = backend + dir.getAbsolutePath + "/db;MVCC=TRUE"
     val driver = "org.h2.Driver"
 

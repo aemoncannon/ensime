@@ -27,8 +27,8 @@ object DebugActor {
    * @param config The Ensime configuration used for source file lookup
    * @return The new Akka props instance
    */
-  def props(broadcaster: ActorRef)(implicit config: EnsimeConfig): Props =
-    Props(new DebugActor(broadcaster, config))
+  def props(broadcaster: ActorRef)(implicit config: EnsimeConfig, serverConfig: EnsimeServerConfig): Props =
+    Props(new DebugActor(broadcaster, config, serverConfig))
 }
 
 /**
@@ -41,9 +41,10 @@ object DebugActor {
  */
 class DebugActor private (
     private val broadcaster: ActorRef,
-    private val config: EnsimeConfig
+    private val config: EnsimeConfig,
+    private val serverConfig: EnsimeServerConfig
 ) extends Actor with ActorLogging {
-  private val sourceMap: SourceMap = new SourceMap(config = config)
+  private val sourceMap: SourceMap = new SourceMap(config = config, serverConfig = serverConfig)
   private val converter: StructureConverter = new StructureConverter(sourceMap)
   private val vmm: VirtualMachineManager = new VirtualMachineManager(
     // Signal to the user that the JVM has disconnected

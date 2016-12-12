@@ -7,11 +7,11 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 import org.ensime.api._
-import org.ensime.config._
+
 import org.ensime.util.ensimefile._
 import org.ensime.util.file._
+import org.ensime.config._
 import org.scaladebugger.api.profiles.traits.info.LocationInfoProfile
-
 import scala.collection.mutable
 
 /**
@@ -25,6 +25,7 @@ import scala.collection.mutable
 @deprecating("this is duplicating the functionality of the indexer and source resolver")
 class SourceMap(
     private val config: EnsimeConfig,
+    private val serverConfig: EnsimeServerConfig,
     private val pathMap: mutable.Map[String, File] = new ConcurrentHashMap[String, File]().asScala
 ) {
   /** Contains a collection of root paths where source files are located */
@@ -139,7 +140,7 @@ class SourceMap(
    * @return The distinct root paths as strings
    */
   protected def retrieveRoots: Seq[String] = (
-    config.compileClasspath.map(_.getCanonicalPath).toSeq ++
+    config.compileClasspath(serverConfig).map(_.getCanonicalPath).toSeq ++
     config.javaSources.map(_.getCanonicalPath) ++
     config.subprojects.flatMap(_.sourceRoots).map(_.getCanonicalPath)
   ).distinct

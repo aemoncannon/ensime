@@ -4,7 +4,6 @@ package org.ensime.config
 
 import java.io.File
 import akka.event.slf4j.Logger
-import scala.util.Properties
 import shapeless._
 
 import org.ensime.sexp._
@@ -28,17 +27,18 @@ object EnsimeConfigProtocol {
   private implicit val moduleFormat: SexpFormat[EnsimeModule] = cachedImplicit
   private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit
 
-  def parse(config: String): EnsimeConfig = {
+  def parse(config: String, serverConfig: String): EnsimeConfig = {
     val raw = config.parseSexp.convertTo[EnsimeConfig]
-    validated(raw).copy(javaLibs = inferJavaLibs(raw.javaHome))
+    val serverConfigRaw = serverConfig.parseSexp.convertTo[EnsimeServerConfig]
+    validated(raw).copy(javaLibs = inferJavaLibs(raw.javaHome, serverConfigRaw))
   }
 
   // there are lots of JRE libs, but most people only care about
   // rt.jar --- this could be parameterised.
-  private def inferJavaLibs(javaHome: File): List[File] =
+  private def inferJavaLibs(javaHome: File, serverConfig: EnsimeServerConfig): List[File] =
     // WORKAROUND https://github.com/ensime/ensime-server/issues/886
     // speeds up the emacs integration tests significantly,
-    if (Properties.envOrNone("ENSIME_SKIP_JRE_INDEX").isDefined) Nil
+    if (serverConfig.ENSIME_SKIP_JRE_INDEX) Nil
     else javaHome.tree.filter(_.getName == "rt.jar").toList
 
   def validated(c: EnsimeConfig): EnsimeConfig = c.copy(

@@ -3,7 +3,6 @@
 package org.ensime.api
 
 import java.io.File
-import scala.util.Properties._
 
 // there is quite a lot of code in this file, when we clean up the
 // config file format so that a lot of these hacks are no longer
@@ -34,10 +33,6 @@ final case class EnsimeConfig(
   // some marshalling libs (e.g. spray-json) might not like extra vals
   val modules = subprojects.map { module => (module.name, module) }.toMap
 
-  def compileClasspath: Set[File] = modules.values.toSet.flatMap {
-    m: EnsimeModule => m.compileDeps ++ m.testDeps
-  } ++ (if (propOrFalse("ensime.sourceMode")) List.empty else targetClasspath)
-
   def targetClasspath: Set[File] = modules.values.toSet.flatMap {
     m: EnsimeModule => m.targets ++ m.testTargets
   }
@@ -55,7 +50,6 @@ final case class EnsimeConfig(
 
   def scalaLibrary: Option[File] = allJars.find(_.getName.startsWith("scala-library"))
 }
-
 final case class EnsimeModule(
     name: String,
     targets: List[File],
@@ -101,3 +95,5 @@ final case class EnsimeProject(
 ) {
   sources.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
 }
+
+final case class EnsimeServerConfig(shutDownOnDisconnect: Boolean, test: Boolean, exitAfterIndex: Boolean, disableSourceMonitoring: Boolean, disableClassMonitoring: Boolean, sourceMode: Boolean, legacyJarurls: Boolean, protocol: String, ENSIME_EXPERIMENTAL_H2: String = "jdbc:h2:file:", ENSIME_SKIP_JRE_INDEX: Boolean, parallelThread: Int)

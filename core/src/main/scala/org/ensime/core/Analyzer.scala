@@ -25,7 +25,6 @@ import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
 import scala.util.Try
-import scala.util.Properties._
 
 final case class CompilerFatalError(e: Throwable)
 
@@ -54,6 +53,7 @@ class Analyzer(
     indexer: ActorRef,
     search: SearchService,
     implicit val config: EnsimeConfig,
+    implicit val serverConfig: EnsimeServerConfig,
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
 
@@ -78,7 +78,7 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-    settings.classpath.value = config.compileClasspath.mkString(JFile.pathSeparator)
+    settings.classpath.value = config.compileClasspath(serverConfig).mkString(JFile.pathSeparator)
     settings.processArguments(config.compilerArgs, processAll = false)
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
@@ -100,7 +100,7 @@ class Analyzer(
     broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
 
     scalaCompiler.askNotifyWhenReady()
-    if (propOrFalse("ensime.sourceMode")) scalaCompiler.askReloadAllFiles()
+    if (serverConfig.sourceMode) scalaCompiler.askReloadAllFiles()
   }
 
   protected def makeScalaCompiler() = new RichPresentationCompiler(
@@ -172,7 +172,7 @@ class Analyzer(
       scalaCompiler.askNotifyWhenReady()
       sender ! VoidResponse
     case UnloadAllReq =>
-      if (propOrFalse("ensime.sourceMode")) {
+      if (serverConfig.sourceMode) {
         log.info("in source mode, will reload all files")
         scalaCompiler.askRemoveAllDeleted()
         restartCompiler(keepLoaded = true)
@@ -340,6 +340,7 @@ object Analyzer {
   )(
     implicit
     config: EnsimeConfig,
+    serverConfig: EnsimeServerConfig,
     vfs: EnsimeVFS
-  ) = Props(new Analyzer(broadcaster, indexer, search, config, vfs))
+  ) = Props(new Analyzer(broadcaster, indexer, search, config, serverConfig, vfs))
 }

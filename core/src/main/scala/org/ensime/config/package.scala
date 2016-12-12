@@ -14,6 +14,10 @@ package object config {
   implicit class RichEnsimeConfig(val c: EnsimeConfig) extends AnyVal {
     def scalaSourceFiles: Set[File] =
       c.modules.values.flatMap((m: EnsimeModule) => m.scalaSourceFiles)(breakOut)
+    def compileClasspath(serverConfig: EnsimeServerConfig): Set[File] = c.modules.values.toSet.flatMap {
+      m: EnsimeModule => m.compileDeps ++ m.testDeps
+    } ++ (if (serverConfig.sourceMode) List.empty else c.targetClasspath)
+
   }
 
   implicit class RichEnsimeModule(val m: EnsimeModule) extends AnyVal {
