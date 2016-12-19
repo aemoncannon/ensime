@@ -23,7 +23,7 @@ object EnsimeConfigProtocol {
 
   private def log = Logger(this.getClass.getName)
 
-  private implicit val configurationFomat: SexpFormat[EnsimeConfiguration] = cachedImplicit
+  private implicit val projectIdFormat: SexpFormat[EnsimeProjectId] = cachedImplicit
   private implicit val projectFormat: SexpFormat[EnsimeProject] = cachedImplicit
   private implicit val moduleFormat: SexpFormat[EnsimeModule] = cachedImplicit
   private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit

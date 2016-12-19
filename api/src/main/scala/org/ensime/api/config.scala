@@ -34,7 +34,7 @@ final case class EnsimeConfig(
   // some marshalling libs (e.g. spray-json) might not like extra vals
   val modules = subprojects.map { module => (module.name, module) }.toMap
 
-  val ensimeProjects = projects.map { project => (project.name, project) }.toMap
+  val ensimeProjects = projects.map { project => (project.id, project) }.toMap
 
   def compileClasspath: Set[File] = modules.values.toSet.flatMap {
     m: EnsimeModule => m.compileDeps ++ m.testDeps
@@ -85,24 +85,21 @@ final case class EnsimeModule(
     dependsOnModules.map(config.modules)
 }
 
-final case class EnsimeProject(
-    name: String,
-    dependsOn: List[String],
-    runtimeJars: List[File],
-    sourceJars: List[File],
-    docJars: List[File],
-    configurations: List[EnsimeConfiguration]
-) {
-  sourceJars.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
-}
+final case class EnsimeProjectId(
+  project: String,
+  config: String
+)
 
-final case class EnsimeConfiguration(
-    name: String,
-    sources: List[File],
-    targets: List[File],
+final case class EnsimeProject(
+    id: EnsimeProjectId,
+    depends: Seq[EnsimeProjectId],
+    sources: Set[File],
+    targets: Set[File],
     scalacOptions: List[String],
     javacOptions: List[String],
-    libraryDependencies: List[File]
+    libraryJars: Set[File],
+    librarySources: Set[File],
+    libraryDocs: Set[File]
 ) {
-  libraryDependencies.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
+  sources.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
 }
