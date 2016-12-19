@@ -189,7 +189,7 @@ class FileWatcherSpec extends EnsimeSpec
       }
     }
 
-  it should "survive deletion of the watched directory" taggedAs (Retryable) in
+  it should "survive deletion of the watched directory" taggedAs (Retryable, IgnoreOnAppVeyor) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -266,7 +266,7 @@ class FileWatcherSpec extends EnsimeSpec
       }
     }
 
-  it should "survive removed parent base directory and recreated base" taggedAs (Retryable) in
+  it should "survive removed parent base directory and recreated base" taggedAs (Retryable, IgnoreOnAppVeyor) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
 
