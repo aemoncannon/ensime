@@ -16,12 +16,14 @@ import org.scalatest.time._
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
-/**
- * Indicates a test that requires launching a JVM under debug mode.
- *
- * These are typically very unstable on Windows.
- */
-object Debugger extends Tag("Debugger")
+import org.scalatest.Tag
+
+/** Don't run this test on the AppVeyor CI (Windows) */
+object IgnoreOnAppVeyor extends Tag("IgnoreOnAppVeyor")
+/** Don't run this test on the Drone CI (GNU/Linux) */
+object IgnoreOnDrone extends Tag("IgnoreOnDrone")
+/** Don't run this test on the Travis CI (OS X) */
+object IgnoreOnTravis extends Tag("IgnoreOnTravis")
 
 /**
  * Boilerplate remover and preferred testing style in ENSIME.

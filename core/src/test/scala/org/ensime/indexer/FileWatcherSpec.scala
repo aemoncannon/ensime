@@ -13,7 +13,6 @@ import org.ensime.util._
 import org.ensime.util.file._
 import org.ensime.util.fileobject._
 import org.ensime.vfs._
-import org.scalatest._
 import org.scalatest.tagobjects.Retryable
 
 sealed trait FileWatcherMessage
@@ -28,9 +27,12 @@ final case class BaseRegistered() extends FileWatcherMessage
  * These tests are insanely flakey so everything is retryable. The
  * fundamental problem is that file watching is impossible without
  * true OS and FS support, which is lacking on all major platforms.
+ *
+ * NOTE: if you're making local edits to this file, try adding "with
+ *       ParallelTestExecution". It's not used by default, only to
+ *       reduce the load on the pathetic CI machines.
  */
 class FileWatcherSpec extends EnsimeSpec
-    with ParallelTestExecution
     with IsolatedTestKitFixture with IsolatedEnsimeVFSFixture {
 
   implicit val DefaultCharset: Charset = Charset.defaultCharset()
