@@ -5,8 +5,8 @@ package org.ensime.util
 import java.util.{ Timer, TimerTask }
 import java.util.concurrent.TimeUnit
 
-import scala.concurrent.duration._
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
@@ -15,8 +15,6 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.time._
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
-
-import org.scalatest.Tag
 
 /** Don't run this test on the AppVeyor CI (Windows) */
 object IgnoreOnAppVeyor extends Tag("IgnoreOnAppVeyor")
