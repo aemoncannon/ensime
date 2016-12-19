@@ -27,6 +27,8 @@ object ProjectPlugin extends AutoPlugin {
     organization := "org.ensime",
     version := "2.0.0-SNAPSHOT",
 
+    ensimeIgnoreMissingDirectories := true,
+
     sonatypeGithub := ("ensime", "ensime-server"),
     licenses := Seq(GPL3),
     startYear := Some(2010)

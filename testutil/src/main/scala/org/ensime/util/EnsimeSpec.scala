@@ -46,7 +46,7 @@ trait EnsimeSpec extends FlatSpec
       override def run(): Unit = {
         println(s"${self.getClass} is still running!")
         Thread.getAllStackTraces.asScala.foreach {
-          case (thread, stacks) if stacks == null || stacks.isEmpty =>
+          case (thread, stacks) if stacks == null || stacks.isEmpty || thread == Thread.currentThread =>
           case (thread, stacks) =>
             val current = stacks(0).toString
             if (thread.isAlive()
