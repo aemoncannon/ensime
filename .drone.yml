@@ -5,7 +5,7 @@ build:
     - SONATYPE_USERNAME=$$SONATYPE_USERNAME
     - SONATYPE_PASSWORD=$$SONATYPE_PASSWORD
     - AKKA_TEST_TIMEFACTOR=10
-    - SBT_TASK_LIMIT=4
+    - SBT_TASK_LIMIT=2
     - COURSIER_MODE=update-local-changing,missing
   commands:
     - if $(git grep -qE "TODO|FIXME" -- `git ls-files | grep -v .drone.yml`) ; then
