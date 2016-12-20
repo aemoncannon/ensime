@@ -102,7 +102,11 @@ class FileWatchService { self =>
       case None => {
         val thread = new Thread(
           new Runnable {
-            override def run(): Unit = monitor()
+            override def run(): Unit =
+              try monitor()
+              catch {
+                case i: InterruptedException => // silently ignore
+              }
           }
         )
         thread.setName("FileWatchService-monitor")

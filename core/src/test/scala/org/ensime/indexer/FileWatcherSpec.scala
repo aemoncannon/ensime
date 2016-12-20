@@ -2,11 +2,12 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import java.nio.charset.Charset
+
 import scala.concurrent.duration._
 
 import akka.testkit._
 import com.google.common.io.Files
-import java.nio.charset.Charset
 import org.apache.commons.vfs2._
 import org.ensime.fixture._
 import org.ensime.util._
@@ -189,7 +190,7 @@ class FileWatcherSpec extends EnsimeSpec
       }
     }
 
-  it should "survive deletion of the watched directory" taggedAs (Retryable, IgnoreOnAppVeyor) in
+  it should "survive deletion of the watched directory" taggedAs (Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -266,7 +267,7 @@ class FileWatcherSpec extends EnsimeSpec
       }
     }
 
-  it should "survive removed parent base directory and recreated base" taggedAs (Retryable, IgnoreOnAppVeyor) in
+  it should "survive removed parent base directory and recreated base" taggedAs (Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
 
