@@ -57,7 +57,7 @@ class CanonSpec extends EnsimeSpec {
     Canon.config = EnsimeConfig(
       dir, dir, dir,
       "config", "version",
-      Nil, Nil, Nil, Nil
+      Nil, Nil, Nil, Nil, Nil
     )
 
     Canonised(ef) shouldBe expected
@@ -75,7 +75,7 @@ class CanonSpec extends EnsimeSpec {
     Canon.config = EnsimeConfig(
       dir, dir, dir,
       "config", "version",
-      Nil, Nil, Nil, Nil
+      Nil, Nil, Nil, Nil, Nil
     )
 
     Canonised(ef) shouldBe expected

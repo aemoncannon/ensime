@@ -41,13 +41,33 @@ class EnsimeConfigSpec extends EnsimeSpec {
                 :reference-source-roots ()
                 :compiler-args ()
                 :runtime-deps ()
-                :test-deps ())))""", { implicit config =>
+                :test-deps ()))
+ :projects ((:name "module1"
+             :depends-on-modules ()
+             :source-roots ()
+             :reference-source-roots ()
+             :runtime-deps ()
+             :configurations ((:name "compile"
+                               :sources ()
+                               :targets ("$abc")
+                               :scalac-options ()
+                               :javac-options ()
+                               :library-dependencies ())
+                              (:name "test"
+                               :sources ()
+                               :targets ("$abc")
+                               :scalac-options ()
+                               :javac-options ()
+                               :library-dependencies ())))))""", { implicit config =>
 
       config.name shouldBe "project"
       config.scalaVersion shouldBe "2.10.4"
       val module1 = config.modules("module1")
       module1.name shouldBe "module1"
       module1.dependencies shouldBe empty
+      val project1 = config.ensimeProjects("module1")
+      project1.name shouldBe "module1"
+      project1.configurations.size shouldBe 2
     })
   }
 
