@@ -34,8 +34,6 @@ final case class EnsimeConfig(
   // some marshalling libs (e.g. spray-json) might not like extra vals
   val modules = subprojects.map { module => (module.name, module) }.toMap
 
-  val ensimeProjects = projects.map { project => (project.id, project) }.toMap
-
   def compileClasspath: Set[File] = modules.values.toSet.flatMap {
     m: EnsimeModule => m.compileDeps ++ m.testDeps
   } ++ (if (propOrFalse("ensime.sourceMode")) List.empty else targetClasspath)
