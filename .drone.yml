@@ -34,21 +34,21 @@ pipeline:
           sbt ++$SCALA_VERSION publish ;
         fi
 
+  deploy:
+    dockerhub:
+      repo: ensime/ensime
+      when:
+        matrix:
+          SCALA_VERSION: 2.11.8
+    sftp:
+      host: ensime.typelevel.org
+      username: typelevel
+      destination_path: ensime.typelevel.org/
+      files:
+        - target/scala-2.10/*-assembly.jar
+        - target/scala-2.11/*-assembly.jar
+
 matrix:
   SCALA_VERSION:
     - 2.11.8
     - 2.10.6
-
-deploy:
-  dockerhub:
-    repo: ensime/ensime
-    when:
-      matrix:
-        SCALA_VERSION: 2.11.8
-  sftp:
-    host: ensime.typelevel.org
-    username: typelevel
-    destination_path: ensime.typelevel.org/
-    files:
-      - target/scala-2.10/*-assembly.jar
-      - target/scala-2.11/*-assembly.jar
