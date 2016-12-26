@@ -19,18 +19,17 @@ pipeline:
         fi
       - sbt ++$SCALA_VERSION "testOnly -- -l IgnoreOnDrone" ;
       - sbt ++$SCALA_VERSION "it:testOnly -- -l IgnoreOnDrone" ;
-      - if [ "${SCALA_VERSION}" = "2.11.8" ] ; then
-          git clone --depth 1 https://github.com/ensime/ensime-emacs.git ensime-emacs ;
-          cd ensime-emacs/test/example ;
-          echo 'ensimeServerJars := List(file("../../../target/scala-2.11/ensime_2.11-2.0.0-SNAPSHOT-assembly.jar"))' > ensime.sbt ;
-          sbt ensimeConfig ; cd ../.. ;
-          cask pkg-file ;
-          cask install ;
-          cask package ;
-          test/run_emacs_tests.sh || test/run_emacs_tests.sh;
-          cd $DRONE_BUILD_DIR ;
-          unset JVM_OPTS ;
-        fi
+      # - if [ "${SCALA_VERSION}" = "2.11.8" ] ; then
+      #     git clone --depth 1 https://github.com/ensime/ensime-emacs.git ensime-emacs ;
+      #     cd ensime-emacs/test/example ;
+      #     echo 'ensimeServerJars := List(file("../../../target/scala-2.11/ensime_2.11-2.0.0-SNAPSHOT-assembly.jar"))' > ensime.sbt ;
+      #     sbt ensimeConfig ; cd ../.. ;
+      #     cask pkg-file ;
+      #     cask install ;
+      #     cask package ;
+      #     test/run_emacs_tests.sh || test/run_emacs_tests.sh;
+      #     cd $DRONE_BUILD_DIR ;
+      #   fi
       - if [ -z "$DRONE_PULL_REQUEST" ] ; then
           sbt ++$SCALA_VERSION publish ;
         fi
