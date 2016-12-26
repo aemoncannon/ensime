@@ -23,11 +23,11 @@ pipeline:
           sbt ++$SCALA_VERSION publish ;
           mkdir ~/.ssh ; echo $SSH_KEY > ~/.ssh/id_rsa ; chmod 644 ~/.ssh/id_rsa ;
           scp target/scala-2.*/*-assembly.jar typelevel@ensime.typelevel.org:ensime.typelevel.org/ ;
-          case $SCALA_VERSION in 2.11*) \
+          if [ $SCALA_VERSION = "2.11.8" ] ; then
             curl -H "Content-Type: application/json" \
               --data '{"docker_tag": "v2.x-cache"}' \
-               -X POST "https://registry.hub.docker.com/u/ensime/ensime/trigger/${DOCKER_TRIGGER_TOKEN}/" ;
-          esac ;
+              -X POST "https://registry.hub.docker.com/u/ensime/ensime/trigger/${DOCKER_TRIGGER_TOKEN}/"
+          fi
         fi
 
 matrix:
