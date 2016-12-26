@@ -795,7 +795,7 @@ object SwankProtocolRequest {
   implicit def DebugSetValueueReqFormat: SexpFormat[DebugSetValueReq] = { def DebugSetValueueReqFormat = ???; implicitly[SexpFormat[DebugSetValueReq]] }
   implicit def DebugBacktraceReqFormat: SexpFormat[DebugBacktraceReq] = { def DebugBacktraceReqFormat = ???; implicitly[SexpFormat[DebugBacktraceReq]] }
 
-  implicit object RpcRequestFormat extends SexpReader[RpcRequest] {
+  implicit object RpcRequestReader extends SexpReader[RpcRequest] {
     override def read(sexp: Sexp): RpcRequest = sexp match {
       case SexpList((kind: SexpSymbol) :: rest) =>
         val value = SexpList(rest)
