@@ -140,7 +140,7 @@ class SourceMap(
    */
   protected def retrieveRoots: Seq[String] = (
     config.compileClasspath.map(_.getCanonicalPath).toSeq ++
-    config.referenceSourceRoots.map(_.getCanonicalPath) ++
+    config.javaSources.map(_.getCanonicalPath) ++
     config.subprojects.flatMap(_.sourceRoots).map(_.getCanonicalPath)
   ).distinct
 

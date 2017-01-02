@@ -15,7 +15,7 @@ import org.scalatest.OptionValues
 class JavaCompilerSpec extends EnsimeSpec with OptionValues
     with IsolatedJavaCompilerFixture {
 
-  val original = EnsimeConfigFixture.SimpleTestProject.copy(referenceSourceRoots = Nil)
+  val original = EnsimeConfigFixture.SimpleTestProject.copy(javaSources = Nil)
 
   "JavaCompiler" should "generate compilation notes" in {
     withJavaCompiler { (_, config, cc, store, search) =>
