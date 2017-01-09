@@ -39,7 +39,7 @@ class BasicWorkflow extends EnsimeSpec
           expectMsg(VoidResponse)
           asyncHelper.expectMsgType[NewScalaNotesEvent]
           asyncHelper.expectMsgType[NewScalaNotesEvent]
-          asyncHelper.expectMsgType[FullTypeCheckCompleteEvent.type]
+          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
           project ! TypeByNameReq("org.example.Bloo")
           expectMsgType[api.BasicTypeInfo]
@@ -408,7 +408,7 @@ class BasicWorkflow extends EnsimeSpec
           project ! TypecheckFilesReq(List(Left(bazFile), Right(toBeUnloaded)))
           expectMsg(VoidResponse)
           asyncHelper.expectMsgType[NewScalaNotesEvent]
-          asyncHelper.expectMsgType[FullTypeCheckCompleteEvent.type]
+          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
           project ! UnloadFileReq(toBeUnloaded)
           expectMsg(VoidResponse)

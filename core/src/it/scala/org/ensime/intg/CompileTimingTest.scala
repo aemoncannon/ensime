@@ -4,6 +4,8 @@ package org.ensime.intg
 
 import java.nio.file.Files
 
+import scala.concurrent.duration._
+
 import org.apache.commons.io.FileUtils
 import org.ensime.api._
 import org.ensime.fixture._
@@ -59,7 +61,7 @@ class CompileTimingTest extends EnsimeSpec
           // simulate sbt clean https://github.com/sbt/sbt/issues/106
           target.tree.reverse.filter(_.isFile).foreach(_.delete())
 
-          asyncHelper.receiveN(2) should contain theSameElementsAs (Seq(
+          asyncHelper.receiveN(2, 10.seconds) should contain theSameElementsAs (Seq(
             FullTypeCheckCompleteEvent,
             CompilerRestartedEvent
           ))
@@ -80,7 +82,7 @@ class CompileTimingTest extends EnsimeSpec
             }
           }
 
-          asyncHelper.receiveN(2) should contain theSameElementsAs (Seq(
+          asyncHelper.receiveN(2, 10.seconds) should contain theSameElementsAs (Seq(
             FullTypeCheckCompleteEvent,
             CompilerRestartedEvent
           ))

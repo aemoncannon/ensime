@@ -32,7 +32,7 @@ class ServerStartupSpec extends EnsimeSpec
         val protocol = new SwankProtocol
         system.actorOf(Props(new ServerActor(config, protocol)), "ensime-main")
 
-        eventually(timeout(30 seconds), interval(1 second)) {
+        eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
           PortUtil.port(config.cacheDir, "http").isDefined
           PortUtil.port(config.cacheDir, "port").isDefined
         }
@@ -55,7 +55,7 @@ class ServerStartupSpec extends EnsimeSpec
         val protocol = new SwankProtocol
         system.actorOf(Props(new ServerActor(config, protocol)), "ensime-main")
 
-        eventually(timeout(30 seconds), interval(1 second)) {
+        eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
           val http = new Socket
           val tcp = new Socket
 

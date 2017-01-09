@@ -26,7 +26,7 @@ class JarTargetTest extends EnsimeSpec
 
           mainTarget should be a 'file
 
-          eventually(interval(1 second)) {
+          eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             project ! PublicSymbolSearchReq(List("Foo"), 5)
             atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
               case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Class, Some(_)) =>
@@ -43,8 +43,7 @@ class JarTargetTest extends EnsimeSpec
         withProject { (project, asyncHelper) =>
           mainTarget should be a 'file
 
-          // no scaling here
-          eventually(timeout(30 seconds), interval(1 second)) {
+          eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             mainTarget.delete() shouldBe true
           }
         }
@@ -83,9 +82,9 @@ class MissingJarTargetTest extends EnsimeSpec
           mainTarget should be a 'file
 
           // means the file addition was detected
-          asyncHelper.expectMsg(CompilerRestartedEvent)
+          asyncHelper.expectMsg(10 seconds, CompilerRestartedEvent)
 
-          eventually(interval(1 second)) {
+          eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             project ! PublicSymbolSearchReq(List("Foo"), 5)
             atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
               case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Class, Some(_)) =>

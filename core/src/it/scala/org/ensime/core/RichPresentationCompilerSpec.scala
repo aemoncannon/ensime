@@ -521,7 +521,7 @@ class RichPresentationCompilerSpec extends EnsimeSpec
     )
 
     cc.search.refreshResolver()
-    Await.result(cc.search.refresh(), 180.seconds)
+    Await.result(cc.search.refresh(), 30.seconds * spanScaleFactor)
 
     val scalaVersion = scala.util.Properties.versionNumberString
     val parts = scalaVersion.split("\\.").take(2).map { _.toInt }

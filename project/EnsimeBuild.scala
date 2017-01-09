@@ -235,7 +235,7 @@ object EnsimeBuild {
   private def akkaVersion: Def.Initialize[String] = Def.setting {
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, minor)) if minor >= 11 => "2.4.16"
-      case _ => "2.3.16"
+      case Some((2, 10)) => "2.3.16"
     }
   }
 }
