@@ -125,16 +125,18 @@ object Server extends AkkaBackCompat {
       throw new RuntimeException("ensime.config (the location of the .ensime file) must be set")
     )
     val serverFileStr = propOrNone("server.config").getOrElse(
-      throw new RuntimeException("ensime.config (the location of the .server file) must be set")
+      "~/.config/ensime-server"
     )
 
     val ensimeFile = new File(ensimeFileStr)
     val serverFile = new File(serverFileStr)
     if (!ensimeFile.exists() || !ensimeFile.isFile)
       throw new RuntimeException(s".ensime file ($ensimeFile) not found")
-    if (!serverFile.exists() || !serverFile.isFile)
-      throw new RuntimeException(s".server file ($serverFile) not found")
-
+    if (!serverFile.exists() || !serverFile.isFile){
+      val serverFileNew = new File("~/.ensime-server")
+      if(!serverFileNew.exists() || !serverFileNew.isFile)
+    }
+    implicit val serverConfig: EnsimeServerConfig = ???
     implicit val config: EnsimeConfig = try {
       EnsimeConfigProtocol.parse(Files.toString(ensimeFile, Charsets.UTF_8), Files.toString(serverFile, Charsets.UTF_8))
     } catch {
@@ -142,7 +144,6 @@ object Server extends AkkaBackCompat {
         log.error(s"There was a problem parsing $ensimeFile", e)
         throw e
     }
-    implicit val serverConfig: EnsimeServerConfig = ???
     Canon.config = config
 
     val protocol: Protocol = serverConfig.protocol match {
