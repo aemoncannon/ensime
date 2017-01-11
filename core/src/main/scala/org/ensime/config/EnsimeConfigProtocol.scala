@@ -32,7 +32,7 @@ object EnsimeConfigProtocol {
     val serverConfigRaw = serverConfig.parseSexp.convertTo[EnsimeServerConfig]
     validated(raw).copy(javaLibs = inferJavaLibs(raw.javaHome, serverConfigRaw))
   }
-
+  def parse(serverConfig: String):EnsimeServerConfig = ???
   // there are lots of JRE libs, but most people only care about
   // rt.jar --- this could be parameterised.
   private def inferJavaLibs(javaHome: File, serverConfig: EnsimeServerConfig): List[File] =

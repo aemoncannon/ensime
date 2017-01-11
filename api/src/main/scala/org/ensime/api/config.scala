@@ -96,4 +96,4 @@ final case class EnsimeProject(
   sources.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
 }
 
-final case class EnsimeServerConfig(shutDownOnDisconnect: Boolean, test: Boolean, exitAfterIndex: Boolean, disableSourceMonitoring: Boolean, disableClassMonitoring: Boolean, sourceMode: Boolean, legacyJarurls: Boolean, protocol: String, ENSIME_EXPERIMENTAL_H2: String = "jdbc:h2:file:", ENSIME_SKIP_JRE_INDEX: Boolean, parallelThread: Int)
+final case class EnsimeServerConfig(shutDownOnDisconnect: Boolean, test: Boolean, exitAfterIndex: Boolean, disableSourceMonitoring: Boolean, disableClassMonitoring: Boolean, sourceMode: Boolean, protocol: String, ENSIME_EXPERIMENTAL_H2: String = "jdbc:h2:file:", ENSIME_SKIP_JRE_INDEX: Boolean, parallelThread: Int)
