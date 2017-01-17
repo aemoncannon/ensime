@@ -132,12 +132,12 @@ object Server extends AkkaBackCompat {
     val serverFile = new File(serverFileStr)
     if (!ensimeFile.exists() || !ensimeFile.isFile)
       throw new RuntimeException(s".ensime file ($ensimeFile) not found")
-    val finalServerFile = if (!serverFile.exists() || !serverFile.isFile){
+    val finalServerFile = if (!serverFile.exists() || !serverFile.isFile) {
       new File("~/.ensime-server")
-    }else serverFile
+    } else serverFile
 
-    implicit val serverConfig: EnsimeServerConfig = if(finalServerFile.exists() || !ensimeFile.isFile)
-      EnsimeConfigProtocol.parse(Files.toString(finalServerFile,Charsets.UTF_8))
+    implicit val serverConfig: EnsimeServerConfig = if (finalServerFile.exists() || !ensimeFile.isFile)
+      EnsimeConfigProtocol.parse(Files.toString(finalServerFile, Charsets.UTF_8))
     else {
       val shutDownOnDisconnect = Option(System.getProperty("ensime.explode.on.disconnect")).isDefined
       val test = propIsSet("ensime.server.test")
@@ -146,10 +146,10 @@ object Server extends AkkaBackCompat {
       val disableClassMonitoring = propOrFalse("ensime.disableClassMonitoring")
       val sourceMode = propOrFalse("ensime.sourceMode")
       val parallelThread = Properties.propOrElse("ensime.index.parallel", "10").toInt
-      val ENSIME_EXPERIMENTAL_H2 = sys.env.getOrElse("ENSIME_EXPERIMENTAL_H2","jdbc:h2:file:")
+      val ENSIME_EXPERIMENTAL_H2 = sys.env.getOrElse("ENSIME_EXPERIMENTAL_H2", "jdbc:h2:file:")
       val protocol = propOrElse("ensime.protocol", "swank")
       val ENSIME_SKIP_JRE_INDEX = Properties.envOrNone("ENSIME_SKIP_JRE_INDEX").isDefined
-      EnsimeServerConfig(shutDownOnDisconnect,test,exitAfterIndex,disableSourceMonitoring,disableClassMonitoring,sourceMode,protocol,ENSIME_EXPERIMENTAL_H2,ENSIME_SKIP_JRE_INDEX,parallelThread)
+      EnsimeServerConfig(shutDownOnDisconnect, test, exitAfterIndex, disableSourceMonitoring, disableClassMonitoring, sourceMode, protocol, ENSIME_EXPERIMENTAL_H2, ENSIME_SKIP_JRE_INDEX, parallelThread)
     }
     implicit val config: EnsimeConfig = try {
       EnsimeConfigProtocol.parse(Files.toString(ensimeFile, Charsets.UTF_8), Files.toString(serverFile, Charsets.UTF_8))

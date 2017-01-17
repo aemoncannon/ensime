@@ -30,6 +30,7 @@ class SourceMapSpec extends EnsimeSpec with OneInstancePerTest with MockFactory 
   //       overriding protected methods used to retrieve information from config
   private val sourceMap = new SourceMap(
     config = null,
+    serverConfig = null,
     pathMap = testPathMap
   ) {
     override protected def retrieveRoots: Seq[String] = testRoots
