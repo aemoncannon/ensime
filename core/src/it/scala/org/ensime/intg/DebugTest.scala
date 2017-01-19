@@ -18,7 +18,7 @@ import org.ensime.fixture._
 import org.ensime.util._
 import org.ensime.util.file._
 import org.scalatest.Matchers
-
+import org.ensime.config._
 // must be refreshing as the tests don't clean up after themselves properly
 class DebugTest extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
@@ -30,7 +30,7 @@ class DebugTest extends EnsimeSpec
     javaLibs = Nil // no need to index the JRE
   )
 
-  "Debug - stepping" should "be able to step over/in/out" in withEnsimeConfig { implicit config =>
+  "Debug - stepping" should "be able to step over/in/out" in withEnsimeConfig { implicit config: EnsimeConfig =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -61,7 +61,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  "Breakpoints" should "trigger/continue" in withEnsimeConfig { implicit config =>
+  "Breakpoints" should "trigger/continue" in withEnsimeConfig { implicit config: EnsimeConfig =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -135,7 +135,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  it should "list/clear" in withEnsimeConfig { implicit config =>
+  it should "list/clear" in withEnsimeConfig { implicit config: EnsimeConfig =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -180,7 +180,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  "Debug variables" should "inspect variables" in withEnsimeConfig { implicit config =>
+  "Debug variables" should "inspect variables" in withEnsimeConfig { implicit config: EnsimeConfig =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -258,7 +258,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  they should "be able to convert variables to string representations" in withEnsimeConfig { implicit config =>
+  they should "be able to convert variables to string representations" in withEnsimeConfig { implicit config: EnsimeConfig =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -309,7 +309,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  they should "be retrievable for the BugFromGitter scenario" in withEnsimeConfig { implicit config =>
+  they should "be retrievable for the BugFromGitter scenario" in withEnsimeConfig { implicit config: EnsimeConfig =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -336,7 +336,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  they should "set variable values" in withEnsimeConfig { implicit config =>
+  they should "set variable values" in withEnsimeConfig { implicit config: EnsimeConfig =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -463,7 +463,7 @@ class DebugTest extends EnsimeSpec
     }
   }
 
-  "Debug backtrace" should "generate backtrace" in withEnsimeConfig { implicit config =>
+  "Debug backtrace" should "generate backtrace" in withEnsimeConfig { implicit config: EnsimeConfig =>
     withTestKit { implicit testkit =>
       withProject { (project, asyncHelper) =>
         implicit val p = (project, asyncHelper)
@@ -625,7 +625,7 @@ object VMStarter extends SLF4JLogging {
     // would be nice to have ephemeral debug ports
     val port = 5000 + scala.util.Random.nextInt(1000)
 
-    val classpath = (config.compileClasspath ++ config.targetClasspath).mkString(File.pathSeparator)
+    val classpath = (config.compileClasspath(EnsimeConfigProtocol.parse("")) ++ config.targetClasspath).mkString(File.pathSeparator)
     val args = Seq(
       java,
       "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=" + port,

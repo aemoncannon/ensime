@@ -6,7 +6,7 @@ import java.util.concurrent.Semaphore
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.util.{ Failure, Properties, Success }
+import scala.util.{ Failure, Success }
 
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
@@ -28,6 +28,7 @@ import org.ensime.vfs._
  */
 class SearchService(
     config: EnsimeConfig,
+    serverConfig: EnsimeServerConfig,
     resolver: SourceResolver
 )(
     implicit
@@ -67,14 +68,14 @@ class SearchService(
   private val version = "2.0.2"
 
   private[indexer] val index = new IndexService((config.cacheDir / ("index-" + version)).toPath)
-  private val db = new DatabaseService(config.cacheDir / ("sql-" + version))
+  private val db = new DatabaseService(config.cacheDir / ("sql-" + version), serverConfig)
 
   import ExecutionContext.Implicits.global
 
   // each jar / directory must acquire a permit, released when the
   // data is persisted. This is to keep the heap usage down and is a
   // poor man's backpressure.
-  val semaphore = new Semaphore(Properties.propOrElse("ensime.index.parallel", "10").toInt, true)
+  val semaphore = new Semaphore(serverConfig.parallelThread, true)
 
   private def scan(f: FileObject) = f.findFiles(ClassfileSelector) match {
     case null => Nil

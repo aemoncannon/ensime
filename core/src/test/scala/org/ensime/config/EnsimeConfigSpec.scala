@@ -13,8 +13,8 @@ class EnsimeConfigSpec extends EnsimeSpec {
 
   import EscapingStringInterpolation._
 
-  def test(dir: File, contents: String, testFn: (EnsimeConfig) => Unit): Unit = {
-    testFn(EnsimeConfigProtocol.parse(contents))
+  def test(dir: File, contents: String, contents2: String, testFn: (EnsimeConfig) => Unit): Unit = {
+    testFn(EnsimeConfigProtocol.parse(contents, contents2))
   }
 
   "EnsimeConfig" should "parse a simple config" in withTempDir { dir =>
@@ -50,7 +50,7 @@ class EnsimeConfigSpec extends EnsimeSpec {
              :javac-options ()
              :library-jars ()
              :library-sources ()
-             :library-docs ())))""", { implicit config =>
+             :library-docs ())))""", """""", { implicit config =>
       config.name shouldBe "project"
       config.scalaVersion shouldBe "2.10.4"
       val module1 = config.modules("module1")
@@ -76,7 +76,7 @@ class EnsimeConfigSpec extends EnsimeSpec {
  :cache-dir "$cache"
  :subprojects ((:name "module1"
                 :scala-version "2.10.4"
-                :targets ("$abc"))))""", { implicit config =>
+                :targets ("$abc"))))""", """""", { implicit config =>
 
       config.name shouldBe "project"
       config.scalaVersion shouldBe "2.10.4"

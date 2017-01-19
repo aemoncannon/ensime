@@ -26,7 +26,7 @@ trait IsolatedSourceResolverFixture
       }
     }
   }
-  override def withSourceResolver(testCode: (EnsimeConfig, SourceResolver) => Any): Any = withEnsimeConfig { config =>
+  override def withSourceResolver(testCode: (EnsimeConfig, SourceResolver) => Any): Any = withEnsimeConfig { (config) =>
     withTestKit { testKit ⇒
       import testKit.system
       implicit val vfs = EnsimeVFS()

@@ -12,7 +12,6 @@ import org.ensime.indexer._
 
 import scala.collection.immutable.ListSet
 import scala.concurrent.duration._
-import scala.util.Properties._
 import scala.util._
 import org.ensime.util.FileUtils
 import org.ensime.util.ensimefile._
@@ -25,7 +24,8 @@ final case class ShutdownRequest(reason: String, isError: Boolean = false)
  */
 class Project(
     broadcaster: ActorRef,
-    implicit val config: EnsimeConfig
+    implicit val config: EnsimeConfig,
+    implicit val serverConfig: EnsimeServerConfig
 ) extends Actor with ActorLogging with Stash {
   import context.{ dispatcher, system }
 
@@ -45,8 +45,8 @@ class Project(
   // vfs, resolver, search and watchers are considered "reliable" (hah!)
   private implicit val vfs: EnsimeVFS = EnsimeVFS()
   private val resolver = new SourceResolver(config)
-  private val searchService = new SearchService(config, resolver)
-  private val sourceWatcher = new SourceWatcher(config, resolver :: Nil)
+  private val searchService = new SearchService(config, serverConfig, resolver)
+  private val sourceWatcher = new SourceWatcher(config, serverConfig, resolver :: Nil)
   private val reTypecheck = new FileChangeListener {
     def reTypeCheck(): Unit = self ! AskReTypecheck
     def fileAdded(f: FileObject): Unit = reTypeCheck()
@@ -54,7 +54,7 @@ class Project(
     def fileRemoved(f: FileObject): Unit = reTypeCheck()
     override def baseReCreated(f: FileObject): Unit = reTypeCheck()
   }
-  private val classfileWatcher = context.actorOf(Props(new ClassfileWatcher(config, searchService :: reTypecheck :: Nil)), "classFileWatcher")
+  private val classfileWatcher = context.actorOf(Props(new ClassfileWatcher(config, serverConfig, searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
   def receive: Receive = awaitingConnectionInfoReq
 
@@ -83,7 +83,7 @@ class Project(
         // we could also just blindly send this on each connection.
         delayedBroadcaster ! Broadcaster.Persist(IndexerReadyEvent)
         log.debug(s"created $inserts and removed $deletes searchable rows")
-        if (propOrFalse("ensime.exitAfterIndex"))
+        if (serverConfig.exitAfterIndex)
           context.parent ! ShutdownRequest("Index only run", isError = false)
       case Failure(problem) =>
         log.warning(s"Refresh failed: ${problem.toString}")
