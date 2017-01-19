@@ -22,7 +22,7 @@ trait EnsimeConfigFixture {
 
   def copyTargets: Boolean = true
 
-  def withEnsimeConfig(testCode: EnsimeConfig => Any): Any
+  def withEnsimeConfig(testCode: (EnsimeConfig) => Any): Any
 
   // convenience method
   def main(lang: String)(implicit config: EnsimeConfig): File =
@@ -51,8 +51,8 @@ object EnsimeConfigFixture {
   lazy val dotEnsimeCache = File("../.ensime_cache")
   dotEnsimeCache.mkdirs()
   private implicit def charset = Charset.defaultCharset()
-  lazy val EnsimeTestProject = EnsimeConfigProtocol.parse(dotEnsime.readString())
-
+  lazy val EnsimeTestProject = EnsimeConfigProtocol.parse(dotEnsime.readString(), "")
+  lazy val EnsimeServerTestProject = EnsimeConfigProtocol.parse("")
   // not completely empty, has a reference to the scala-library jar
   lazy val EmptyTestProject: EnsimeConfig = EnsimeTestProject.copy(
     subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_empty"),
@@ -168,7 +168,7 @@ trait IsolatedEnsimeConfigFixture extends Suite
   //with ParallelTestExecution {
   import EnsimeConfigFixture._
 
-  override def withEnsimeConfig(testCode: EnsimeConfig => Any): Any = withTempDir {
+  override def withEnsimeConfig(testCode: (EnsimeConfig) => Any): Any = withTempDir {
     dir => testCode(cloneForTesting(original, dir, copyTargets))
   }
 }
@@ -184,6 +184,7 @@ trait SharedEnsimeConfigFixture extends Suite
   private val tmpDir = Files.createTempDir()
 
   private[fixture] var _config: EnsimeConfig = _
+  private[fixture] var _serverConfig: EnsimeServerConfig = _
 
   override def beforeAll(): Unit = {
     super.beforeAll()

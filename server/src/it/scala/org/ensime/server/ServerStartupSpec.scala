@@ -7,9 +7,9 @@ import java.net._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{ Properties, Try }
-
 import akka.actor.Props
 import org.ensime.AkkaBackCompat
+import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
@@ -21,16 +21,17 @@ class ServerStartupSpec extends EnsimeSpec
     with AkkaBackCompat {
 
   val original = EnsimeConfigFixture.EmptyTestProject
-
+  val serverConfig = EnsimeConfigProtocol.parse("")
   Properties.setProp("ensime.server.test", "true")
 
   "Server" should "start up and bind to random ports" in {
     withEnsimeConfig { implicit config =>
+
       withTestKit { implicit tk =>
         import tk._
 
         val protocol = new SwankProtocol
-        system.actorOf(Props(new ServerActor(config, protocol)), "ensime-main")
+        system.actorOf(Props(new ServerActor(config, serverConfig, protocol)), "ensime-main")
 
         eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
           PortUtil.port(config.cacheDir, "http").isDefined
@@ -53,7 +54,7 @@ class ServerStartupSpec extends EnsimeSpec
         (config.cacheDir / "port").writeString(preferredTcp.toString)
 
         val protocol = new SwankProtocol
-        system.actorOf(Props(new ServerActor(config, protocol)), "ensime-main")
+        system.actorOf(Props(new ServerActor(config, serverConfig, protocol)), "ensime-main")
 
         eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
           val http = new Socket
@@ -83,7 +84,7 @@ class ServerStartupSpec extends EnsimeSpec
         val tcpHog = new ServerSocket().bind(new InetSocketAddress("127.0.0.1", preferredTcp))
 
         val protocol = new SwankProtocol
-        system.actorOf(Props(new ServerActor(config, protocol)), "ensime-main")
+        system.actorOf(Props(new ServerActor(config, serverConfig, protocol)), "ensime-main")
 
         Await.result(system.whenTerminated, akkaTimeout.duration)
       }
@@ -101,7 +102,7 @@ class ServerStartupSpec extends EnsimeSpec
         val httpHog = new ServerSocket().bind(new InetSocketAddress("127.0.0.1", preferredHttp))
 
         val protocol = new SwankProtocol
-        system.actorOf(Props(new ServerActor(config, protocol)), "ensime-main")
+        system.actorOf(Props(new ServerActor(config, serverConfig, protocol)), "ensime-main")
 
         Await.result(system.whenTerminated, akkaTimeout.duration)
       }

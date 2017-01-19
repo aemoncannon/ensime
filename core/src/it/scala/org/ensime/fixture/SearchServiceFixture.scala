@@ -14,8 +14,8 @@ import org.ensime.vfs._
 
 trait IsolatedSearchServiceFixture extends IsolatedSourceResolverFixture with AkkaBackCompat {
 
-  def withSearchService(testCode: (EnsimeConfig, SearchService) => Any)(implicit actorSystem: ActorSystem, vfs: EnsimeVFS): Any = withSourceResolver { (config, resolver) =>
-    val searchService = new SearchService(config, resolver)
+  def withSearchService(testCode: (EnsimeConfig, SearchService) => Any)(implicit actorSystem: ActorSystem, serverConfig: EnsimeServerConfig, vfs: EnsimeVFS): Any = withSourceResolver { (config, resolver) =>
+    val searchService = new SearchService(config, serverConfig, resolver)
     try {
       testCode(config, searchService)
     } finally {
@@ -36,7 +36,7 @@ trait SharedSearchServiceFixture
   override def beforeAll(): Unit = {
     super.beforeAll()
     implicit val system = _testkit.system
-    _search = new SearchService(_config, _resolver)
+    _search = new SearchService(_config, _serverConfig, _resolver)
   }
 
   override def afterAll(): Unit = {

@@ -7,11 +7,13 @@ import java.io.File
 import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.ensime.api._
+import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.core.javac.JavaCompiler
 import org.ensime.vfs._
 import org.ensime.indexer._
 import org.ensime.util._
 import org.ensime.util.file._
+
 import scala.collection.immutable.Queue
 
 trait JavaCompilerFixture {
@@ -73,6 +75,7 @@ trait IsolatedJavaCompilerFixture
     withVFS { implicit vfs =>
       withTestKit { testkit =>
         import testkit._
+        implicit val s = EnsimeConfigProtocol.parse("")
         withSearchService { (config, search) =>
           withEnsimeConfig { config =>
             val reportHandler = new JavaStoreReporter

@@ -16,7 +16,7 @@ import org.ensime.indexer._
 import org.ensime.util.{ PresentationReporter, ReportHandler }
 import org.ensime.vfs._
 import org.slf4j.LoggerFactory
-
+import org.ensime.config._
 trait RichPresentationCompilerFixture {
   def withRichPresentationCompiler(
     testCode: (TestKitFix, EnsimeConfig, RichPresentationCompiler) => Any
@@ -59,7 +59,7 @@ object RichPresentationCompilerFixture {
     settings.verbose.value = presCompLog.isDebugEnabled
     //settings.usejavacp.value = true
     settings.bootclasspath.append(scalaLib.getAbsolutePath)
-    settings.classpath.value = config.compileClasspath.mkString(File.pathSeparator)
+    settings.classpath.value = config.compileClasspath(EnsimeConfigProtocol.parse("")).mkString(File.pathSeparator)
 
     val reporter = new TestReporter
     val indexer = TestProbe()
@@ -83,6 +83,7 @@ trait IsolatedRichPresentationCompilerFixture
     withVFS { implicit vfs =>
       withTestKit { testkit =>
         import testkit._
+        implicit val s = EnsimeConfigProtocol.parse("")
         withSearchService { (config, search) =>
           import org.ensime.fixture.RichPresentationCompilerFixture._
           val pc = create(config, search)
