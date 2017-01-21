@@ -2,9 +2,6 @@
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
 package org.ensime.sexp.formats
 
-import collection.BitSet
-import collection.{ immutable => im }
-
 class BigDecimalConvertor[T](
     val to: T => BigDecimal,
     val from: BigDecimal => T
@@ -44,40 +41,4 @@ object BigDecimalConvertor {
   implicit val ShortBigConv: BigDecimalConvertor[Short] = new BigDecimalConvertor[Short](identity, _.shortValue())
   implicit val BigIntBigConv: BigDecimalConvertor[BigInt] = new BigDecimalConvertor[BigInt](BigDecimal.apply, _.toBigInt())
   implicit val BigDecimalBigConv: BigDecimalConvertor[BigDecimal] = new BigDecimalConvertor[BigDecimal](identity, identity)
-}
-
-object BigIntConvertor {
-  def fromBitSet(bitSet: BitSet): BigInt =
-    fromBitMask(bitSet.toBitMask)
-
-  def toBitSet(bigInt: BigInt): im.BitSet = {
-    im.BitSet.fromBitMaskNoCopy(toBitMask(bigInt))
-  }
-
-  /** @param bitmask is the same format as used by `BitSet` */
-  private def fromBitMask(bitmask: Array[Long]): BigInt = {
-    val bytes = Array.ofDim[Byte](bitmask.length * 8)
-    val bb = java.nio.ByteBuffer.wrap(bytes)
-    bitmask.reverse foreach bb.putLong
-    BigInt(bytes)
-  }
-
-  /** @return the same format as used by `BitSet` */
-  private def toBitMask(bigInt: BigInt): Array[Long] = {
-    // bytes may not be padded to be divisible by 8
-    val bytes = {
-      val raw = bigInt.toByteArray
-      val rem = raw.length % 8
-      if (rem == 0) raw
-      else Array.ofDim[Byte](8 - rem) ++ raw
-    }
-    val longLength = bytes.length / 8
-    val bb = java.nio.ByteBuffer.wrap(bytes)
-    // asLongBuffer.array doesn't support .array
-    val longs = Array.ofDim[Long](longLength)
-    for { i <- 0 until longLength } {
-      longs(i) = bb.getLong(i * 8)
-    }
-    longs.reverse
-  }
 }
