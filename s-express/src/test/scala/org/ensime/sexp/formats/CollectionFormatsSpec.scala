@@ -48,14 +48,6 @@ class CollectionFormatsSpec extends FormatSpec
     assertFormat(collection.SortedSet(foos: _*), SexpList(foo)) // dupes removed
   }
 
-  it should "support BitSet" in {
-    assertFormat(collection.BitSet(), SexpNil)
-    assertFormat(collection.BitSet(0, 1), SexpString("16#3"))
-    assertFormat(collection.BitSet(64), SexpString("16#10000000000000000"))
-    assertFormat(collection.BitSet(0, 64), SexpString("16#10000000000000001"))
-    assertFormat(collection.BitSet(1, 64), SexpString("16#10000000000000002"))
-  }
-
   it should "support Map" in {
     assertFormat(collection.Map[String, String](), SexpNil)
     assertFormat(collection.Map("foo" -> "foo"), SexpList(SexpList(foo, foo)))
@@ -99,14 +91,6 @@ class CollectionFormatsSpec extends FormatSpec
   it should "support SortedSet" in {
     assertFormat(im.SortedSet[String](), SexpNil)
     assertFormat(im.SortedSet(foos: _*), SexpList(foo)) // dupes removed
-  }
-
-  it should "support BitSet" in {
-    assertFormat(im.BitSet(), SexpNil)
-    assertFormat(im.BitSet(0, 1), SexpString("16#3"))
-    assertFormat(collection.BitSet(64), SexpString("16#10000000000000000"))
-    assertFormat(collection.BitSet(0, 64), SexpString("16#10000000000000001"))
-    assertFormat(collection.BitSet(1, 64), SexpString("16#10000000000000002"))
   }
 
   it should "support Map" in {
