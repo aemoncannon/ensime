@@ -133,7 +133,11 @@ class SearchService(
         val check = FileCheck(base)
         val indexed = extractSymbolsFromClassOrJar(base).flatMap(persist(check, _, commitIndex = false, boost = boost))
         indexed.onComplete { _ => semaphore.release() }
-        indexed
+        indexed.recover {
+          case t: Throwable =>
+            log.warn(s"Failed to index ${base.getName()}.", t)
+            0
+        }
       }
     }
 
