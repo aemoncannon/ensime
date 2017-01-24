@@ -525,9 +525,9 @@ trait DebugTestUtils {
 
       asyncHelper.expectMsg(DebugVmStartEvent)
 
-      val gotOnStartup = asyncHelper.expectMsgType[EnsimeServerMessage]
+      val gotOnStartup = asyncHelper.expectMsgType[EnsimeServerMessage](10 seconds)
       // weird! we sometimes see a duplicate break event instantly, not really expected
-      val additionalOnStartup = Try(asyncHelper.expectMsgType[EnsimeServerMessage](1 second)).toOption.toSeq
+      val additionalOnStartup = Try(asyncHelper.expectMsgType[EnsimeServerMessage]).toOption.toSeq
       // but it doesn't always come through
 
       val allEvents = gotOnStartup +: additionalOnStartup

@@ -23,7 +23,7 @@ object ProjectPlugin extends AutoPlugin {
   override def trigger = allRequirements
 
   override def buildSettings = Seq(
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.12.1",
     organization := "org.ensime",
     version := "2.0.0-SNAPSHOT",
 
@@ -55,8 +55,7 @@ object EnsimeBuild {
       "org.apache.lucene" % "lucene-core" % luceneVersion
     ),
 
-    updateOptions := updateOptions.value.withCachedResolution(true),
-    resolvers += Resolver.sonatypeRepo("snapshots")
+    updateOptions := updateOptions.value.withCachedResolution(true)
   )
 
   lazy val commonItSettings = inConfig(It)(
@@ -171,11 +170,14 @@ object EnsimeBuild {
         "org.scala-lang" % "scalap" % scalaVersion.value,
         "com.typesafe.akka" %% "akka-actor" % akkaVersion.value,
         "com.typesafe.akka" %% "akka-slf4j" % akkaVersion.value,
-        CrossVersion.partialVersion(scalaVersion.value) match {
+        {
           // see notes in https://github.com/ensime/ensime-server/pull/1446
-          case Some((2, 10)) => "org.scala-refactoring" % "org.scala-refactoring.library_2.10.6" % "0.11.0"
-          case Some((2, 11)) => "org.scala-refactoring" % "org.scala-refactoring.library_2.11.8" % "0.11.0"
-          case _             => "org.scala-refactoring" % "org.scala-refactoring.library_2.12.0" % "0.12.0-SNAPSHOT"
+          val suffix = CrossVersion.partialVersion(scalaVersion.value) match {
+            case Some((2, 10)) => "2.10.6"
+            case Some((2, 11)) => "2.11.8"
+            case _             => "2.12.1"
+          }
+          "org.scala-refactoring" % s"org.scala-refactoring.library_${suffix}" % "0.12.0"
         },
         "commons-lang" % "commons-lang" % "2.6",
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",

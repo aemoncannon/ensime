@@ -190,7 +190,8 @@ class FileWatcherSpec extends EnsimeSpec
       }
     }
 
-  it should "survive deletion of the watched directory" taggedAs (Retryable) in
+  // hangs regularly on Windows, possible bug in JDK
+  it should "survive deletion of the watched directory" taggedAs (Retryable, IgnoreOnAppVeyor) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
