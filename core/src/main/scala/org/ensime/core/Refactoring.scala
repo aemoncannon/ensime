@@ -83,7 +83,7 @@ trait RefactoringControl { self: RichCompilerControl with RefactoringImpl =>
 
 }
 
-trait RefactoringImpl extends ScalaRefactoringBackCompat {
+trait RefactoringImpl {
   self: RichPresentationCompiler =>
 
   import org.ensime.util.FileUtils._
@@ -131,6 +131,16 @@ trait RefactoringImpl extends ScalaRefactoringBackCompat {
       }
       val result = performRefactoring(procId, tpe, new refactoring.RefactoringParameters())
     }.result
+
+  // we probably want to allow users to customise this
+  private def organizeImportOptions(refactoring: OrganizeImports) = {
+    import refactoring.oiWorker.participants._
+    List(
+      SortImports,
+      SortImportSelectors,
+      RemoveDuplicates
+    )
+  }
 
   protected def doOrganizeImports(procId: Int, tpe: RefactorType, file: File) =
     new RefactoringEnvironment(file.getPath, 0, 0) {
