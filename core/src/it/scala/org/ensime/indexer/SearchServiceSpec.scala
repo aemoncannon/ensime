@@ -17,6 +17,7 @@ class SearchServiceSpec extends EnsimeSpec
     with SharedSearchServiceFixture {
 
   def original = EnsimeConfigFixture.SimpleTestProject
+  override def usePreWarmedIndex = false
 
   import SearchServiceTestUtils._
 
