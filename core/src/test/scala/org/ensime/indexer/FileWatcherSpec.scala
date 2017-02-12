@@ -3,18 +3,19 @@
 package org.ensime.indexer
 
 import java.nio.charset.Charset
+import java.nio.file.Files
 
 import scala.concurrent.duration._
-
 import akka.testkit._
-import com.google.common.io.Files
 import org.apache.commons.vfs2._
 import org.ensime.fixture._
 import org.ensime.util._
 import org.ensime.util.file._
 import org.ensime.util.fileobject._
 import org.ensime.vfs._
+import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.tagobjects.Retryable
+import org.scalatest.time._
 
 sealed trait FileWatcherMessage
 final case class Added(f: FileObject) extends FileWatcherMessage
@@ -33,8 +34,12 @@ final case class BaseRegistered() extends FileWatcherMessage
  *       ParallelTestExecution". It's not used by default, only to
  *       reduce the load on the pathetic CI machines.
  */
-class FileWatcherSpec extends EnsimeSpec
+class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
     with IsolatedTestKitFixture with IsolatedEnsimeVFSFixture {
+
+  // some of these tests hang sporadically on Windows, so fail fast.
+  // not retried: https://github.com/scalatest/scalatest/issues/1087
+  override val timeLimit = scaled(Span(30, Seconds))
 
   implicit val DefaultCharset: Charset = Charset.defaultCharset()
 
@@ -169,7 +174,7 @@ class FileWatcherSpec extends EnsimeSpec
   it should "detect removed parent base directory" taggedAs (Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
-        val parent = Files.createTempDir().canon
+        val parent = Files.createTempDirectory("ensime-test").toFile.canon
         val dir = parent / "base"
         dir.mkdirs()
         try {
@@ -239,7 +244,7 @@ class FileWatcherSpec extends EnsimeSpec
   it should "be able to start up from a non-existent directory" taggedAs (Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
-        val dir = Files.createTempDir().canon / "root"
+        val dir = Files.createTempDirectory("ensime-test").toFile.canon / "root"
         try {
           withClassWatcher(dir) { watcher =>
             tk.ignoreMsg {
@@ -268,11 +273,11 @@ class FileWatcherSpec extends EnsimeSpec
       }
     }
 
-  it should "survive removed parent base directory and recreated base" taggedAs (Retryable) in
+  it should "survive removed parent base directory and recreated base" taggedAs (Retryable, IgnoreOnAppVeyor) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
 
-        val parent = Files.createTempDir().canon
+        val parent = Files.createTempDirectory("ensime-test").toFile.canon
         val dir = parent / "base"
         dir.mkdirs()
         try {

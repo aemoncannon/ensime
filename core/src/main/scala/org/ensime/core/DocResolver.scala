@@ -3,10 +3,10 @@
 package org.ensime.core
 
 import akka.actor._
-import com.google.common.io.ByteStreams
 import java.io.{ File, IOException }
 import java.util.jar.JarFile
 import org.ensime.api._
+import org.ensime.util.io._
 
 class DocResolver(
   prefix: String,
@@ -55,7 +55,7 @@ class DocResolver(
             }
             // Check for javadocs
             if (entry.getName == "index.html") {
-              val bytes = ByteStreams.toByteArray(jar.getInputStream(entry))
+              val bytes = jar.getInputStream(entry).toByteArray
               new String(bytes) match {
                 case JavadocComment(version: String) if version.startsWith("1.8") =>
                   docTypes += jarFileName -> Javadoc8

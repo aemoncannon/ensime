@@ -3,9 +3,9 @@
 package org.ensime.util
 
 import java.io.{ File => JFile }
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 
-import com.google.common.base.Charsets
-import com.google.common.io.Files
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.scalatest._
 
@@ -56,7 +56,7 @@ class FileSpec extends FlatSpec with Matchers {
     out.write("hello".getBytes())
     out.close()
 
-    Files.toString(file, Charsets.UTF_8) shouldBe "hello"
+    new String(Files.readAllBytes(file.toPath), StandardCharsets.UTF_8) shouldBe "hello"
   }
 
   it should "create Files with parents if necessary" in withTempDir { dir =>

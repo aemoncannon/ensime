@@ -3,25 +3,26 @@
 package org.ensime.util
 
 import java.io._
-import com.google.common.io.ByteStreams
 
+/**
+ * NOTE: prefer NIO via the path utilities.
+ */
 package object io {
 
   implicit class RichInputStream(val is: InputStream) extends AnyVal {
-    def toByteArray(): Array[Byte] = ByteStreams.toByteArray(is)
-  }
+    def toByteArray(): Array[Byte] = {
+      val baos = new ByteArrayOutputStream()
 
-  implicit class RichOutputStream(val os: OutputStream) extends AnyVal {
-    /**
-     * Copy the input stream to the output stream, making best
-     * endeavours to close everything afterward (even on failure).
-     */
-    def drain(in: InputStream): Unit =
-      try ByteStreams.copy(in, os)
-      finally {
-        try in.close()
-        finally os.close()
+      val data = Array.ofDim[Byte](16384)
+      var nRead = is.read(data, 0, data.length)
+
+      while (nRead != -1) {
+        baos.write(data, 0, nRead)
+        nRead = is.read(data, 0, data.length)
       }
-  }
 
+      baos.flush()
+      baos.toByteArray
+    }
+  }
 }
