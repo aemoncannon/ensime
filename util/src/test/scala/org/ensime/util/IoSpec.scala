@@ -4,7 +4,6 @@ package org.ensime.util
 
 import Predef.{ any2stringadd => _ }
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 
 import org.scalatest._
 
@@ -17,15 +16,4 @@ class IoSpec extends FlatSpec with Matchers {
     val in = new ByteArrayInputStream(bytes)
     in.toByteArray() shouldEqual bytes
   }
-
-  it should "drain an output stream to an input stream" in {
-    val in = new ByteArrayInputStream(bytes)
-    val out = new ByteArrayOutputStream()
-
-    out.drain(in)
-    out.toByteArray() shouldEqual bytes
-
-    // no way to confirm that the streams are closed, thanks for that J2SE
-  }
-
 }

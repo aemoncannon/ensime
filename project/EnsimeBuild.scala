@@ -86,7 +86,6 @@ object EnsimeBuild {
       "com.typesafe.akka" %% "akka-actor" % akkaVersion.value,
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.apache.commons" % "commons-vfs2" % "2.1" exclude ("commons-logging", "commons-logging"),
-      "com.google.guava" % "guava" % "20.0",
       "com.google.code.findbugs" % "jsr305" % "3.0.1" % "provided"
     ) ++ logback
   )

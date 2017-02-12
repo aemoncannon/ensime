@@ -5,9 +5,9 @@ package org.ensime.indexer
 import scala.collection.breakOut
 import scala.tools.scalap.scalax.rules.scalasig._
 
-import com.google.common.io.ByteStreams
 import org.apache.commons.vfs2.FileObject
 import org.ensime.core.ScalapSymbolToFqn
+import org.ensime.util.io._
 
 class ClassfileDepickler(file: FileObject) extends ScalapSymbolToFqn {
 
@@ -17,7 +17,7 @@ class ClassfileDepickler(file: FileObject) extends ScalapSymbolToFqn {
   private def depickle: Option[ScalaSig] = {
     val in = file.getContent.getInputStream
     try {
-      val bytes = ByteStreams.toByteArray(in)
+      val bytes = in.toByteArray()
       val byteCode = ByteCode(bytes)
       val classFile = ClassFileParser.parse(byteCode)
       ScalaSigParser.parse(classFile)
