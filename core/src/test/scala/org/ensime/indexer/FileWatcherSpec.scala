@@ -40,7 +40,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
   // some of these tests hang sporadically on Windows, so fail fast.
   // not retried: https://github.com/scalatest/scalatest/issues/1087
-  override val timeLimit = scaled(Span(10, Seconds))
+  override val timeLimit = scaled(Span(30, Seconds))
 
   implicit val DefaultCharset: Charset = Charset.defaultCharset()
 
@@ -274,7 +274,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "survive removed parent base directory and recreated base" taggedAs (Retryable) in
+  it should "survive removed parent base directory and recreated base" taggedAs (Retryable, IgnoreOnAppVeyor) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
 
