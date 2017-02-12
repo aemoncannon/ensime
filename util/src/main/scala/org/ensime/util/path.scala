@@ -9,6 +9,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.{ Collections, EnumSet }
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 import org.slf4j.LoggerFactory
 
@@ -23,13 +24,13 @@ package object path {
   def withTempDirPath[T](a: Path => T): T = {
     val dir = Files.createTempDirectory("ensime-").canon
     try a(dir)
-    finally dir.deleteDirRecursively()
+    finally Try(dir.deleteDirRecursively())
   }
 
   def withTempFilePath[T](a: Path => T): T = {
     val file = Files.createTempFile("ensime-", ".tmp").canon
     try a(file)
-    finally file.delete()
+    finally Try(file.delete())
   }
 
   implicit class RichPath(val path: Path) extends AnyVal {

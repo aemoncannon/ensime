@@ -8,6 +8,7 @@ import java.util.regex.Pattern
 import java.nio.file.Files
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 import com.google.common.io.{ Files => GFiles }
 import org.ensime.api.deprecating
@@ -37,13 +38,13 @@ package object file {
     val dir = Files.createTempDirectory("ensime").toFile.canon
     import path._
     try a(dir)
-    finally dir.toPath.deleteDirRecursively()
+    finally Try(dir.toPath.deleteDirRecursively())
   }
 
   def withTempFile[T](a: File => T): T = {
     val file = Files.createTempFile("ensime-", ".tmp").toFile.canon
     try a(file)
-    finally file.delete()
+    finally Try(file.delete())
   }
 
   implicit class RichFile(val file: File) extends AnyVal {
