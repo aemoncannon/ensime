@@ -38,4 +38,4 @@ cache:
   - C:\Users\appveyor\.ivy2 -> appveyor.yml
   - C:\Users\appveyor\.coursier -> appveyor.yml
 on_finish:
-  - ps: Get-ChildItem -Path .\* -Include *.log,*.hprof -Recurse -Depth 2 | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: Get-ChildItem -Path .\* -Include *.log,*.hprof -Recurse -Depth 1 | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
