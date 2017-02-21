@@ -11,6 +11,7 @@ import akka.event.slf4j.SLF4JLogging
 import com.zaxxer.hikari.HikariDataSource
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
+import org.ensime.database.SlickBackCompat
 import org.ensime.database.SlickBackCompat.h2Api._
 import org.ensime.indexer.database.DatabaseService._
 import org.ensime.util.file._
@@ -30,7 +31,7 @@ class DatabaseService(dir: File) extends SLF4JLogging {
     ds.setMaximumPoolSize(10)
     val threads = ds.getMaximumPoolSize
     val executor = AsyncExecutor("Slick", numThreads = threads, queueSize = -1)
-    (ds, Database.forDataSource(ds, executor = executor))
+    (ds, SlickBackCompat.forDataSource(ds, executor))
   }
 
   def commit(): Future[Unit] = Future.successful(())
