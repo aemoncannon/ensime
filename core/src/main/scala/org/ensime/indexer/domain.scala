@@ -133,49 +133,43 @@ final case class MethodName(
 
 // Generics signature
 
-sealed trait GenericArg
-sealed trait SignatureType
+sealed trait GenericSignature
+
 sealed trait BoundType
-sealed trait RealTypeSignature
-
-object UpperBound extends BoundType
-
-object LowerBound extends BoundType
+case object UpperBound extends BoundType
+case object LowerBound extends BoundType
 
 final case class GenericClass(
   genericParam: Seq[GenericParam],
   superClasses: Seq[GenericClassName]
-) extends SignatureType
+)
 
 final case class GenericParam(
   name: String,
-  classNames: Seq[RealTypeSignature]
-) extends SignatureType
+  classNames: Seq[GenericSignature]
+)
 
 final case class GenericClassName(
   className: ClassName,
   genericArg: Seq[GenericArg] = Seq.empty,
   innerClass: Seq[InnerClassName] = Seq.empty
-) extends SignatureType with RealTypeSignature
+) extends GenericSignature
 
 final case class InnerClassName(
   name: String,
   genericArg: Seq[GenericArg] = Seq.empty
 )
 
-object ExtendsObjectGenericArg
-  extends GenericArg
-
-final case class SpecifiedGenericArg(
+final case class GenericArg(
   boundType: Option[BoundType],
-  genericSignature: RealTypeSignature
-) extends GenericArg
+  genericSignature: GenericSignature
+)
 
-final case class GenericArray(className: RealTypeSignature)
-  extends SignatureType with RealTypeSignature
+final case class GenericArray(className: GenericSignature)
+  extends GenericSignature
 
 final case class GenericVar(name: String)
-  extends SignatureType with RealTypeSignature
+  extends GenericSignature
 
 // Descriptors
 
