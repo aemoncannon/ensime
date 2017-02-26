@@ -9,6 +9,7 @@ import org.ensime.util.FileUtils._
 import org.ensime.util._
 import org.ensime.util.file.File
 
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.refactoring._
 import scala.tools.refactoring.analysis.GlobalIndexes
@@ -36,7 +37,7 @@ abstract class RefactoringEnvironment(file: String, start: Int, end: Int) {
       val edits = modifications.flatMap(FileEditHelper.fromChange).sorted
 
       writeDiffChanges(edits, renameTarget) match {
-        case Right(diff) => Right(new RefactorDiffEffect(procId, tpe, diff))
+        case Right(diff) => Right(RefactorDiffEffect(procId, tpe, diff))
         case Left(err) => Left(RefactorFailure(procId, err.toString))
       }
     }
@@ -65,8 +66,8 @@ trait RefactoringHandler { self: Analyzer =>
 
   implicit def cs: Charset = charset
 
-  def handleRefactorRequest(req: RefactorReq): RpcResponse =
-    scalaCompiler.askDoRefactor(req.procId, req.params) match {
+  def handleRefactorRequest(req: RefactorReq)(implicit ec: ExecutionContext): Future[RpcResponse] =
+    scalaCompiler.askDoRefactor(req.procId, req.params).map {
       case Right(success) => success
       case Left(failure) => failure
     }
@@ -77,9 +78,10 @@ trait RefactoringControl { self: RichCompilerControl with RefactoringImpl =>
   def askDoRefactor(
     procId: Int,
     refactor: RefactorDesc
-  ): Either[RefactorFailure, RefactorDiffEffect] = {
-    askOption(doRefactor(procId, refactor)).getOrElse(Left(RefactorFailure(procId, "Refactor call failed")))
-  }
+  )(
+    implicit
+    ec: ExecutionContext
+  ): Future[Either[RefactorFailure, RefactorDiffEffect]] = doRefactor(procId, refactor)
 
 }
 
@@ -88,12 +90,15 @@ trait RefactoringImpl {
 
   import org.ensime.util.FileUtils._
 
-  protected def doRename(procId: Int, tpe: RefactorType, name: String, file: File, start: Int, end: Int) =
+  protected def doRename(procId: Int, tpe: RefactorType, name: String, file: File, start: Int, end: Int, files: Set[String]) =
     new RefactoringEnvironment(file.getPath, start, end) {
       val refactoring = new Rename with GlobalIndexes {
         val global = RefactoringImpl.this
         val invalidSet = toBeRemoved.synchronized { toBeRemoved.toSet }
-        val cuIndexes = this.global.activeUnits().map { u => CompilationUnitIndex(u.body) }
+        val cuIndexes: List[CompilationUnitIndex] = this.global.unitOfFile.collect {
+          case (f, unit) if search.noReverseLookups || files.contains(f.file.getPath) =>
+            CompilationUnitIndex(unit.body)
+        }(collection.breakOut)
         val index = GlobalIndex(cuIndexes)
       }
       val result = performRefactoring(procId, tpe, name)
@@ -167,42 +172,79 @@ trait RefactoringImpl {
     val edits = modifications.flatMap(FileEditHelper.fromChange)
 
     writeDiffChanges(edits)(charset) match {
-      case Right(diff) => Right(new RefactorDiffEffect(procId, tpe, diff))
+      case Right(diff) => Right(RefactorDiffEffect(procId, tpe, diff))
       case Left(err) => Left(RefactorFailure(procId, err.toString))
     }
   }
 
   protected def reloadAndType(f: File) = reloadAndTypeFiles(List(this.createSourceFile(f.getPath)))
 
-  protected def doRefactor(procId: Int, refactor: RefactorDesc): Either[RefactorFailure, RefactorDiffEffect] = {
+  protected def doRefactor(
+    procId: Int,
+    refactor: RefactorDesc
+  )(
+    implicit
+    ec: ExecutionContext
+  ): Future[Either[RefactorFailure, RefactorDiffEffect]] = {
+
+    def askRefactorResult(
+      op: => Either[RefactorFailure, RefactorDiffEffect]
+    ): Future[Either[RefactorFailure, RefactorDiffEffect]] =
+      Future.successful(
+        askOption {
+          try { op } catch {
+            case e: Throwable =>
+              logger.error("Error during refactor request: " + refactor, e)
+              Left(RefactorFailure(procId, e.toString))
+          }
+        }.getOrElse(Left(RefactorFailure(procId, "Refactor call failed.")))
+      )
 
     val tpe = refactor.refactorType
 
-    try {
-      refactor match {
-        case InlineLocalRefactorDesc(file, start, end) =>
+    refactor match {
+      case InlineLocalRefactorDesc(file, start, end) =>
+        askRefactorResult {
           reloadAndType(file)
           doInlineLocal(procId, tpe, file, start, end)
-        case RenameRefactorDesc(newName, file, start, end) =>
-          reloadAndType(file)
-          doRename(procId, tpe, newName, file, start, end)
-        case ExtractMethodRefactorDesc(methodName, file, start, end) =>
+        }
+      case RenameRefactorDesc(newName, file, start, end) =>
+        import scala.reflect.internal.util.{ RangePosition, OffsetPosition }
+        val sourceFile = createSourceFile(file.getPath)
+        askLoadedTyped(sourceFile)
+        val pos = if (start == end) new OffsetPosition(sourceFile, start)
+        else new RangePosition(sourceFile, start, start, end)
+        val symbol = askSymbolAt(pos)
+        symbol match {
+          case None => Future.successful(Left(RefactorFailure(procId, "No symbol at given position.")))
+          case Some(sym) =>
+            usesOfSym(sym).map { uses =>
+              val files = uses.map(rf => createSourceFile(rf)) - sourceFile
+              files.foreach(askLoadedTyped)
+              askOption(doRename(procId, tpe, newName, file, start, end, files.map(_.path) + sourceFile.path))
+                .getOrElse(Left(RefactorFailure(procId, "Refactor call failed.")))
+            }
+        }
+      case ExtractMethodRefactorDesc(methodName, file, start, end) =>
+        askRefactorResult {
           reloadAndType(file)
           doExtractMethod(procId, tpe, methodName, file, start, end)
-        case ExtractLocalRefactorDesc(name, file, start, end) =>
+        }
+      case ExtractLocalRefactorDesc(name, file, start, end) =>
+        askRefactorResult {
           reloadAndType(file)
           doExtractLocal(procId, tpe, name, file, start, end)
-        case OrganiseImportsRefactorDesc(file) =>
+        }
+      case OrganiseImportsRefactorDesc(file) =>
+        askRefactorResult {
           reloadAndType(file)
           doOrganizeImports(procId, tpe, file)
-        case AddImportRefactorDesc(qualifiedName, file) =>
+        }
+      case AddImportRefactorDesc(qualifiedName, file) =>
+        askRefactorResult {
           reloadAndType(file)
           doAddImport(procId, tpe, qualifiedName, file)
-      }
-    } catch {
-      case e: Throwable =>
-        logger.error("Error during refactor request: " + refactor, e)
-        Left(RefactorFailure(procId, e.toString))
+        }
     }
   }
 

@@ -10,6 +10,7 @@ import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
 import org.scalatest.Assertions
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RefactoringHandlerSpec extends EnsimeSpec
     with IsolatedAnalyzerFixture
@@ -48,7 +49,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
       new RefactorReq(
         procId, AddImportRefactorDesc("java.lang.Integer.{valueOf => vo}", new File(file.path)), false
       )
-    )
+    ).futureValue
     val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
     val relevantExpectedPart = s"""|@@ -2,2 +2,3 @@
@@ -81,7 +82,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
         new RefactorReq(
           procId, AddImportRefactorDesc("java.lang.Integer", new File(file.path)), false
         )
-      )
+      ).futureValue
 
       val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
@@ -118,7 +119,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
       new RefactorReq(
         procId, RenameRefactorDesc("doItNow", new File(file.path), 43, 47), false
       )
-    )
+    ).futureValue
 
     val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
@@ -157,7 +158,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
         new RefactorReq(
           procId, OrganiseImportsRefactorDesc(new File(file.path)), false
         )
-      )
+      ).futureValue
 
       val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
@@ -196,7 +197,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
         new RefactorReq(
           procId, OrganiseImportsRefactorDesc(new File(file.path)), false
         )
-      )
+      ).futureValue
 
       val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
@@ -228,7 +229,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
         new RefactorReq(
           procId, RenameRefactorDesc("Qux", new File(file.path), 8, 10), false
         )
-      )
+      ).futureValue
 
       val diffContent = extractDiffFromResponse(result, analyzer.charset)
       val renamed = new File(file.path.replace("Foo.scala", "Qux.scala"))

@@ -60,7 +60,7 @@ trait EnsimeSpec extends FlatSpec
         }
       }
     },
-    300000L // 5 mins
+    600000L // 10 mins
   )
 
   private val akkaTimeout: Duration = ConfigFactory.load().getDuration("akka.test.default-timeout", TimeUnit.MILLISECONDS).milliseconds

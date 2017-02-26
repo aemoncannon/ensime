@@ -3,13 +3,13 @@
 package org.ensime.core
 
 import org.ensime.api.{ DeclaredAs, EnsimeConfig }
-import org.ensime.fixture.{ EnsimeConfigFixture, IsolatedRichPresentationCompilerFixture }
+import org.ensime.fixture.{ EnsimeConfigFixture, SharedRichPresentationCompilerFixture }
 import org.ensime.indexer._
 import org.ensime.util.EnsimeSpec
 import org.ensime.vfs._
 
 class ScalapSymbolToFqnSpec extends EnsimeSpec
-    with IsolatedRichPresentationCompilerFixture
+    with SharedRichPresentationCompilerFixture
     with RichPresentationCompilerTestUtils
     with ReallyRichPresentationCompilerFixture {
 
@@ -31,8 +31,9 @@ class ScalapSymbolToFqnSpec extends EnsimeSpec
 
     val predef = vfs.vres("scala/Predef.class")
     val definedClassNames = new ClassfileDepickler(predef).getClasses
-    definedClassNames.foreach { scalaClass =>
-      verify(scalaClass.javaName, scalaClass.scalaName, scalaClass.declaredAs, cc)
+    definedClassNames.foreach {
+      case (_, scalaClass) =>
+        verify(scalaClass.javaName, scalaClass.scalaName, scalaClass.declaredAs, cc)
     }
   }
 
@@ -40,7 +41,7 @@ class ScalapSymbolToFqnSpec extends EnsimeSpec
     val vfs = cc.vfs
 
     val predef = vfs.vres("scala/Predef.class")
-    val fieldNames = new ClassfileDepickler(predef).getClasses.flatMap(_.fields)
+    val fieldNames = new ClassfileDepickler(predef).getClasses.values.flatMap(_.fields.values)
     fieldNames.foreach { field =>
       verify(field.javaName, field.scalaName, DeclaredAs.Field, cc)
     }

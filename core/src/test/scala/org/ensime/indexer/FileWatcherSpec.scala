@@ -5,7 +5,6 @@ package org.ensime.indexer
 import java.nio.charset.Charset
 
 import scala.concurrent.duration._
-
 import akka.testkit._
 import com.google.common.io.Files
 import org.apache.commons.vfs2._
@@ -64,7 +63,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
   val maxWait = 20 seconds
 
-  "FileWatcher" should "detect added files" taggedAs (Retryable) in
+  "FileWatcher" should "detect added files" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -91,7 +90,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "detect added / changed files" taggedAs (Retryable) in
+  it should "detect added / changed files" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -118,7 +117,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "detect added / removed files" taggedAs (Retryable) in
+  it should "detect added / removed files" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -149,7 +148,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "detect removed base directory" taggedAs (Retryable) in
+  it should "detect removed base directory" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -172,7 +171,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "detect removed parent base directory" taggedAs (Retryable) in
+  it should "detect removed parent base directory" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         val parent = Files.createTempDir().canon
@@ -242,7 +241,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "be able to start up from a non-existent directory" taggedAs (Retryable) in
+  it should "be able to start up from a non-existent directory" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         val dir = Files.createTempDir().canon / "root"
@@ -328,7 +327,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
     }
 
   //////////////////////////////////////////////////////////////////////////////
-  it should "detect changes to a file base" taggedAs (Retryable) in
+  it should "detect changes to a file base" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -347,7 +346,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "detect removal of a file base" taggedAs (Retryable) in
+  it should "detect removal of a file base" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -368,7 +367,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "be able to start up from a non-existent base file" taggedAs (Retryable) in
+  it should "be able to start up from a non-existent base file" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
@@ -387,7 +386,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       }
     }
 
-  it should "survive removal of a file base" taggedAs (Retryable) in
+  it should "survive removal of a file base" taggedAs (IgnoreOnTravis, IgnoreOnAppVeyor, Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>

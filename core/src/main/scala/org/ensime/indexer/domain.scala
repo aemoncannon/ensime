@@ -3,8 +3,9 @@
 package org.ensime.indexer
 
 import org.ensime.api.DeclaredAs
-
 import scala.collection.immutable.Queue
+import scala.collection.Set
+
 import org.objectweb.asm.Opcodes._
 
 sealed trait Access
@@ -52,6 +53,8 @@ final case class ClassName(pack: PackageName, name: String)
   def fqnString =
     if (pack.path.isEmpty) name
     else pack.fqnString + "." + name
+
+  def isPrimitive: Boolean = pack == ClassName.Root
 
   private def nonPrimitiveInternalString: String =
     "L" + (if (pack.path.isEmpty) name else pack.path.mkString("/") + "/" + name) + ";"
@@ -189,61 +192,95 @@ final case class Descriptor(params: List[DescriptorType], ret: DescriptorType) {
     "(" + params.map(_.internalString).mkString("") + ")" + ret.internalString
 }
 
+sealed trait RawSymbol {
+  def fqn: String
+  def internalRefs: Set[FullyQualifiedName]
+}
+
 final case class RawClassfile(
-  name: ClassName,
-  generics: Option[GenericClass],
-  superClass: Option[ClassName],
-  interfaces: List[ClassName],
-  access: Access,
-  deprecated: Boolean,
-  fields: Queue[RawField],
-  methods: Queue[RawMethod],
-  source: RawSource
-)
+    name: ClassName,
+    generics: Option[GenericClass],
+    innerClasses: Set[ClassName],
+    superClass: Option[ClassName],
+    interfaces: List[ClassName],
+    access: Access,
+    deprecated: Boolean,
+    fields: List[RawField],
+    methods: Queue[RawMethod],
+    source: RawSource,
+    isScala: Boolean,
+    internalRefs: Set[FullyQualifiedName]
+) extends RawSymbol {
+  override def fqn: String = name.fqnString
+}
 
 final case class RawSource(
   filename: Option[String],
   line: Option[Int]
 )
 
-final case class RawType(
-  fqn: String,
-  access: Access
-)
-
 final case class RawField(
-  name: FieldName,
-  clazz: DescriptorType,
-  generics: Option[String],
-  access: Access
-)
+    name: FieldName,
+    clazz: DescriptorType,
+    generics: Option[String],
+    access: Access,
+    internalRefs: Set[FullyQualifiedName]
+) extends RawSymbol {
+  override def fqn: String = name.fqnString
+}
 
 final case class RawMethod(
-  name: MethodName,
-  access: Access,
-  generics: Option[String],
-  line: Option[Int]
-)
+    name: MethodName,
+    access: Access,
+    generics: Option[String],
+    line: Option[Int],
+    internalRefs: Set[FullyQualifiedName]
+) extends RawSymbol {
+  override def fqn: String = name.fqnString
+}
 
-final case class RawScalaClass(
+sealed trait RawScalapSymbol {
+  def declaredAs: DeclaredAs
+  def access: Access
+  def scalaName: String
+  def typeSignature: String
+}
+
+final case class RawScalapClass(
   javaName: ClassName,
   scalaName: String,
   typeSignature: String,
   access: Access,
   declaredAs: DeclaredAs,
-  fields: Seq[RawScalaField],
-  methods: Seq[RawScalaMethod]
-)
+  fields: Map[String, RawScalapField],
+  methods: Map[String, IndexedSeq[RawScalapMethod]],
+  typeAliases: Map[String, RawType]
+) extends RawScalapSymbol
 
-final case class RawScalaField(
-  javaName: FieldName,
-  scalaName: String,
-  typeInfo: String,
-  access: Access
-)
+final case class RawScalapField(
+    javaName: FieldName,
+    scalaName: String,
+    typeSignature: String,
+    access: Access
+) extends RawScalapSymbol {
+  override def declaredAs = DeclaredAs.Field
+}
 
-final case class RawScalaMethod(
-  scalaName: String,
-  signature: String,
-  access: Access
-)
+final case class RawScalapMethod(
+    simpleName: String, //name of a method symbol, used to identify a group of overloaded methods (e.g. `foo`)
+    scalaName: String, //full scala name of a method (e.g. `org.example.Foo#foo`)
+    typeSignature: String,
+    access: Access
+) extends RawScalapSymbol {
+  override def declaredAs = DeclaredAs.Method
+}
+
+final case class RawType(
+    owner: ClassName,
+    javaName: ClassName,
+    scalaName: String,
+    access: Access,
+    typeSignature: String
+) extends RawScalapSymbol {
+  override def declaredAs = DeclaredAs.Field
+}
