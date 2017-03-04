@@ -282,12 +282,12 @@ case object DebugStopReq extends RpcDebuggerRequest
 /**
  * Responds with a `VoidResponse`.
  */
-final case class DebugSetBreakReq(file: File, line: Int) extends RpcDebuggerRequest
+final case class DebugSetBreakReq(file: EnsimeFile, line: Int) extends RpcDebuggerRequest
 
 /**
  * Responds with a `VoidResponse`.
  */
-final case class DebugClearBreakReq(file: File, line: Int) extends RpcDebuggerRequest
+final case class DebugClearBreakReq(file: EnsimeFile, line: Int) extends RpcDebuggerRequest
 
 /**
  * Responds with a `VoidResponse`.

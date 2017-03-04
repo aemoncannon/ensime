@@ -116,6 +116,24 @@ class DatabaseService(dir: File) extends SLF4JLogging {
       restrict.flatMap(grouped.get(_).map(_.head))
     }
   }
+
+  def findClasses(source: EnsimeFile): Future[Seq[FqnSymbol]] = {
+    import org.ensime.util.ensimefile._
+
+    val uri = source.uri.toASCIIString
+    db.run(fqnSymbols.filter(_.source === Option(uri)).result).map {
+      rows =>
+        rows.filter { row =>
+          // restrict in scala because slick doesn't support string substring
+          row.internal.isEmpty && !row.fqn.contains("(")
+        }
+    }
+  }
+
+  def findClasses(jdi: String): Future[Seq[FqnSymbol]] = {
+    db.run(fqnSymbols.filter(_.jdi === Option(jdi)).result)
+  }
+
 }
 
 object DatabaseService {
@@ -149,7 +167,8 @@ object DatabaseService {
       internal: Option[String], // for fields
       source: Option[String], // VFS
       line: Option[Int],
-      offset: Option[Int] = None // future features:
+      offset: Option[Int] = None,
+      jdi: Option[String] = None // the JDI name for the source: bin/pkg/Source.scala
   ) {
     // this is just as a helper until we can use more sensible
     // domain objects with slick
@@ -171,7 +190,8 @@ object DatabaseService {
     def source = column[Option[String]]("source handle")
     def line = column[Option[Int]]("line in source")
     def offset = column[Option[Int]]("offset in source")
-    def * = (id.?, file, path, fqn, internal, source, line, offset) <> (FqnSymbol.tupled, FqnSymbol.unapply)
+    def jdi = column[Option[String]]("jdi name of source")
+    def * = (id.?, file, path, fqn, internal, source, line, offset, jdi) <> (FqnSymbol.tupled, FqnSymbol.unapply)
     // our FQNs have descriptors, making them unique. but when scala
     // aliases use the same namespace we get collisions
     def fqnIdx = index("idx_fqn", fqn, unique = false)

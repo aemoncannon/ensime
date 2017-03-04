@@ -112,7 +112,7 @@ class Project(
       scalac = system.deadLetters
       javac = context.actorOf(JavaAnalyzer(delayedBroadcaster, indexer, searchService), "javac")
     }
-    debugger = context.actorOf(DebugActor.props(delayedBroadcaster), "debugging")
+    debugger = context.actorOf(DebugActor.props(delayedBroadcaster, searchService), "debugging")
     docs = context.actorOf(DocResolver(), "docs")
   }
 

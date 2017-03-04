@@ -61,8 +61,8 @@ trait EnsimeTestData {
   val sourcePos3 = new EmptySourcePosition()
   val sourcePos4 = new OffsetSourcePosition(file1, 456)
 
-  val breakPoint1 = new Breakpoint(file1.file.toFile, sourcePos1.line)
-  val breakPoint2 = new Breakpoint(file1.file.toFile, sourcePos2.line)
+  val breakPoint1 = new Breakpoint(RawFile(file1.file), sourcePos1.line)
+  val breakPoint2 = new Breakpoint(RawFile(file1.file), sourcePos2.line)
 
   val breakpointList = BreakpointList(List(breakPoint1), List(breakPoint2))
 

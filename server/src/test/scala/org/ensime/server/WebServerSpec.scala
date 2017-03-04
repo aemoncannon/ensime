@@ -5,8 +5,6 @@ package org.ensime.server
 import java.io.File
 import java.nio.charset.Charset
 
-import org.scalatest.{ FlatSpec, Matchers }
-import org.scalamock.scalatest.MockFactory
 import io.netty.channel.embedded.EmbeddedChannel
 import io.netty.handler.codec.http.{ HttpMethod, DefaultFullHttpRequest, FullHttpResponse }
 import io.netty.handler.codec.http.HttpVersion.HTTP_1_1
@@ -14,8 +12,9 @@ import io.netty.handler.codec.http.HttpMethod.GET
 import io.netty.handler.codec.http.HttpResponseStatus.{ OK, NOT_FOUND }
 
 import org.ensime.core.DocJarReading
+import org.ensime.util.EnsimeSpec
 
-class WebServerSpec extends FlatSpec with Matchers with MockFactory {
+class WebServerSpec extends EnsimeSpec {
 
   val docs = new DocJarReading {
     def docJarContent(filename: String, entry: String): Option[Array[Byte]] =

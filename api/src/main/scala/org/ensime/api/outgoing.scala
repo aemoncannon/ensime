@@ -318,7 +318,7 @@ final case class CompletionInfoList(
   completions: List[CompletionInfo]
 ) extends RpcResponse
 
-final case class Breakpoint(file: File, line: Int) extends RpcResponse
+final case class Breakpoint(file: EnsimeFile, line: Int) extends RpcResponse
 final case class BreakpointList(active: List[Breakpoint], pending: List[Breakpoint]) extends RpcResponse
 
 /**

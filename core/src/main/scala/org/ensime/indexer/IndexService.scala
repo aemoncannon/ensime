@@ -98,9 +98,9 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
   def persist(check: FileCheck, symbols: List[FqnSymbol], commit: Boolean, boost: Boolean): Future[Unit] = {
     val f = Some(check)
     val fqns: List[Document] = symbols.map {
-      case FqnSymbol(_, _, _, fqn, _, _, _, _) if fqn.contains("(") => MethodIndex(fqn, f).toDocument
-      case FqnSymbol(_, _, _, fqn, Some(_), _, _, _) => FieldIndex(fqn, f).toDocument
-      case FqnSymbol(_, _, _, fqn, _, _, _, _) =>
+      case FqnSymbol(_, _, _, fqn, _, _, _, _, _) if fqn.contains("(") => MethodIndex(fqn, f).toDocument
+      case FqnSymbol(_, _, _, fqn, Some(_), _, _, _, _) => FieldIndex(fqn, f).toDocument
+      case FqnSymbol(_, _, _, fqn, _, _, _, _, _) =>
         val penalty = calculatePenalty(fqn)
         val document = ClassIndex(fqn, f).toDocument
         document.boostText("fqn", penalty)

@@ -3,7 +3,7 @@
 package org.ensime.core.debug
 
 import org.ensime.api._
-import org.ensime.util.ensimefile._
+import org.ensime.indexer.SearchService
 import org.scaladebugger.api.dsl.Implicits._
 import org.scaladebugger.api.profiles.traits.info._
 
@@ -11,10 +11,12 @@ import org.scaladebugger.api.profiles.traits.info._
  * Converts normal debugger API structures into their equivalent Ensime-oriented
  * messages.
  *
+ * It would be nice to refactor this as a typeclass.
+ *
  * @param sourceMap Used to include relevant source information when
  *                  constructing various Ensime messages
  */
-class StructureConverter(private val sourceMap: SourceMap) {
+object StructureConverter {
   /**
    * Converts a debugger API value into an Ensime message.
    *
@@ -155,7 +157,7 @@ class StructureConverter(private val sourceMap: SourceMap) {
    * @param frame The stack frame to convert
    * @return The resulting Ensime message
    */
-  def convertStackFrame(frame: FrameInfo): DebugStackFrame = {
+  def convertStackFrame(frame: FrameInfo)(implicit s: SearchService): DebugStackFrame = {
     val locals = ignoreErr(
       frame.indexedLocalVariables.map(_.cache()).map(convertStackLocal).toList,
       List.empty
@@ -165,14 +167,10 @@ class StructureConverter(private val sourceMap: SourceMap) {
     val methodName = ignoreErr(frame.location.method.name, "Method")
     val className = ignoreErr(frame.location.declaringType.name, "Class")
 
-    val pcLocation = sourceMap.newLineSourcePosition(frame.location).getOrElse(
-      LineSourcePosition(
-        EnsimeFile(frame.location.sourcePath),
-        frame.location.lineNumber
-      )
-    )
+    val file = SourceMap.fromJdi(frame.location.sourcePath).get
+    val location = LineSourcePosition(file, frame.location.lineNumber)
     val thisObjId = ignoreErr(frame.thisObject.cache().uniqueId, -1L)
-    DebugStackFrame(frame.index, locals, numArgs, className, methodName, pcLocation, DebugObjectId(thisObjId))
+    DebugStackFrame(frame.index, locals, numArgs, className, methodName, location, DebugObjectId(thisObjId))
   }
 
   /**

@@ -1,1 +1,3 @@
-// this file exists for the SourceResolverSpec
+package bad.convention
+
+class OohTheBadness()

@@ -71,62 +71,62 @@ class DebugTest extends EnsimeSpec
           32
         ) { (threadId, breakpointsFile) =>
             import testkit._
-            val ensimeBreakPointsFile = RawFile(breakpointsFile.toPath)
+            val ensimeBreakpointsFile = RawFile(breakpointsFile.toPath)
             // NOTE: Can encounter scala/Predef.scala if picking stack trace
             //       at arbitrary point
             project ! DebugBacktraceReq(threadId, 0, 3)
             expectMsgType[DebugBacktrace] should matchPattern {
               case DebugBacktrace(List(
                 DebugStackFrame(0, Nil, 0, "breakpoints.Breakpoints", "mainTest",
-                  LineSourcePosition(`ensimeBreakPointsFile`, 32), _),
+                  LineSourcePosition(`ensimeBreakpointsFile`, 32), _),
                 DebugStackFrame(1, List(
                   DebugStackLocal(0, "args", "Array(length = 0)[<EMPTY>]", "java.lang.String[]")
                   ), 1, "breakpoints.Breakpoints$", "main",
-                  LineSourcePosition(`ensimeBreakPointsFile`, 42), _),
+                  LineSourcePosition(`ensimeBreakpointsFile`, 42), _),
                 DebugStackFrame(2, Nil, 1, "breakpoints.Breakpoints", "main",
-                  LineSourcePosition(`ensimeBreakPointsFile`, _), _)
+                  LineSourcePosition(`ensimeBreakpointsFile`, _), _)
                 ), `threadId`, "main") =>
             }
 
-            project ! DebugSetBreakReq(breakpointsFile, 11)
+            project ! DebugSetBreakReq(ensimeBreakpointsFile, 11)
             expectMsg(TrueResponse)
 
-            project ! DebugSetBreakReq(breakpointsFile, 13)
+            project ! DebugSetBreakReq(ensimeBreakpointsFile, 13)
             expectMsg(TrueResponse)
 
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", ensimeBreakPointsFile, 11))
-
-            project ! DebugContinueReq(threadId)
-            expectMsg(TrueResponse)
-
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", RawFile(breakpointsFile.toPath), 13))
-
-            project ! DebugClearBreakReq(breakpointsFile, 11)
-            expectMsg(TrueResponse)
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11))
 
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
             asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", RawFile(breakpointsFile.toPath), 13))
 
-            project ! DebugSetBreakReq(breakpointsFile, 11)
-            expectMsg(TrueResponse)
-
-            project ! DebugClearBreakReq(breakpointsFile, 13)
+            project ! DebugClearBreakReq(ensimeBreakpointsFile, 11)
             expectMsg(TrueResponse)
 
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", RawFile(breakpointsFile.toPath), 11))
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", RawFile(breakpointsFile.toPath), 13))
+
+            project ! DebugSetBreakReq(ensimeBreakpointsFile, 11)
+            expectMsg(TrueResponse)
+
+            project ! DebugClearBreakReq(ensimeBreakpointsFile, 13)
+            expectMsg(TrueResponse)
 
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", RawFile(breakpointsFile.toPath), 11))
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11))
+
+            project ! DebugContinueReq(threadId)
+            expectMsg(TrueResponse)
+
+            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11))
 
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
@@ -147,15 +147,17 @@ class DebugTest extends EnsimeSpec
             case (threadId, breakpointsFile) =>
               import testkit._
 
+              val ensimeBreakpointsFile = RawFile(breakpointsFile.toPath)
+
               project ! DebugListBreakpointsReq
               expectMsgType[BreakpointList] should matchPattern {
                 case BreakpointList(Nil, Nil) =>
               }
 
               // break in main
-              project ! DebugSetBreakReq(breakpointsFile, 11)
+              project ! DebugSetBreakReq(ensimeBreakpointsFile, 11)
               expectMsg(TrueResponse)
-              project ! DebugSetBreakReq(breakpointsFile, 13)
+              project ! DebugSetBreakReq(ensimeBreakpointsFile, 13)
               expectMsg(TrueResponse)
 
               // breakpoints should now be active
@@ -163,7 +165,7 @@ class DebugTest extends EnsimeSpec
               inside(expectMsgType[BreakpointList]) {
                 case BreakpointList(activeBreakpoints, pendingBreakpoints) =>
                   activeBreakpoints should contain theSameElementsAs Set(
-                    Breakpoint(breakpointsFile, 11), Breakpoint(breakpointsFile, 13)
+                    Breakpoint(ensimeBreakpointsFile, 11), Breakpoint(ensimeBreakpointsFile, 13)
                   )
                   pendingBreakpoints shouldBe empty
               }
@@ -507,11 +509,12 @@ trait DebugTestUtils {
     p: (TestActorRef[Project], TestProbe)
   ): Any = {
     import testkit._
-    val resolvedFile = scalaMain(config) / fileName
+    val resolvedFile = (scalaMain(config) / fileName)
+    val ensimeResolvedFile = RawFile(resolvedFile.toPath)
     val project = p._1
     val asyncHelper = p._2
 
-    project ! DebugSetBreakReq(resolvedFile, breakLine)
+    project ! DebugSetBreakReq(ensimeResolvedFile, breakLine)
     expectMsg(TrueResponse)
 
     val vm = VMStarter(config, className)
@@ -531,7 +534,6 @@ trait DebugTestUtils {
       // but it doesn't always come through
 
       val allEvents = gotOnStartup +: additionalOnStartup
-      val ensimeResolvedFile = RawFile(resolvedFile.toPath)
       val threadId = allEvents.flatMap {
         case DebugBreakEvent(foundThreadId, "main", `ensimeResolvedFile`, `breakLine`) =>
           List(foundThreadId)
@@ -539,7 +541,7 @@ trait DebugTestUtils {
           Nil
       }.headOption.getOrElse(fail("Cannot work out main threadId"))
 
-      project ! DebugClearBreakReq(resolvedFile, breakLine)
+      project ! DebugClearBreakReq(ensimeResolvedFile, breakLine)
       expectMsg(TrueResponse)
 
       func(threadId, resolvedFile)

@@ -27,6 +27,7 @@ object IgnoreOnTravis extends Tag("IgnoreOnTravis")
  */
 trait EnsimeSpec extends FlatSpec
     with Matchers
+    with OptionValues
     with Inside
     with Retries
     with Eventually

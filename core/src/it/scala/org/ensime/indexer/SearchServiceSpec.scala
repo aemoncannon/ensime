@@ -6,6 +6,7 @@ import org.apache.lucene.search.DisjunctionMaxQuery
 
 import scala.concurrent._
 import scala.concurrent.duration._
+import org.ensime.api.ArchiveFile
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
@@ -219,6 +220,25 @@ class SearchServiceSpec extends EnsimeSpec
     val fqns = lucene.search(query, 10).futureValue.map(_.get("fqn"))
     fqns.distinct should ===(fqns)
   }
+
+  "findClasses" should "recover classes by source" in withSearchService { (config, search) =>
+    import org.ensime.util.ensimefile._
+
+    val jdksrc = config.javaSources.head.toPath
+    val query = ArchiveFile(jdksrc, "/java/lang/String.java").canon
+
+    val hits = search.findClasses(query)
+
+    hits.head.fqn shouldBe "java.lang.String"
+    hits.head.jdi.value shouldBe "java/lang/String.java"
+  }
+
+  "findClasses" should "recover classes by JDI" in withSearchService { (config, search) =>
+    search.findClasses("java/lang/String.java").head.fqn shouldBe "java.lang.String"
+
+    search.findClasses("bad/convention/bad-convention.scala").head.source.value should endWith("/src/main/scala/bad-convention.scala")
+  }
+
 }
 
 object SearchServiceTestUtils {

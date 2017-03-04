@@ -5,6 +5,7 @@ package org.ensime.core.debug
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 import akka.event.LoggingReceive
 import org.ensime.api._
+import org.ensime.indexer.SearchService
 import org.scaladebugger.api.dsl.Implicits._
 import org.scaladebugger.api.lowlevel.breakpoints.BreakpointRequestInfo
 import org.scaladebugger.api.lowlevel.events.EventType
@@ -12,6 +13,8 @@ import org.scaladebugger.api.lowlevel.events.misc.NoResume
 import org.scaladebugger.api.lowlevel.requests.properties.SuspendPolicyProperty
 import org.scaladebugger.api.profiles.traits.info._
 import org.scaladebugger.api.virtualmachines.{ ObjectCache, ScalaVirtualMachine }
+import SourceMap._
+import StructureConverter._
 
 import scala.util.{ Failure, Success, Try }
 
@@ -24,11 +27,12 @@ object DebugActor {
    *
    * @param broadcaster The actor reference to serve as the broadcaster of
    *                    messages to the client
+   * @param search
    * @param config The Ensime configuration used for source file lookup
    * @return The new Akka props instance
    */
-  def props(broadcaster: ActorRef)(implicit config: EnsimeConfig): Props =
-    Props(new DebugActor(broadcaster, config))
+  def props(broadcaster: ActorRef, search: SearchService)(implicit config: EnsimeConfig): Props =
+    Props(new DebugActor(broadcaster, search, config))
 }
 
 /**
@@ -41,10 +45,9 @@ object DebugActor {
  */
 class DebugActor private (
     private val broadcaster: ActorRef,
-    private val config: EnsimeConfig
+    private implicit val search: SearchService,
+    private implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging {
-  private val sourceMap: SourceMap = new SourceMap(config = config)
-  private val converter: StructureConverter = new StructureConverter(sourceMap)
   private val vmm: VirtualMachineManager = new VirtualMachineManager(
     // Signal to the user that the JVM has disconnected
     globalStopFunc = s => broadcaster ! DebugVmDisconnectEvent
@@ -111,11 +114,10 @@ class DebugActor private (
 
     // ========================================================================
     case DebugSetBreakReq(file, line: Int) =>
-      sender ! withVM(s => {
-        // Retrieve org/path/file.scala from file
-        val fileName = sourceMap.parsePath(file)
-
+      sender ! withVM { s =>
+        val fileName = toJdiWithFallback(file)
         val options = Seq(SuspendPolicyProperty.AllThreads, NoResume)
+
         s.tryGetOrCreateBreakpointRequest(fileName, line, options: _*) match {
           case Success(bp) =>
             val isPending = s.isBreakpointRequestPending(fileName, line)
@@ -130,11 +132,11 @@ class DebugActor private (
           case Failure(ex) =>
             FalseResponse
         }
-      })
+      }
 
     // ========================================================================
     case DebugClearBreakReq(file, line: Int) =>
-      val filename = sourceMap.parsePath(file)
+      val filename = toJdiWithFallback(file)
 
       vmm.withVM(_.removeBreakpointRequests(filename, line))
       vmm.withDummyVM(_.removeBreakpointRequests(filename, line))
@@ -156,10 +158,10 @@ class DebugActor private (
         (bps.filterNot(_.isPending), bps.filter(_.isPending))
       }).map {
         case (a, p) =>
-          // Convert collection of BreakpointRequestInfo to Ensime Breakpoint
-          def convert(b: Seq[BreakpointRequestInfo]) = {
-            b.map(b2 => (sourceMap.sourceForFilePath(b2.fileName), b2.lineNumber))
-              .filter(_._1.nonEmpty).map(t => Breakpoint(t._1.get, t._2))
+          def convert(b: Seq[BreakpointRequestInfo]): Seq[Breakpoint] = {
+            // note: silently dropping breakpoints that we fail to resolve
+            b.map(b2 => (fromJdi(b2.fileName), b2.lineNumber))
+              .collect { case (Some(jdiFile), line) => Breakpoint(jdiFile, line) }
           }
 
           (convert(a).toList, convert(p).toList)
@@ -228,7 +230,7 @@ class DebugActor private (
           // Cache each stack frame's "this" reference
           frames.foreach(_.thisObjectOption.foreach(_.cache()))
 
-          val ensimeFrames = frames.map(converter.convertStackFrame)
+          val ensimeFrames = frames.map(convertStackFrame)
 
           DebugBacktrace(ensimeFrames.toList, DebugThreadId(t.uniqueId), t.name)
       })
@@ -238,7 +240,7 @@ class DebugActor private (
       sender ! withVM(s =>
         lookupValue(s, s.cache, location)
           .map(_.cache())
-          .map(converter.convertValue)
+          .map(convertValue)
           .getOrElse(FalseResponse))
 
     // ========================================================================
@@ -428,39 +430,39 @@ class DebugActor private (
       broadcaster ! DebugVmStartEvent)
 
     // Breakpoint Event - capture and broadcast breakpoint information
-    scalaVirtualMachine.createEventListener(EventType.BreakpointEventType).foreach(e => {
+    scalaVirtualMachine.createEventListener(EventType.BreakpointEventType).foreach { e =>
       val be = e.toBreakpointEvent
       val l: LocationInfo = be.location
-      val t: ThreadInfo = be.thread
 
-      sourceMap.newLineSourcePosition(l) match {
-        case Some(lsp) =>
+      fromJdi(l.sourcePath) match {
+        case Some(resolved) =>
+          val t: ThreadInfo = be.thread
           broadcaster ! DebugBreakEvent(
             DebugThreadId(t.uniqueId),
             t.name,
-            lsp.file,
-            lsp.line
+            resolved,
+            l.lineNumber
           )
         case None =>
           val sn = l.sourceName
           val ln = l.lineNumber
           log.warning(s"Breakpoint position not found: $sn : $ln")
       }
-    })
+    }
 
     // Step Event - capture and broadcast step information
     scalaVirtualMachine.createEventListener(EventType.StepEventType).foreach(e => {
       val se = e.toStepEvent
       val l: LocationInfo = se.location
-      val t: ThreadInfo = se.thread
 
-      sourceMap.newLineSourcePosition(l) match {
-        case Some(lsp) =>
+      fromJdi(l.sourcePath) match {
+        case Some(resolved) =>
+          val t: ThreadInfo = se.thread
           broadcaster ! DebugStepEvent(
             DebugThreadId(t.uniqueId),
             t.name,
-            lsp.file,
-            lsp.line
+            resolved,
+            l.lineNumber
           )
         case None =>
           val sn = l.sourceName
@@ -469,23 +471,21 @@ class DebugActor private (
       }
     })
 
-    scalaVirtualMachine.createEventListener(EventType.ExceptionEventType).foreach(e => {
+    scalaVirtualMachine.createEventListener(EventType.ExceptionEventType).foreach { e =>
       val ee = e.toExceptionEvent
       val t = ee.thread
       val ex = ee.exception
-      val ce: Option[LocationInfo] = ee.catchLocation
-      val lsp = if (ce != null) {
-        ce.flatMap(l => sourceMap.newLineSourcePosition(l))
-      } else None
+      val ce: Option[LocationInfo] = Option(ee.catchLocation).flatten // can be null
+      val resolved = ce.flatMap(loc => fromJdi(loc.sourcePath))
 
       broadcaster ! DebugExceptionEvent(
         ex.uniqueId,
         DebugThreadId(t.uniqueId),
         t.name,
-        lsp.map(_.file),
-        lsp.map(_.line)
+        resolved,
+        ce.map(_.lineNumber)
       )
-    })
+    }
 
     // Exception Event - capture and broadcast exception information
     // Listen for all uncaught exceptions, suspending the entire JVM when we
@@ -494,24 +494,23 @@ class DebugActor private (
       notifyCaught = false,
       notifyUncaught = true,
       SuspendPolicyProperty.AllThreads
-    ).foreach(e => {
+    ).foreach { e =>
       // Cache the exception object
       e.exception.cache()
 
       val t = e.thread
       val ex = e.exception
-      val lsp = if (e.catchLocation != null) {
-        e.catchLocation.flatMap(l => sourceMap.newLineSourcePosition(l))
-      } else None
+      val location = Option(e.catchLocation).flatten
+      val resolved = location.flatMap(l => fromJdi(l.sourcePath))
 
       broadcaster ! DebugExceptionEvent(
         ex.uniqueId,
         DebugThreadId(t.uniqueId),
         t.name,
-        lsp.map(_.file),
-        lsp.map(_.line)
+        resolved,
+        location.map(_.lineNumber)
       )
-    })
+    }
 
     // Thread Start Event - capture and broadcast associated thread
     scalaVirtualMachine.onUnsafeThreadStart(SuspendPolicyProperty.NoThread).foreach(t => {

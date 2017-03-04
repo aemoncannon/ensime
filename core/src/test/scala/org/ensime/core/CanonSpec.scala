@@ -45,8 +45,8 @@ class CanonSpec extends EnsimeSpec {
   }
 
   it should "canon an EnsimeServerMessage" in {
-    val response = Breakpoint(file, 13): RpcResponse
-    val expected = Breakpoint(canon, 13)
+    val response = Breakpoint(RawFile(file.toPath), 13): RpcResponse
+    val expected = Breakpoint(RawFile(canon.toPath), 13)
     Canonised(response) shouldBe expected
   }
 

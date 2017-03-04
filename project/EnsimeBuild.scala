@@ -181,8 +181,7 @@ object EnsimeBuild {
         },
         "commons-lang" % "commons-lang" % "2.6",
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",
-        "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-M3",
-        "org.scalamock" %% "scalamock-scalatest-support" % "3.5.0" % Test
+        "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-M3"
       ) ++ shapeless.value
     ) enablePlugins BuildInfoPlugin settings (
         buildInfoPackage := organization.value,
