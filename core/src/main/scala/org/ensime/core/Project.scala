@@ -14,7 +14,7 @@ import scala.collection.immutable.ListSet
 import scala.concurrent.duration._
 import scala.util.Properties._
 import scala.util._
-import org.ensime.util.FileUtils
+import org.ensime.util.{ DebouncingActor, FileUtils }
 import org.ensime.util.ensimefile._
 
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
@@ -27,7 +27,7 @@ class Project(
     broadcaster: ActorRef,
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with Stash {
-  import context.{ dispatcher, system }
+  import context.system
 
   import FileUtils._
 
@@ -123,16 +123,12 @@ class Project(
     Try(vfs.close())
   }
 
-  // debounces ReloadExistingFilesEvent
-  private var rechecking: Cancellable = _
+  private val debouncedTypeRechekingActor =
+    context.actorOf(Props(classOf[DebouncingActor], () => scalac ! ReloadExistingFilesEvent, 5 seconds), "debouncedTypeRechecking")
 
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case AskReTypecheck =>
-      Option(rechecking).foreach(_.cancel())
-      rechecking = system.scheduler.scheduleOnce(
-        5 seconds, scalac, ReloadExistingFilesEvent
-      )
+    case AskReTypecheck => debouncedTypeRechekingActor ! DebouncingActor.Debounce
     // HACK: to expedite initial dev, Java requests use the Scala API
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
     case m @ CompletionsReq(sfi, _, _, _, _) if sfi.file.isJava => javac forward m

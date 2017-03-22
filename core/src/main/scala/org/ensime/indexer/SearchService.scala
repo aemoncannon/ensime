@@ -7,13 +7,13 @@ import java.util.concurrent.Semaphore
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util.{ Failure, Properties, Success }
-
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.ensime.api._
 import org.ensime.indexer.database._
 import org.ensime.indexer.database.DatabaseService._
+import org.ensime.util.DebouncingActor
 import org.ensime.util.file._
 import org.ensime.util.fileobject._
 import org.ensime.vfs._
@@ -301,8 +301,6 @@ class SearchService(
 final case class IndexFile(f: FileObject)
 
 class IndexingQueueActor(searchService: SearchService) extends Actor with ActorLogging {
-  import context.system
-
   import scala.concurrent.duration._
 
   case object Process
@@ -312,21 +310,15 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
   // the URI because FileObject doesn't implement equals
   var todo = Map.empty[String, FileObject]
 
-  // debounce and give us a chance to batch (which is *much* faster)
-  var worker: Cancellable = _
-
   private val advice = "If the problem persists, you may need to restart ensime."
 
-  private def debounce(): Unit = {
-    Option(worker).foreach(_.cancel())
-    import context.dispatcher
-    worker = system.scheduler.scheduleOnce(5 seconds, self, Process)
-  }
+  private val debouncedClassfileIndexingActor =
+    context.actorOf(Props(classOf[DebouncingActor], () => self ! Process, 5 seconds), "debouncedClassfileIndexing")
 
   override def receive: Receive = {
     case IndexFile(f) =>
       todo += f.getName.getURI -> f
-      debounce()
+      debouncedClassfileIndexingActor ! DebouncingActor.Debounce
 
     case Process if todo.isEmpty => // nothing to do
 
@@ -334,7 +326,7 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
       val (batch, remaining) = todo.splitAt(500)
       todo = remaining
       if (remaining.nonEmpty)
-        debounce()
+        debouncedClassfileIndexingActor ! DebouncingActor.Debounce
 
       import ExecutionContext.Implicits.global
 

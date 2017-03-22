@@ -5,15 +5,17 @@ package org.ensime.indexer
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
 import java.io.File
+
 import org.apache.commons.vfs2._
-
 import org.ensime.api._
+import org.ensime.util.DebouncingActor
 import org.ensime.vfs._
-
 import org.ensime.util.file._
 import org.ensime.util.list._
 import org.ensime.util.map._
+
 import scala.annotation.tailrec
+import scala.concurrent.duration._
 
 // mutable: lookup of user's source files are atomically updated
 class SourceResolver(
@@ -26,9 +28,15 @@ class SourceResolver(
 
   case object Process
 
-  def fileAdded(f: FileObject) = if (relevant(f)) debounceActor ! Process
-  def fileRemoved(f: FileObject) = fileAdded(f)
+  private val debouncedSourceResolvingActor =
+    actorSystem.actorOf(Props(classOf[DebouncingActor], () => update(), 5 seconds), "debouncedSourceResolving")
+
+  def fileAdded(f: FileObject) = resolveSourcesIfFileIsRelevant(f)
+  def fileRemoved(f: FileObject) = resolveSourcesIfFileIsRelevant(f)
   def fileChanged(f: FileObject) = {}
+
+  def resolveSourcesIfFileIsRelevant(f: FileObject) =
+    if (relevant(f)) debouncedSourceResolvingActor ! DebouncingActor.Debounce
 
   def relevant(f: FileObject): Boolean = f.getName.isFile && {
     val file = new File(f.getName.getURI)
@@ -110,8 +118,6 @@ class SourceResolver(
 
   private var all = recalculate
 
-  val debounceActor = actorSystem.actorOf(Props(new ResolverDebounceActor(this)), "SourceResolver")
-
   private def infer(base: FileObject, file: FileObject): PackageName = {
     // getRelativeName feels the wrong way round, but this is correct
     val relative = base.getName.getRelativeName(file.getName)
@@ -119,28 +125,4 @@ class SourceResolver(
     PackageName((relative split "/").toList.init)
   }
 
-}
-
-class ResolverDebounceActor(sourceResolver: SourceResolver) extends Actor with ActorLogging {
-  import context.system
-
-  import scala.concurrent.duration._
-
-  case object ReCalculate
-
-  // debounce and give us a chance to batch (which is *much* faster)
-  var worker: Cancellable = _
-
-  private val advice = "If the problem persists, you may need to restart ensime."
-
-  private def debounce(): Unit = {
-    Option(worker).foreach(_.cancel())
-    import context.dispatcher
-    worker = system.scheduler.scheduleOnce(5 seconds, self, ReCalculate)
-  }
-
-  override def receive: Receive = {
-    case sourceResolver.Process ⇒ debounce()
-    case ReCalculate ⇒ sourceResolver.update()
-  }
 }
