@@ -126,7 +126,7 @@ class DebugActor private (
             if (!isPending) {
               bgMessage(s"Resolved breakpoint at: $fileName : $line")
             } else {
-              bgMessage("Location not loaded. Set pending breakpoint.")
+              bgMessage(s"Location not loaded ($fileName,$line). Request is pending...")
             }
 
             TrueResponse

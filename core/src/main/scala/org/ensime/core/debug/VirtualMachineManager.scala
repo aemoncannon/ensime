@@ -176,7 +176,7 @@ class VirtualMachineManager(
   def withVM[T](action: (ScalaVirtualMachine => T)): Try[T] = synchronized {
     if (!hasActiveVM) {
       val error = new IllegalStateException("No VM active for debugging!")
-      log.error("Unable to execute action with VM", error)
+      log.warn(error.getMessage)
       Failure(error)
     } else {
       log.trace("Applying action to remote vm")
