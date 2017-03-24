@@ -6,6 +6,7 @@ import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 import akka.event.LoggingReceive
 import org.ensime.api._
 import org.ensime.indexer.SearchService
+import org.ensime.util.option._
 import org.scaladebugger.api.dsl.Implicits._
 import org.scaladebugger.api.lowlevel.breakpoints.BreakpointRequestInfo
 import org.scaladebugger.api.lowlevel.events.EventType
@@ -115,7 +116,7 @@ class DebugActor private (
     // ========================================================================
     case DebugSetBreakReq(file, line: Int) =>
       sender ! withVM { s =>
-        val fileName = toJdiWithFallback(file)
+        val fileName = toJdi(file).getOrThrow(s"could not resolve $file")
         val options = Seq(SuspendPolicyProperty.AllThreads, NoResume)
 
         s.tryGetOrCreateBreakpointRequest(fileName, line, options: _*) match {
@@ -136,7 +137,7 @@ class DebugActor private (
 
     // ========================================================================
     case DebugClearBreakReq(file, line: Int) =>
-      val filename = toJdiWithFallback(file)
+      val filename = toJdi(file).getOrThrow(s"could not resolve $file")
 
       vmm.withVM(_.removeBreakpointRequests(filename, line))
       vmm.withDummyVM(_.removeBreakpointRequests(filename, line))

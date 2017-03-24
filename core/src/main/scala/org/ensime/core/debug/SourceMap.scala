@@ -19,19 +19,4 @@ object SourceMap {
   def toJdi(file: EnsimeFile)(implicit s: SearchService): Option[String] =
     s.findClasses(file).flatMap(_.jdi).headOption
 
-  private def relativeToBase(file: EnsimeFile)(implicit c: EnsimeConfig): Option[String] = file match {
-    case ArchiveFile(_, entry) => Option(entry)
-    case RawFile(path) =>
-      c.projects.flatMap(_.sources)
-        .find { root => path.startsWith(root.toPath) }
-        .map { root => path.relativize(root.toPath).toString }
-  }
-
-  // I don't think we should support this fallback mode, if the
-  // indexer doesn't find it, this result is probably nonsense.
-  def toJdiWithFallback(file: EnsimeFile)(implicit s: SearchService, c: EnsimeConfig): String =
-    (toJdi(file) orElse (relativeToBase(file))).getOrElse {
-      throw new IllegalArgumentException(s"unable to resolve $file")
-    }
-
 }
