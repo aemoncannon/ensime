@@ -93,9 +93,6 @@ object `package` {
     def vjar(jar: File) = withContext(s"$jar =>") {
       vfs.resolveFile(asUri("jar", jar.getAbsolutePath).intern)
     }
-    def vjar(jar: FileObject) = withContext(s"$jar =>")(
-      vfs.resolveFile(("jar:" + jar.getName.getURI).intern)
-    )
 
     private def asUri(scheme: String, path: String): String = {
       s"${scheme}:${URLParamEncoder.encode(path)}"

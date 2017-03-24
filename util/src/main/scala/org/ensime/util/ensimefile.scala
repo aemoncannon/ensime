@@ -28,6 +28,7 @@ package ensimefile {
     def readStringDirect()(implicit cs: Charset): String
 
     def uri(): URI
+    def uriString(): String = uri.toASCIIString
   }
 
 }

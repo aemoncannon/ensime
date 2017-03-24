@@ -69,7 +69,7 @@ class JavaCompiler(
 
   def internSource(sf: SourceFileInfo): JavaFileObject = {
     val jfo = createJavaFileObject(sf)
-    workingSet.put(sf.file.uri.toString, jfo)
+    workingSet.put(sf.file.uriString, jfo)
     jfo
   }
 

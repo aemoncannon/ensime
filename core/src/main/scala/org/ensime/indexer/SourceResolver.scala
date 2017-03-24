@@ -4,13 +4,13 @@ package org.ensime.indexer
 
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
-import java.io.File
 import org.apache.commons.vfs2._
 
 import org.ensime.api._
 import org.ensime.vfs._
 
 import org.ensime.util.file._
+import org.ensime.util.fileobject._
 import org.ensime.util.list._
 import org.ensime.util.map._
 import scala.annotation.tailrec
@@ -31,7 +31,7 @@ class SourceResolver(
   def fileChanged(f: FileObject) = {}
 
   def relevant(f: FileObject): Boolean = f.getName.isFile && {
-    val file = new File(f.getName.getURI)
+    val file = f.asLocalFile
     (file.isScala || file.isJava) && !file.getPath.contains(".ensime_cache")
   }
 

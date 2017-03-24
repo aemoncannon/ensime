@@ -17,6 +17,7 @@ import org.ensime.indexer.database.DatabaseService._
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.ensime.indexer.lucene._
 import org.ensime.util.list._
+import org.ensime.util.fileobject._
 import shapeless.Typeable
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -128,7 +129,7 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
   }
 
   def remove(fs: List[FileObject]): Future[Unit] = {
-    val terms = fs.map { f => new TermQuery(new Term("file", f.getName.getURI)) }
+    val terms = fs.map { f => new TermQuery(new Term("file", f.uriString)) }
     lucene.delete(terms, commit = false) // don't commit yet
   }
 

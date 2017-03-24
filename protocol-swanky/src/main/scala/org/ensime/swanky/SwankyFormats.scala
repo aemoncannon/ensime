@@ -40,7 +40,7 @@ private object SwankyConversions
   implicit object EnsimeFileFormat extends SexpFormat[EnsimeFile] {
     def write(ef: EnsimeFile): Sexp = ef match {
       case RawFile(path) => SexpString(path.toString)
-      case a: ArchiveFile => SexpString(a.uri.toASCIIString)
+      case a: ArchiveFile => SexpString(a.uriString)
     }
     def read(sexp: Sexp): EnsimeFile = sexp match {
       case SexpString(uri) => EnsimeFile(uri)

@@ -32,7 +32,7 @@ private object JerkyConversions extends DefaultJsonProtocol with FamilyFormats {
   implicit object EnsimeFileFormat extends JsonFormat[EnsimeFile] {
     def write(ef: EnsimeFile): JsValue = ef match {
       case RawFile(path) => JsString(path.toString)
-      case a: ArchiveFile => JsString(a.uri.toASCIIString)
+      case a: ArchiveFile => JsString(a.uriString)
     }
     def read(js: JsValue): EnsimeFile = js match {
       case JsString(uri) => EnsimeFile(uri)

@@ -97,7 +97,6 @@ class SearchService(
       log.debug("findStaleFileChecks")
       for {
         check <- checks
-        name = check.file.getName.getURI
         if !check.file.exists || check.changed
       } yield check
     }.toList
@@ -143,7 +142,7 @@ class SearchService(
       log.debug("Indexing bases...")
       val checksLookup: Map[String, FileCheck] = checks.map(check => (check.filename -> check)).toMap
       val basesWithChecks: Set[(FileObject, Option[FileCheck])] = bases.map { base =>
-        (base, checksLookup.get(base.getName().getURI()))
+        (base, checksLookup.get(base.uriString))
       }
       Future.sequence(basesWithChecks.map { case (file, check) => indexBase(file, check) }).map(_.sum)
     }
@@ -202,7 +201,7 @@ class SearchService(
           case jar =>
             log.debug(s"indexing $jar")
             val check = FileCheck(jar)
-            val vJar = vfs.vjar(jar)
+            val vJar = vfs.vjar(jar.asLocalFile)
             try scan(vJar) flatMap (extractSymbols(jar, _))
             finally vfs.nuke(vJar)
         }
@@ -216,15 +215,15 @@ class SearchService(
     f.pathWithinArchive match {
       case Some(relative) if blacklist.exists(relative.startsWith) => Nil
       case _ =>
-        val name = container.getName.getURI
-        val path = f.getName.getURI
+        val name = container.uriString
+        val path = f.uriString
         val indexer = new ClassfileIndexer(f)
         val (clazz, refs) = indexer.indexClassfile()
 
         val depickler = new ClassfileDepickler(f)
 
         val source = resolver.resolve(clazz.name.pack, clazz.source)
-        val sourceUri = source.map(_.getName.getURI)
+        val sourceUri = source.map(_.uriString)
 
         val jdi = source.map { src =>
           val pkg = clazz.name.pack.path.mkString("/")
@@ -335,7 +334,7 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
 
   override def receive: Receive = {
     case IndexFile(f) =>
-      todo += f.getName.getURI -> f
+      todo += f.uriString -> f
       debounce()
 
     case Process if todo.isEmpty => // nothing to do
