@@ -1,5 +1,5 @@
 // sbt-ensime is needed for the integration tests
-addSbtPlugin("org.ensime" % "sbt-ensime" % "0.6.0")
+addSbtPlugin("org.ensime" % "sbt-ensime" % "1.12.8")
 
 // BUG https://github.com/sbt/sbt-header/issues/31
 //addSbtPlugin("de.heikoseeberger" % "sbt-header" % "1.5.0")
@@ -24,4 +24,5 @@ ivyLoggingLevel := UpdateLogging.Quiet
 
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.6.0")
 
-addSbtPlugin("io.get-coursier" % "sbt-coursier-java-6" % "1.0.0-M11")
+addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M15-5")
+

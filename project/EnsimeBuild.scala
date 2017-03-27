@@ -2,7 +2,7 @@ import SonatypeSupport._
 import com.typesafe.sbt.SbtScalariform._
 import java.io._
 import org.ensime.EnsimePlugin.JdkDir
-import org.ensime.Imports.EnsimeKeys._
+import org.ensime.EnsimeKeys._
 import sbt.{ IntegrationTest => It, _ }
 import sbt.Keys._
 import sbtassembly.{ AssemblyKeys, MergeStrategy, PathList }
