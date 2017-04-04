@@ -3,11 +3,11 @@
 package org.ensime.indexer
 
 import java.nio.charset.Charset
+import java.nio.file.Files
 
 import scala.concurrent.duration._
 
 import akka.testkit._
-import com.google.common.io.Files
 import org.apache.commons.vfs2._
 import org.ensime.fixture._
 import org.ensime.util._
@@ -175,7 +175,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
   it should "detect removed parent base directory" taggedAs (Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
-        val parent = Files.createTempDir().canon
+        val parent = Files.createTempDirectory("ensime").toFile.canon
         val dir = parent / "base"
         dir.mkdirs()
         try {
@@ -245,7 +245,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
   it should "be able to start up from a non-existent directory" taggedAs (Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
-        val dir = Files.createTempDir().canon / "root"
+        val dir = Files.createTempDirectory("ensime").toFile.canon / "root"
         try {
           withClassWatcher(dir) { watcher =>
             tk.ignoreMsg {
@@ -278,7 +278,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
 
-        val parent = Files.createTempDir().canon
+        val parent = Files.createTempDirectory("ensime").toFile.canon
         val dir = parent / "base"
         dir.mkdirs()
         try {

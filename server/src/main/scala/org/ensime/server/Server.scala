@@ -12,8 +12,6 @@ import scala.util.Properties._
 import akka.actor._
 import akka.actor.SupervisorStrategy.Stop
 import akka.util.Timeout
-import com.google.common.base.Charsets
-import com.google.common.io.Files
 import io.netty.channel.Channel
 
 import org.ensime.api._
@@ -129,7 +127,11 @@ object Server extends AkkaBackCompat {
       throw new RuntimeException(s".ensime file ($ensimeFile) not found")
 
     implicit val config: EnsimeConfig = try {
-      EnsimeConfigProtocol.parse(Files.toString(ensimeFile, Charsets.UTF_8))
+      val source = scala.io.Source.fromFile(ensimeFile, "utf-8")
+      val lines = source.getLines.mkString("\n")
+      source.close()
+
+      EnsimeConfigProtocol.parse(lines)
     } catch {
       case e: Throwable =>
         log.error(s"There was a problem parsing $ensimeFile", e)

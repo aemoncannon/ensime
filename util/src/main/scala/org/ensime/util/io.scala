@@ -3,7 +3,6 @@
 package org.ensime.util
 
 import java.io._
-import com.google.common.io.ByteStreams
 
 /**
  * NOTE: prefer NIO via the path utilities.
@@ -11,7 +10,12 @@ import com.google.common.io.ByteStreams
 package object io {
 
   implicit class RichInputStream(val is: InputStream) extends AnyVal {
-    def toByteArray(): Array[Byte] = ByteStreams.toByteArray(is)
+    def toByteArray(): Array[Byte] = {
+      def inputStreamToByteArray(is: InputStream): Array[Byte] = {
+        Iterator continually is.read takeWhile (-1 !=) map (_.toByte) toArray
+      }
+      inputStreamToByteArray(is)
+    }
   }
 
   implicit class RichOutputStream(val os: OutputStream) extends AnyVal {
@@ -20,11 +24,18 @@ package object io {
      * endeavours to close everything afterward (even on failure).
      */
     def drain(in: InputStream): Unit =
-      try ByteStreams.copy(in, os)
-      finally {
+      try {
+        var buffer = Array.fill[Byte](1024)(0) // size does affect perfomace
+        var len: Int = 0
+        def read(): Int = { len = in.read(buffer); len }
+        while (read != -1) {
+          os.write(buffer, 0, len)
+        }
+      } finally {
         try in.close()
         finally os.close()
       }
   }
 
 }
+
