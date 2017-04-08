@@ -3,7 +3,6 @@
 package org.ensime.indexer
 
 import java.nio.charset.Charset
-import java.nio.file.Files
 
 import scala.concurrent.duration._
 
@@ -13,6 +12,7 @@ import org.ensime.fixture._
 import org.ensime.util._
 import org.ensime.util.file._
 import org.ensime.util.fileobject._
+import org.ensime.util.path._
 import org.ensime.vfs._
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.tagobjects.Retryable
@@ -175,24 +175,26 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
   it should "detect removed parent base directory" taggedAs (Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
-        val parent = Files.createTempDirectory("ensime").toFile.canon
-        val dir = parent / "base"
-        dir.mkdirs()
-        try {
-          withClassWatcher(dir) { watcher =>
-            // would be better if this was atomic (not possible from JVM?)
-            waitForBaseRegistered(tk)
+        withTempDirPath { tmpDir =>
+          val parent = tmpDir.toFile.canon
+          val dir = parent / "base"
+          dir.mkdirs()
+          try {
+            withClassWatcher(dir) { watcher =>
+              // would be better if this was atomic (not possible from JVM?)
+              waitForBaseRegistered(tk)
 
-            parent.tree.reverse.foreach(_.delete())
-            val createOrDelete: Fish = {
-              case r: BaseRemoved => true
-              case a: BaseAdded => true
-              case _ => false
+              parent.tree.reverse.foreach(_.delete())
+              val createOrDelete: Fish = {
+                case r: BaseRemoved => true
+                case a: BaseAdded => true
+                case _ => false
+              }
+              tk.fishForMessage()(createOrDelete)
+              tk.fishForMessage()(createOrDelete)
             }
-            tk.fishForMessage()(createOrDelete)
-            tk.fishForMessage()(createOrDelete)
-          }
-        } finally parent.tree.reverse.foreach(_.delete())
+          } finally parent.tree.reverse.foreach(_.delete())
+        }
       }
     }
 
@@ -245,85 +247,88 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
   it should "be able to start up from a non-existent directory" taggedAs (Retryable) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
-        val dir = Files.createTempDirectory("ensime").toFile.canon / "root"
-        try {
-          withClassWatcher(dir) { watcher =>
-            tk.ignoreMsg {
-              case msg: BaseAdded => true
-            }
-            val foo = (dir / "foo.class")
-            val bar = (dir / "b/bar.class")
-
-            waitForLinus()
-
-            foo.createWithParents() shouldBe true
-            bar.createWithParents() shouldBe true
-
-            val fishForFooBar: Fish = {
-              case Added(f) => {
-                f.asLocalFile.getAbsolutePath == foo.getAbsolutePath ||
-                  f.asLocalFile.getAbsolutePath == bar.getAbsolutePath
+        withTempDirPath { tmpDir =>
+          val dir = tmpDir.toFile.canon / "root"
+          try {
+            withClassWatcher(dir) { watcher =>
+              tk.ignoreMsg {
+                case msg: BaseAdded => true
               }
-              case _ => false
-            }
-            tk.fishForMessage(maxWait)(fishForFooBar)
-            tk.fishForMessage(maxWait)(fishForFooBar)
+              val foo = (dir / "foo.class")
+              val bar = (dir / "b/bar.class")
 
-          }
-        } finally dir.tree.reverse.foreach(_.delete())
+              waitForLinus()
+
+              foo.createWithParents() shouldBe true
+              bar.createWithParents() shouldBe true
+
+              val fishForFooBar: Fish = {
+                case Added(f) => {
+                  f.asLocalFile.getAbsolutePath == foo.getAbsolutePath ||
+                    f.asLocalFile.getAbsolutePath == bar.getAbsolutePath
+                }
+                case _ => false
+              }
+              tk.fishForMessage(maxWait)(fishForFooBar)
+              tk.fishForMessage(maxWait)(fishForFooBar)
+
+            }
+          } finally dir.tree.reverse.foreach(_.delete())
+        }
       }
     }
 
   it should "survive removed parent base directory and recreated base" taggedAs (Retryable, IgnoreOnAppVeyor) in
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
+        withTempDirPath { tmpDir =>
+          val parent = tmpDir.toFile.canon
+          val dir = parent / "base"
+          dir.mkdirs()
+          try {
+            withClassWatcher(dir) { watcher =>
+              waitForBaseRegistered(tk)
 
-        val parent = Files.createTempDirectory("ensime").toFile.canon
-        val dir = parent / "base"
-        dir.mkdirs()
-        try {
-          withClassWatcher(dir) { watcher =>
-            waitForBaseRegistered(tk)
+              val foo = (dir / "foo.class")
+              val bar = (dir / "b/bar.class")
 
-            val foo = (dir / "foo.class")
-            val bar = (dir / "b/bar.class")
+              foo.createWithParents() shouldBe true
+              bar.createWithParents() shouldBe true
+              tk.expectMsgType[Added]
+              tk.expectMsgType[Added]
+              ignoreAdded(tk)
+              ignoreAdded(tk)
+              waitForLinus()
 
-            foo.createWithParents() shouldBe true
-            bar.createWithParents() shouldBe true
-            tk.expectMsgType[Added]
-            tk.expectMsgType[Added]
-            ignoreAdded(tk)
-            ignoreAdded(tk)
-            waitForLinus()
+              parent.tree.reverse.foreach(_.delete())
 
-            parent.tree.reverse.foreach(_.delete())
+              val createOrDelete: Fish = {
+                case r: BaseRemoved => true
+                case a: BaseAdded => true
+                case r: Removed => false
+                case a: Added => false
+                case r: Changed => false // ignore on Windows
+              }
+              tk.fishForMessage()(createOrDelete)
+              tk.fishForMessage()(createOrDelete)
 
-            val createOrDelete: Fish = {
-              case r: BaseRemoved => true
-              case a: BaseAdded => true
-              case r: Removed => false
-              case a: Added => false
-              case r: Changed => false // ignore on Windows
+              foo.createWithParents() shouldBe true
+              bar.createWithParents() shouldBe true
+
+              // non-deterministically receive zero, one or two more Removed
+              // and either Added or Changed for foo / bar.
+              val nonDeterministicAdd: Fish = {
+                case a: Added => true
+                case c: Changed => true
+                case r: Removed => false
+                case r: BaseRemoved => false //ignore on Windows
+                case r: BaseAdded => false // ignore on Windows
+              }
+              tk.fishForMessage()(nonDeterministicAdd)
+              tk.fishForMessage()(nonDeterministicAdd)
             }
-            tk.fishForMessage()(createOrDelete)
-            tk.fishForMessage()(createOrDelete)
-
-            foo.createWithParents() shouldBe true
-            bar.createWithParents() shouldBe true
-
-            // non-deterministically receive zero, one or two more Removed
-            // and either Added or Changed for foo / bar.
-            val nonDeterministicAdd: Fish = {
-              case a: Added => true
-              case c: Changed => true
-              case r: Removed => false
-              case r: BaseRemoved => false //ignore on Windows
-              case r: BaseAdded => false // ignore on Windows
-            }
-            tk.fishForMessage()(nonDeterministicAdd)
-            tk.fishForMessage()(nonDeterministicAdd)
-          }
-        } finally dir.tree.reverse.foreach(_.delete())
+          } finally dir.tree.reverse.foreach(_.delete())
+        }
       }
     }
 

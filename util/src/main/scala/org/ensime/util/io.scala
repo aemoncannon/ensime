@@ -11,10 +11,18 @@ package object io {
 
   implicit class RichInputStream(val is: InputStream) extends AnyVal {
     def toByteArray(): Array[Byte] = {
-      def inputStreamToByteArray(is: InputStream): Array[Byte] = {
-        Iterator continually is.read takeWhile (-1 !=) map (_.toByte) toArray
+      val baos = new ByteArrayOutputStream()
+
+      val data = Array.ofDim[Byte](16384)
+      var nRead = is.read(data, 0, data.length)
+
+      while (nRead != -1) {
+        baos.write(data, 0, nRead)
+        nRead = is.read(data, 0, data.length)
       }
-      inputStreamToByteArray(is)
+
+      baos.flush()
+      baos.toByteArray()
     }
   }
 
@@ -25,11 +33,13 @@ package object io {
      */
     def drain(in: InputStream): Unit =
       try {
-        var buffer = Array.fill[Byte](1024)(0) // size does affect perfomace
+        var data = Array.ofDim[Byte](16384) // size does affect perfomance
+
         var len: Int = 0
-        def read(): Int = { len = in.read(buffer); len }
+        def read(): Int = { len = in.read(data); len }
+
         while (read != -1) {
-          os.write(buffer, 0, len)
+          os.write(data, 0, len)
         }
       } finally {
         try in.close()

@@ -6,7 +6,8 @@ import java.io.{ File => JFile, _ }
 import java.nio.charset.Charset
 import java.util.regex.Pattern
 import java.nio.file.Files
-import scala.io.Source
+
+import scala.collection.JavaConverters._
 
 import scala.util.Try
 
@@ -68,7 +69,7 @@ package object file {
     }
 
     def readLines()(implicit cs: Charset): List[String] = {
-      Source.fromFile(file.getPath).getLines.toList
+      Files.readAllLines(file.toPath(), cs).asScala.toList
     }
 
     def writeLines(lines: List[String])(implicit cs: Charset): Unit = {
@@ -90,28 +91,7 @@ package object file {
      */
     @deprecating("prefer path approaches")
     def tree: Stream[File] = {
-      import scala.annotation.tailrec
-
-      def listFiles(file: File): Array[File] = {
-        @tailrec
-        def recursiveListFiles(files: List[File], result: List[File]): List[File] = files match {
-          case Nil => result
-          case head :: tail if head.isDirectory =>
-            recursiveListFiles(Option(head.listFiles).map(_.toList ::: tail).getOrElse(tail), head +: result)
-          case head :: tail if head.isFile =>
-            recursiveListFiles(tail, head :: result)
-        }
-        recursiveListFiles(List(file), Nil).toArray
-      }
-
-      def fileTreeTraverser(f: File): Stream[File] = {
-        listFiles(f).reverse.toStream
-      }
-
-      file.isDirectory match {
-        case true => fileTreeTraverser(file)
-        case false => file #:: fileTreeTraverser(file)
-      }
+      Files.walk(file.toPath).iterator().asScala.toStream.map(_.toFile)
     }
 
     /**

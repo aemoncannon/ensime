@@ -3,6 +3,10 @@
 package org.ensime.util
 
 import java.io.{ File => JFile }
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+
+import scala.collection.JavaConverters._
 
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.scalatest._
@@ -54,9 +58,7 @@ class FileSpec extends FlatSpec with Matchers {
     out.write("hello".getBytes())
     out.close()
 
-    val source = scala.io.Source.fromFile(file, "utf-8")
-    val lines = source.getLines.mkString("\n")
-    source.close()
+    val lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8).asScala.mkString("\n")
 
     lines shouldBe "hello"
   }
