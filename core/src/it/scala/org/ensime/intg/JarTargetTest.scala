@@ -2,10 +2,10 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.intg
 
-import org.apache.commons.io.FileUtils
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
+import org.ensime.util.path._
 import scala.concurrent.duration._
 
 /**
@@ -78,7 +78,7 @@ class MissingJarTargetTest extends EnsimeSpec
           // exist on startup, and we don't try to create it.
           mainTarget should not be 'exists
 
-          FileUtils.copyFile(mainTarget(original), mainTarget)
+          mainTarget(original).toPath().copyFileTo(mainTarget.toPath())
           mainTarget should be a 'file
 
           // means the file addition was detected

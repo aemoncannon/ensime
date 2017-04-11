@@ -6,11 +6,11 @@ import java.nio.file.Files
 
 import scala.concurrent.duration._
 
-import org.apache.commons.io.FileUtils
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
+import org.ensime.util.path._
 
 /**
  * Tries to simulate SBT clean/compile to stress test timing issues.
@@ -40,7 +40,8 @@ class CompileTimingTest extends EnsimeSpec
           val exampleDiskInfo = SourceFileInfo(RawFile(example.toPath), None, None)
           val exampleMemory = SourceFileInfo(RawFile(example.toPath), None, Some(example))
 
-          FileUtils.copyDirectory(target, targetBak)
+          targetBak.mkdir()
+          target.toPath().copyDirTo(targetBak.toPath())
 
           project ! TypecheckFileReq(exampleDiskInfo)
           expectMsg(VoidResponse)

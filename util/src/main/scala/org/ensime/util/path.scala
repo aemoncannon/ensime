@@ -57,6 +57,13 @@ package object path {
       require(path.isDirectory && to.isDirectory)
       Files.walkFileTree(path, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new CopyDirVisitor(path, to))
     }
+    def copyFileTo(to: Path): Unit = {
+      require(path.isFile)
+      if (!Files.exists(to)) {
+        Files.createDirectories(to.getParent())
+      }
+      Files.copy(path, to)
+    }
     def deleteDirRecursively(): Unit = {
       require(path.isDirectory)
       Files.walkFileTree(path, Collections.emptySet[FileVisitOption], Integer.MAX_VALUE, new DeleteDirVisitor(path))

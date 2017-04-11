@@ -94,7 +94,6 @@ object EnsimeBuild {
     util, api
   ) settings (
       libraryDependencies ++= Seq(
-        "commons-io" % "commons-io" % "2.5",
         "com.typesafe.akka" %% "akka-testkit" % akkaVersion.value,
         "com.typesafe.akka" %% "akka-slf4j" % akkaVersion.value
       ) ++sensibleTestLibs(Compile)
