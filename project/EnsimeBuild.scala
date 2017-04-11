@@ -293,7 +293,6 @@ object EnsimeTestingBuild {
     dependencyOverrides ++= Set("com.google.guava" % "guava" % "18.0"),
     libraryDependencies ++= Seq(
       "com.github.dvdme" % "ForecastIOLib" % "1.5.1" intransitive (),
-      "commons-io" % "commons-io" % "2.5" intransitive (),
       "com.google.guava" % "guava" % "18.0"
     )
   )
