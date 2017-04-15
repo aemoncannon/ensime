@@ -44,6 +44,9 @@ class SearchService(
 
   /**
    * Changelog:
+   *
+   * 2.3.4g - bump orientdb version to 2.2.18
+   *
    * 2.3.3g - bump orientdb version to 2.2.13
    *
    * 2.3.2g - bump orientdb version to 2.2.11
@@ -78,7 +81,7 @@ class SearchService(
    *
    * 1.0 - initial schema
    */
-  private val version = "2.3.3"
+  private val version = "2.3.4g"
 
   private[indexer] val index = {
     val ec = actorSystem.dispatchers.lookup("akka.index-service-dispatcher")

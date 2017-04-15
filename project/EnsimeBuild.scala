@@ -251,7 +251,7 @@ object EnsimeBuild {
     }
   }
 
-  private val orientVersion = "2.2.13"
+  private val orientVersion = "2.2.18"
 }
 
 // projects used in the integration tests, not published

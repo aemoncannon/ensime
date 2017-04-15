@@ -74,6 +74,10 @@ package api {
 
 package object syntax {
   import org.ensime.indexer.orientdb.api.{ IndexT, Indexable }
+  import org.slf4j.LoggerFactory
+  import scala.util.control.NonFatal
+
+  private[this] val log = LoggerFactory.getLogger("org.ensime.indexer.orientdb.SimpleOrient")
 
   implicit class RichOrientGraph(graph: OrientExtendedGraph) {
     private val schema = graph.getRawGraph.getMetadata.getSchema
@@ -156,7 +160,9 @@ package object syntax {
    *  Commits are not automatic for performance reasons.
    */
   def withGraph[T](f: OrientBaseGraph => T)(implicit factory: OrientGraphFactory): T = {
-    f(factory.getNoTx())
+    val g = factory.getTx()
+    try f(g)
+    finally g.shutdown()
   }
 
   // NOTE: although providing isolation, this destroys stacktraces

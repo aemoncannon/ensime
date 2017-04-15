@@ -129,9 +129,7 @@ class GraphService(dir: File) extends SLF4JLogging {
   private implicit lazy val db: OrientGraphFactory = {
     // http://orientdb.com/docs/2.1/Performance-Tuning.html
 
-    // this means disabling transactions!
-    // slows down mutations, but no commit overhead (the real killer)
-    OGlobalConfiguration.USE_WAL.setValue(false)
+    OGlobalConfiguration.USE_WAL.setValue(true)
     //OGlobalConfiguration.TX_USE_LOG.setValue(false)
 
     // no discernable difference
@@ -149,14 +147,10 @@ class GraphService(dir: File) extends SLF4JLogging {
 
     val url = "plocal:" + dir.getAbsolutePath
     val db = new OrientGraphFactory(url).setupPool(pools, pools)
-    val g = db.getNoTx
+    db.setAutoStartTx(false)
+    db.setUseLightweightEdges(true)
+    db.setUseLog(true)
 
-    // is this just needed on schema creation or always?
-    // https://github.com/orientechnologies/orientdb/issues/5322
-    g.setUseLightweightEdges(true)
-    g.setUseLog(false)
-
-    g.shutdown()
     // small speedup, but increases chance of concurrency issues
     db.declareIntent(new OIntentMassiveInsert())
 
@@ -177,7 +171,8 @@ class GraphService(dir: File) extends SLF4JLogging {
     log.info("creating the graph database...")
     dir.mkdirs()
 
-    val g = db.getNoTx
+    // schema changes are not transactional
+    val g = db.getNoTx()
     val fqnSymbolClass = g.createVertexType("FqnSymbol")
     fqnSymbolClass.createProperty("fqn", OType.STRING).setMandatory(true)
     fqnSymbolClass.createProperty("line", OType.INTEGER).setMandatory(false)
@@ -217,6 +212,7 @@ class GraphService(dir: File) extends SLF4JLogging {
     val classes = mutable.Map.empty[String, VertexT[ClassDef]]
 
     symbols.foreach { s =>
+      g.begin()
       val scalaName = s.scalapSymbol.map(_.scalaName)
       val typeSignature = s.scalapSymbol.map(_.typeSignature)
       val declAs = s.scalapSymbol.map(_.declaredAs)
@@ -280,7 +276,10 @@ class GraphService(dir: File) extends SLF4JLogging {
           v <- vertex
         } yield RichGraph.insertE(u, v, UsedIn)
       }
+      g.commit()
     }
+
+    g.begin()
     symbols.collect {
       case c: ClassSymbolInfo => c.bytecodeSymbol.innerClasses.foreach { inner =>
         for {
@@ -292,6 +291,7 @@ class GraphService(dir: File) extends SLF4JLogging {
         }
       }
     }
+    g.commit()
 
     symbols.size
   }
