@@ -129,6 +129,7 @@ class GraphService(dir: File) extends SLF4JLogging {
     // http://orientdb.com/docs/2.1/Performance-Tuning.html
 
     OGlobalConfiguration.USE_WAL.setValue(true)
+    OGlobalConfiguration.DISK_CACHE_SIZE.setValue(64) // 64MB is far more sensible than 4GB
 
     //This is a hack, that resolves some classloading issues in OrientDB.
     //https://github.com/orientechnologies/orientdb/issues/5146
