@@ -74,10 +74,6 @@ package api {
 
 package object syntax {
   import org.ensime.indexer.orientdb.api.{ IndexT, Indexable }
-  import org.slf4j.LoggerFactory
-  import scala.util.control.NonFatal
-
-  private[this] val log = LoggerFactory.getLogger("org.ensime.indexer.orientdb.SimpleOrient")
 
   implicit class RichOrientGraph(graph: OrientExtendedGraph) {
     private val schema = graph.getRawGraph.getMetadata.getSchema
@@ -105,8 +101,13 @@ package object syntax {
         case (key, OrientProperty(oType, isMandatory)) =>
           if (schemaClass.getProperty(key) == null) {
             schemaClass.createProperty(key, oType)
-              .setMandatory(isMandatory)
-              .setNotNull(true)
+            // there is a huge design problem in Tinkerpop where
+            // vertices must be created before edges can be added.
+            // that means we can't use mandatory/non-null schema
+            // enforcement.
+
+            //.setMandatory(isMandatory)
+            //.setNotNull(true)
           }
       }
       schemaClass

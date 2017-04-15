@@ -195,18 +195,6 @@ class SearchService(
       ).map(_.sum)
     }
 
-    def commitIndex(): Future[Unit] = {
-      log.debug("committing index to disk...")
-      val i = index.commit()
-      val g = db.commit()
-      for {
-        _ <- i
-        _ <- g
-      } yield {
-        log.debug("...done committing index")
-      }
-    }
-
     // chain together all the future tasks
     for {
       checks <- db.knownFiles()
@@ -214,7 +202,7 @@ class SearchService(
       deletes <- deleteReferences(stale)
       bases = findBases()
       added <- indexBases(bases, checks)
-      _ <- commitIndex()
+      _ <- index.commit()
     } yield (deletes, added)
   }
 

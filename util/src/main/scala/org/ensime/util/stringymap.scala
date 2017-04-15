@@ -97,11 +97,6 @@ package object impl {
 
       def fromProperties(m: StringyMap) = {
         val value = m.get(key.value.name)
-        /*
-        This is a pretty hacky way to handle null => Empty option case, i'd love
-        to have a more typesafe way to do this.
-         */
-        val errorMessage = s"Missing key ${key.value.name} in $m"
         val resolved = prim.fromValue(value)
         for {
           remaining <- remV.value.fromProperties(m).right

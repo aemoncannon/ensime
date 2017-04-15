@@ -12,7 +12,6 @@ import akka.event.slf4j.SLF4JLogging
 import com.orientechnologies.orient.core.Orient
 import com.orientechnologies.orient.core.config.OGlobalConfiguration
 import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal
-import com.orientechnologies.orient.core.intent.OIntentMassiveInsert
 import com.orientechnologies.orient.core.metadata.schema.OType
 import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory
@@ -130,18 +129,11 @@ class GraphService(dir: File) extends SLF4JLogging {
     // http://orientdb.com/docs/2.1/Performance-Tuning.html
 
     OGlobalConfiguration.USE_WAL.setValue(true)
-    //OGlobalConfiguration.TX_USE_LOG.setValue(false)
-
-    // no discernable difference
-    //OGlobalConfiguration.ENVIRONMENT_CONCURRENT.setValue(false)
-    //OGlobalConfiguration.DISK_WRITE_CACHE_PART.setValue(50)
-    //OGlobalConfiguration.WAL_SYNC_ON_PAGE_FLUSH.setValue(false)
-    //OGlobalConfiguration.DISK_CACHE_SIZE.setValue(7200)
 
     //This is a hack, that resolves some classloading issues in OrientDB.
     //https://github.com/orientechnologies/orientdb/issues/5146
     if (ODatabaseRecordThreadLocal.INSTANCE == null) {
-      sys.error("Calling this manually apparently prevent an initialization issue.")
+      sys.error("Calling this manually prevents an initialization issue.")
     }
     Orient.setRegisterDatabaseByPath(true)
 
@@ -150,9 +142,6 @@ class GraphService(dir: File) extends SLF4JLogging {
     db.setAutoStartTx(false)
     db.setUseLightweightEdges(true)
     db.setUseLog(true)
-
-    // small speedup, but increases chance of concurrency issues
-    db.declareIntent(new OIntentMassiveInsert())
 
     db
   }
@@ -165,7 +154,7 @@ class GraphService(dir: File) extends SLF4JLogging {
         ()
       } finally db.close()
     }
-  }(ExecutionContext.Implicits.global)
+  }(ExecutionContext.Implicits.global) // must be from a different thread than the executor
 
   if (!dir.exists) {
     log.info("creating the graph database...")
@@ -211,8 +200,8 @@ class GraphService(dir: File) extends SLF4JLogging {
     val checks = mutable.Map.empty[String, VertexT[FileCheck]]
     val classes = mutable.Map.empty[String, VertexT[ClassDef]]
 
+    g.begin()
     symbols.foreach { s =>
-      g.begin()
       val scalaName = s.scalapSymbol.map(_.scalaName)
       val typeSignature = s.scalapSymbol.map(_.typeSignature)
       val declAs = s.scalapSymbol.map(_.declaredAs)
@@ -276,10 +265,8 @@ class GraphService(dir: File) extends SLF4JLogging {
           v <- vertex
         } yield RichGraph.insertE(u, v, UsedIn)
       }
-      g.commit()
     }
 
-    g.begin()
     symbols.collect {
       case c: ClassSymbolInfo => c.bytecodeSymbol.innerClasses.foreach { inner =>
         for {
@@ -316,12 +303,6 @@ class GraphService(dir: File) extends SLF4JLogging {
   def find(fqns: List[FqnIndex]): Future[List[FqnSymbol]] = withGraphAsync { implicit g =>
     fqns.flatMap(fqn =>
       RichGraph.readUniqueV[FqnSymbol, String](fqn.fqn).map(_.toDomain))
-  }
-
-  // NOTE: only commits this thread's work
-  def commit(): Future[Unit] = withGraphAsync { implicit graph =>
-    graph.commit() // transactions disabled, is this a no-op?
-    graph.declareIntent(null)
   }
 
   def getClassHierarchy(fqn: String, hierarchyType: Hierarchy.Direction): Future[Option[Hierarchy]] = withGraphAsync { implicit g =>
