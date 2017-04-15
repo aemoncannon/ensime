@@ -109,7 +109,7 @@ object EnsimeBuild {
       licenses := Seq(LGPL3),
       libraryDependencies ++= Seq(
         "com.lihaoyi" %% "fastparse" % "0.4.2",
-        "org.scalacheck" %% "scalacheck" % "1.13.4" % Test
+        "org.scalacheck" %% "scalacheck" % "1.13.5" % Test
       ) ++ shapeless.value ++ logback
     )
 
@@ -196,8 +196,8 @@ object EnsimeBuild {
     dtf.format(new java.util.Date())
   }
 
-  val luceneVersion = "6.4.1"
-  val nettyVersion = "4.1.8.Final"
+  val luceneVersion = "6.4.2"
+  val nettyVersion = "4.1.9.Final"
   lazy val server = Project("server", file("server")).dependsOn(
     core, swanky, jerky,
     s_express % "test->test",

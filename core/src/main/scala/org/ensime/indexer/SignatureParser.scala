@@ -55,13 +55,15 @@ object SignatureParser extends ClassParser {
   private val GenericArgs: Parser[Seq[GenericArg]] =
     P((ExtendsObject | GenericArgWithSignature).rep(1))
 
+  val ExtendsObjectGenericArg =
+    GenericArg(None, GenericClassName(ClassName.fromFqn("java.lang.Object")))
   private val ExtendsObject: Parser[GenericArg] =
     P("*")
       .map(_ => ExtendsObjectGenericArg)
 
   private val GenericArgWithSignature: Parser[GenericArg] =
     P((LowerBoundary | UpperBoundary).? ~ FieldTypeSignature)
-      .map((SpecifiedGenericArg.apply _).tupled)
+      .map((GenericArg.apply _).tupled)
 
   private val LowerBoundary: Parser[BoundType] =
     P("-")
@@ -71,7 +73,7 @@ object SignatureParser extends ClassParser {
     P("+")
       .map(_ => UpperBound)
 
-  private val FieldTypeSignature: Parser[RealTypeSignature] =
+  private val FieldTypeSignature: Parser[GenericSignature] =
     P(GenericClassSig | GenericArraySig | TypeVar)
 
   private val GenericArraySig: Parser[GenericArray] =
