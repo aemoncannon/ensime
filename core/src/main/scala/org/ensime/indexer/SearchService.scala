@@ -2,12 +2,11 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.util.concurrent.Semaphore
-
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util.{ Failure, Properties, Success }
 import scala.collection.{ mutable, Map, Set }
+
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
@@ -81,13 +80,11 @@ class SearchService(
    */
   private val version = "2.3.3"
 
-  private[indexer] val index = new IndexService((config.cacheDir / ("index-" + version)).toPath)
+  private[indexer] val index = {
+    val ec = actorSystem.dispatchers.lookup("akka.index-service-dispatcher")
+    new IndexService((config.cacheDir / ("index-" + version)).toPath)(ec)
+  }
   private val db = new GraphService(config.cacheDir / ("graph-" + version))
-
-  // each jar / directory must acquire a permit, released when the
-  // data is persisted. This is to keep the heap usage down and is a
-  // poor man's backpressure.
-  val semaphore = new Semaphore(Properties.propOrElse("ensime.index.parallel", "10").toInt, true)
 
   val noReverseLookups: Boolean = Properties.propOrFalse("ensime.index.no.reverse.lookups")
 
@@ -171,7 +168,6 @@ class SearchService(
           if (base.getName.getExtension == "jar") {
             log.debug(s"finished indexing $base")
           }
-          semaphore.release()
         }
         indexed
       }
@@ -231,8 +227,6 @@ class SearchService(
     } yield inserts
   }
 
-  // this method leak semaphore on every call, which must be released
-  // when the List[FqnSymbol] has been processed (even if it is empty)
   def extractSymbolsFromClassOrJar(
     file: FileObject,
     grouped: Map[FileName, Set[FileObject]]
@@ -242,8 +236,6 @@ class SearchService(
 
     Future {
       blocking {
-        semaphore.acquire()
-
         file match {
           case classfile if classfile.getName.getExtension == "class" =>
             // too noisy to log
@@ -507,28 +499,21 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
           val filename = outerClassFile.getPath
           // I don't trust VFS's f.exists()
           if (!File(filename).exists()) {
-            Future {
-              searchService.semaphore.acquire() // nasty, but otherwise we leak
-              outerClassFile -> Nil
-            }
+            Future.successful(outerClassFile -> Nil)
           } else searchService.extractSymbolsFromClassOrJar(searchService.vfs.vfile(outerClassFile.getURI), batch).map(outerClassFile -> )
       }).onComplete {
         case Failure(t) =>
-          searchService.semaphore.release()
           log.error(t, s"failed to index batch of ${batch.size} files. $advice")
           retry()
         case Success(indexed) =>
           searchService.delete(indexed.flatMap(f => batch(f._1))(collection.breakOut)).onComplete {
             case Failure(t) =>
-              searchService.semaphore.release()
               log.error(t, s"failed to remove stale entries in ${batch.size} files. $advice")
               retry()
             case Success(_) => indexed.foreach {
               case (file, syms) =>
                 val boost = searchService.isUserFile(file)
                 val persisting = searchService.persist(syms, commitIndex = true, boost = boost)
-
-                persisting.onComplete(_ => searchService.semaphore.release())
 
                 persisting.onComplete {
                   case Failure(t) =>
