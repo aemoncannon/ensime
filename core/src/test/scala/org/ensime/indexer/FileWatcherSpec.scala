@@ -5,7 +5,6 @@ package org.ensime.indexer
 import java.nio.charset.Charset
 
 import scala.concurrent.duration._
-
 import akka.testkit._
 import org.apache.commons.vfs2._
 import org.ensime.fixture._
@@ -31,10 +30,13 @@ final case class BaseRegistered() extends FileWatcherMessage
  * fundamental problem is that file watching is impossible without
  * true OS and FS support, which is lacking on all major platforms.
  *
+ * OS X is just too flakey to even bother.
+ *
  * NOTE: if you're making local edits to this file, try adding "with
  *       ParallelTestExecution". It's not used by default, only to
  *       reduce the load on the pathetic CI machines.
  */
+@tags.IgnoreOnTravis
 class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
     with IsolatedTestKitFixture with IsolatedEnsimeVFSFixture {
 

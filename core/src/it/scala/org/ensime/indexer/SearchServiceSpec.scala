@@ -6,10 +6,12 @@ import org.apache.lucene.search.DisjunctionMaxQuery
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import org.ensime.api.ArchiveFile
+import org.ensime.api._
 import org.ensime.fixture._
+import org.ensime.indexer.graph._
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
+import org.scalactic.source.Position
 import org.scalatest.Matchers._
 import org.scalatest.matchers.{ BeMatcher, MatchResult }
 
@@ -58,12 +60,14 @@ class SearchServiceSpec extends EnsimeSpec
   it should "remove classfiles that have been deleted" in {
     withSearchService { (config, service) =>
       implicit val s = service
-      val classfile = config.subprojects.head.targets.head / "org/example/Foo.class"
+      val classfile = config.subprojects.head.targets.head / "org/example/Foo$.class"
 
       classfile shouldBe 'exists
+      service.findUnique("org.example.Foo$") shouldBe defined
 
       classfile.delete()
       refresh() shouldBe ((1, 0))
+      service.findUnique("org.example.Foo$") shouldBe empty
     }
   }
 
@@ -202,12 +206,143 @@ class SearchServiceSpec extends EnsimeSpec
   }
 
   it should "return user methods first" in withSearchService { implicit service =>
-    val hits = service.searchClassesMethods("toString" :: Nil, 10).map(_.fqn)
+    val hits = service.searchClassesMethods("toString" :: Nil, 8).map(_.fqn)
     all(hits) should startWith regex ("org.example|org.boost")
+  }
+
+  it should "distinguish between traits/classes/objects" in withSearchService { implicit service =>
+    val aTrait = service.findUnique("org.scalatest.FunSuiteLike")
+    val aClass = service.findUnique("org.scalatest.FunSuite")
+    val anObject = service.findUnique("org.scalatest.SuperEngine$Bundle$")
+    aTrait.value.toSearchResult should startWith("Trait")
+    aClass.value.toSearchResult should startWith("Class")
+    anObject.value.toSearchResult should startWith("Object")
+  }
+
+  it should "find scala names for scala symbols" in withSearchService { implicit service =>
+    val hits = service.searchClassesMethods(List("TestSuite"), 10)
+    hits should be('nonEmpty)
+    all(hits.map(_.scalaName)) shouldBe defined
+  }
+
+  it should "not find scala names for java symbols" in withSearchService { implicit service =>
+    val hits = service.searchClasses("java.lang", 10)
+    hits.length should ===(10)
+    all(hits.map(_.scalaName)) shouldBe empty
   }
 
   "exact searches" should "find type aliases" in withSearchService { implicit service =>
     service.findUnique("org.scalatest.fixture.ConfigMapFixture$FixtureParam") shouldBe defined
+  }
+
+  "class hierarchy viewer" should "find all classes implementing a trait" in withSearchService { implicit service =>
+    val someTrait = "org.hierarchy.SomeTrait"
+    val implementingClasses = getClassHierarchy(someTrait, Hierarchy.Subtypes)
+    inside(implementingClasses) {
+      case TypeHierarchy(classDef, refs) =>
+        classDef.fqn should ===(someTrait)
+        inside(refs) {
+          case Seq(ref1, ref2) =>
+            inside(ref1) {
+              case TypeHierarchy(aClass, Seq(subclass)) =>
+                aClass.fqn should ===("org.hierarchy.ExtendsTrait")
+                inside(subclass) {
+                  case cdef: ClassDef => cdef.fqn should ===("org.hierarchy.Subclass")
+                }
+            }
+            inside(ref2) {
+              case cdef: ClassDef => cdef.fqn should ===("org.hierarchy.ExtendsTraitToo")
+            }
+        }
+    }
+  }
+
+  it should "find all superclasses of a class" in withSearchService { implicit service =>
+    val hierarchy = getClassHierarchy("org.hierarchy.Qux", Hierarchy.Supertypes)
+    hierarchyToSet(hierarchy).map(_.fqn) should contain theSameElementsAs Set(
+      "org.hierarchy.Qux",
+      "scala.math.Ordered",
+      "org.hierarchy.Bar",
+      "org.hierarchy.NotBaz",
+      "java.lang.Runnable",
+      "java.lang.Comparable",
+      "java.lang.Object"
+    )
+  }
+
+  "reverse usage lookup" should "find usages of an annotation class" in withSearchService { implicit service =>
+
+    val usages = findUsages("org.reverselookups.MyAnnotation")
+    usages.length should ===(18)
+    usages.map(u => unifyMethodName(u.toSearchResult)) should contain theSameElementsAs List(
+      "Field org.reverselookups.ReverseLookups#fieldType",
+      "Method org.reverselookups.ReverseLookups#fieldType: org.reverselookups.MyAnnotation",
+      "Field org.reverselookups.ReverseLookups#annotatedField",
+      "Field org.reverselookups.ReverseLookups.staticField",
+      "Method org.reverselookups.ReverseLookups.staticField: org.reverselookups.MyAnnotation",
+      "Method org.reverselookups.ReverseLookups.staticField()Lorg/reverselookups/MyAnnotation;", // synthetic method for class ReverseLookups
+      "Method org.reverselookups.ReverseLookups#annotatedMethod(): scala.Unit",
+      "Method org.reverselookups.ReverseLookups.<init>(): org.reverselookups.ReverseLookups",
+      "Method org.reverselookups.ReverseLookups#<init>(i: scala.Int): org.reverselookups.ReverseLookups",
+      "Method org.reverselookups.ReverseLookups#usesInBody(): scala.Unit",
+      "Method org.reverselookups.ReverseLookups#takesAsParam(ann: org.reverselookups.MyAnnotation): scala.Unit",
+      "Method org.reverselookups.ReverseLookups#polyMethod[A <: org.reverselookups.MyAnnotation](a: A): scala.Unit",
+      "Method org.reverselookups.ReverseLookups#returns(i: scala.Int): org.reverselookups.MyAnnotation",
+      "Method org.reverselookups.Overloads#foo(ann: org.reverselookups.MyAnnotation): scala.Unit",
+      "Method org.reverselookups.Overloads.<init>(): org.reverselookups.Overloads",
+      "Class org.reverselookups.ReverseLookups",
+      "Object org.reverselookups.ReverseLookups",
+      "Method org.reverselookups.ReverseLookups#methodUsage: scala.Unit"
+    )
+  }
+
+  it should "find usages of a regular class" in withSearchService { implicit service =>
+    val usages = findUsages("org.reverselookups.MyException")
+    usages.length should ===(6)
+    usages.map(u => unifyMethodName(u.toSearchResult)) should contain theSameElementsAs List(
+      "Method org.reverselookups.MyException#<init>(): org.reverselookups.MyException",
+      "Method org.reverselookups.ReverseLookups#throws(): scala.Unit",
+      "Method org.reverselookups.ReverseLookups#catches(): scala.Int",
+      "Method org.reverselookups.Overloads#foo[T <: org.reverselookups.MyException](t: T): scala.Unit",
+      "Method org.reverselookups.Extends#<init>(): org.reverselookups.Extends",
+      "Class org.reverselookups.Extends"
+    )
+  }
+
+  it should "find usages of a field/method" in withSearchService { implicit service =>
+    val fieldUsages = findUsages("org.reverselookups.ReverseLookups.intField()I")
+    fieldUsages.length should ===(3)
+    fieldUsages.map(u => unifyMethodName(u.toSearchResult)) should contain theSameElementsAs List(
+      "Method org.reverselookups.ReverseLookups#returns$default$1: scala.Int", // field used as default arg
+      "Method org.reverselookups.ReverseLookups#takesAsParam(ann: org.reverselookups.MyAnnotation): scala.Unit", // field used in method body
+      "Method org.reverselookups.SelfType#<init>(): org.reverselookups.SelfType"
+    )
+
+    val methodUsages = findUsages("org.reverselookups.ReverseLookups.catches()I")
+    methodUsages.length should ===(4)
+    methodUsages.map(u => unifyMethodName(u.toSearchResult)) should contain theSameElementsAs List(
+      "Method org.reverselookups.Overloads#asDefaultArg$default$1: scala.Int",
+      "Method org.reverselookups.Overloads#<init>(l: scala.Long): org.reverselookups.Overloads",
+      "Method org.reverselookups.ReverseLookups#<init>(i: scala.Int): org.reverselookups.ReverseLookups",
+      "Method org.reverselookups.ReverseLookups#throws(): scala.Unit"
+    )
+  }
+
+  it should "detect uses of outer classes in inner class calls" in withSearchService { implicit service =>
+    val barUsages = findUsages("org.example.Bar$")
+    barUsages.map(mn => unifyMethodName(mn.toSearchResult)) should contain("Method org.example.Qux#<init>(): org.example.Qux")
+  }
+
+  "scala names" should "be correctly resolved for overloaded methods" in withSearchService { implicit service =>
+    val hits = service.searchClassesMethods(List("Overloads", "foo"), 100).filter(hit => hit.declAs == DeclaredAs.Method && hit.fqn.contains("Overloads.foo"))
+    hits.length should ===(5)
+    hits.map(hit => hit.fqn -> unifyMethodName(hit.toSearchResult)) should contain theSameElementsAs List(
+      ("org.reverselookups.Overloads.foo()V", "Method org.reverselookups.Overloads#foo(): scala.Unit"),
+      ("org.reverselookups.Overloads.foo(I)V", "Method org.reverselookups.Overloads#foo(i: scala.Int): scala.Unit"),
+      ("org.reverselookups.Overloads.foo(Ljava/lang/String;I)V", "Method org.reverselookups.Overloads#foo(s: scala.Predef.String, i: scala.Int): scala.Unit"),
+      ("org.reverselookups.Overloads.foo(Lorg/reverselookups/MyException;)V", "Method org.reverselookups.Overloads#foo[T <: org.reverselookups.MyException](t: T): scala.Unit"),
+      ("org.reverselookups.Overloads.foo(Lorg/reverselookups/MyAnnotation;)V", "Method org.reverselookups.Overloads#foo(ann: org.reverselookups.MyAnnotation): scala.Unit")
+    )
   }
 
   "lucene index" should "not contain duplicates" in withSearchService { implicit service =>
@@ -246,7 +381,7 @@ object SearchServiceTestUtils {
   def refresh()(implicit service: SearchService): (Int, Int) =
     Await.result(service.refresh(), Duration.Inf)
 
-  def searchClasses(expect: String, query: String)(implicit service: SearchService) = {
+  def searchClasses(expect: String, query: String)(implicit service: SearchService, p: Position) = {
     val max = 10
     val info = s"'$query' expected '$expect'"
     val results = service.searchClasses(query, max)
@@ -260,10 +395,10 @@ object SearchServiceTestUtils {
     results
   }
 
-  def searchesClasses(expect: String, queries: String*)(implicit service: SearchService) =
+  def searchesClasses(expect: String, queries: String*)(implicit service: SearchService, p: Position) =
     (expect :: queries.toList).foreach(searchClasses(expect, _))
 
-  def searchClassesAndMethods(expect: String, query: String)(implicit service: SearchService) = {
+  def searchClassesAndMethods(expect: String, query: String)(implicit service: SearchService, p: Position) = {
     val max = 10
     val info = s"'$query' expected '$expect')"
     val results = service.searchClassesMethods(List(query), max)
@@ -276,19 +411,34 @@ object SearchServiceTestUtils {
     results
   }
 
-  def searchExpectEmpty(query: String)(implicit service: SearchService) = {
+  def searchExpectEmpty(query: String)(implicit service: SearchService, p: Position) = {
     val max = 1
     val results = service.searchClassesMethods(List(query), max)
-    withClue("expected empty results from %s".format(query))(results shouldBe empty)
+    withClue(s"expected empty results from $query")(results shouldBe empty)
     results
   }
 
-  def searchesEmpty(queries: String*)(implicit service: SearchService) =
+  def searchesEmpty(queries: String*)(implicit service: SearchService, p: Position) =
     queries.toList.foreach(searchExpectEmpty)
 
   // doesn't assert that expect finds itself because the lucene query
   // syntax conflicts with the characters in method FQNs
-  def searchesMethods(expect: String, queries: String*)(implicit service: SearchService) =
+  def searchesMethods(expect: String, queries: String*)(implicit service: SearchService, p: Position) =
     (queries.toList).foreach(searchClassesAndMethods(expect, _))
 
+  def getClassHierarchy(fqn: String, hierarchyType: Hierarchy.Direction)(implicit service: SearchService, p: Position): Hierarchy = {
+    val hierarchy = Await.result(service.getTypeHierarchy(fqn, hierarchyType), Duration.Inf)
+    withClue(s"No class hierarchy found for fqn = $fqn")(hierarchy shouldBe defined)
+    hierarchy.get
+  }
+
+  def hierarchyToSet(hierarchy: Hierarchy): Set[ClassDef] = hierarchy match {
+    case cdef: ClassDef => Set(cdef)
+    case TypeHierarchy(cdef, typeRefs) => Set(cdef) ++ typeRefs.flatMap(hierarchyToSet)
+  }
+
+  def findUsages(fqn: String)(implicit service: SearchService): List[FqnSymbol] = Await.result(service.findUsages(fqn), Duration.Inf).toList
+
+  // 2.10 scalap has slightly different formatting for method names
+  def unifyMethodName(s: String): String = s.replaceAll(" : ", ": ")
 }

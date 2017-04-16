@@ -18,15 +18,15 @@ pipeline:
       - mkdir $SBT_VOLATILE_TARGET && mount -t tmpfs -o size=4g tmpfs $SBT_VOLATILE_TARGET ; df -h
       - echo "ensimeServerJars := Nil" > ensime.sbt ;
         echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
-      - sbt ++$SCALA_VERSION ensimeConfig ";createHeaders ;test:createHeaders ;it:createHeaders ;test:compile ;it:compile ;doc ;ensime/assembly";
+      - sbt ++$SCALA_VERSION ensimeConfig ";testutil/createHeaders ;createHeaders ;test:createHeaders ;it:createHeaders ;test:compile ;it:compile ;doc ;ensime/assembly";
         if $(! git diff --exit-code --quiet) ; then
           echo "Code formatting does not meet the project's standards:" ;
           git --no-pager diff ;
           exit 1 ;
         fi
       - cd testing/cache && sbt ++$SCALA_VERSION ensimeConfig ensimeServerIndex && cd ../..
-      - if [ -n "$DRONE_PULL_REQUEST" ] ; then sbt ++$SCALA_VERSION "testOnly -- -l IgnoreOnDrone" ; fi
-      - if [ -n "$DRONE_PULL_REQUEST" ] ; then sbt ++$SCALA_VERSION "it:testOnly -- -l IgnoreOnDrone" ; fi
+      - if [ -n "$DRONE_PULL_REQUEST" ] ; then sbt ++$SCALA_VERSION "testOnly -- -l tags.IgnoreOnDrone" ; fi
+      - if [ -n "$DRONE_PULL_REQUEST" ] ; then sbt ++$SCALA_VERSION "it:testOnly -- -l tags.IgnoreOnDrone" ; fi
       - if [ -z "$DRONE_PULL_REQUEST" ] ; then sbt ++$SCALA_VERSION publish ; fi
       - if [ -z "$DRONE_PULL_REQUEST" ] ; then
           echo "$SSH_KEY" > ~/.ssh/id_rsa ; chmod 600 ~/.ssh/id_rsa ;

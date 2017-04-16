@@ -1,4 +1,4 @@
-// Copyright: 2010 - 2016 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.util
 
@@ -15,12 +15,16 @@ import org.scalatest.time._
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
+// NOTE: these are convenience Tags for adding on a per test basis.
+//       prefer the java annotations if you want to ignore an entire
+//       suite.
+
 /** Don't run this test on the AppVeyor CI (Windows) */
-object IgnoreOnAppVeyor extends Tag("IgnoreOnAppVeyor")
+object IgnoreOnAppVeyor extends Tag("tags.IgnoreOnAppVeyor")
 /** Don't run this test on the Drone CI (GNU/Linux) */
-object IgnoreOnDrone extends Tag("IgnoreOnDrone")
+object IgnoreOnDrone extends Tag("tags.IgnoreOnDrone")
 /** Don't run this test on the Travis CI (OS X) */
-object IgnoreOnTravis extends Tag("IgnoreOnTravis")
+object IgnoreOnTravis extends Tag("tags.IgnoreOnTravis")
 
 /**
  * Boilerplate remover and preferred testing style in ENSIME.

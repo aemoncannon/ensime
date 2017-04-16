@@ -4,7 +4,7 @@ os:
 env:
   global:
     - AKKA_TEST_TIMEFACTOR=10
-    - SBT_TASK_LIMIT=2
+    - SBT_TASK_LIMIT=4
     - SCALA_VERSION=2.12.1
 script:
   - echo "ensimeServerJars := Nil" > ensime.sbt ;
@@ -13,8 +13,8 @@ script:
   - curl https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt -o sbt ; chmod 755 sbt
   - ./sbt ++$SCALA_VERSION ";ensimeConfig ;test:compile ;it:compile ;ensime/assembly"
   - cd testing/cache && ../../sbt ++$SCALA_VERSION ensimeConfig ensimeServerIndex && cd ../..
-  - ./sbt ++$SCALA_VERSION "testOnly -- -l IgnoreOnTravis"
-  - ./sbt ++$SCALA_VERSION "it:testOnly -- -l IgnoreOnTravis"
+  - ./sbt ++$SCALA_VERSION "testOnly -- -l tags.IgnoreOnTravis"
+  - SBT_TASK_LIMIT=2 ./sbt ++$SCALA_VERSION "it:testOnly -- -l tags.IgnoreOnTravis"
   - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
 cache:
   directories:

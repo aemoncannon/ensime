@@ -19,7 +19,7 @@ install:
   - cmd: SET PATH=C:\sbt\sbt-launcher-packaging-0.13.13\bin;%JAVA_HOME%\bin;%PATH%
   - cmd: SET COURSIER_VERBOSITY=-1
   - cmd: SET AKKA_TEST_TIMEFACTOR=5
-  - cmd: SET SBT_TASK_LIMIT=2
+  - cmd: SET SBT_TASK_LIMIT=4
   - cmd: SET GC_LOGGING=true
   - cmd: SET SCALA_VERSION=2.12.1
   - cmd: git config core.symlinks true
@@ -30,8 +30,9 @@ build_script:
   - sbt ++%SCALA_VERSION% ";ensimeConfig ;test:compile ;it:compile ;ensime/assembly"
   - cd testing\cache && sbt ++%SCALA_VERSION% ensimeConfig ensimeServerIndex && cd ..\..
 test_script:
-  - sbt ++%SCALA_VERSION% "testOnly -- -l IgnoreOnAppVeyor"
-  - sbt ++%SCALA_VERSION% "it:testOnly -- -l IgnoreOnAppVeyor"
+  - sbt ++%SCALA_VERSION% "testOnly -- -l tags.IgnoreOnAppVeyor"
+  - SET SBT_TASK_LIMIT=2
+  - sbt ++%SCALA_VERSION% "it:testOnly -- -l tags.IgnoreOnAppVeyor"
 cache:
   - C:\Program Files\Java\jdk1.8.0\src.zip
   - C:\sbt\sbt-launcher-packaging-0.13.13
@@ -39,4 +40,4 @@ cache:
   - C:\Users\appveyor\.coursier -> appveyor.yml
 on_finish:
   - cmd: rmdir /S /Q testing target
-  - ps: Get-ChildItem -Path $env:APPVEYOR_BUILD_FOLDER -Include *.log,*.hprof -Recurse -Depth 2 | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: Get-ChildItem -Path $env:APPVEYOR_BUILD_FOLDER -Include .ensime,*.log,*.hprof -Recurse -Depth 2 | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }

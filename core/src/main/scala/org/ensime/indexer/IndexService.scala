@@ -13,7 +13,8 @@ import org.apache.lucene.document.Field.Store
 import org.apache.lucene.index.Term
 import org.apache.lucene.search._
 import org.apache.lucene.search.BooleanClause.Occur
-import org.ensime.indexer.database.DatabaseService._
+import org.ensime.indexer.graph._
+import org.ensime.indexer.SearchService._
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.ensime.indexer.lucene._
 import org.ensime.util.list._
@@ -96,21 +97,23 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
     1 - .25f * nonTrailing$s
   }
 
-  def persist(check: FileCheck, symbols: List[FqnSymbol], commit: Boolean, boost: Boolean): Future[Unit] = {
-    val f = Some(check)
-    val fqns: List[Document] = symbols.map {
-      case FqnSymbol(_, _, _, fqn, _, _, _, _, _) if fqn.contains("(") => MethodIndex(fqn, f).toDocument
-      case FqnSymbol(_, _, _, fqn, Some(_), _, _, _, _) => FieldIndex(fqn, f).toDocument
-      case FqnSymbol(_, _, _, fqn, _, _, _, _, _) =>
+  def persist(symbols: List[SourceSymbolInfo], commit: Boolean, boost: Boolean): Future[Unit] = {
+    val fqns: List[Document] = symbols.collect {
+      case ClassSymbolInfo(f, _, _, _, classSymbol, scalap, _) if !classSymbol.isScala || scalap.isDefined =>
+        val fqn = classSymbol.name.fqnString
         val penalty = calculatePenalty(fqn)
-        val document = ClassIndex(fqn, f).toDocument
+        val document = ClassIndex(fqn, Some(f)).toDocument
         document.boostText("fqn", penalty)
         document
-    }
+      case MethodSymbolInfo(f, _, _, methodSymbol, _) => MethodIndex(methodSymbol.name.fqnString, Some(f)).toDocument
+      case FieldSymbolInfo(f, _, _, fieldSymbol, _) => FieldIndex(fieldSymbol.name.fqnString, Some(f)).toDocument
+      case TypeAliasSymbolInfo(f, _, t) => FieldIndex(t.javaName.fqnString, Some(f)).toDocument
+    }(collection.breakOut)
+
     if (boost) {
       fqns foreach { fqn =>
         val currentBoost = fqn.boost("fqn")
-        fqn.boostText("fqn", currentBoost + .5f)
+        fqn.boostText("fqn", currentBoost + .25f)
       }
     }
 

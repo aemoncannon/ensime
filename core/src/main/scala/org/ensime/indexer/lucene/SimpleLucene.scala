@@ -3,7 +3,7 @@
 package org.ensime.indexer.lucene
 
 import java.nio.file.{ Files, Path }
-import java.util.concurrent.{ Executors, TimeUnit }
+import java.util.concurrent.{ Executors, ThreadFactory, TimeUnit }
 
 import akka.event.slf4j.SLF4JLogging
 import org.apache.lucene.analysis.Analyzer
@@ -58,7 +58,19 @@ class SimpleLucene(path: Path, analyzers: Map[String, Analyzer]) extends SLF4JLo
 
   Files.createDirectories(path)
 
-  private val executorService = Executors.newFixedThreadPool(8)
+  // lucene index searching needs to use an Executor, not an
+  // ExecutionContext, so we can't pass the ec in implicitly.
+  private val executorService = Executors.newFixedThreadPool(
+    8,
+    new ThreadFactory() {
+      override def newThread(runnable: Runnable): Thread = {
+        val thread = Executors.defaultThreadFactory().newThread(runnable)
+        thread.setName("SimpleLucene")
+        thread.setDaemon(true)
+        thread
+      }
+    }
+  )
   private implicit val executionContext = ExecutionContext.fromExecutorService(executorService)
 
   // http://blog.thetaphi.de/2012/07/use-lucenes-mmapdirectory-on-64bit.html
@@ -142,19 +154,16 @@ class SimpleLucene(path: Path, analyzers: Map[String, Analyzer]) extends SLF4JLo
   // for manual committing after multiple insertions
   def commit(): Future[Unit] = Future(blocking(writer.commit()))
 
-  def shutdown(): Future[Unit] = {
-    executionContext.shutdown()
-    executorService.shutdown()
-
-    Future {
-      blocking {
-        writer.close()
+  def shutdown(): Future[Unit] = Future {
+    blocking {
+      try {
+        executionContext.shutdownNow()
+        executorService.shutdownNow()
 
         executionContext.awaitTermination(30, TimeUnit.SECONDS)
         executorService.awaitTermination(30, TimeUnit.SECONDS)
-
-        ()
-      }
-    }(ExecutionContext.Implicits.global)
-  }
+      } finally writer.close()
+      ()
+    }
+  }(ExecutionContext.Implicits.global)
 }

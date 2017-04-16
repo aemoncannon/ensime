@@ -48,8 +48,19 @@ object EnsimeBuild {
        "io.spray" %% "spray-json" % "1.3.2"
     ),
 
-    // disabling shared memory gives a small performance boost to tests
-    javaOptions ++= Seq("-XX:+PerfDisableSharedMem"),
+    // disabling shared memory gives a small performance boost to
+    // tests but jvisualvm will no longer see the process.
+    javaOptions += "-XX:+PerfDisableSharedMem",
+    javaOptions ++= Seq("-Xms512m", "-Xmx512m"),
+
+    // print the table to optimise your own apps. VFS (and OrientDB)
+    // are heavy on interning.
+    javaOptions ++= Seq(
+      //"-XX:+PrintStringTableStatistics",
+      "-XX:StringTableSize=1000003",
+      "-XX:+UnlockExperimentalVMOptions",
+      "-XX:SymbolTableSize=1000003"
+    ),
 
     dependencyOverrides ++= Set(
       "org.apache.lucene" % "lucene-core" % luceneVersion
@@ -59,7 +70,10 @@ object EnsimeBuild {
   )
 
   lazy val commonItSettings = inConfig(It)(
-    Defaults.testSettings ++ sensibleTestSettings
+    Defaults.testSettings ++ sensibleTestSettings ++ Seq(
+      // speeds up the tests a bit without breaking appveyor / travis limits
+      javaOptions ++= Seq("-Xms1400m", "-Xmx1400m")
+    )
   ) ++ SbtScalariform.scalariformSettingsWithIt ++ HeaderPlugin.settingsFor(It)
 
   lazy val JavaTools: File = JdkDir / "lib/tools.jar"
@@ -87,7 +101,7 @@ object EnsimeBuild {
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.apache.commons" % "commons-vfs2" % "2.1" exclude ("commons-logging", "commons-logging"),
       "com.google.code.findbugs" % "jsr305" % "3.0.1" % "provided"
-    ) ++ logback
+    ) ++ logback ++ shapeless.value
   )
 
   lazy val testutil = Project("testutil", file("testutil")) settings (commonSettings) dependsOn (
@@ -153,14 +167,10 @@ object EnsimeBuild {
       unmanagedJars in Compile += JavaTools,
       ensimeUnmanagedSourceArchives += (baseDirectory in ThisBuild).value / "openjdk-langtools/openjdk8-langtools-src.zip",
       libraryDependencies ++= Seq(
-        "com.h2database" % "h2" % "1.4.194",
-        "com.typesafe.slick" %% "slick" % {
-          CrossVersion.partialVersion(scalaVersion.value) match {
-            case Some((2, 10)) => "3.1.1"
-            case _             => "3.2.0"
-          }
-        },
-        "com.zaxxer" % "HikariCP" % "2.6.1",
+        "com.orientechnologies" % "orientdb-graphdb" % orientVersion
+          exclude ("commons-collections", "commons-collections")
+          exclude ("commons-beanutils", "commons-beanutils")
+          exclude ("commons-logging", "commons-logging"),
         "org.apache.lucene" % "lucene-core" % luceneVersion,
         "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
         "org.ow2.asm" % "asm-commons" % "5.2",
@@ -246,6 +256,8 @@ object EnsimeBuild {
       case Some((2, 10)) => "2.3.16"
     }
   }
+
+  private val orientVersion = "2.2.18"
 }
 
 // projects used in the integration tests, not published

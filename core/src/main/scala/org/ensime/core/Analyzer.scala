@@ -5,7 +5,6 @@ package org.ensime.core
 import java.io.{ File => JFile }
 import java.nio.charset.Charset
 
-import org.ensime.api._
 import org.ensime.util.ensimefile._
 import akka.actor._
 import akka.pattern.pipe
@@ -187,23 +186,24 @@ class Analyzer(
     case TypecheckModule(moduleName) =>
       //consider the case of a project with no modules
       config.modules get (moduleName) foreach {
-        case module =>
-          val files: List[SourceFileInfo] = module.scalaSourceFiles.map(s => SourceFileInfo(EnsimeFile(s), None, None))(breakOut)
-          sender ! handleReloadFiles(files)
+        module =>
+          val files: Set[SourceFileInfo] = module.scalaSourceFiles.map(s => SourceFileInfo(EnsimeFile(s), None, None))(breakOut)
+          sender ! scalaCompiler.handleReloadFiles(files)
       }
     case UnloadModuleReq(moduleName) =>
       config.modules get (moduleName) foreach {
-        case module =>
+        module =>
           val files = module.scalaSourceFiles.toList
           files.foreach(scalaCompiler.askRemoveDeleted)
           sender ! VoidResponse
       }
     case TypecheckFileReq(fileInfo) =>
-      sender ! handleReloadFiles(List(fileInfo))
+      sender ! scalaCompiler.handleReloadFiles(Set(fileInfo))
     case TypecheckFilesReq(files) =>
-      sender ! handleReloadFiles(files.map(toSourceFileInfo))
+      sender ! scalaCompiler.handleReloadFiles(files.map(toSourceFileInfo)(breakOut))
     case req: RefactorReq =>
-      sender ! handleRefactorRequest(req)
+      import context.dispatcher
+      pipe(handleRefactorRequest(req)) to sender
     case CompletionsReq(fileInfo, point, maxResults, caseSens, _reload) =>
       withExistingAsync(fileInfo) {
         reporter.disable()
@@ -211,12 +211,13 @@ class Analyzer(
       } pipeTo sender
 
     case UsesOfSymbolAtPointReq(file, point) =>
-      sender ! withExisting(file) {
+      import context.dispatcher
+      val response = if (toSourceFileInfo(file).exists()) {
         val p = pos(file, point)
-        scalaCompiler.askLoadedTyped(p.source)
-        val uses = scalaCompiler.askUsesOfSymAtPoint(p)
-        ERangePositions(uses.map(ERangePositionHelper.fromRangePosition))
-      }
+        val uses = scalaCompiler.askUsesOfSymAtPos(p)
+        uses.map(positions => ERangePositions(positions.map(ERangePositionHelper.fromRangePosition)))
+      } else Future.successful(EnsimeServerError(s"File does not exist: ${file.file}"))
+      pipe(response) to sender
     case PackageMemberCompletionReq(path: String, prefix: String) =>
       val members = scalaCompiler.askCompletePackageMember(path, prefix)
       sender ! members
@@ -294,22 +295,6 @@ class Analyzer(
     case UnloadFileReq(file) =>
       scalaCompiler.askUnloadFile(file)
       sender ! VoidResponse
-  }
-
-  def handleReloadFiles(files: List[SourceFileInfo]): RpcResponse = {
-    val (existing, missingFiles) = files.partition(_.exists())
-    if (missingFiles.nonEmpty) {
-      val missingFilePaths = missingFiles.map { f => "\"" + f.file + "\"" }.mkString(",")
-      EnsimeServerError(s"file(s): $missingFilePaths do not exist")
-    } else {
-      val (javas, scalas) = existing.partition(_.file.isJava)
-      if (scalas.nonEmpty) {
-        val sourceFiles = scalas.map(createSourceFile)
-        scalaCompiler.askReloadFiles(sourceFiles)
-        scalaCompiler.askNotifyWhenReady()
-      }
-      VoidResponse
-    }
   }
 
   def withExisting(x: SourceFileInfo)(f: => RpcResponse): RpcResponse =

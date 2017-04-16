@@ -113,6 +113,7 @@ class FileWatchService { self =>
           }
         )
         thread.setName("FileWatchService-monitor")
+        thread.setDaemon(true)
         thread.start()
         monitorThread = Some(thread)
       }
@@ -456,7 +457,7 @@ class FileWatchService { self =>
           val retained = observers filter { _.watcherListener.watcherId != id }
 
           if (observers.size == 0 || unneeded.size == observers.size) {
-            key.cancel()
+            key.cancel() // can hang, https://bugs.openjdk.java.net/browse/JDK-8029516
             keymap.remove(key)
           } else if (observers.size != retained.size)
             if (!keymap.replace(key, observers, retained))

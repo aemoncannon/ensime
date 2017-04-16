@@ -5,7 +5,7 @@ package org.ensime.util
 import java.io._
 import java.net._
 
-import org.apache.commons.vfs2.FileObject
+import org.apache.commons.vfs2._
 import org.ensime.api.deprecating
 import org.ensime.util.ensimefile._
 
@@ -24,12 +24,16 @@ package object fileobject {
       else None
     }
 
+    def asLocalFile: File = fo.getName.asLocalFile
+    def uri: URI = fo.getName.uri
+    def uriString: String = fo.getName.uriString
+  }
+
+  @deprecating("https://github.com/ensime/ensime-server/issues/1437")
+  implicit class RichFileName(val fn: FileName) extends AnyVal {
     // assumes it is a local file
     def asLocalFile: File = new File(uri)
-
-    // variant of .getURI that is more likely to agree with EnsimeFile.uri
-    def uri: URI = EnsimeFile(fo.getName.getURI).uri
-
+    def uri: URI = EnsimeFile(fn.getURI).uri
     def uriString: String = uri.toASCIIString
   }
 

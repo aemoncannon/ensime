@@ -11,6 +11,7 @@ import org.ensime.vfs._
 import org.ensime.indexer._
 
 import scala.collection.immutable.ListSet
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Properties._
 import scala.util._
@@ -119,7 +120,7 @@ class Project(
   override def postStop(): Unit = {
     // make sure the "reliable" dependencies are cleaned up
     Try(sourceWatcher.shutdown())
-    searchService.shutdown() // async
+    Try(Await.result(searchService.shutdown(), Duration.Inf))
     Try(vfs.close())
   }
 

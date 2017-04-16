@@ -14,6 +14,7 @@ licenses := Seq(Apache2)
 libraryDependencies := Seq("org.scala-lang" % "scala-library" % scalaVersion.value)
 libraryDependencies in Test := Nil
 
+ensimeJavaFlags ++= Seq("-Xms2g", "-Xmx2g")
 ensimeServerJars in ThisBuild := {
   val Some((major, minor)) = CrossVersion.partialVersion(scalaVersion.value)
   val ev = ensimeServerVersion.value

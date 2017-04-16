@@ -29,7 +29,7 @@ class JarTargetTest extends EnsimeSpec
           eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             project ! PublicSymbolSearchReq(List("Foo"), 5)
             atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
-              case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Class, Some(_)) =>
+              case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Object, Some(_)) =>
             }
           }
         }
@@ -41,10 +41,16 @@ class JarTargetTest extends EnsimeSpec
     withEnsimeConfig { implicit config =>
       withTestKit { implicit tk =>
         withProject { (project, asyncHelper) =>
+          import tk._
           mainTarget should be a 'file
 
           eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             mainTarget.delete() shouldBe true
+          }
+
+          eventually(interval(1 second)) {
+            project ! PublicSymbolSearchReq(List("Foo"), 10)
+            expectMsgType[SymbolSearchResults].syms shouldBe 'empty
           }
         }
       }
@@ -87,7 +93,7 @@ class MissingJarTargetTest extends EnsimeSpec
           eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             project ! PublicSymbolSearchReq(List("Foo"), 5)
             atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
-              case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Class, Some(_)) =>
+              case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Object, Some(_)) =>
             }
           }
         }

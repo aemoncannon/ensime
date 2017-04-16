@@ -174,6 +174,8 @@ object Server extends AkkaBackCompat {
         }
       }
     })
+    t.setName("Server Shutdown")
+    t.setDaemon(true)
     t.start()
   }
 }

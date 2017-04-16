@@ -38,7 +38,6 @@ class BasicWorkflow extends EnsimeSpec
           project ! TypecheckModule("testing_simple")
           expectMsg(VoidResponse)
           asyncHelper.expectMsgType[NewScalaNotesEvent]
-          asyncHelper.expectMsgType[NewScalaNotesEvent]
           asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
           project ! TypeByNameReq("org.example.Bloo")
@@ -99,13 +98,8 @@ class BasicWorkflow extends EnsimeSpec
           // public symbol search - scala.util.Random
           project ! PublicSymbolSearchReq(List("scala", "util", "Random"), 2)
           expectMsgPF() {
-            case SymbolSearchResults(List(
-              TypeSearchResult(full1, short1, DeclaredAs.Class, Some(_)),
-              TypeSearchResult(full2, short2, DeclaredAs.Class, Some(_))
-              )) if full1.contains("Random") &&
-              short1.contains("Random") &&
-              full2.contains("Random") &&
-              short2.contains("Random") =>
+            case SymbolSearchResults(res) if res.collectFirst { case TypeSearchResult("scala.util.Random", "Random", DeclaredAs.Class, Some(_)) => true }.isDefined &&
+              res.collectFirst { case TypeSearchResult("scala.util.Random$", "Random$", DeclaredAs.Object, Some(_)) => true }.isDefined =>
             // this is a pretty ropey test at the best of times
           }
 
@@ -134,10 +128,19 @@ class BasicWorkflow extends EnsimeSpec
 
           asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
+          val packageFile = sourceRoot / "org/example/package.scala"
+          val packageFilePath = packageFile.getAbsolutePath
           project ! UsesOfSymbolAtPointReq(Left(fooFile), 119) // point on testMethod
           expectMsgType[ERangePositions].positions should contain theSameElementsAs List(
-            ERangePosition(`fooFilePath`, 114, 110, 172), ERangePosition(`fooFilePath`, 273, 269, 283)
+            ERangePosition(`fooFilePath`, 114, 110, 172),
+            ERangePosition(`fooFilePath`, 273, 269, 283),
+            ERangePosition(`packageFilePath`, 94, 80, 104)
           )
+
+          asyncHelper.fishForMessage() {
+            case FullTypeCheckCompleteEvent => true
+            case _ => false
+          }
 
           // note that the line numbers appear to have been stripped from the
           // scala library classfiles, so offset/line comes out as zero unless
@@ -251,6 +254,7 @@ class BasicWorkflow extends EnsimeSpec
             BasicTypeInfo("Test2", DeclaredAs.Object, "org.example.Test2"),
             BasicTypeInfo("WithPolyMethod", DeclaredAs.Object, "org.example.WithPolyMethod"),
             BasicTypeInfo("WithPolyMethod", DeclaredAs.Class, "org.example.WithPolyMethod"),
+            BasicTypeInfo("package", DeclaredAs.Object, "org.example.package"),
             BasicTypeInfo("package", DeclaredAs.Object, "org.example.package")
           )
 
@@ -435,15 +439,20 @@ class BasicWorkflow extends EnsimeSpec
 
           val bazFile = sourceRoot / "org/example2/Baz.scala"
           val toBeUnloaded = SourceFileInfo(EnsimeFile(sourceRoot / "org/example2/ToBeUnloaded.scala"))
+          val toBeUnloaded2 = SourceFileInfo(EnsimeFile(sourceRoot / "org/example/package.scala"))
 
           project ! TypecheckFilesReq(List(Left(bazFile), Right(toBeUnloaded)))
           expectMsg(VoidResponse)
-          asyncHelper.expectMsgType[NewScalaNotesEvent]
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+          all(asyncHelper.receiveN(2)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
+          }
 
           project ! UnloadFileReq(toBeUnloaded)
           expectMsg(VoidResponse)
-          // file with deprecation warning has been unloaded
+          project ! UnloadFileReq(toBeUnloaded2)
+          expectMsg(VoidResponse)
+          // file with warning has been unloaded
           // `NewScalaNotesEvent` should now not appear when typechecking `bazFile`
 
           project ! TypecheckFilesReq(List(Left(bazFile)))

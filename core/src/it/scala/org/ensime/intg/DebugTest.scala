@@ -604,7 +604,7 @@ object VMStarter extends SLF4JLogging {
 
   def logLines(src: InputStream): Future[Unit] = {
     val promise = Promise[Unit]()
-    new Thread(new Runnable() {
+    val t = new Thread(new Runnable() {
       override def run(): Unit = {
         val sc = new Scanner(src)
         while (sc.hasNextLine) {
@@ -612,7 +612,10 @@ object VMStarter extends SLF4JLogging {
           log.info("DEBUGGING_PROCESS:" + sc.nextLine())
         }
       }
-    }).start()
+    })
+    t.setName("VMStarter.logLines")
+    t.setDaemon(true)
+    t.start()
     promise.future
   }
 

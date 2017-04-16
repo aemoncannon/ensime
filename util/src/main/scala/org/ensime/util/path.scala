@@ -95,7 +95,7 @@ package path {
       try Files.delete(dir)
       catch {
         case e: DirectoryNotEmptyException =>
-          log.warn(s"failed to delete $dir in $base because it was not empty", e)
+          log.warn(s"failed to delete $dir in $base because it was not empty")
       }
       FileVisitResult.CONTINUE
     }
@@ -107,7 +107,8 @@ package path {
           // I bet we're on Windows! Remember, if any other process
           // has a handle to the same file we can't delete it. It's
           // not the end of the world.
-          log.warn(s"failed to delete $file in $base", e)
+          // https://github.com/orientechnologies/orientdb/issues/7342
+          log.warn(s"failed to delete $file in $base")
       }
       FileVisitResult.CONTINUE
     }

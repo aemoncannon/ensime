@@ -1,4 +1,4 @@
-// Copyright: 2010 - 2016 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.fixture
 
@@ -67,7 +67,11 @@ trait SharedTestKitFixture extends TestKitFixture
   override def afterAll(): Unit = {
     super.afterAll()
     Try(_testkit.system.terminate())
-    Try(Await.result(_testkit.system.whenTerminated, Duration.Inf))
+    // WORKAROUND https://github.com/ensime/ensime-server/issues/1752
+    // unfortunately, shutdown hangs on Windows in some cases. Since
+    // we dispose of the JVM here, we can reasonably ignore this but
+    // be warned that it does poitn to a resource leak somewhere.
+    Try(Await.result(_testkit.system.whenTerminated, 10.seconds))
   }
 
   override def withTestKit(testCode: TestKitFix => Any): Any = testCode(_testkit)
