@@ -11,6 +11,7 @@ import scala.collection.JavaConverters._
 
 import scala.util.Try
 
+import org.ensime.util.path._
 import org.ensime.api.deprecating
 
 /**
@@ -69,7 +70,7 @@ package object file {
     }
 
     def readLines()(implicit cs: Charset): List[String] = {
-      Files.readAllLines(file.toPath(), cs).asScala.toList
+      file.toPath().readLines()
     }
 
     def writeLines(lines: List[String])(implicit cs: Charset): Unit = {

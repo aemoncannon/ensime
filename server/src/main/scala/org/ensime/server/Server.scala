@@ -4,8 +4,6 @@ package org.ensime.server
 
 import java.io._
 import java.net.InetSocketAddress
-import java.nio.file.Files
-import java.nio.charset.StandardCharsets
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util._
@@ -19,6 +17,8 @@ import io.netty.channel.Channel
 import org.ensime.api._
 import org.ensime.config._
 import org.ensime.core._
+import org.ensime.util.path._
+import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.AkkaBackCompat
 import org.ensime.server.tcp.TCPServer
 import org.ensime.util.Slf4jSetup
@@ -129,7 +129,7 @@ object Server extends AkkaBackCompat {
       throw new RuntimeException(s".ensime file ($ensimeFile) not found")
 
     implicit val config: EnsimeConfig = try {
-      EnsimeConfigProtocol.parse(new String(Files.readAllBytes(ensimeFile.toPath), StandardCharsets.UTF_8))
+      EnsimeConfigProtocol.parse(ensimeFile.toPath().readString())
     } catch {
       case e: Throwable =>
         log.error(s"There was a problem parsing $ensimeFile", e)

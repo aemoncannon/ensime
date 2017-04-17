@@ -184,7 +184,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
               // would be better if this was atomic (not possible from JVM?)
               waitForBaseRegistered(tk)
 
-              parent.tree.reverse.foreach(_.delete())
+              parent.toPath().deleteDirRecursively()
               val createOrDelete: Fish = {
                 case r: BaseRemoved => true
                 case a: BaseAdded => true
@@ -193,7 +193,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
               tk.fishForMessage()(createOrDelete)
               tk.fishForMessage()(createOrDelete)
             }
-          } finally parent.tree.reverse.foreach(_.delete())
+          } finally parent.toPath().deleteDirRecursively()
         }
       }
     }
