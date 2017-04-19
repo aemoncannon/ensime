@@ -39,10 +39,7 @@ private[formats] trait LowPriorityFamilyFormats
    * This is intentionally not an `SexpFormat` to avoid ambiguous
    * implicit errors, even though it implements its interface.
    */
-  abstract class WrappedSexpFormat[Wrapped, SubRepr](
-      implicit
-      tpe: Typeable[Wrapped]
-  ) {
+  abstract class WrappedSexpFormat[Wrapped, SubRepr] {
     final def read(s: Sexp): SubRepr = s match {
       case SexpNil => readData(ListMap.empty)
       case key: SexpSymbol => readData(ListMap(key -> SexpNil))
@@ -59,17 +56,13 @@ private[formats] trait LowPriorityFamilyFormats
     def writeData(r: SubRepr): SexpData
   }
 
-  implicit def hNilFormat[Wrapped](
-    implicit
-    t: Typeable[Wrapped]
-  ): WrappedSexpFormat[Wrapped, HNil] = new WrappedSexpFormat[Wrapped, HNil] {
+  implicit def hNilFormat[Wrapped]: WrappedSexpFormat[Wrapped, HNil] = new WrappedSexpFormat[Wrapped, HNil] {
     override def readData(s: SexpData) = HNil
     override def writeData(n: HNil) = ListMap.empty
   }
 
   implicit def hListFormat[Wrapped, Key <: Symbol, Value, Remaining <: HList](
     implicit
-    t: Typeable[Wrapped],
     ph: ProductHint[Wrapped],
     key: Witness.Aux[Key],
     sfh: Lazy[SexpFormat[Value]],
@@ -96,10 +89,7 @@ private[formats] trait LowPriorityFamilyFormats
       }
     }
 
-  implicit def cNilFormat[Wrapped](
-    implicit
-    t: Typeable[Wrapped]
-  ): WrappedSexpFormat[Wrapped, CNil] = new WrappedSexpFormat[Wrapped, CNil] {
+  implicit def cNilFormat[Wrapped]: WrappedSexpFormat[Wrapped, CNil] = new WrappedSexpFormat[Wrapped, CNil] {
     override def readData(s: SexpData) =
       throw new DeserializationException(s"read should never be called for CNil, $s")
     override def writeData(c: CNil) =
@@ -108,7 +98,6 @@ private[formats] trait LowPriorityFamilyFormats
 
   implicit def coproductFormat[Wrapped, Name <: Symbol, Instance, Remaining <: Coproduct](
     implicit
-    tpe: Typeable[Wrapped],
     th: CoproductHint[Wrapped],
     key: Witness.Aux[Name],
     sfh: Lazy[SexpFormat[Instance]],

@@ -235,7 +235,7 @@ class Java7WatchServiceBuilder extends SLF4JLogging {
     watcherId: UUID,
     base: File,
     listeners: Seq[WatcherListener]
-  )(implicit vfs: EnsimeVFS) = {
+  ) = {
     if (log.isTraceEnabled())
       log.trace("watching {}", base)
 

@@ -459,7 +459,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
     finally w.shutdown()
   }
 
-  def listeners(implicit vfs: EnsimeVFS, tk: TestKit) = List(
+  def listeners(implicit tk: TestKit) = List(
     new FileChangeListener {
       def fileAdded(f: FileObject): Unit = { tk.testActor ! Added(f) }
       def fileRemoved(f: FileObject): Unit = { tk.testActor ! Removed(f) }

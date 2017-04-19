@@ -57,7 +57,7 @@ trait LegacyLowPriorityProductFormats {
   implicit def labelledProductFormat[T, R <: HList, LR <: HList, K <: HList](
     implicit
     g: Generic.Aux[T, R],
-    lg: LabelledGeneric.Aux[T, LR],
+    @deprecated("local", "") lg: LabelledGeneric.Aux[T, LR],
     k: ops.record.Keys.Aux[LR, K],
     ltl: ops.hlist.ToList[K, Symbol],
     r: Lazy[HListFormat[R]]
@@ -100,8 +100,8 @@ trait LegacyProductFormats extends LegacyLowPriorityProductFormats {
   implicit def tupleProductFormat[T, R <: HList, T2](
     implicit
     g: Generic.Aux[T, R],
-    t: ops.hlist.Tupler.Aux[R, T2],
-    p: T =:= T2,
+    @deprecated("local", "") t: ops.hlist.Tupler.Aux[R, T2],
+    @deprecated("local", "") p: T =:= T2,
     r: Lazy[HListFormat[R]]
   ): SexpFormat[T] = new SexpFormat[T] {
     def write(x: T): Sexp = SexpList(r.value.write(g.to(x)))

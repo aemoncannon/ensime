@@ -62,7 +62,7 @@ class SourcePositionSpec extends EnsimeSpec
     "jar:" + scalatest + "!/org/scalatest/FunSpec.scala"
   }
 
-  def lookup(uri: String, line: Option[Int] = None)(implicit config: EnsimeConfig) = {
+  def lookup(uri: String, line: Option[Int] = None) = {
     withVFS { implicit vfs: EnsimeVFS =>
       val sym = ClassDef("", "", "", Some(uri), line, Default, None, None, None)
       LineSourcePositionHelper.fromFqnSymbol(sym)

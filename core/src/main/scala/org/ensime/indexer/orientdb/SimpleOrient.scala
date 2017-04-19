@@ -188,7 +188,7 @@ package object syntax {
     def insertE[O, I, E <: EdgeT[O, I]](out: VertexT[O], in: VertexT[I], e: E)(
       implicit
       graph: Graph,
-      tpe: shapeless.Typeable[E],
+      @deprecated("local", "") tpe: shapeless.Typeable[E],
       ser: BigDataFormat[E]
     ): Unit = {
       graph.addEdge("class:" + ser.label, out.underlying, in.underlying, null)

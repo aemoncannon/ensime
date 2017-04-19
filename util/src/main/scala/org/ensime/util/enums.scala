@@ -33,7 +33,7 @@ package enums {
   object AdtToMap {
     implicit def fromSingletonByName[A, C <: Coproduct](
       implicit
-      gen: Generic.Aux[A, C],
+      @deprecated("local", "") gen: Generic.Aux[A, C],
       singletonByName: SingletonByName[A, C]
     ): AdtToMap[A] = new AdtToMap[A] {
       override def lookup: Map[String, A] = singletonByName.lookup

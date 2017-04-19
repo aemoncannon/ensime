@@ -82,9 +82,9 @@ package object impl {
 
   implicit def familySchemaFormat[T, Repr](
     implicit
-    gen: LabelledGeneric.Aux[T, Repr],
+    @deprecated("local", "") gen: LabelledGeneric.Aux[T, Repr],
     sg: Lazy[SchemaFormat[Repr]],
-    tpe: Typeable[T]
+    @deprecated("local", "") tpe: Typeable[T]
   ): SchemaFormat[T] = new SchemaFormat[T] {
     def toSchema: Map[String, OrientProperty] = sg.value.toSchema
   }

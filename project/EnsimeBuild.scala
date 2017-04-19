@@ -46,7 +46,7 @@ object ProjectPlugin extends AutoPlugin {
       CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, 12)) => orig.map {
           case "-Xlint"               => "-Xlint:-unused,_"
-          case "-Ywarn-unused-import" => "-Ywarn-unused:-implicits,imports,-locals,-params,-patvars,-privates"
+          case "-Ywarn-unused-import" => "-Ywarn-unused:implicits,imports,-locals,-params,-patvars,-privates"
           case other                  => other
         }
         case _             => orig

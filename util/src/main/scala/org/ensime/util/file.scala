@@ -69,7 +69,7 @@ package object file {
       file.createNewFile()
     }
 
-    def readLines()(implicit cs: Charset): List[String] = {
+    def readLines(): List[String] = {
       file.toPath().readLines()
     }
 

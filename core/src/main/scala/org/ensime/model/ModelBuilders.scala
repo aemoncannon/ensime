@@ -43,7 +43,7 @@ trait ModelBuilders {
 
         val hit = search.findUnique(fqn)
         logger.debug(s"search: $fqn = $hit")
-        hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)(config, vfs)).flatMap { sourcePos =>
+        hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)(vfs)).flatMap { sourcePos =>
           if (sourcePos.file.isScala)
             askLinkPos(sym, sourcePos.file).
               flatMap(pos => OffsetSourcePositionHelper.fromPosition(pos))
@@ -341,7 +341,7 @@ trait ModelBuilders {
 
 object LineSourcePositionHelper {
 
-  def fromFqnSymbol(sym: FqnSymbol)(implicit config: EnsimeConfig, vfs: EnsimeVFS): Option[LineSourcePosition] =
+  def fromFqnSymbol(sym: FqnSymbol)(implicit vfs: EnsimeVFS): Option[LineSourcePosition] =
     (sym.sourceFileObject, sym.line) match {
       case (None, _) => None
       case (Some(fo), lineOpt) =>

@@ -21,7 +21,7 @@ class Indexer(
 
   private def typeResult(hit: FqnSymbol) = TypeSearchResult(
     hit.fqn, hit.fqn.split("\\.").last, hit.declAs,
-    LineSourcePositionHelper.fromFqnSymbol(hit)(config, vfs)
+    LineSourcePositionHelper.fromFqnSymbol(hit)(vfs)
   )
 
   def oldSearchTypes(query: String, max: Int) =
@@ -35,7 +35,7 @@ class Indexer(
       case hit if typeDecls.contains(hit.declAs) => Some(typeResult(hit))
       case hit if hit.declAs == DeclaredAs.Method => Some(MethodSearchResult(
         hit.fqn, hit.fqn.split("\\.").last, hit.declAs,
-        LineSourcePositionHelper.fromFqnSymbol(hit)(config, vfs),
+        LineSourcePositionHelper.fromFqnSymbol(hit)(vfs),
         hit.fqn.split("\\.").init.mkString(".")
       ))
       case _ => None // were never supported
