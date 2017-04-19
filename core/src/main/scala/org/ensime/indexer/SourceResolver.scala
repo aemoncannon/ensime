@@ -131,8 +131,6 @@ class ResolverDebounceActor(sourceResolver: SourceResolver) extends Actor with A
   // debounce and give us a chance to batch (which is *much* faster)
   var worker: Cancellable = _
 
-  private val advice = "If the problem persists, you may need to restart ensime."
-
   private def debounce(): Unit = {
     Option(worker).foreach(_.cancel())
     import context.dispatcher

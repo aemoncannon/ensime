@@ -224,9 +224,6 @@ trait ModelBuilders {
       } else {
         (nameString, nameString)
       }
-      val ownerTpe = if (sym.owner != NoSymbol && sym.owner.tpe != NoType) {
-        Some(sym.owner.tpe)
-      } else None
       new SymbolInfo(
         name,
         localName,

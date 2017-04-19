@@ -94,7 +94,6 @@ trait RefactoringImpl {
     new RefactoringEnvironment(file.getPath, start, end) {
       val refactoring = new Rename with GlobalIndexes {
         val global = RefactoringImpl.this
-        val invalidSet = toBeRemoved.synchronized { toBeRemoved.toSet }
         val cuIndexes: List[CompilationUnitIndex] = this.global.unitOfFile.collect {
           case (f, unit) if search.noReverseLookups || files.contains(f.file.getPath) =>
             CompilationUnitIndex(unit.body)

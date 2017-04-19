@@ -14,7 +14,6 @@ import akka.event.slf4j.SLF4JLogging
 import com.sun.source.tree.Scope
 import com.sun.source.util.{ JavacTask, TreePath }
 import com.sun.tools.javac.util.Abort
-import javax.lang.model.`type`.TypeMirror
 import javax.tools._
 import org.ensime.api._
 import org.ensime.core.DocSigPair
@@ -107,13 +106,6 @@ class JavaCompiler(
       val path: Option[Scope] = ScopeFor(c, offset)
       path.map { p => (c, p) }
     }
-  }
-
-  private def getTypeMirror(c: Compilation, offset: Int): Option[TypeMirror] = {
-    val path: Option[TreePath] = PathFor(c, offset)
-    // Uncomment to debug the AST path.
-    //for (p <- path) { for (t <- p) { System.err.println(t.toString()) } }
-    path.flatMap { p => Option(c.trees.getTypeMirror(p)) }
   }
 
   private def typecheckAll(): Unit = {

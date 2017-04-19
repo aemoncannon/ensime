@@ -224,7 +224,6 @@ class SearchService(
             finally { files.foreach(_.close()); classfile.close() }
           case jar =>
             log.debug(s"indexing $jar")
-            val check = FileCheck(jar)
             val vJar = vfs.vjar(jar.asLocalFile)
             try { (scanGrouped(vJar) flatMap { case (root, files) => extractSymbols(jar, files, vfs.vfile(root.uriString)) }).toList }
             finally { vfs.nuke(vJar) }
@@ -244,7 +243,6 @@ class SearchService(
     def getInternalRefs(isUserFile: Boolean, s: RawSymbol): Set[FullyQualifiedName] = if (isUserFile && !noReverseLookups) s.internalRefs else Set.empty
 
     val depickler = new ClassfileDepickler(rootClassFile)
-    val name = container.uriString
     val scalapClasses = depickler.getClasses
 
     val res: List[SourceSymbolInfo] = files.flatMap {

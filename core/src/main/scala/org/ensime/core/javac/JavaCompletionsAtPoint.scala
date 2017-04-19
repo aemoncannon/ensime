@@ -150,7 +150,7 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     caseSense: Boolean,
     constructing: Boolean
   ): List[CompletionInfo] = {
-    var candidates = ArrayBuffer[CompletionInfo]()
+    val candidates = ArrayBuffer[CompletionInfo]()
 
     // Note Scope#getLocalElements does not include fields / members of
     // enclosing classes. Need to add those manually.
@@ -281,12 +281,6 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     ElementFilter.constructorsIn(compilation.elements.getAllMembers(e)).asScala.map(methodInfo(_, relevance)).map { m =>
       m.copy(name = s)
     }.toList
-  }
-
-  private def localTypeName(tm: TypeMirror) = {
-    val s = tm.toString
-    val (front, back) = s.split("\\.").partition { s => s.forall(Character.isLowerCase) }
-    if (back.isEmpty) s else back.mkString(".")
   }
 
 }

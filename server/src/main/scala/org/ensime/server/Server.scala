@@ -11,7 +11,6 @@ import scala.util.Properties._
 
 import akka.actor._
 import akka.actor.SupervisorStrategy.Stop
-import akka.util.Timeout
 import io.netty.channel.Channel
 
 import org.ensime.api._
@@ -42,7 +41,6 @@ class ServerActor(
   def initialiseChildren(): Unit = {
 
     implicit val config: EnsimeConfig = this.config
-    implicit val timeout: Timeout = Timeout(10 seconds)
 
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
     val project = context.actorOf(Project(broadcaster), "project")

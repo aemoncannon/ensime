@@ -62,9 +62,6 @@ trait JavaSymbolAtPoint { requires: JavaCompiler =>
   private def shortName(identifierName: String, t: ExecutableType): String = name(identifierName, t)(_.toString.split("\\.").last)
 
   private def executableTypeToTypeInfo(identifierName: String, t: ExecutableType): TypeInfo = {
-
-    val returnType = t.getReturnType
-
     ArrowTypeInfo(
       shortName(identifierName, t), fullName(identifierName, t),
       typeMirrorToTypeInfo(t.getReturnType),

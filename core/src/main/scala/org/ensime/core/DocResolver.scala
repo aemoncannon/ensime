@@ -98,8 +98,6 @@ class DocResolver(
     }
   }
 
-  private val PackRegexp = """^((?:[a-z0-9]+\.)+)""".r
-
   private def guessJar(sig: DocSigPair): Option[(File, DocSigPair)] = {
     val scalafqn = scalaFqnToPath(sig.scala.fqn)
     val javafqn = javaFqnToPath(sig.java.fqn)

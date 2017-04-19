@@ -305,7 +305,6 @@ class FileWatchService { self =>
           log.error("Unable to re-create {} with parents", keyToFile(key))
         } else {
           val listeners = WatchKeyManager.listeners(key)
-          val baseListeners = WatchKeyManager.baseListeners(key)
           val baseFileListeners = WatchKeyManager.baseFileListeners(key)
           listeners foreach (_.baseRemoved())
           baseFileListeners foreach (o => o.fileDeleted(o.base))
