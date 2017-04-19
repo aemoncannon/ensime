@@ -21,21 +21,21 @@ install:
   - cmd: SET AKKA_TEST_TIMEFACTOR=5
   - cmd: SET SBT_TASK_LIMIT=4
   - cmd: SET GC_LOGGING=true
-  - cmd: SET SCALA_VERSION=2.12.1
+  - cmd: SET SCALA_VERSION=2.12.2
   - cmd: git config core.symlinks true
   - cmd: git reset --hard
 build_script:
   - echo ensimeServerJars := Nil > ensime.sbt
   - echo ensimeServerProjectJars := Nil >> ensime.sbt
   - sbt ++%SCALA_VERSION% ";ensimeConfig ;test:compile ;it:compile ;ensime/assembly"
-  - cd testing\cache && sbt ++%SCALA_VERSION% ensimeConfig ensimeServerIndex && cd ..\..
+  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (cd testing\cache && sbt ++%SCALA_VERSION% ensimeConfig ensimeServerIndex && cd ..\..)
 test_script:
   - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "testOnly -- -l tags.IgnoreOnAppVeyor")
   - SET SBT_TASK_LIMIT=2
   - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "it:testOnly -- -l tags.IgnoreOnAppVeyor")
 cache:
   - C:\Program Files\Java\jdk1.8.0\src.zip
-  - C:\sbt
+  - C:\sbt-0.13.15.zip
   - C:\Users\appveyor\.ivy2 -> appveyor.yml
   - C:\Users\appveyor\.coursier -> appveyor.yml
 on_finish:

@@ -96,7 +96,8 @@ class DocResolverSpec extends EnsimeSpec
         DocSig(DocFqn("scala", "Some"), Some("flatten(scala.Predef.<:<)"))
       )) should (
         equal(Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/index.html#scala.Some@flatten[B](implicitev:<:<[A,Option[B]]):Option[B]")) or
-        equal(Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/scala/Some.html#flatten[B](implicitev:<:<[A,Option[B]]):Option[B]"))
+        equal(Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/scala/Some.html#flatten[B](implicitev:<:<[A,Option[B]]):Option[B]")) or
+        equal(Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/scala/Some.html#flatten[B](implicitev:A<:<Option[B]):Option[B]"))
       )
 
       serv.resolve(DocSigPair(
@@ -347,7 +348,8 @@ class DocResolverSpec extends EnsimeSpec
         DocSig(DocFqn("scala", "Some"), Some("++(scala.collection.GenTraversableOnce, scala.collection.generic.CanBuildFrom)"))
       )) should (
         equal(Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/index.html#scala.Some@++[B](that:scala.collection.GenTraversableOnce[B]):Option[B]")) or
-        equal(Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/scala/Some.html#++[B](that:scala.collection.GenTraversableOnce[B]):Option[B]"))
+        equal(Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/scala/Some.html#++[B](that:scala.collection.GenTraversableOnce[B]):Option[B]")) or
+        equal(Some("docs/scala-library-" + c.scalaVersion + "-javadoc.jar/scala/Some.html#++[B>:A,That](that:scala.collection.GenTraversableOnce[B])(implicitbf:scala.collection.generic.CanBuildFrom[Repr,B,That]):That"))
       )
 
       serv.resolve(DocSigPair(

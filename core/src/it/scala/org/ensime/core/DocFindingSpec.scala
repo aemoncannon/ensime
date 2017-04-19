@@ -68,7 +68,10 @@ class DocFindingSpec extends EnsimeSpec
           case "0.5" => sig.scala shouldBe DocSig(DocFqn("scala", "Boolean"), None)
           case "1" => sig.scala shouldBe DocSig(DocFqn("scala", "Option"), Some("isDefined:Boolean"))
           case "2" => sig.scala shouldBe DocSig(DocFqn("scala", "Some"), Some("flatMap[B](f:A=>Option[B]):Option[B]"))
-          case "3" => sig.scala shouldBe DocSig(DocFqn("scala", "Some"), Some("flatten[B](implicitev:<:<[A,Option[B]]):Option[B]"))
+          case "3" => sig.scala should (
+            equal(DocSig(DocFqn("scala", "Some"), Some("flatten[B](implicitev:<:<[A,Option[B]]):Option[B]"))) or
+            equal(DocSig(DocFqn("scala", "Some"), Some("flatten[B](implicitev:A<:<Option[B]):Option[B]")))
+          )
           case "4" => sig.scala shouldBe DocSig(DocFqn("scala", "Some"), Some("fold[B](ifEmpty:=>B)(f:A=>B):B"))
           case "5" => sig.scala shouldBe DocSig(DocFqn("scala", "Some"), Some("mkString(start:String,sep:String,end:String):String"))
           case "6" => sig.scala shouldBe DocSig(DocFqn("scala", "Some"), Some("mkString:String"))

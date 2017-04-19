@@ -23,7 +23,7 @@ object ProjectPlugin extends AutoPlugin {
   override def trigger = allRequirements
 
   override def buildSettings = Seq(
-    scalaVersion := "2.12.1",
+    scalaVersion := "2.12.2",
     organization := "org.ensime",
 
     ensimeIgnoreMissingDirectories := true,
@@ -35,7 +35,23 @@ object ProjectPlugin extends AutoPlugin {
   )
 
   override def projectSettings = Seq(
-    scalariformPreferences := SbtScalariform.defaultPreferences
+    scalariformPreferences := SbtScalariform.defaultPreferences,
+
+    // 2.12.2 no longer tolerates this (sbt-sensible will have this soon)
+    javacOptions in doc ~= (_.filterNot(_.startsWith("-Werror"))),
+
+    // https://github.com/ensime/ensime-server/issues/1759
+    scalacOptions := {
+      val orig = scalacOptions.value
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, 12)) => orig.map {
+          case "-Xlint"               => "-Xlint:-unused,_"
+          case "-Ywarn-unused-import" => "-Ywarn-unused:-implicits,imports,-locals,-params,-patvars,-privates"
+          case other                  => other
+        }
+        case _             => orig
+      }
+    }
   )
 }
 
@@ -52,6 +68,9 @@ object EnsimeBuild {
     // tests but jvisualvm will no longer see the process.
     javaOptions += "-XX:+PerfDisableSharedMem",
     javaOptions ++= Seq("-Xms512m", "-Xmx512m"),
+
+    // only recognised by 2.12.2+
+    javaOptions += "-Dscala.classpath.closeZip=true",
 
     // print the table to optimise your own apps. VFS (and OrientDB)
     // are heavy on interning.
