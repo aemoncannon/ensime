@@ -11,11 +11,11 @@ import org.ensime.api._
 import org.ensime.core.PositionBackCompat
 
 trait ReportHandler {
-  def messageUser(str: String): Unit = {}
+  def messageUser(@deprecated("local", "") str: String): Unit = {}
   def clearAllScalaNotes(): Unit = {}
-  def reportScalaNotes(notes: List[Note]): Unit = {}
+  def reportScalaNotes(@deprecated("local", "") notes: List[Note]): Unit = {}
   def clearAllJavaNotes(): Unit = {}
-  def reportJavaNotes(notes: List[Note]): Unit = {}
+  def reportJavaNotes(@deprecated("local", "") notes: List[Note]): Unit = {}
 }
 
 class PresentationReporter(handler: ReportHandler) extends Reporter with PositionBackCompat {

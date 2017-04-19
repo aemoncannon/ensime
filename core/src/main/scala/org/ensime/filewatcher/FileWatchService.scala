@@ -38,18 +38,18 @@ trait WatcherListener {
   val extensions: scala.collection.Set[String]
   val watcherId: UUID
 
-  def fileCreated(f: File): Unit = {}
-  def fileDeleted(f: File): Unit = {}
-  def fileModified(f: File): Unit = {}
+  def fileCreated(@deprecated("local", "") f: File): Unit = {}
+  def fileDeleted(@deprecated("local", "") f: File): Unit = {}
+  def fileModified(@deprecated("local", "") f: File): Unit = {}
 
   def baseRegistered(): Unit = {}
   def baseRemoved(): Unit = {}
-  def baseSubdirRemoved(f: File): Unit = {}
+  def baseSubdirRemoved(@deprecated("local", "") f: File): Unit = {}
   def missingBaseRegistered(): Unit = {}
-  def baseSubdirRegistered(f: File): Unit = {}
-  def proxyRegistered(f: File): Unit = {}
+  def baseSubdirRegistered(@deprecated("local", "") f: File): Unit = {}
+  def proxyRegistered(@deprecated("local", "") f: File): Unit = {}
 
-  def existingFile(f: File): Unit = {}
+  def existingFile(@deprecated("local", "") f: File): Unit = {}
 
   def isWatched(f: File) =
     (extensions.exists(e => {
@@ -141,7 +141,7 @@ class FileWatchService { self =>
 
   }
 
-  def notifyExisting(dir: File, listeners: Set[WatcherListener], key: WatchKey) =
+  def notifyExisting(dir: File, listeners: Set[WatcherListener]) =
     for {
       f <- dir.listFiles
       if f.isFile
@@ -185,7 +185,7 @@ class FileWatchService { self =>
         }
       }
 
-      notifyExisting(dir, listeners, key)
+      notifyExisting(dir, listeners)
       if (observers.exists {
         case _: BaseObserver => true
         case _: BaseSubdirObserver => true

@@ -185,7 +185,8 @@ package object syntax {
       VertexT[T](v)
     }
 
-    def insertE[O, I, E <: EdgeT[O, I]](out: VertexT[O], in: VertexT[I], e: E)(
+    // e: E is taken as a way of providing the E type but without having to provide O and I
+    def insertE[O, I, E <: EdgeT[O, I]](out: VertexT[O], in: VertexT[I], @deprecated("local", "") e: E)(
       implicit
       graph: Graph,
       @deprecated("local", "") tpe: shapeless.Typeable[E],

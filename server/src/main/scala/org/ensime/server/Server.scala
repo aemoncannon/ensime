@@ -25,8 +25,7 @@ import org.slf4j._
 
 class ServerActor(
     config: EnsimeConfig,
-    protocol: Protocol,
-    interface: String = "127.0.0.1"
+    protocol: Protocol
 ) extends Actor with ActorLogging {
 
   var channel: Channel = _

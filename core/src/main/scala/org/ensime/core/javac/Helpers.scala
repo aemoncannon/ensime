@@ -51,10 +51,10 @@ trait Helpers extends UnsafeHelpers with SLF4JLogging {
     case c: ClassName => c.fqnString
   }
 
-  def fqn(c: Compilation, el: Element): Option[FullyQualifiedName] = el match {
+  def fqn(el: Element): Option[FullyQualifiedName] = el match {
     case e: ExecutableElement =>
 
-      descriptor(c, e).map { descriptor =>
+      descriptor(e).map { descriptor =>
 
         val name = e.getSimpleName.toString
         val params = descriptor.params
@@ -80,16 +80,16 @@ trait Helpers extends UnsafeHelpers with SLF4JLogging {
 
     case e: VariableElement if e.isOf(ENUM_CONSTANT) =>
 
-      fqn(c, e.asType()).map(
+      fqn(e.asType()).map(
         FieldName(_, e.getSimpleName.toString)
       )
 
-    case e => fqn(c, e.asType())
+    case e => fqn(e.asType())
   }
 
-  private def descriptor(c: Compilation, e: ExecutableElement): Option[Descriptor] = {
-    fqn(c, e.getReturnType).map { returnType =>
-      val params: List[DescriptorType] = e.getParameters.asScala.flatMap(p => fqn(c, p.asType()))(breakOut)
+  private def descriptor(e: ExecutableElement): Option[Descriptor] = {
+    fqn(e.getReturnType).map { returnType =>
+      val params: List[DescriptorType] = e.getParameters.asScala.flatMap(p => fqn(p.asType()))(breakOut)
       Descriptor(params, returnType)
     }
   }
@@ -103,10 +103,10 @@ trait Helpers extends UnsafeHelpers with SLF4JLogging {
   }
 
   def fqn(c: Compilation, p: TreePath): Option[FullyQualifiedName] = {
-    element(c, p).flatMap(fqn(c, _))
+    element(c, p).flatMap(fqn(_))
   }
 
-  def fqn(c: Compilation, tm: TypeMirror): Option[ClassName] = {
+  def fqn(tm: TypeMirror): Option[ClassName] = {
     Some(ClassName.fromFqn(tm.toString))
   }
 

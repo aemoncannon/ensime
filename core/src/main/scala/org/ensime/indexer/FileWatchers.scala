@@ -17,8 +17,8 @@ trait FileChangeListener {
   def fileAdded(f: FileObject): Unit
   def fileRemoved(f: FileObject): Unit
   def fileChanged(f: FileObject): Unit
-  def baseReCreated(f: FileObject): Unit = {}
-  def baseRemoved(f: FileObject): Unit = {}
+  def baseReCreated(@deprecated("local", "") f: FileObject): Unit = {}
+  def baseRemoved(@deprecated("local", "") f: FileObject): Unit = {}
   def baseRegistered(): Unit = {}
 }
 

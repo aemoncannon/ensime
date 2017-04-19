@@ -436,7 +436,7 @@ class RichPresentationCompiler(
 
   private def typePublicMembers(tpe: Type): Iterable[TypeMember] = {
     val members = new mutable.LinkedHashMap[Symbol, TypeMember]
-    def addTypeMember(sym: Symbol, pre: Type, inherited: Boolean, viaView: Symbol): Unit = {
+    def addTypeMember(sym: Symbol, inherited: Boolean, viaView: Symbol): Unit = {
       try {
         val m = TypeMember(
           sym,
@@ -452,10 +452,10 @@ class RichPresentationCompiler(
       }
     }
     for (sym <- tpe.decls) {
-      addTypeMember(sym, tpe, inherited = false, NoSymbol)
+      addTypeMember(sym, inherited = false, NoSymbol)
     }
     for (sym <- tpe.members) {
-      addTypeMember(sym, tpe, inherited = true, NoSymbol)
+      addTypeMember(sym, inherited = true, NoSymbol)
     }
     members.values
   }

@@ -13,7 +13,7 @@ class EnsimeConfigSpec extends EnsimeSpec {
 
   import EscapingStringInterpolation._
 
-  def test(dir: File, contents: String, testFn: (EnsimeConfig) => Unit): Unit = {
+  def test(contents: String, testFn: (EnsimeConfig) => Unit): Unit = {
     testFn(EnsimeConfigProtocol.parse(contents))
   }
 
@@ -25,7 +25,7 @@ class EnsimeConfigSpec extends EnsimeSpec {
     abc.mkdirs()
     cache.mkdirs()
 
-    test(dir, s"""
+    test(s"""
 (:name "project"
  :scala-version "2.10.4"
  :java-home "$javaHome"
@@ -68,7 +68,7 @@ class EnsimeConfigSpec extends EnsimeSpec {
     abc.mkdirs()
     cache.mkdirs()
 
-    test(dir, s"""
+    test(s"""
 (:name "project"
  :scala-version "2.10.4"
  :java-home "$javaHome"

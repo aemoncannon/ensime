@@ -12,7 +12,7 @@ import scala.annotation.StaticAnnotation
  *
  * WORKAROUND https://issues.scala-lang.org/browse/SI-7934
  */
-class deprecating(detail: String = "") extends StaticAnnotation
+class deprecating(val detail: String = "") extends StaticAnnotation
 
 sealed abstract class DeclaredAs(val symbol: scala.Symbol)
 

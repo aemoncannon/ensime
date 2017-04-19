@@ -12,11 +12,11 @@ class BigDecimalConvertor[T](
   protected def unsupported(message: String) =
     throw new UnsupportedOperationException(message)
 
-  def isPosInf(t: T): Boolean = false
+  def isPosInf(@deprecated("local", "") t: T): Boolean = false
   def PosInf: T = unsupported("Positive infinity")
-  def isNegInf(t: T): Boolean = false
+  def isNegInf(@deprecated("local", "") t: T): Boolean = false
   def NegInf: T = unsupported("Negative infinity")
-  def isNaN(t: T): Boolean = false
+  def isNaN(@deprecated("local", "") t: T): Boolean = false
   def NaN: T = unsupported("NaN")
 }
 
