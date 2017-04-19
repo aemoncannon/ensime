@@ -25,9 +25,9 @@ object ProjectPlugin extends AutoPlugin {
   override def buildSettings = Seq(
     scalaVersion := "2.12.1",
     organization := "org.ensime",
-    version := "2.0.0-SNAPSHOT",
 
     ensimeIgnoreMissingDirectories := true,
+    ensimeJavaFlags += "-Xmx4g",
 
     sonatypeGithub := ("ensime", "ensime-server"),
     licenses := Seq(GPL3),
@@ -227,7 +227,7 @@ object EnsimeBuild {
   lazy val root = Project(id = "ensime", base = file(".")) settings (commonSettings) aggregate (
     api, monkeys, util, s_express, jerky, swanky, core, server
   ) dependsOn (server) settings (
-      // e.g. `sbt ++2.11.8 ensime/assembly`
+      // e.g. `sbt ++2.11.11 ensime/assembly`
       test in assembly := {},
       sourceDirectories in Compile := Nil,
       resources in Compile := Nil,

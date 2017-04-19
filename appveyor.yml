@@ -1,12 +1,12 @@
 install:
   - ps: |
       Add-Type -AssemblyName System.IO.Compression.FileSystem
-      if (!(Test-Path -Path "C:\sbt\sbt-launcher-packaging-0.13.13" )) {
+      if (!(Test-Path -Path "C:\sbt\sbt-launcher-packaging-0.13.15" )) {
         (new-object System.Net.WebClient).DownloadFile(
-          'https://dl.bintray.com/sbt/native-packages/sbt/0.13.13/sbt-0.13.13.zip',
-          'C:\sbt-0.13.13.zip'
+          'https://dl.bintray.com/sbt/native-packages/sbt/0.13.15/sbt-0.13.15.zip',
+          'C:\sbt-0.13.15.zip'
         )
-        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\sbt-0.13.13.zip", "C:\sbt")
+        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\sbt-0.13.15.zip", "C:\")
       }
   - ps: |
       if (!(Test-Path -Path "C:\Program Files\Java\jdk1.8.0\src.zip")) {
@@ -16,7 +16,7 @@ install:
         )
       }
   - cmd: SET JAVA_HOME=C:\Program Files\Java\jdk1.8.0
-  - cmd: SET PATH=C:\sbt\sbt-launcher-packaging-0.13.13\bin;%JAVA_HOME%\bin;%PATH%
+  - cmd: SET PATH=C:\sbt\bin;%JAVA_HOME%\bin;%PATH%
   - cmd: SET COURSIER_VERBOSITY=-1
   - cmd: SET AKKA_TEST_TIMEFACTOR=5
   - cmd: SET SBT_TASK_LIMIT=4
@@ -30,12 +30,12 @@ build_script:
   - sbt ++%SCALA_VERSION% ";ensimeConfig ;test:compile ;it:compile ;ensime/assembly"
   - cd testing\cache && sbt ++%SCALA_VERSION% ensimeConfig ensimeServerIndex && cd ..\..
 test_script:
-  - sbt ++%SCALA_VERSION% "testOnly -- -l tags.IgnoreOnAppVeyor"
+  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "testOnly -- -l tags.IgnoreOnAppVeyor")
   - SET SBT_TASK_LIMIT=2
-  - sbt ++%SCALA_VERSION% "it:testOnly -- -l tags.IgnoreOnAppVeyor"
+  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "it:testOnly -- -l tags.IgnoreOnAppVeyor")
 cache:
   - C:\Program Files\Java\jdk1.8.0\src.zip
-  - C:\sbt\sbt-launcher-packaging-0.13.13
+  - C:\sbt
   - C:\Users\appveyor\.ivy2 -> appveyor.yml
   - C:\Users\appveyor\.coursier -> appveyor.yml
 on_finish:
