@@ -37,9 +37,6 @@ object ProjectPlugin extends AutoPlugin {
   override def projectSettings = Seq(
     scalariformPreferences := SbtScalariform.defaultPreferences,
 
-    // 2.12.2 no longer tolerates this (sbt-sensible will have this soon)
-    javacOptions in doc ~= (_.filterNot(_.startsWith("-Werror"))),
-
     // https://github.com/ensime/ensime-server/issues/1759
     scalacOptions := {
       val orig = scalacOptions.value
