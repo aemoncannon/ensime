@@ -390,4 +390,38 @@ class JavaCompilerSpec extends EnsimeSpec with OptionValues
       }
     }
   }
+  it should "support Java 8 JavaFx addListener features" in {
+    withJavaCompiler { (_, config, cc, store, search) =>
+      runForPositionInCompiledSource(config, cc, """
+        | import java.lang.Boolean;
+        | import javafx.application.Application;
+        | import javafx.beans.value.ObservableValue;
+        | import javafx.scene.Scene;
+        | import javafx.scene.control.CheckBox;
+        | import javafx.scene.layout.VBox;
+        | import javafx.stage.Stage;
+        |
+        | public class JavaFxAddListenerTest extends Application {
+        |     @Override
+        |     public void start(Stage primaryStage) {
+        |         VBox root = new VBox();
+        |         CheckBox cb = new CheckBox();
+        |         cb.selectedProperty().addListener((ObservableValue<? extends Bool@0@> ov, Boolean oldValue, Boolean newValue) -> {});
+        |         Scene scene = new Scene(root);
+        |         primaryStage.setScene(scene);
+        |         primaryStage.show();
+        |     }
+        |
+        |     public static void main(String[] args) {
+        |         launch(args);
+        |     }
+        | }
+        """.stripMargin) { (sf, offset, label, cc) =>
+        val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
+        label match {
+          case "0" => forAtLeast(1, info.completions)(_.name shouldBe "Boolean")
+        }
+      }
+    }
+  }
 }
