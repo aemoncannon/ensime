@@ -391,7 +391,7 @@ class JavaCompilerSpec extends EnsimeSpec with OptionValues
     }
   }
 
-  it should "support Java 8 JavaFx addListener lambda features" in {
+  it should "support Java 8 generic type completion in a lambda" in {
     withJavaCompiler { (_, config, cc, store, search) =>
       runForPositionInCompiledSource(config, cc, """
         | import java.lang.Boolean;
@@ -426,7 +426,7 @@ class JavaCompilerSpec extends EnsimeSpec with OptionValues
     }
   }
 
-  it should "support Java 8 JavaFx simple wildcard features" in {
+  it should "support Java 8 generic type completion not in a lambda" in {
     withJavaCompiler { (_, config, cc, store, search) =>
       runForPositionInCompiledSource(config, cc, """
         | import java.lang.Boolean;
