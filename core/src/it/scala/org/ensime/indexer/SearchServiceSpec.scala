@@ -77,13 +77,24 @@ class SearchServiceSpec extends EnsimeSpec
       "String", "string",
       "j.l.str", "j l str"
     )
+
+    searchesClasses(
+      "java.lang.StringIndexOutOfBoundsException",
+      "SIndexOOBE",
+      "SIO",
+      "StringIOOBE",
+      "SIndexOuO",
+      "SIOutOBounE",
+      "StInOuOBE"
+    )
   }
 
   it should "return results from dependencies" in withSearchService { implicit service =>
     searchesClasses(
       "org.scalatest.FunSuite",
       "FunSuite", "funsuite", "funsu",
-      "o s Fun"
+      "o s Fun",
+      "FuSu"
     )
   }
 
@@ -102,7 +113,8 @@ class SearchServiceSpec extends EnsimeSpec
       "org.example.CaseClassWithCamelCaseName",
       "CaseClassWith", "caseclasswith",
       "o e Case", "o.e.caseclasswith",
-      "CCWC" // <= CamelCaseAwesomeNess
+      "CCWC", // <= CamelCaseAwesomeNess
+      "CasClWiCCNa" // <= More camel case AwesomnNess
     )
   }
 
@@ -144,14 +156,15 @@ class SearchServiceSpec extends EnsimeSpec
   it should "return results from static methods" in withSearchService { implicit service =>
     searchesMethods(
       "java.lang.Runtime.addShutdownHook(Ljava/lang/Thread;)V",
-      "addShutdownHook"
+      "addShutdownHook",
+      "aSHook"
     )
   }
 
   it should "return results from instance methods" in withSearchService { implicit service =>
     searchesMethods(
       "java.lang.Runtime.availableProcessors()I",
-      "availableProcessors", "availableP"
+      "availableProcessors", "availableP", "aProc", "avaPro"
     )
   }
 

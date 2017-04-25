@@ -376,9 +376,12 @@ object CompletionUtil {
     matchEntire: Boolean, caseSens: Boolean): Boolean = {
     val prefixUpper = prefix.toUpperCase
 
+    val prefixRegexp = "[A-Za-z0-9]*" + prefix.replaceAll("(?<!^)([A-Z])", "[A-Za-z0-9]*$1") + "[A-Za-z0-9]*"
+
     (matchEntire && m == prefix) ||
       (!matchEntire && caseSens && m.startsWith(prefix)) ||
-      (!matchEntire && !caseSens && m.toUpperCase.startsWith(prefixUpper))
+      (!matchEntire && !caseSens && m.toUpperCase.startsWith(prefixUpper)) ||
+      (!matchEntire && prefix.exists(_.isUpper) && m.matches(prefixRegexp))
   }
 
   def fetchTypeSearchCompletions(prefix: String, maxResults: Int, indexer: ActorRef): Future[Option[List[CompletionInfo]]] = {

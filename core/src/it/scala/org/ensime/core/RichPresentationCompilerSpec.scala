@@ -212,6 +212,15 @@ class RichPresentationCompilerSpec extends EnsimeSpec
       forAtLeast(1, result.completions) { _.name shouldBe "aMethod" }
     }
 
+  it should "get completions on a member with a camel case prefix" in withPosInCompiledSource(
+    "package com.example",
+    "object A { def camelCaseMethod(a: Int) = a }",
+    "object B { val x = A.caCasMet@@ }"
+  ) { (p, cc) =>
+      val result = cc.completionsAt(p, 10, caseSens = false).futureValue
+      forAtLeast(1, result.completions) { _.name shouldBe "camelCaseMethod" }
+    }
+
   it should "get completions on an object name" in withPosInCompiledSource(
     "package com.example",
     "object Abc { def aMethod(a: Int) = a }",
@@ -219,6 +228,15 @@ class RichPresentationCompilerSpec extends EnsimeSpec
   ) { (p, cc) =>
       val result = cc.completionsAt(p, 10, caseSens = false).futureValue
       forAtLeast(1, result.completions) { _.name shouldBe "Abc" }
+    }
+
+  it should "get completions on an object name with camel case prefix" in withPosInCompiledSource(
+    "package com.example",
+    "object CamelCaseObject { def aMethod(a: Int) = a }",
+    "object B { val x = aCObje@@ }"
+  ) { (p, cc) =>
+      val result = cc.completionsAt(p, 10, caseSens = false).futureValue
+      forAtLeast(1, result.completions) { _.name shouldBe "CamelCaseObject" }
     }
 
   it should "make infix a method with less than 4 letters/numbers name and one parameter" in withPosInCompiledSource(
@@ -388,6 +406,15 @@ class RichPresentationCompilerSpec extends EnsimeSpec
   ) { (p, cc) =>
       val result = cc.completionsAt(p, 10, caseSens = false).futureValue
       forAtLeast(1, result.completions) { _.name shouldBe "aMethod" }
+    }
+
+  it should "complete interpolated variables with camel case in strings" in withPosInCompiledSource(
+    "package com.example",
+    "object Abc { def camelCaseMethod(a: Int) = a }",
+    s"""object B { val x = s"hello there, $${Abc.cCaMet@@}"}"""
+  ) { (p, cc) =>
+      val result = cc.completionsAt(p, 10, caseSens = false).futureValue
+      forAtLeast(1, result.completions) { _.name shouldBe "camelCaseMethod" }
     }
 
   it should "not attempt to complete symbols in strings" in withPosInCompiledSource(

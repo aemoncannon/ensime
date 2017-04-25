@@ -80,6 +80,12 @@ object IndexService extends SLF4JLogging {
     add(new PrefixQuery(t), Occur.SHOULD).
     add(new TermQuery(t), Occur.SHOULD).
     build()
+
+  def boostedPrefixQuery(t: Term, camelCaseTerm: Term): Query = new BooleanQuery.Builder().
+    add(new PrefixQuery(t), Occur.SHOULD).
+    add(new TermQuery(t), Occur.SHOULD).
+    add(new WildcardQuery(camelCaseTerm), Occur.SHOULD).
+    build()
 }
 
 class IndexService(path: Path)(implicit ec: ExecutionContext) {
@@ -96,6 +102,8 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
     val nonTrailing$s = fqn.count(_ == '$') - (if (fqn.endsWith("$")) 1 else 0)
     1 - .25f * nonTrailing$s
   }
+
+  private def calculateCamelCaseTerm(q: String): Term = new Term("fqn", q.replaceAll("(?<!^)([A-Z])", "*$1") + "*")
 
   def persist(symbols: List[SourceSymbolInfo], commit: Boolean, boost: Boolean): Future[Unit] = {
     val fqns: List[Document] = symbols.collect {
@@ -138,7 +146,7 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
 
   def searchClasses(query: String, max: Int): Future[List[ClassIndex]] = {
     val q = new BooleanQuery.Builder().
-      add(boostedPrefixQuery(new Term("fqn", query)), Occur.MUST).
+      add(boostedPrefixQuery(new Term("fqn", query), calculateCamelCaseTerm(query)), Occur.MUST).
       add(ClassIndexT, Occur.MUST).
       build()
 
@@ -154,7 +162,7 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
 
   def buildTermClassMethodQuery(query: String): Query = {
     new BooleanQuery.Builder().
-      add(boostedPrefixQuery(new Term("fqn", query)), Occur.MUST).
+      add(boostedPrefixQuery(new Term("fqn", query), calculateCamelCaseTerm(query)), Occur.MUST).
       add(
         new BooleanQuery.Builder().
           add(ClassIndexT, Occur.SHOULD).
