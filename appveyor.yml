@@ -35,7 +35,7 @@ test_script:
   - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "it:testOnly -- -l tags.IgnoreOnAppVeyor")
 cache:
   - C:\Program Files\Java\jdk1.8.0\src.zip
-  - C:\sbt-0.13.15.zip
+  - C:\sbt -> appveyor.yml
   - C:\Users\appveyor\.ivy2 -> appveyor.yml
   - C:\Users\appveyor\.coursier -> appveyor.yml
 on_finish:
