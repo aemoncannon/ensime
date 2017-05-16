@@ -421,7 +421,7 @@ class DocResolverSpec extends EnsimeSpec
       ) shouldBe Some("http://docs.oracle.com/javase/8/docs/api/java/io/File.html#delete--")
 
       serv.resolve(
-        DocSig(DocFqn("java.lang", "Math"), Some("max(int,int)"))
+        DocSig(DocFqn("java.lang", "Math"), Some("max(int, int)"))
       ) shouldBe Some("http://docs.oracle.com/javase/8/docs/api/java/lang/Math.html#max-int-int-")
 
       serv.resolve(
