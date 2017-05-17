@@ -24,10 +24,26 @@ class Indexer(
     LineSourcePositionHelper.fromFqnSymbol(hit)(vfs)
   )
 
-  def oldSearchTypes(query: String, max: Int) =
-    index.searchClasses(query, max).filterNot {
-      name => name.fqn.endsWith("$") || name.fqn.endsWith("$class")
-    }.map(typeResult)
+  def oldSearchTypes(query: String, max: Int) = {
+    val scalaNames = scala.collection.mutable.Set.empty[String]
+
+    def isUnique(fqn: String): Boolean = {
+      val stripped =
+        if (fqn.endsWith("$")) fqn.dropRight(1)
+        else if (fqn.endsWith("$class")) fqn.dropRight(6)
+        else fqn
+
+      if (scalaNames.contains(stripped)) {
+        false
+      } else {
+        scalaNames.add(stripped)
+        true
+      }
+    }
+
+    index.searchClasses(query, max)
+      .collect { case name if isUnique(name.fqn) => typeResult(name) }
+  }
 
   private val typeDecls: Set[DeclaredAs] = Set(DeclaredAs.Class, DeclaredAs.Trait, DeclaredAs.Object)
   def oldSearchSymbols(terms: List[String], max: Int) =
