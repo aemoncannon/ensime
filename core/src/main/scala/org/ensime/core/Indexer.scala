@@ -25,10 +25,8 @@ class Indexer(
   )
 
   def oldSearchTypes(query: String, max: Int): List[TypeSearchResult] = {
-    def strip(fqn: String): String =
-      if (fqn.endsWith("$")) fqn.replaceAll("[$]^", "")
-      else if (fqn.endsWith("$class")) fqn.replaceAll("[$class]^", "")
-      else fqn
+    // Remove $/$class from the end.
+    def strip(fqn: String): String = fqn.replaceAll("\\$(class)*$", "")
 
     import org.ensime.util.list._
 
