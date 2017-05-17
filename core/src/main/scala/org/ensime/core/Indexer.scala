@@ -6,7 +6,7 @@ import akka.actor._
 import akka.event.LoggingReceive
 import org.ensime.api._
 import org.ensime.indexer.SearchService
-import org.ensime.indexer.graph.FqnSymbol
+import org.ensime.indexer.graph.{ ClassDef, FqnSymbol, Field, Method }
 import org.ensime.model._
 import org.ensime.vfs._
 
@@ -24,25 +24,22 @@ class Indexer(
     LineSourcePositionHelper.fromFqnSymbol(hit)(vfs)
   )
 
-  def oldSearchTypes(query: String, max: Int) = {
-    val scalaNames = scala.collection.mutable.Set.empty[String]
+  def oldSearchTypes(query: String, max: Int): List[TypeSearchResult] = {
+    def strip(fqn: String): String =
+      if (fqn.endsWith("$")) fqn.replaceAll("[$]^", "")
+      else if (fqn.endsWith("$class")) fqn.replaceAll("[$class]^", "")
+      else fqn
 
-    def isUnique(fqn: String): Boolean = {
-      val stripped =
-        if (fqn.endsWith("$")) fqn.dropRight(1)
-        else if (fqn.endsWith("$class")) fqn.dropRight(6)
-        else fqn
-
-      if (scalaNames.contains(stripped)) {
-        false
-      } else {
-        scalaNames.add(stripped)
-        true
-      }
-    }
+    import org.ensime.util.list._
 
     index.searchClasses(query, max)
-      .collect { case name if isUnique(name.fqn) => typeResult(name) }
+      .map {
+        case c: ClassDef => c.copy(fqn = strip(c.fqn))
+        case f: Field => f.copy(fqn = strip(f.fqn))
+        case m: Method => m.copy(fqn = strip(m.fqn))
+      }
+      .distinctBy(_.fqn)
+      .map(typeResult)
   }
 
   private val typeDecls: Set[DeclaredAs] = Set(DeclaredAs.Class, DeclaredAs.Trait, DeclaredAs.Object)

@@ -98,8 +98,7 @@ class BasicWorkflow extends EnsimeSpec
           // public symbol search - scala.util.Random
           project ! PublicSymbolSearchReq(List("scala", "util", "Random"), 2)
           expectMsgPF() {
-            case SymbolSearchResults(res) if res.collectFirst { case TypeSearchResult("scala.util.Random", "Random", DeclaredAs.Class, Some(_)) => true }.isDefined &&
-              res.collectFirst { case TypeSearchResult("scala.util.Random$", "Random$", DeclaredAs.Object, Some(_)) => true }.isDefined =>
+            case SymbolSearchResults(res) if res.collectFirst { case TypeSearchResult("scala.util.Random", "Random", DeclaredAs.Class, Some(_)) => true }.isDefined =>
             // this is a pretty ropey test at the best of times
           }
 
