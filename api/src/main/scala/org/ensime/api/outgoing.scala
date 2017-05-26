@@ -513,7 +513,7 @@ final case class EnsimeImplementation(
 final case class ConnectionInfo(
   pid: Option[Int] = None,
   implementation: EnsimeImplementation = EnsimeImplementation("ENSIME"),
-  version: String = "1.9.1"
+  version: String = "1.9.2"
 ) extends RpcResponse
 
 sealed trait ImplicitInfo

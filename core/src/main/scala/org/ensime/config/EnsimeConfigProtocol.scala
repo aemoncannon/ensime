@@ -25,7 +25,6 @@ object EnsimeConfigProtocol {
 
   private implicit val projectIdFormat: SexpFormat[EnsimeProjectId] = cachedImplicit
   private implicit val projectFormat: SexpFormat[EnsimeProject] = cachedImplicit
-  private implicit val moduleFormat: SexpFormat[EnsimeModule] = cachedImplicit
   private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit
 
   def parse(config: String): EnsimeConfig = {
@@ -42,7 +41,7 @@ object EnsimeConfigProtocol {
     else javaHome.tree.filter(_.getName == "rt.jar").toList
 
   def validated(c: EnsimeConfig): EnsimeConfig = c.copy(
-    subprojects = c.subprojects.map(validated)
+    projects = c.projects.map(validated)
   )
 
   /*
@@ -52,8 +51,8 @@ object EnsimeConfigProtocol {
    directories and then re-canon them, which is - admittedly - a weird
    side-effect.
    */
-  private[config] def validated(m: EnsimeModule): EnsimeModule = {
-    (m.targets ++ m.testTargets ++ m.sourceRoots).foreach { dir =>
+  private[config] def validated(m: EnsimeProject): EnsimeProject = {
+    (m.targets ++ m.sources).foreach { dir =>
       if (!dir.exists() && !dir.isJar) {
         log.warn(s"$dir does not exist, creating")
         dir.mkdirs()

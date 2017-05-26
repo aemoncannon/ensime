@@ -546,7 +546,7 @@ class RichPresentationCompilerSpec extends EnsimeSpec
 
     compileScala(
       List(defsFile.path),
-      config.subprojects.head.targets.head,
+      config.projects.head.targets.head,
       cc.settings.classpath.value
     )
 
@@ -598,7 +598,7 @@ trait RichPresentationCompilerTestUtils {
   }
 
   def srcFile(proj: EnsimeConfig, name: String, content: String, write: Boolean = false, encoding: String = "UTF-8"): BatchSourceFile = {
-    val src = proj.subprojects.head.sourceRoots.head / name
+    val src = proj.projects.head.sources.head / name
     if (write) {
       src.createWithParents()
       scala.tools.nsc.io.File(src)(encoding).writeAll(content)

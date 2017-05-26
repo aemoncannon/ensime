@@ -81,7 +81,7 @@ class SourceResolver(
     val srcJars = config.referenceSourceJars.toSet ++ {
       for {
         (_, module) <- config.modules
-        srcArchive <- module.referenceSourceJars
+        srcArchive <- module.librarySources
       } yield srcArchive
     }
     for {
@@ -100,7 +100,7 @@ class SourceResolver(
   private def userSources = {
     for {
       (_, module) <- config.modules.toList
-      root <- module.sourceRoots
+      root <- module.sources
       dir = vfs.vfile(root)
       file <- scan(dir)
     } yield (infer(dir, file), file)

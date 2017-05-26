@@ -136,8 +136,8 @@ class SearchService(
     // a snapshot of everything that we want to index
     def findBases(): (Set[FileObject], Map[FileName, Set[FileObject]]) = {
       val (jarFiles, dirs) = config.modules.flatMap {
-        case (name, m) =>
-          (m.testTargets ++ m.targets).filter(_.exists()) ::: (m.compileJars ++ m.testJars)
+        case (_, m) =>
+          m.targets.filter(_.exists()).toList ::: m.libraryJars.toList
       }.partition(_.isJar)
       val grouped = dirs.map(d => scanGrouped(vfs.vfile(d))).fold(Map.empty[FileName, Set[FileObject]])(_ merge _)
       val jars: Set[FileObject] = (jarFiles ++ config.javaLibs).map(vfs.vfile)(collection.breakOut)

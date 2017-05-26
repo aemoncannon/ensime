@@ -83,7 +83,7 @@ class SourceWatcher(
       val sourceJava7WatcherBuilder = new SourceJava7WatcherBuilder()
       for {
         module <- config.modules.values
-        root <- module.sourceRoots
+        root <- module.sources
       } yield {
         if (log.isTraceEnabled())
           log.trace(s"creating a Java 7 source watcher for $root")

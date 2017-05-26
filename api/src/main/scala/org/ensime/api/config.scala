@@ -18,7 +18,6 @@ final case class EnsimeConfig(
     scalaVersion: String,
     compilerArgs: List[String],
     javaSources: List[File],
-    subprojects: List[EnsimeModule],
     projects: List[EnsimeProject],
     javaLibs: List[File]
 ) {
@@ -29,58 +28,31 @@ final case class EnsimeConfig(
   /* Proposed alternatives to the legacy wire format field names */
   def root = rootDir
   val referenceSourceJars =
-    (javaSources ++ subprojects.flatMap(_.referenceSourceRoots)).toSet
+    (javaSources ++ projects.flatMap(_.librarySources)).toSet
 
   // some marshalling libs (e.g. spray-json) might not like extra vals
-  val modules = subprojects.map { module => (module.name, module) }.toMap
+  val modules = projects.map { module => (module.id, module) }.toMap
 
   def compileClasspath: Set[File] = modules.values.toSet.flatMap {
-    m: EnsimeModule => m.compileDeps ++ m.testDeps
+    m: EnsimeProject => m.libraryJars
   } ++ (if (propOrFalse("ensime.sourceMode")) List.empty else targetClasspath)
 
   def targetClasspath: Set[File] = modules.values.toSet.flatMap {
-    m: EnsimeModule => m.targets ++ m.testTargets
+    m: EnsimeProject => m.targets
   }
 
   def allJars: Set[File] = {
     modules.values.flatMap { m =>
-      m.compileDeps ::: m.testDeps
+      m.libraryJars
     }.toSet
   } ++ javaLibs
 
   val allTargets: Set[File] =
-    subprojects.flatMap(sm => sm.targets ::: sm.testTargets).toSet
+    projects.flatMap(_.targets).toSet
 
-  def allDocJars: Set[File] = modules.values.flatMap(_.docJars).toSet
+  def allDocJars: Set[File] = modules.values.flatMap(_.libraryDocs).toSet
 
   def scalaLibrary: Option[File] = allJars.find(_.getName.startsWith("scala-library"))
-}
-
-final case class EnsimeModule(
-    name: String,
-    targets: List[File],
-    testTargets: List[File],
-    dependsOnModules: List[String],
-    compileDeps: List[File],
-    testDeps: List[File],
-    sourceRoots: List[File],
-    docJars: List[File],
-    referenceSourceRoots: List[File]
-) {
-  // only check the files, not the directories, see below
-  (compileDeps ::: testDeps ::: referenceSourceRoots).foreach { f =>
-    require(f.exists, "" + f + " is required but does not exist")
-  }
-
-  /*
-   Proposed alternatives to the legacy wire format field names:
-   */
-  def compileJars = compileDeps
-  def testJars = testDeps
-  def referenceSourceJars = referenceSourceRoots
-
-  def dependencies(implicit config: EnsimeConfig): List[EnsimeModule] =
-    dependsOnModules.map(config.modules)
 }
 
 final case class EnsimeProjectId(
@@ -100,4 +72,7 @@ final case class EnsimeProject(
     libraryDocs: Set[File]
 ) {
   sources.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
+
+  def dependencies(implicit config: EnsimeConfig): List[EnsimeProject] =
+    depends.toList.map(config.modules)
 }

@@ -53,8 +53,8 @@ class EnsimeConfigSpec extends EnsimeSpec {
              :library-docs ())))""", { implicit config =>
       config.name shouldBe "project"
       config.scalaVersion shouldBe "2.10.4"
-      val module1 = config.modules("module1")
-      module1.name shouldBe "module1"
+      val module1 = config.modules(EnsimeProjectId("module1", "compile"))
+      module1.id.project shouldBe "module1"
       module1.dependencies shouldBe empty
       config.projects.size shouldBe 1
     })
@@ -74,14 +74,14 @@ class EnsimeConfigSpec extends EnsimeSpec {
  :java-home "$javaHome"
  :root-dir "$dir"
  :cache-dir "$cache"
- :subprojects ((:name "module1"
-                :scala-version "2.10.4"
-                :targets ("$abc"))))""", { implicit config =>
+ :projects ((:id (:project "module1" :config "compile")
+             :depends ()
+             :targets ("$abc"))))""", { implicit config =>
 
       config.name shouldBe "project"
       config.scalaVersion shouldBe "2.10.4"
-      val module1 = config.modules("module1")
-      module1.name shouldBe "module1"
+      val module1 = config.modules(EnsimeProjectId("module1", "compile"))
+      module1.id.project shouldBe "module1"
       module1.dependencies shouldBe empty
       module1.targets should have size 1
     })

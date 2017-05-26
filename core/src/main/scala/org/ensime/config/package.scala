@@ -13,13 +13,13 @@ package object config {
 
   implicit class RichEnsimeConfig(val c: EnsimeConfig) extends AnyVal {
     def scalaSourceFiles: Set[File] =
-      c.modules.values.flatMap((m: EnsimeModule) => m.scalaSourceFiles)(breakOut)
+      c.modules.values.flatMap((m: EnsimeProject) => m.scalaSourceFiles)(breakOut)
   }
 
-  implicit class RichEnsimeModule(val m: EnsimeModule) extends AnyVal {
+  implicit class RichEnsimeModule(val m: EnsimeProject) extends AnyVal {
     def scalaSourceFiles: Set[File] = {
       val s = for {
-        root <- m.sourceRoots
+        root <- m.sources
         file <- root.tree
         if file.isFile && file.isScala
       } yield file

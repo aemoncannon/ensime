@@ -183,15 +183,15 @@ class Analyzer(
         restartCompiler(keepLoaded = false)
       }
       sender ! VoidResponse
-    case TypecheckModule(moduleName) =>
+    case TypecheckModule(moduleId) =>
       //consider the case of a project with no modules
-      config.modules get (moduleName) foreach {
+      config.modules get (moduleId) foreach {
         module =>
           val files: Set[SourceFileInfo] = module.scalaSourceFiles.map(s => SourceFileInfo(EnsimeFile(s), None, None))(breakOut)
           sender ! scalaCompiler.handleReloadFiles(files)
       }
-    case UnloadModuleReq(moduleName) =>
-      config.modules get (moduleName) foreach {
+    case UnloadModuleReq(moduleId) =>
+      config.modules get (moduleId) foreach {
         module =>
           val files = module.scalaSourceFiles.toList
           files.foreach(scalaCompiler.askRemoveDeleted)

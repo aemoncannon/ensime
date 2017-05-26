@@ -30,7 +30,7 @@ trait EnsimeConfigFixture {
 
   // convenience method
   def main(lang: String)(implicit config: EnsimeConfig): File =
-    config.subprojects.head.sourceRoots.filter { dir =>
+    config.projects.head.sources.filter { dir =>
       val sep = JFile.separator
       dir.getPath.endsWith(s"${sep}main$sep$lang")
     }.head
@@ -38,7 +38,7 @@ trait EnsimeConfigFixture {
   def javaMain(implicit config: EnsimeConfig): File = main("java")
 
   def mainTarget(implicit config: EnsimeConfig): File =
-    config.subprojects.head.targets.head
+    config.projects.head.targets.head
 }
 
 object EnsimeConfigFixture {
@@ -68,37 +68,37 @@ object EnsimeConfigFixture {
   }
 
   lazy val EmptyTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_empty")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_empty")
   )
   lazy val SimpleTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_simple")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_simple")
   )
   lazy val SimpleJarTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_simpleJar")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_simpleJar")
   )
   lazy val ImplicitsTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_implicits")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_implicits")
   )
   lazy val TimingTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_timing")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_timing")
   )
   lazy val MacrosTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_macros")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_macros")
   )
   lazy val ShapelessTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_shapeless")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_shapeless")
   )
   lazy val FqnsTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_fqns")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_fqns")
   )
   lazy val DebugTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_debug")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_debug")
   )
   lazy val DocsTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_docs")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_docs")
   )
   lazy val JavaTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    subprojects = EnsimeTestProject.subprojects.filter(_.name == "testing_java")
+    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_java")
   )
 
   // generates an empty single module project in a temporary directory
@@ -141,10 +141,9 @@ object EnsimeConfigFixture {
       if (copyTargets) renameAndCopy(from)
       else rename(from)
 
-    def cloneModule(m: EnsimeModule): EnsimeModule = m.copy(
+    def cloneProject(m: EnsimeProject): EnsimeProject = m.copy(
       targets = m.targets.map(renameAndCopyTarget),
-      testTargets = m.testTargets.map(renameAndCopyTarget),
-      sourceRoots = m.sourceRoots.map(renameAndCopy)
+      sources = m.sources.map(renameAndCopy)
     )
 
     val cacheDir = target / ".ensime_cache"
@@ -152,7 +151,7 @@ object EnsimeConfigFixture {
     val config = EnsimeConfigProtocol.validated(source.copy(
       rootDir = rename(source.rootDir),
       cacheDir = cacheDir,
-      subprojects = source.subprojects.map(cloneModule)
+      projects = source.projects.map(cloneProject)
     ))
 
     // HACK: we must force OS line endings on sources or the tests

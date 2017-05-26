@@ -56,7 +56,7 @@ class SourcePositionSpec extends EnsimeSpec
   }
 
   def knownJarEntry(implicit config: EnsimeConfig): String = {
-    val scalatest = config.subprojects.head.referenceSourceJars.find(
+    val scalatest = config.projects.flatMap(_.librarySources).find(
       _.getName.contains("scalatest_")
     ).get.getAbsoluteFile
     "jar:" + scalatest + "!/org/scalatest/FunSpec.scala"

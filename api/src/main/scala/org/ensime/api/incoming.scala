@@ -53,7 +53,7 @@ final case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserR
 /**
  * Response with a `VoidResponse`.
  */
-final case class UnloadModuleReq(module: String) extends RpcAnalyserRequest
+final case class UnloadModuleReq(moduleId: EnsimeProjectId) extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`
@@ -63,7 +63,7 @@ final case class UnloadFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequ
 /**
  * Response with a `VoidResponse`.
  */
-final case class TypecheckModule(module: String) extends RpcAnalyserRequest
+final case class TypecheckModule(moduleId: EnsimeProjectId) extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`.
