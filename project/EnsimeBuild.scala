@@ -35,20 +35,9 @@ object ProjectPlugin extends AutoPlugin {
   )
 
   override def projectSettings = Seq(
-    scalariformPreferences := SbtScalariform.defaultPreferences,
-
-    // https://github.com/ensime/ensime-server/issues/1759
-    scalacOptions := {
-      val orig = scalacOptions.value
-      CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, 12)) => orig.map {
-          case "-Xlint"               => "-Xlint:-unused,_"
-          case "-Ywarn-unused-import" => "-Ywarn-unused:implicits,imports,-locals,-params,-patvars,-privates"
-          case other                  => other
-        }
-        case _             => orig
-      }
-    }
+    scalacOptions -= "-Ywarn-value-discard",
+    scalacOptions ++= Seq("-language:postfixOps", "-language:implicitConversions"),
+    scalariformPreferences := SbtScalariform.defaultPreferences
   )
 }
 
@@ -116,7 +105,7 @@ object EnsimeBuild {
       "com.typesafe.akka" %% "akka-actor" % akkaVersion.value,
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.apache.commons" % "commons-vfs2" % "2.1" exclude ("commons-logging", "commons-logging"),
-      "com.google.code.findbugs" % "jsr305" % "3.0.1" % "provided"
+      "com.google.code.findbugs" % "jsr305" % "3.0.2" % "provided"
     ) ++ logback ++ shapeless.value
   )
 
@@ -132,7 +121,7 @@ object EnsimeBuild {
   lazy val s_express = Project("s-express", file("s-express")) settings (commonSettings) settings (
       licenses := Seq(LGPL3),
       libraryDependencies ++= Seq(
-        "com.lihaoyi" %% "fastparse" % "0.4.2",
+        "com.lihaoyi" %% "fastparse" % "0.4.3",
         "org.scalacheck" %% "scalacheck" % "1.13.5" % Test
       ) ++ shapeless.value ++ logback
     )
@@ -145,7 +134,7 @@ object EnsimeBuild {
     api % "test->test" // for the test data
   ) settings (
       libraryDependencies ++= Seq(
-        "com.github.fommil" %% "spray-json-shapeless" % "1.3.0",
+        "com.github.fommil" %% "spray-json-shapeless" % "1.4.0",
         "com.typesafe.akka" %% "akka-slf4j" % akkaVersion.value
       ) ++ shapeless.value
     )
@@ -219,7 +208,7 @@ object EnsimeBuild {
   }
 
   val luceneVersion = "6.4.2"
-  val nettyVersion = "4.1.9.Final"
+  val nettyVersion = "4.1.11.Final"
   lazy val server = Project("server", file("server")).dependsOn(
     core, swanky, jerky,
     s_express % "test->test",
@@ -268,12 +257,12 @@ object EnsimeBuild {
 
   private def akkaVersion: Def.Initialize[String] = Def.setting {
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, minor)) if minor >= 11 => "2.4.17"
+      case Some((2, minor)) if minor >= 11 => "2.4.18"
       case Some((2, 10)) => "2.3.16"
     }
   }
 
-  private val orientVersion = "2.2.18"
+  private val orientVersion = "2.2.20"
 }
 
 // projects used in the integration tests, not published

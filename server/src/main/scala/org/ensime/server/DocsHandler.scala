@@ -97,7 +97,7 @@ class DocsHandler(docs: DocJarReading) extends SimpleChannelInboundHandler[FullH
         }
         res
     }
-    HttpUtil.setContentLength(res, res.content().readableBytes())
+    HttpUtil.setContentLength(res, res.content().readableBytes().toLong)
 
     // Send the response and close the connection if necessary.
     val f: ChannelFuture = ctx.channel().writeAndFlush(res)
