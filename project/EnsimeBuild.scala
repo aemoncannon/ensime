@@ -35,6 +35,14 @@ object ProjectPlugin extends AutoPlugin {
   )
 
   override def projectSettings = Seq(
+    scalacOptions := {
+      val orig = scalacOptions.value
+      if (scalaVersion.value.startsWith("2.10"))
+        orig.filterNot(_.startsWith("-Ywarn-numeric-widen")) // false positives
+      else
+        orig
+    },
+
     scalacOptions -= "-Ywarn-value-discard",
     scalacOptions ++= Seq("-language:postfixOps", "-language:implicitConversions"),
     scalariformPreferences := SbtScalariform.defaultPreferences
