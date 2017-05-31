@@ -8,3 +8,6 @@ ensime.sbt
 #
 # If you want to add something from your personal setup,
 # add it to your ~/.gitignore instead.
+
+# HOARDER stuff
+.hoarder-cache

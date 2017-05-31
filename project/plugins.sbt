@@ -11,3 +11,6 @@ addSbtPlugin("org.ensime" % "sbt-ensime" % "1.12.12")
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "1.5.1") // 1.8.0 causes https://github.com/sbt/sbt-header/issues/56
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.4" exclude("org.apache.maven", "maven-plugin-api"))
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.6.1")
+
+//Add Hoarder
+addSbtPlugin("com.github.romanowski" % "hoarder" % "1.0-for-test")
