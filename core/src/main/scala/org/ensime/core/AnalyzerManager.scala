@@ -3,35 +3,16 @@ package org.ensime.core
 import akka.actor._
 import akka.event.LoggingReceive.withLabel
 import org.ensime.api._
-import org.ensime.config.RichEnsimeModule
+import org.ensime.config._
 import org.ensime.util.FileUtils.toSourceFileInfo
 import org.ensime.util.ensimefile._
 import org.ensime.util.file._
-
-import scala.collection.breakOut
-
-trait ModuleFinder {
-  implicit val config: EnsimeConfig
-
-  def getModule(path: String): Option[EnsimeProject] =
-    config.projects.find(_.sources.exists(f => path.startsWith(f.toString)))
-
-  def getModule(file: EnsimeFile): Option[EnsimeProject] = file match {
-    case RawFile(file) => getModule(file.toString)
-    case archive: ArchiveFile => getModule(archive.fullPath)
-  }
-  def getModule(file: File): Option[EnsimeProject] = getModule(file.toPath.toString)
-  def getModule(file: Either[File, SourceFileInfo]): Option[EnsimeProject] = file match {
-    case Left(f) => getModule(f)
-    case Right(sourceFileInfo) => getModule(sourceFileInfo.file)
-  }
-}
 
 class AnalyzerManager(
     broadcaster: ActorRef,
     analyzerCreator: List[EnsimeProjectId] => Props,
     implicit val config: EnsimeConfig
-) extends Actor with ActorLogging with ModuleFinder with Stash {
+) extends Actor with ActorLogging with Stash {
 
   // for legacy requests, the all-seeing analyzer
   private var sauron: ActorRef = _
@@ -77,9 +58,12 @@ class AnalyzerManager(
   }
    */
 
-  // FIXME : I'm not convinced we need the borrow pattern here, it seems to introduce as much boilerplate as it removes?
-  private def withExistingModuleFor(fileInfo: SourceFileInfo, req: RpcAnalyserRequest)(f: (RpcAnalyserRequest, EnsimeProject) => Unit): Unit =
-    getModule(fileInfo.file) match {
+  // FIXME : I'm not convinced we need the borrow pattern here, it
+  // seems to introduce as much boilerplate as it removes
+  private def withExistingModuleFor(
+    fileInfo: SourceFileInfo, req: RpcAnalyserRequest
+  )(f: (RpcAnalyserRequest, EnsimeProject) => Unit): Unit =
+    config.find(fileInfo) match {
       case Some(module) =>
         f(req, module)
       case None =>
