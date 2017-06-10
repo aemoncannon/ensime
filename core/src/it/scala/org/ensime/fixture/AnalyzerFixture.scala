@@ -14,10 +14,10 @@ trait AnalyzerFixture {
 }
 
 object AnalyzerFixture {
-  private[fixture] def create(search: SearchService)(implicit system: ActorSystem, config: EnsimeConfig, vfs: EnsimeVFS): TestActorRef[Analyzer] = {
+  private[fixture] def create(search: SearchService, id: EnsimeProjectId)(implicit system: ActorSystem, config: EnsimeConfig, vfs: EnsimeVFS): TestActorRef[Analyzer] = {
     val indexer = TestProbe()
     val projectActor = TestProbe()
-    TestActorRef(Analyzer(projectActor.ref, indexer.ref, search))
+    TestActorRef(Analyzer(projectActor.ref, indexer.ref, search, config.modules(id)))
   }
 }
 

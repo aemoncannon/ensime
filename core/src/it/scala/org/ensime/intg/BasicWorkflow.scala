@@ -45,6 +45,7 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! UnloadAllReq
           expectMsg(VoidResponse)
+          
           all(asyncHelper.receiveN(2)) should matchPattern {
             case CompilerRestartedEvent =>
             case FullTypeCheckCompleteEvent =>
@@ -120,11 +121,10 @@ class BasicWorkflow extends EnsimeSpec
             ERangePosition(`packageFilePath`, 94, 80, 104)
           )
 
-          asyncHelper.fishForMessage() {
-            case FullTypeCheckCompleteEvent => true
-            case _ => false
+          all(asyncHelper.receiveN(2)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
           }
-
           // note that the line numbers appear to have been stripped from the
           // scala library classfiles, so offset/line comes out as zero unless
           // loaded by the pres compiler
@@ -209,7 +209,7 @@ class BasicWorkflow extends EnsimeSpec
                 )
               ) =>
           }
-
+          
           // expand selection around "seven" in `foo.testMethod` call
           project ! ExpandSelectionReq(fooFile, 215, 215)
           val expandRange1 = expectMsgType[FileRange]
@@ -303,7 +303,8 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! TypecheckFilesReq(List(Left(bazFile), Right(toBeUnloaded)))
           expectMsg(VoidResponse)
-          all(asyncHelper.receiveN(2)) should matchPattern {
+
+          all(asyncHelper.receiveN(3)) should matchPattern {
             case note: NewScalaNotesEvent =>
             case FullTypeCheckCompleteEvent =>
           }

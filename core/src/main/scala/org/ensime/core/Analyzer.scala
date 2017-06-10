@@ -51,6 +51,7 @@ class Analyzer(
     broadcaster: ActorRef,
     indexer: ActorRef,
     search: SearchService,
+    scoped: List[EnsimeProjectId],
     implicit val config: EnsimeConfig,
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
@@ -59,7 +60,6 @@ class Analyzer(
   import FileUtils._
 
   private var allFilesMode = false
-
   private var settings: Settings = _
   private var reporter: PresentationReporter = _
 
@@ -77,8 +77,19 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-    settings.classpath.value = config.classpath.mkString(JFile.pathSeparator)
-    settings.processArguments(config.compilerArgs, processAll = false)
+
+    val projects = scoped.map(config.modules)
+
+    settings.classpath.value = {
+      for {
+        project <- projects
+        entry <- project.classpath
+      } yield entry
+    }.distinct.mkString(JFile.pathSeparator)
+
+    // arbitrarily pick the first project when there are multiple
+    settings.processArguments(projects.head.scalacOptions, processAll = false)
+
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
     reporter = new PresentationReporter(new ReportHandler {
@@ -95,7 +106,6 @@ class Analyzer(
     reporter.disable() // until we start up
 
     scalaCompiler = makeScalaCompiler()
-
     broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
 
     scalaCompiler.askNotifyWhenReady()
@@ -105,6 +115,7 @@ class Analyzer(
     config, settings, reporter, self, indexer, search
   )
 
+  // FIXME: use the scoped list that the actor is constructed with
   protected def restartCompiler(
     strategy: ReloadStrategy,
     scoped: Option[EnsimeProjectId]
@@ -145,10 +156,12 @@ class Analyzer(
   def startup: Receive = withLabel("startup") {
     case FullTypeCheckCompleteEvent =>
       reporter.enable()
+
+      // FIXME: think about this
       // legacy clients expect to see AnalyzerReady and a
       // FullTypeCheckCompleteEvent on connection.
-      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
-      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
+      //      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
+      //      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
       context.become(ready)
       unstashAll()
 
@@ -159,6 +172,8 @@ class Analyzer(
   def ready: Receive = withLabel("ready") {
     case FullTypeCheckCompleteEvent =>
       broadcaster ! FullTypeCheckCompleteEvent
+      // FIXME: why do we need to tell the parent?
+      context.parent ! FullTypeCheckCompleteEvent
 
     case RestartScalaCompilerReq(id, strategy) =>
       restartCompiler(strategy, id)
@@ -204,7 +219,6 @@ class Analyzer(
         reporter.disable()
         scalaCompiler.askCompletionsAt(pos(fileInfo, point), maxResults, caseSens)
       } pipeTo sender
-
     case UsesOfSymbolAtPointReq(file, point) =>
       import context.dispatcher
       val response = if (toSourceFileInfo(file).exists()) {
@@ -293,10 +307,11 @@ object Analyzer {
   def apply(
     broadcaster: ActorRef,
     indexer: ActorRef,
-    search: SearchService
+    search: SearchService,
+    scoped: List[EnsimeProjectId]
   )(
     implicit
     config: EnsimeConfig,
     vfs: EnsimeVFS
-  ) = Props(new Analyzer(broadcaster, indexer, search, config, vfs))
+  ) = Props(new Analyzer(broadcaster, indexer, search, scoped, config, vfs))
 }
