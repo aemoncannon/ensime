@@ -1,12 +1,12 @@
 package org.ensime.core
 
-import akka.actor.{ Actor, ActorLogging, ActorRef, Props, Stash }
+import akka.actor._
 import akka.event.LoggingReceive.withLabel
-import org.ensime.api.{ AnalyzerReadyEvent, ArchiveFile, AstAtPointReq, CompletionsReq, DocUriAtPointReq, DocUriForSymbolReq, EnsimeConfig, EnsimeFile, EnsimeProject, EnsimeProjectId, EnsimeServerError, ExpandSelectionReq, FullTypeCheckCompleteEvent, ImplicitInfoReq, InspectPackageByPathReq, InspectTypeAtPointReq, InspectTypeByNameReq, OffsetRange, PackageMemberCompletionReq, RawFile, RefactorReq, ReloadExistingFilesEvent, RemoveFileReq, RemoveFilesReq, RpcAnalyserRequest, RpcResponse, SourceFileInfo, StructureViewReq, SymbolAtPointReq, SymbolByNameReq, SymbolDesignationsReq, TypeAtPointReq, TypeByNameAtPointReq, TypeByNameReq, TypecheckAllReq, TypecheckFileReq, TypecheckFilesReq, TypecheckModule, UnloadAllReq, UnloadFileReq, UnloadModuleReq, UsesOfSymbolAtPointReq, VoidResponse }
+import org.ensime.api._
 import org.ensime.config.RichEnsimeModule
 import org.ensime.util.FileUtils.toSourceFileInfo
-import org.ensime.util.ensimefile.{ RichArchiveFile, richEnsimeFile }
-import org.ensime.util.file.File
+import org.ensime.util.ensimefile._
+import org.ensime.util.file._
 
 import scala.collection.breakOut
 
@@ -27,53 +27,26 @@ trait ModuleFinder {
   }
 }
 
-sealed trait FileStatus {
-  def append(status: FileStatus): FileStatus
-}
-final case object NotLoaded extends FileStatus {
-  def append(status: FileStatus) = status match {
-    case Loaded => Loaded
-    case _ => NotLoaded
-  }
-}
-final case object Loaded extends FileStatus {
-  def append(status: FileStatus) = status match {
-    case Removed => Removed
-    case Unloaded => Unloaded
-    case _ => Loaded
-  }
-}
-final case object Removed extends FileStatus {
-  def append(status: FileStatus) = status match {
-    case Loaded => Loaded
-    case _ => Removed
-  }
-}
-final case object Unloaded extends FileStatus { // different from Removed
-  def append(status: FileStatus) = status match {
-    case Loaded => Loaded
-    case _ => Unloaded
-  }
-}
-
-final case class LoadedFilesData(statusOfFile: Map[SourceFileInfo, FileStatus], default: FileStatus)
-
 class AnalyzerManager(
     broadcaster: ActorRef,
-    analyzerCreator: EnsimeProject => Props,
+    analyzerCreator: List[EnsimeProject] => Props,
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with ModuleFinder with Stash {
 
+  // for legacy requests, the all-seeing analyzer
+  private var sauron: ActorRef = _
+  // FIXME = analyzerCreator(config.projects)
+3
   // maps the active modules to their analyzers
   private var analyzers: Map[EnsimeProject, ActorRef] = Map.empty
-  private var historyOfModule: Map[EnsimeProject, LoadedFilesData] = Map.empty
 
-  private val projectWideAnalyzer: Props = analyzerCreator(EnsimeProject.wholeProject)
+  // FIXME: should we perhaps have child actors to manage the state?
+  //        It is very awkward to have to update this all the time.
+  private var userState: Map[EnsimeProject, List[SourceFileInfo]] = Map.empty
 
   override def preStart(): Unit = {
-    // initialize loadedFiles
     config.projects foreach (p => historyOfModule += (p -> LoadedFilesData(Map.empty, NotLoaded)))
-    // legacy clients expect to see FullTypeCheckComlpeteEvent and AnalyzerReadyEvent on connection
+
     broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
     broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
   }
@@ -197,6 +170,7 @@ class AnalyzerManager(
           }
 
         }
+        // FIXME: argh, now we block all other messages so we can only serve one analyzer at a time
         context.become(collector[List[String]](filesPerModule.size, Nil, sender)((newResponse, aggregate) => {
           newResponse match {
             case EnsimeServerError(desc) =>

@@ -12,20 +12,15 @@ import scala.collection.breakOut
 package object config {
 
   implicit class RichEnsimeConfig(val c: EnsimeConfig) extends AnyVal {
-    def scalaSourceFiles: Set[File] =
-      c.modules.values.flatMap((m: EnsimeProject) => m.scalaSourceFiles)(breakOut)
   }
 
   implicit class RichEnsimeModule(val m: EnsimeProject) extends AnyVal {
-    def scalaSourceFiles: Set[File] = {
-      val s = for {
-        root <- m.sources
-        file <- root.tree
-        if file.isFile && file.isScala
-      } yield file
+    def scalaSourceFiles: Set[File] = for {
+      root <- m.sources
+      file <- root.tree
+      if file.isFile && file.isScala
+    } yield file
 
-      s
-    }
   }
 
 }

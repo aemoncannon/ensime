@@ -7,13 +7,10 @@ import java.nio.charset.Charset
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import org.ensime.api.{ AddImportRefactorDesc, ExpandMatchCasesDesc, OrganiseImportsRefactorDesc, RawFile, RefactorDiffEffect, RefactorReq, RenameRefactorDesc, RpcResponse, SourceFileInfo }
-
-//import org.ensime.api._
+import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
 import org.scalatest.Assertions
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RefactoringHandlerSpec extends EnsimeSpec
@@ -25,6 +22,7 @@ class RefactoringHandlerSpec extends EnsimeSpec
   def original = EnsimeConfigFixture.EmptyTestProject.copy(
     compilerArgs = List("-encoding", encoding)
   )
+
   // transitionary methods
   def ContentsSourceFileInfo(file: File, contents: String) =
     SourceFileInfo(RawFile(file.toPath), Some(contents))

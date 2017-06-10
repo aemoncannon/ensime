@@ -180,20 +180,12 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def askRemoveDeleted(f: File) = askOption(removeDeleted(AbstractFile.getFile(f)))
 
-  def askReloadAllFiles() = {
+  def askReloadAllFiles(scopes: List[EnsimeProjectId]) = {
     val all = {
       for {
-        file <- config.scalaSourceFiles
-        source = createSourceFile(file)
-      } yield source
-    } ++ activeUnits().map(_.source)
-    askReloadFiles(all)
-  }
-
-  def askReloadAllFiles(module: EnsimeProject) = {
-    val all = {
-      for {
-        file <- module.scalaSourceFiles
+        scope <- scopes
+        proj = config.modules(scope)
+        file <- proj.scalaSourceFiles
         source = createSourceFile(file)
       } yield source
     } ++ activeUnits().map(_.source)

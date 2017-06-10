@@ -18,7 +18,6 @@ final case class EnsimeConfig(
     javaHome: File,
     name: String,
     scalaVersion: String,
-    compilerArgs: List[String],
     javaSources: List[File],
     projects: List[EnsimeProject],
     javaLibs: List[File]
@@ -39,7 +38,7 @@ final case class EnsimeConfig(
   // FIXME: move these
   val targets: Set[File] = modules.values.flatMap(_.targets)(breakOut)
   // can't be a val because of the implicit
-  def classpath: Set[File] = modules.values.flatMap(m => m.classpath(this))(breakOut)
+//  def classpath: Set[File] = modules.values.flatMap(m => m.classpath(this))(breakOut)
 
   val allDocJars: Set[File] = modules.values.flatMap(_.libraryDocs)(breakOut)
   val scalaLibrary: Option[File] = modules.values.flatMap(_.libraryJars).find { f =>
@@ -68,7 +67,7 @@ final case class EnsimeProject(
 
   sources.foreach(f => require(f.exists, "" + f + " is required but does not exist"))
 
-  // TODO: definitely move these, they can't be cached
+  // FIXME: definitely move these, they can't be cached
   def dependencies(implicit config: EnsimeConfig): List[EnsimeProject] =
     depends.toList.map(config.modules)
 
@@ -77,17 +76,4 @@ final case class EnsimeProject(
     libraryJars ++ target ++ dependencies.flatMap(_.classpath)
   }
 
-}
-object EnsimeProject {
-  def wholeProject(implicit config: EnsimeConfig): EnsimeProject = new EnsimeProject(
-    EnsimeProjectId("wholeProject", "compile"),
-    Seq(),
-    config.projects.flatMap(_.sources).toSet,
-    config.projects.flatMap(_.targets).toSet,
-    config.projects.flatMap(_.scalacOptions).distinct,
-    config.projects.flatMap(_.javacOptions).distinct,
-    config.projects.flatMap(_.libraryJars).toSet,
-    config.projects.flatMap(_.librarySources).toSet,
-    config.projects.flatMap(_.libraryDocs).toSet
-  )
 }

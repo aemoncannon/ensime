@@ -37,7 +37,7 @@ class SearchService(
   import SearchService._
   import ExecutionContext.Implicits.global // not used for heavy lifting (indexing, graph or lucene)
 
-  private[indexer] val allTargets = config.projects.flatMap(_.targets).map(vfs.vfile)
+  private[indexer] val allTargets = config.targets.map(vfs.vfile)
 
   private[indexer] def isUserFile(file: FileName): Boolean = allTargets.exists(file isAncestor _.getName)
 

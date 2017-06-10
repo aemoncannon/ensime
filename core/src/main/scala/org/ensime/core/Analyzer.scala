@@ -54,7 +54,7 @@ class Analyzer(
     broadcaster: ActorRef,
     indexer: ActorRef,
     search: SearchService,
-    project: EnsimeProject,
+    scoped: List[EnsimeProjectId],
     implicit val config: EnsimeConfig,
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
@@ -80,8 +80,19 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-    settings.classpath.value = project.classpath.mkString(JFile.pathSeparator)
-    settings.processArguments(project.scalacOptions, processAll = false)
+
+    settings.classpath.value = {
+      for {
+        scope <- scoped
+        project = config.modules(scope)
+        entry <- project.classpath
+      } yield entry
+    }.distinct.mkString(JFile.pathSeparator)
+
+    // arbitrarily pick the first project when there are multiple
+    // projects, because we don't know what else to do
+    settings.processArguments(config.projects.head.scalacOptions, processAll = false)
+
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
     reporter = new PresentationReporter(new ReportHandler {
@@ -104,7 +115,7 @@ class Analyzer(
 
     // each analyzer must load files  of its module
     if (propOrFalse("ensime.sourceMode"))
-      scalaCompiler.askReloadAllFiles(project)
+      scalaCompiler.askReloadAllFiles(scoped)
 
   }
 
@@ -135,6 +146,8 @@ class Analyzer(
   def startup: Receive = withLabel("startup") {
     case FullTypeCheckCompleteEvent =>
       reporter.enable()
+
+      // FIXME: think about this
       // legacy clients expect to see AnalyzerReady and a
       // FullTypeCheckCompleteEvent on connection.
       //      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
@@ -154,6 +167,7 @@ class Analyzer(
 
     case FullTypeCheckCompleteEvent =>
       broadcaster ! FullTypeCheckCompleteEvent
+      // FIXME: why do we need to tell the parent?
       context.parent ! FullTypeCheckCompleteEvent
 
     case req: RpcAnalyserRequest =>
@@ -168,16 +182,13 @@ class Analyzer(
   }
 
   def allTheThings: PartialFunction[RpcAnalyserRequest, Unit] = {
-    case RemoveFilesReq(files) =>
-      files.foreach(scalaCompiler.askRemoveDeleted)
-      sender ! VoidResponse
     case RemoveFileReq(file: File) =>
       scalaCompiler.askRemoveDeleted(file)
       sender ! VoidResponse
     case TypecheckAllReq =>
       allFilesMode = true
       scalaCompiler.askRemoveAllDeleted()
-      scalaCompiler.askReloadAllFiles()
+      scalaCompiler.askReloadAllFiles(scoped)
       scalaCompiler.askNotifyWhenReady()
       sender ! VoidResponse
     case UnloadAllReq =>
@@ -335,10 +346,10 @@ object Analyzer {
     broadcaster: ActorRef,
     indexer: ActorRef,
     search: SearchService,
-    module: EnsimeProject
+    scoped: List[EnsimeProjectId]
   )(
     implicit
     config: EnsimeConfig,
     vfs: EnsimeVFS
-  ) = Props(new Analyzer(broadcaster, indexer, search, module, config, vfs))
+  ) = Props(new Analyzer(broadcaster, indexer, search, scoped, config, vfs))
 }
