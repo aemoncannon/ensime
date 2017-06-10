@@ -26,7 +26,6 @@ package ensimefile {
 
     /** Direct access contents: not efficient for streaming. */
     def readStringDirect()(implicit cs: Charset): String
-
     def uri(): URI
     def uriString(): String = uri.toASCIIString
   }

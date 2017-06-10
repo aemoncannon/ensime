@@ -54,6 +54,7 @@ class Analyzer(
     broadcaster: ActorRef,
     indexer: ActorRef,
     search: SearchService,
+    module: EnsimeProject,
     implicit val config: EnsimeConfig,
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
@@ -80,8 +81,8 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-    settings.classpath.value = config.compileClasspath.mkString(JFile.pathSeparator)
-    settings.processArguments(config.compilerArgs, processAll = false)
+    settings.classpath.value = module.compileClasspath.mkString(JFile.pathSeparator)
+    settings.processArguments(module.scalacOptions, processAll = false)
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
     reporter = new PresentationReporter(new ReportHandler {
@@ -98,11 +99,14 @@ class Analyzer(
     reporter.disable() // until we start up
 
     scalaCompiler = makeScalaCompiler()
-
     broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
 
     scalaCompiler.askNotifyWhenReady()
-    if (propOrFalse("ensime.sourceMode")) scalaCompiler.askReloadAllFiles()
+
+    // each analyzer must load files  of its module
+    if (propOrFalse("ensime.sourceMode"))
+      scalaCompiler.askReloadAllFiles(module)
+
   }
 
   protected def makeScalaCompiler() = new RichPresentationCompiler(
@@ -134,8 +138,8 @@ class Analyzer(
       reporter.enable()
       // legacy clients expect to see AnalyzerReady and a
       // FullTypeCheckCompleteEvent on connection.
-      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
-      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
+      //      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
+      //      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
       context.become(ready)
       unstashAll()
 
@@ -151,6 +155,7 @@ class Analyzer(
 
     case FullTypeCheckCompleteEvent =>
       broadcaster ! FullTypeCheckCompleteEvent
+      context.parent ! FullTypeCheckCompleteEvent
 
     case req: RpcAnalyserRequest =>
       // fommil: I'm not entirely sure about the logic of
@@ -164,6 +169,9 @@ class Analyzer(
   }
 
   def allTheThings: PartialFunction[RpcAnalyserRequest, Unit] = {
+    case RemoveFilesReq(files) =>
+      files.foreach(scalaCompiler.askRemoveDeleted)
+      sender ! VoidResponse
     case RemoveFileReq(file: File) =>
       scalaCompiler.askRemoveDeleted(file)
       sender ! VoidResponse
@@ -209,7 +217,6 @@ class Analyzer(
         reporter.disable()
         scalaCompiler.askCompletionsAt(pos(fileInfo, point), maxResults, caseSens)
       } pipeTo sender
-
     case UsesOfSymbolAtPointReq(file, point) =>
       import context.dispatcher
       val response = if (toSourceFileInfo(file).exists()) {
@@ -328,10 +335,11 @@ object Analyzer {
   def apply(
     broadcaster: ActorRef,
     indexer: ActorRef,
-    search: SearchService
+    search: SearchService,
+    module: EnsimeProject
   )(
     implicit
     config: EnsimeConfig,
     vfs: EnsimeVFS
-  ) = Props(new Analyzer(broadcaster, indexer, search, config, vfs))
+  ) = Props(new Analyzer(broadcaster, indexer, search, module, config, vfs))
 }

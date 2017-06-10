@@ -190,6 +190,16 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     askReloadFiles(all)
   }
 
+  def askReloadAllFiles(module: EnsimeProject) = {
+    val all = {
+      for {
+        file <- module.scalaSourceFiles
+        source = createSourceFile(file)
+      } yield source
+    } ++ activeUnits().map(_.source)
+    askReloadFiles(all)
+  }
+
   def loadedFiles: List[SourceFile] = activeUnits().map(_.source)
 
   def askReloadExistingFiles() =
@@ -585,8 +595,10 @@ class RichPresentationCompiler(
           // like Eclipse is doing we would need to return:
           // List(qualifier.symbol, ap.symbol)
           List(qualifier.symbol)
+
         case st if st.symbol ne null =>
           List(st.symbol)
+
         case lit: Literal =>
           List(lit.tpe.typeSymbol)
 

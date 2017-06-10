@@ -24,7 +24,8 @@ package object config {
         if file.isFile && file.isScala
       } yield file
 
-      s.toSet
+      s
     }
   }
+
 }

@@ -113,7 +113,7 @@ class Project(
         }
       }))
 
-      scalac = context.actorOf(Analyzer(merger, indexer, searchService), "scalac")
+      scalac = context.actorOf(AnalyzerManager(merger, Analyzer(merger, indexer, searchService, _)(config, vfs)), "scalac")
       javac = context.actorOf(JavaAnalyzer(merger, indexer, searchService), "javac")
     } else {
       log.warning("Detected a pure Java project. Scala queries are not available.")
@@ -157,6 +157,7 @@ class Project(
     case m: RpcSearchRequest => indexer forward m
     case m: DocSigPair => docs forward m
 
+    case AnalyzerReadyEvent => broadcaster ! AnalyzerReadyEvent
     // added here to prevent errors when client sends this repeatedly (e.g. as a keepalive
     case ConnectionInfoReq =>
       sender() ! ConnectionInfo()

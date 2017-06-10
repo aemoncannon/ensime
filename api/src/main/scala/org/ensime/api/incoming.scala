@@ -46,6 +46,11 @@ final case class ImplicitInfoReq(
 final case class RemoveFileReq(file: File) extends RpcAnalyserRequest
 
 /**
+ * Responds with a `VoidResponse`
+ */
+final case class RemoveFilesReq(files: List[File]) extends RpcAnalyserRequest
+
+/**
  * Responds with a `VoidResponse`.
  */
 final case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
@@ -122,6 +127,7 @@ final case class DocUriAtPointReq(
  * Responds with a `StringResponse` for the URL of the documentation if valid,
  * or `FalseResponse`.
  */
+@deprecating
 final case class DocUriForSymbolReq(
   typeFullName: String,
   memberName: Option[String],
@@ -142,6 +148,7 @@ final case class CompletionsReq(
 /**
  * Responds with a `List[CompletionInfo]`.
  */
+@deprecating
 final case class PackageMemberCompletionReq(
   path: String,
   prefix: String
@@ -150,6 +157,7 @@ final case class PackageMemberCompletionReq(
 /**
  * Responds with `TypeInfo` if valid, or `FalseResponse`.
  */
+@deprecating
 final case class TypeByNameReq(name: String) extends RpcAnalyserRequest
 
 /**
@@ -186,6 +194,7 @@ final case class InspectTypeAtPointReq(file: Either[File, SourceFileInfo], range
  *
  * @param name fully qualified type name to inspect
  */
+@deprecating
 final case class InspectTypeByNameReq(name: String) extends RpcAnalyserRequest
 
 /**
@@ -202,6 +211,7 @@ final case class SymbolAtPointReq(file: Either[File, SourceFileInfo], point: Int
  * @param memberName short name of a member symbol of the qualified symbol.
  * @param signatureString to disambiguate overloaded methods.
  */
+@deprecating
 final case class SymbolByNameReq(
   typeFullName: String,
   memberName: Option[String],
@@ -211,6 +221,7 @@ final case class SymbolByNameReq(
 /**
  * Responds with `PackageInfo`.
  */
+@deprecating
 final case class InspectPackageByPathReq(path: String) extends RpcAnalyserRequest
 
 /**

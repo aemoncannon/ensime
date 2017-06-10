@@ -17,7 +17,17 @@ object AnalyzerFixture {
   private[fixture] def create(search: SearchService)(implicit system: ActorSystem, config: EnsimeConfig, vfs: EnsimeVFS): TestActorRef[Analyzer] = {
     val indexer = TestProbe()
     val projectActor = TestProbe()
-    TestActorRef(Analyzer(projectActor.ref, indexer.ref, search))
+    TestActorRef(Analyzer(projectActor.ref, indexer.ref, search, EnsimeProject(
+      EnsimeProjectId("testProject", "compile"),
+      Seq(),
+      config.projects.flatMap(_.sources).toSet,
+      config.projects.flatMap(_.targets).toSet,
+      config.compilerArgs,
+      config.projects.flatMap(_.javacOptions).distinct,
+      config.projects.flatMap(_.libraryJars).toSet,
+      config.projects.flatMap(_.librarySources).toSet,
+      config.projects.flatMap(_.libraryDocs).toSet
+    )))
   }
 }
 

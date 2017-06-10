@@ -8,8 +8,8 @@ import org.ensime.core._
 import org.ensime.fixture._
 import org.ensime.model.BasicTypeInfo
 import org.ensime.util.EnsimeSpec
-import org.ensime.util.ensimefile._
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
+import org.ensime.util.ensimefile._
 import org.ensime.util.file._
 
 class BasicWorkflow extends EnsimeSpec
@@ -37,8 +37,10 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! TypecheckModule(EnsimeProjectId("testing_simple", "compile"))
           expectMsg(VoidResponse)
-          asyncHelper.expectMsgType[NewScalaNotesEvent]
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+          all(asyncHelper.receiveN(5)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
+          }
 
           project ! TypeByNameReq("org.example.Bloo")
           expectMsgType[api.BasicTypeInfo]
@@ -47,6 +49,10 @@ class BasicWorkflow extends EnsimeSpec
           expectMsg(VoidResponse)
 
           project ! TypeByNameReq("org.example.Bloo")
+          all(asyncHelper.receiveN(5)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
+          }
           expectMsg(BasicTypeInfo("<none>", DeclaredAs.Nil, "<none>"))
 
           // trigger typeCheck
@@ -80,9 +86,17 @@ class BasicWorkflow extends EnsimeSpec
           val symbolAtPointOpt: SymbolInfo = expectMsgType[SymbolInfo]
 
           project ! TypeByNameReq("org.example.Foo")
+          all(asyncHelper.receiveN(5)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
+          }
           val fooClassByNameOpt = expectMsgType[TypeInfo]
 
           project ! TypeByNameReq("org.example.Foo$")
+          all(asyncHelper.receiveN(5)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
+          }
           val fooObjectByNameOpt = expectMsgType[TypeInfo]
 
           //-----------------------------------------------------------------------------------------------
@@ -111,6 +125,10 @@ class BasicWorkflow extends EnsimeSpec
           expectMsg(Some(intDocSig))
 
           project ! DocUriForSymbolReq("scala.Int", None, None)
+          all(asyncHelper.receiveN(5)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
+          }
           expectMsg(Some(intDocSig))
 
           project ! intDocSig
@@ -136,11 +154,10 @@ class BasicWorkflow extends EnsimeSpec
             ERangePosition(`packageFilePath`, 94, 80, 104)
           )
 
-          asyncHelper.fishForMessage() {
-            case FullTypeCheckCompleteEvent => true
-            case _ => false
+          all(asyncHelper.receiveN(2)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
           }
-
           // note that the line numbers appear to have been stripped from the
           // scala library classfiles, so offset/line comes out as zero unless
           // loaded by the pres compiler
@@ -226,8 +243,16 @@ class BasicWorkflow extends EnsimeSpec
               ) =>
           }
 
+          all(asyncHelper.receiveN(7)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+          }
+
           // C-c C-v p Inspect source of current package
           project ! InspectPackageByPathReq("org.example")
+          all(asyncHelper.receiveN(5)) should matchPattern {
+            case note: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
+          }
 
           val packageInfo = expectMsgType[PackageInfo]
           packageInfo.name shouldBe "example"
@@ -253,7 +278,6 @@ class BasicWorkflow extends EnsimeSpec
             BasicTypeInfo("Test2", DeclaredAs.Object, "org.example.Test2"),
             BasicTypeInfo("WithPolyMethod", DeclaredAs.Object, "org.example.WithPolyMethod"),
             BasicTypeInfo("WithPolyMethod", DeclaredAs.Class, "org.example.WithPolyMethod"),
-            BasicTypeInfo("package", DeclaredAs.Object, "org.example.package"),
             BasicTypeInfo("package", DeclaredAs.Object, "org.example.package")
           )
 
@@ -442,7 +466,8 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! TypecheckFilesReq(List(Left(bazFile), Right(toBeUnloaded)))
           expectMsg(VoidResponse)
-          all(asyncHelper.receiveN(2)) should matchPattern {
+
+          all(asyncHelper.receiveN(3)) should matchPattern {
             case note: NewScalaNotesEvent =>
             case FullTypeCheckCompleteEvent =>
           }
@@ -453,7 +478,6 @@ class BasicWorkflow extends EnsimeSpec
           expectMsg(VoidResponse)
           // file with warning has been unloaded
           // `NewScalaNotesEvent` should now not appear when typechecking `bazFile`
-
           project ! TypecheckFilesReq(List(Left(bazFile)))
           expectMsg(VoidResponse)
           asyncHelper.expectMsg(FullTypeCheckCompleteEvent)

@@ -47,9 +47,6 @@ final case class EnsimeConfig(
     }.toSet
   } ++ javaLibs
 
-  val allTargets: Set[File] =
-    projects.flatMap(_.targets).toSet
-
   def allDocJars: Set[File] = modules.values.flatMap(_.libraryDocs).toSet
 
   def scalaLibrary: Option[File] = allJars.find(_.getName.startsWith("scala-library"))
@@ -75,4 +72,20 @@ final case class EnsimeProject(
 
   def dependencies(implicit config: EnsimeConfig): List[EnsimeProject] =
     depends.toList.map(config.modules)
+
+  def compileClasspath: Set[File] = libraryJars ++ (if (propOrFalse("ensime.sourceMode")) List.empty else targets)
+
+}
+object EnsimeProject {
+  def wholeProject(implicit config: EnsimeConfig): EnsimeProject = new EnsimeProject(
+    EnsimeProjectId("wholeProject", "compile"),
+    Seq(),
+    config.projects.flatMap(_.sources).toSet,
+    config.projects.flatMap(_.targets).toSet,
+    config.projects.flatMap(_.scalacOptions).distinct,
+    config.projects.flatMap(_.javacOptions).distinct,
+    config.projects.flatMap(_.libraryJars).toSet,
+    config.projects.flatMap(_.librarySources).toSet,
+    config.projects.flatMap(_.libraryDocs).toSet
+  )
 }
