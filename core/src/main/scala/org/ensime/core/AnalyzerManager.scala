@@ -89,15 +89,6 @@ class AnalyzerManager(
           (_, analyzer) <- analyzers
         } analyzer forward AskReTypecheck
 
-    case req @ TypecheckAllReq =>
-      config.projects.foreach { module =>
-        getOrSpawnNew(module) forward req
-        historyOfModule += module -> LoadedFilesData(Map.empty, Loaded)
-      }
-    case req @ UnloadAllReq =>
-      analyzers.foreach {
-        case (_, analyzer) => analyzer forward req
-      }
     case req @ TypecheckModule(moduleId) =>
       withExistingModule(moduleId, req)((req, module) => {
         getOrSpawnNew(module) forward req

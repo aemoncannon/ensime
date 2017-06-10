@@ -81,17 +81,17 @@ class Analyzer(
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
 
+    val projects = scoped.map(config.modules)
+
     settings.classpath.value = {
       for {
-        scope <- scoped
-        project = config.modules(scope)
+        project <- projects
         entry <- project.classpath
       } yield entry
     }.distinct.mkString(JFile.pathSeparator)
 
     // arbitrarily pick the first project when there are multiple
-    // projects, because we don't know what else to do
-    settings.processArguments(config.projects.head.scalacOptions, processAll = false)
+    settings.processArguments(projects.head.scalacOptions, processAll = false)
 
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
@@ -184,22 +184,6 @@ class Analyzer(
   def allTheThings: PartialFunction[RpcAnalyserRequest, Unit] = {
     case RemoveFileReq(file: File) =>
       scalaCompiler.askRemoveDeleted(file)
-      sender ! VoidResponse
-    case TypecheckAllReq =>
-      allFilesMode = true
-      scalaCompiler.askRemoveAllDeleted()
-      scalaCompiler.askReloadAllFiles(scoped)
-      scalaCompiler.askNotifyWhenReady()
-      sender ! VoidResponse
-    case UnloadAllReq =>
-      if (propOrFalse("ensime.sourceMode")) {
-        log.info("in source mode, will reload all files")
-        scalaCompiler.askRemoveAllDeleted()
-        restartCompiler(keepLoaded = true)
-      } else {
-        allFilesMode = false
-        restartCompiler(keepLoaded = false)
-      }
       sender ! VoidResponse
     case TypecheckModule(moduleId) =>
       //consider the case of a project with no modules
