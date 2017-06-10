@@ -48,7 +48,7 @@ class ClassfileWatcher(
     else {
       val jarJava7WatcherBuilder = new JarJava7WatcherBuilder()
       val classJava7WatcherBuilder = new ClassJava7WatcherBuilder()
-      config.targetClasspath.map { target =>
+      config.targets.map { target =>
         if (target.isJar) {
           if (log.isTraceEnabled())
             log.trace(s"creating a Java 7 jar watcher for ${target}")

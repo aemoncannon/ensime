@@ -114,10 +114,10 @@ object EnsimeConfigFixture {
 
     def rename(from: File): File = {
       val toPath = from.getAbsolutePath.replace(
-        source.root.getAbsolutePath,
+        source.rootDir.getAbsolutePath,
         target.getAbsolutePath
       )
-      require(toPath != from.getAbsolutePath, s"${source.root.getAbsolutePath} ${target.getAbsolutePath} in ${from.getAbsolutePath}")
+      require(toPath != from.getAbsolutePath, s"${source.rootDir.getAbsolutePath} ${target.getAbsolutePath} in ${from.getAbsolutePath}")
       File(toPath)
     }
 
@@ -160,7 +160,7 @@ object EnsimeConfigFixture {
       file.writeLines(file.readLines())
     }
 
-    if (preWarm && (config.compileClasspath ++ config.javaLibs).nonEmpty)
+    if (preWarm && (config.classpath ++ config.javaLibs).nonEmpty)
       EnsimeCacheProject.foreach { cacheProject =>
         log.info(s"copying ${cacheProject.cacheDir}")
         cacheProject.cacheDir.toPath.copyDirTo(config.cacheDir.toPath)

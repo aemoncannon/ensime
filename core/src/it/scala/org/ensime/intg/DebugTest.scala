@@ -627,7 +627,7 @@ object VMStarter extends SLF4JLogging {
     // would be nice to have ephemeral debug ports
     val port = 5000 + scala.util.Random.nextInt(1000)
 
-    val classpath = (config.compileClasspath ++ config.targetClasspath).mkString(File.pathSeparator)
+    val classpath = config.classpath.mkString(File.pathSeparator)
     val args = Seq(
       java,
       "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=" + port,

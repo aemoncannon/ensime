@@ -54,7 +54,7 @@ class Analyzer(
     broadcaster: ActorRef,
     indexer: ActorRef,
     search: SearchService,
-    module: EnsimeProject,
+    project: EnsimeProject,
     implicit val config: EnsimeConfig,
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
@@ -63,7 +63,6 @@ class Analyzer(
   import FileUtils._
 
   private var allFilesMode = false
-
   private var settings: Settings = _
   private var reporter: PresentationReporter = _
 
@@ -81,8 +80,8 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-    settings.classpath.value = module.compileClasspath.mkString(JFile.pathSeparator)
-    settings.processArguments(module.scalacOptions, processAll = false)
+    settings.classpath.value = project.classpath.mkString(JFile.pathSeparator)
+    settings.processArguments(project.scalacOptions, processAll = false)
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
     reporter = new PresentationReporter(new ReportHandler {
@@ -105,7 +104,7 @@ class Analyzer(
 
     // each analyzer must load files  of its module
     if (propOrFalse("ensime.sourceMode"))
-      scalaCompiler.askReloadAllFiles(module)
+      scalaCompiler.askReloadAllFiles(project)
 
   }
 
