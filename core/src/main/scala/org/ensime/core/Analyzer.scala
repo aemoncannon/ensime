@@ -185,6 +185,16 @@ class Analyzer(
     case RemoveFileReq(file: File) =>
       scalaCompiler.askRemoveDeleted(file)
       sender ! VoidResponse
+    case UnloadAllReq =>
+      if (propOrFalse("ensime.sourceMode")) {
+        log.info("in source mode, will reload all files")
+        scalaCompiler.askRemoveAllDeleted()
+        restartCompiler(keepLoaded = true)
+      } else {
+        allFilesMode = false
+        restartCompiler(keepLoaded = false)
+      }
+      sender ! VoidResponse
     case TypecheckModule(moduleId) =>
       //consider the case of a project with no modules
       config.modules get (moduleId) foreach {

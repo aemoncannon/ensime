@@ -67,6 +67,11 @@ final case class TypecheckModule(moduleId: EnsimeProjectId) extends RpcAnalyserR
 /**
  * Responds with a `VoidResponse`.
  */
+case object UnloadAllReq extends RpcAnalyserRequest
+
+/**
+ * Responds with a `VoidResponse`.
+ */
 final case class TypecheckFilesReq(files: List[Either[File, SourceFileInfo]]) extends RpcAnalyserRequest
 
 // related to searching the indexer
