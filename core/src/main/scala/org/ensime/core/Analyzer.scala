@@ -160,9 +160,9 @@ class Analyzer(
   }
 
   def ready: Receive = withLabel("ready") {
-    case ReloadExistingFilesEvent if allFilesMode =>
+    case AskReTypecheck if allFilesMode =>
       log.info("Skipping reload, in all-files mode")
-    case ReloadExistingFilesEvent =>
+    case AskReTypecheck =>
       restartCompiler(keepLoaded = true)
 
     case FullTypeCheckCompleteEvent =>
@@ -207,13 +207,6 @@ class Analyzer(
         module =>
           val files: Set[SourceFileInfo] = module.scalaSourceFiles.map(s => SourceFileInfo(EnsimeFile(s), None, None))(breakOut)
           sender ! scalaCompiler.handleReloadFiles(files)
-      }
-    case UnloadModuleReq(moduleId) =>
-      config.modules get (moduleId) foreach {
-        module =>
-          val files = module.scalaSourceFiles.toList
-          files.foreach(scalaCompiler.askRemoveDeleted)
-          sender ! VoidResponse
       }
     case TypecheckFileReq(fileInfo) =>
       sender ! scalaCompiler.handleReloadFiles(Set(fileInfo))

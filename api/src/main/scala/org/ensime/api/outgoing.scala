@@ -134,9 +134,6 @@ final case class DebugThreadDeathEvent(threadId: DebugThreadId) extends DebugEve
 /** Communicates stdout/stderr of debugged VM to client. */
 final case class DebugOutputEvent(body: String) extends DebugEvent
 
-case object ReloadExistingFilesEvent
-case object AskReTypecheck
-
 case object VoidResponse extends RpcResponse
 
 final case class RefactorFailure(

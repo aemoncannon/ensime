@@ -29,57 +29,42 @@ trait ModuleFinder {
 
 class AnalyzerManager(
     broadcaster: ActorRef,
-    analyzerCreator: List[EnsimeProject] => Props,
+    analyzerCreator: List[EnsimeProjectId] => Props,
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with ModuleFinder with Stash {
 
   // for legacy requests, the all-seeing analyzer
   private var sauron: ActorRef = _
-  // FIXME = analyzerCreator(config.projects)
-3
-  // maps the active modules to their analyzers
-  private var analyzers: Map[EnsimeProject, ActorRef] = Map.empty
+  // FIXME if we always create a fresh sauron for legacy requests, it
+  //       dramatically simplifies our state management. Otherwise,
+  //       we'll need some kind of stashing actor as a wrapper.
 
-  // FIXME: should we perhaps have child actors to manage the state?
-  //        It is very awkward to have to update this all the time.
-  private var userState: Map[EnsimeProject, List[SourceFileInfo]] = Map.empty
+  // maps the active modules to their analyzers
+  private var analyzers: Map[EnsimeProjectId, ActorRef] = Map.empty
+
+  // we manage the list of files that the user has opened so that when
+  // we need to spawn a fresh analyzer (e.g. if the old one was shut
+  // down due to inactivity) it has the correct files loaded.
+  private var userState: Map[EnsimeProjectId, List[SourceFileInfo]] = Map.empty
+
+  private def getOrSpawnNew(id: EnsimeProjectId): ActorRef =
+    analyzers.get(id) match {
+      case Some(analyzer) => analyzer
+      case None =>
+        val name = s"${id.project}_${id.config}"
+        val newAnalyzer = context.actorOf(analyzerCreator(id :: Nil), name)
+        analyzers += (id -> newAnalyzer)
+        newAnalyzer
+    }
 
   override def preStart(): Unit = {
-    config.projects foreach (p => historyOfModule += (p -> LoadedFilesData(Map.empty, NotLoaded)))
+    config.projects foreach { p => userState += (p.id -> Nil) }
 
     broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
     broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
   }
 
-  override def receive: Receive = ready
-
-  private def ready: Receive = withLabel("ready") {
-    case ReloadExistingFilesEvent =>
-      if (analyzers.isEmpty)
-        broadcaster ! AnalyzerReadyEvent
-      else
-        for {
-          (module, analyzer) <- analyzers
-        } analyzer forward ReloadExistingFilesEvent
-    case req: RpcAnalyserRequest =>
-      forwardToAnalyzer(req)
-  }
-
-  private def getOrSpawnNew(module: EnsimeProject): ActorRef =
-    analyzers.get(module) match {
-      case Some(analyzer) => analyzer
-      case None =>
-        // spawn a new analyzer and attach it to module
-        val newAnalyzer = context.actorOf(analyzerCreator(module))
-        analyzers = analyzers + (module -> newAnalyzer)
-        newAnalyzer
-    }
-
-  def toFile(f: SourceFileInfo) = f.file match {
-    case RawFile(path) => path.toFile
-    case file: ArchiveFile => File(file.fullPath) // not sure
-  }
-
+  /*
   def update(loadedFilesData: LoadedFilesData)(f: (Map[SourceFileInfo, FileStatus], FileStatus) => LoadedFilesData) =
     f(loadedFilesData.statusOfFile, loadedFilesData.default)
 
@@ -90,24 +75,36 @@ class AnalyzerManager(
     val ld = historyOfModule(module)
     allSourceFiles(module) filter (ld.statusOfFile.getOrElse(_, ld.default) == Removed)
   }
+   */
 
+  // FIXME : I'm not convinced we need the borrow pattern here, it seems to introduce as much boilerplate as it removes?
   private def withExistingModuleFor(fileInfo: SourceFileInfo, req: RpcAnalyserRequest)(f: (RpcAnalyserRequest, EnsimeProject) => Unit): Unit =
     getModule(fileInfo.file) match {
       case Some(module) =>
         f(req, module)
       case None =>
-        sender ! EnsimeServerError("Update .ensime file.")
+        sender ! EnsimeServerError(s"Couldn't find the project for ${fileInfo.file}")
     }
 
-  private def withExistingModule(moduleId: EnsimeProjectId, req: RpcAnalyserRequest)(f: (RpcAnalyserRequest, EnsimeProject) => Unit) =
-    config.projects.find(_.id == moduleId) match {
-      case Some(module) =>
-        f(req, module)
+  private def withExistingModule(id: EnsimeProjectId, req: RpcAnalyserRequest)(f: (RpcAnalyserRequest, EnsimeProject) => Unit) =
+    config.modules.get(id) match {
+      case Some(project) =>
+        f(req, project)
       case None =>
-        sender ! EnsimeServerError("Update .ensime file.")
+        sender ! EnsimeServerError(s"Couldn't find project ${id}")
     }
 
-  private def forwardToAnalyzer: PartialFunction[RpcAnalyserRequest, Unit] = {
+  override def receive: Receive = ready
+
+  private def ready: Receive = withLabel("ready") {
+    case AskReTypecheck =>
+      if (analyzers.isEmpty)
+        broadcaster ! AnalyzerReadyEvent
+      else
+        for {
+          (_, analyzer) <- analyzers
+        } analyzer forward AskReTypecheck
+
     case req @ TypecheckAllReq =>
       config.projects.foreach { module =>
         getOrSpawnNew(module) forward req

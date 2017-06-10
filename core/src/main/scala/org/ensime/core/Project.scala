@@ -21,6 +21,8 @@ import org.ensime.util.ensimefile._
 
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
+case object AskReTypecheck
+
 /**
  * The Project actor simply forwards messages coming from the user to
  * the respective subcomponent.
@@ -131,13 +133,12 @@ class Project(
     Try(vfs.close())
   }
 
-  // debounces ReloadExistingFilesEvent
+  // debounces AskReTypecheck
   private var rechecking: Cancellable = _
 
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case AskReTypecheck =>
-      scalac ! ReloadExistingFilesEvent
+    case AskReTypecheck => scalac ! AskReTypecheck
     // HACK: to expedite initial dev, Java requests use the Scala API
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
     case m @ CompletionsReq(sfi, _, _, _, _) if sfi.file.isJava => javac forward m

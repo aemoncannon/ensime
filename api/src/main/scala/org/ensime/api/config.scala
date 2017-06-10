@@ -38,7 +38,7 @@ final case class EnsimeConfig(
   // FIXME: move these
   val targets: Set[File] = modules.values.flatMap(_.targets)(breakOut)
   // can't be a val because of the implicit
-//  def classpath: Set[File] = modules.values.flatMap(m => m.classpath(this))(breakOut)
+  //  def classpath: Set[File] = modules.values.flatMap(m => m.classpath(this))(breakOut)
 
   val allDocJars: Set[File] = modules.values.flatMap(_.libraryDocs)(breakOut)
   val scalaLibrary: Option[File] = modules.values.flatMap(_.libraryJars).find { f =>
