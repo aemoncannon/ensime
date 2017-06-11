@@ -54,13 +54,13 @@ final case class SendBackgroundMessageEvent(
   code: Int = 105
 ) extends GeneralSwankEvent
 
-/** The presentation compiler is ready to accept requests. */
+@deprecating("https://github.com/ensime/ensime-server/issues/1789")
 case object AnalyzerReadyEvent extends GeneralSwankEvent
 
-/** The presentation compiler has finished analysing the entire project. */
+@deprecating("https://github.com/ensime/ensime-server/issues/1789")
 case object FullTypeCheckCompleteEvent extends GeneralSwankEvent
 
-/** The search engine has finished indexing the classpath. */
+@deprecating("https://github.com/ensime/ensime-server/issues/1789")
 case object IndexerReadyEvent extends GeneralSwankEvent
 
 /** The presentation compiler was restarted. Existing `:type-id`s are invalid. */
@@ -133,9 +133,6 @@ final case class DebugThreadDeathEvent(threadId: DebugThreadId) extends DebugEve
 
 /** Communicates stdout/stderr of debugged VM to client. */
 final case class DebugOutputEvent(body: String) extends DebugEvent
-
-case object ReloadExistingFilesEvent
-case object AskReTypecheck
 
 case object VoidResponse extends RpcResponse
 

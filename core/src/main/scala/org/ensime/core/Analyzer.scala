@@ -54,6 +54,7 @@ class Analyzer(
     broadcaster: ActorRef,
     indexer: ActorRef,
     search: SearchService,
+    scoped: List[EnsimeProjectId],
     implicit val config: EnsimeConfig,
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
@@ -62,7 +63,6 @@ class Analyzer(
   import FileUtils._
 
   private var allFilesMode = false
-
   private var settings: Settings = _
   private var reporter: PresentationReporter = _
 
@@ -80,8 +80,19 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-    settings.classpath.value = config.compileClasspath.mkString(JFile.pathSeparator)
-    settings.processArguments(config.compilerArgs, processAll = false)
+
+    val projects = scoped.map(config.modules)
+
+    settings.classpath.value = {
+      for {
+        project <- projects
+        entry <- project.classpath
+      } yield entry
+    }.distinct.mkString(JFile.pathSeparator)
+
+    // arbitrarily pick the first project when there are multiple
+    settings.processArguments(projects.head.scalacOptions, processAll = false)
+
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
     reporter = new PresentationReporter(new ReportHandler {
@@ -98,11 +109,14 @@ class Analyzer(
     reporter.disable() // until we start up
 
     scalaCompiler = makeScalaCompiler()
-
     broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
 
     scalaCompiler.askNotifyWhenReady()
-    if (propOrFalse("ensime.sourceMode")) scalaCompiler.askReloadAllFiles()
+
+    // each analyzer must load files  of its module
+    if (propOrFalse("ensime.sourceMode"))
+      scalaCompiler.askReloadAllFiles(scoped)
+
   }
 
   protected def makeScalaCompiler() = new RichPresentationCompiler(
@@ -132,10 +146,12 @@ class Analyzer(
   def startup: Receive = withLabel("startup") {
     case FullTypeCheckCompleteEvent =>
       reporter.enable()
+
+      // FIXME: think about this
       // legacy clients expect to see AnalyzerReady and a
       // FullTypeCheckCompleteEvent on connection.
-      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
-      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
+      //      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
+      //      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
       context.become(ready)
       unstashAll()
 
@@ -144,13 +160,15 @@ class Analyzer(
   }
 
   def ready: Receive = withLabel("ready") {
-    case ReloadExistingFilesEvent if allFilesMode =>
+    case AskReTypecheck if allFilesMode =>
       log.info("Skipping reload, in all-files mode")
-    case ReloadExistingFilesEvent =>
+    case AskReTypecheck =>
       restartCompiler(keepLoaded = true)
 
     case FullTypeCheckCompleteEvent =>
       broadcaster ! FullTypeCheckCompleteEvent
+      // FIXME: why do we need to tell the parent?
+      context.parent ! FullTypeCheckCompleteEvent
 
     case req: RpcAnalyserRequest =>
       // fommil: I'm not entirely sure about the logic of
@@ -166,12 +184,6 @@ class Analyzer(
   def allTheThings: PartialFunction[RpcAnalyserRequest, Unit] = {
     case RemoveFileReq(file: File) =>
       scalaCompiler.askRemoveDeleted(file)
-      sender ! VoidResponse
-    case TypecheckAllReq =>
-      allFilesMode = true
-      scalaCompiler.askRemoveAllDeleted()
-      scalaCompiler.askReloadAllFiles()
-      scalaCompiler.askNotifyWhenReady()
       sender ! VoidResponse
     case UnloadAllReq =>
       if (propOrFalse("ensime.sourceMode")) {
@@ -190,13 +202,6 @@ class Analyzer(
           val files: Set[SourceFileInfo] = module.scalaSourceFiles.map(s => SourceFileInfo(EnsimeFile(s), None, None))(breakOut)
           sender ! scalaCompiler.handleReloadFiles(files)
       }
-    case UnloadModuleReq(moduleId) =>
-      config.modules get (moduleId) foreach {
-        module =>
-          val files = module.scalaSourceFiles.toList
-          files.foreach(scalaCompiler.askRemoveDeleted)
-          sender ! VoidResponse
-      }
     case TypecheckFileReq(fileInfo) =>
       sender ! scalaCompiler.handleReloadFiles(Set(fileInfo))
     case TypecheckFilesReq(files) =>
@@ -209,7 +214,6 @@ class Analyzer(
         reporter.disable()
         scalaCompiler.askCompletionsAt(pos(fileInfo, point), maxResults, caseSens)
       } pipeTo sender
-
     case UsesOfSymbolAtPointReq(file, point) =>
       import context.dispatcher
       val response = if (toSourceFileInfo(file).exists()) {
@@ -328,10 +332,11 @@ object Analyzer {
   def apply(
     broadcaster: ActorRef,
     indexer: ActorRef,
-    search: SearchService
+    search: SearchService,
+    scoped: List[EnsimeProjectId]
   )(
     implicit
     config: EnsimeConfig,
     vfs: EnsimeVFS
-  ) = Props(new Analyzer(broadcaster, indexer, search, config, vfs))
+  ) = Props(new Analyzer(broadcaster, indexer, search, scoped, config, vfs))
 }

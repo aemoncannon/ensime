@@ -7,24 +7,32 @@ import Predef.{ any2stringadd => _, _ => _ }
 import org.ensime.api._
 import org.ensime.util.file._
 
-import scala.collection.breakOut
-
 package object config {
 
   implicit class RichEnsimeConfig(val c: EnsimeConfig) extends AnyVal {
-    def scalaSourceFiles: Set[File] =
-      c.modules.values.flatMap((m: EnsimeProject) => m.scalaSourceFiles)(breakOut)
+    // we should really be using NIO instead of strings...
+    def find(path: String): Option[EnsimeProject] =
+      c.projects.find(_.sources.exists(f => path.startsWith(f.getPath)))
+    def find(file: File): Option[EnsimeProject] = find(file.getPath)
+    def find(file: EnsimeFile): Option[EnsimeProject] = file match {
+      case RawFile(file) => find(file.toFile)
+      case ArchiveFile(jar, _) => find(jar.toFile)
+    }
+    def find(file: SourceFileInfo): Option[EnsimeProject] = find(file.file)
+
+    // def find(file: Either[File, SourceFileInfo]): Option[EnsimeProject] = file match {
+    //   case Left(f) => find(f)
+    //   case Right(sourceFileInfo) => find(sourceFileInfo)
+    // }
   }
 
   implicit class RichEnsimeModule(val m: EnsimeProject) extends AnyVal {
-    def scalaSourceFiles: Set[File] = {
-      val s = for {
-        root <- m.sources
-        file <- root.tree
-        if file.isFile && file.isScala
-      } yield file
+    def scalaSourceFiles: Set[File] = for {
+      root <- m.sources
+      file <- root.tree
+      if file.isFile && file.isScala
+    } yield file
 
-      s.toSet
-    }
   }
+
 }

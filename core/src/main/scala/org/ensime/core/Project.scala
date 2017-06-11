@@ -21,6 +21,8 @@ import org.ensime.util.ensimefile._
 
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
+case object AskReTypecheck
+
 /**
  * The Project actor simply forwards messages coming from the user to
  * the respective subcomponent.
@@ -113,7 +115,7 @@ class Project(
         }
       }))
 
-      scalac = context.actorOf(Analyzer(merger, indexer, searchService), "scalac")
+      scalac = context.actorOf(AnalyzerManager(merger, Analyzer(merger, indexer, searchService, _)(config, vfs)), "scalac")
       javac = context.actorOf(JavaAnalyzer(merger, indexer, searchService), "javac")
     } else {
       log.warning("Detected a pure Java project. Scala queries are not available.")
@@ -131,13 +133,12 @@ class Project(
     Try(vfs.close())
   }
 
-  // debounces ReloadExistingFilesEvent
+  // debounces AskReTypecheck
   private var rechecking: Cancellable = _
 
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case AskReTypecheck =>
-      scalac ! ReloadExistingFilesEvent
+    case AskReTypecheck => scalac ! AskReTypecheck
     // HACK: to expedite initial dev, Java requests use the Scala API
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
     case m @ CompletionsReq(sfi, _, _, _, _) if sfi.file.isJava => javac forward m
@@ -157,6 +158,7 @@ class Project(
     case m: RpcSearchRequest => indexer forward m
     case m: DocSigPair => docs forward m
 
+    case AnalyzerReadyEvent => broadcaster ! AnalyzerReadyEvent
     // added here to prevent errors when client sends this repeatedly (e.g. as a keepalive
     case ConnectionInfoReq =>
       sender() ! ConnectionInfo()

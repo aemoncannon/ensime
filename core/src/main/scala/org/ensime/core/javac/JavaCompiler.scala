@@ -39,7 +39,7 @@ class JavaCompiler(
 
   private val listener = new JavaDiagnosticListener()
   private val silencer = new SilencedDiagnosticListener()
-  private val cp = (config.allJars ++ config.targetClasspath).mkString(JFile.pathSeparator)
+  private val cp = config.classpath.mkString(JFile.pathSeparator)
   private val workingSet = new ConcurrentHashMap[String, JavaFileObject]()
 
   private implicit def charset = Charset.defaultCharset() // how can we infer this?

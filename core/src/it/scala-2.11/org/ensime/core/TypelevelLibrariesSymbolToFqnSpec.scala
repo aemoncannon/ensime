@@ -29,7 +29,9 @@ class TypelevelLibrariesSymbolToFqnSpec extends EnsimeSpec
 
   it should "index all class file in typelevel libraries" in withPresCompiler { (config, cc) =>
     val vfs = cc.vfs
-    val jars = config.allJars.filter(!_.getName.contains("macro-compat"))
+    val jars = config.compileClasspath
+      .filter(_.getName.endsWith(".jar"))
+      .filter(!_.getName.contains("macro-compat"))
     jars.foreach { file =>
       val jar = vfs.vjar(file)
       val classes = (jar.findFiles(ClassfileSelector) match {
