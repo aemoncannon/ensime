@@ -215,8 +215,8 @@ object EnsimeBuild {
     dtf.format(new java.util.Date())
   }
 
-  val luceneVersion = "6.4.2"
-  val nettyVersion = "4.1.11.Final"
+  val luceneVersion = "6.4.2" // 6.6 deprecates index time boosting
+  val nettyVersion = "4.1.12.Final"
   lazy val server = Project("server", file("server")).dependsOn(
     core, swanky, jerky,
     s_express % "test->test",
@@ -265,12 +265,12 @@ object EnsimeBuild {
 
   private def akkaVersion: Def.Initialize[String] = Def.setting {
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, minor)) if minor >= 11 => "2.4.18"
+      case Some((2, minor)) if minor >= 11 => "2.5.2"
       case Some((2, 10)) => "2.3.16"
     }
   }
 
-  private val orientVersion = "2.2.20"
+  private val orientVersion = "2.2.21"
 }
 
 // projects used in the integration tests, not published
