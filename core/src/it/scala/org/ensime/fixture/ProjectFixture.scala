@@ -47,6 +47,12 @@ object ProjectFixture extends Matchers {
       case DebugVmDisconnectEvent => true
       case ClearAllScalaNotesEvent => true
       case ClearAllJavaNotesEvent => true
+
+      // on windows we get a NewScalaNotesEvent warning from Predef
+      // about precedure syntax. We have no idea what is loading
+      // Predef and why it only happens on Windows
+      case NewScalaNotesEvent(_, notes) if notes.head.file.endsWith("Predef.scala") => true
+
     }
 
     val project = TestActorRef[Project](Project(probe.ref), "project")
