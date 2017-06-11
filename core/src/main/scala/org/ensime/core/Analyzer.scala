@@ -276,14 +276,6 @@ class Analyzer(
         val sourceFile = createSourceFile(fileInfo)
         StructureView(scalaCompiler.askStructure(sourceFile))
       }
-    case AstAtPointReq(file, offset) =>
-      sender ! withExisting(file) {
-        val p = pos(file, offset)
-        scalaCompiler.askLoadedTyped(p.source)
-        val ast = scalaCompiler.locateTree(p)
-        val rawAst = scalaCompiler.askRaw(ast)
-        AstInfo(rawAst)
-      }
     case UnloadFileReq(file) =>
       scalaCompiler.askUnloadFile(file)
       sender ! VoidResponse

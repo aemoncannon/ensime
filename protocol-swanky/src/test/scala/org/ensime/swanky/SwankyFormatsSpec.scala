@@ -185,11 +185,6 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      AstAtPointReq(sourceFileInfo, OffsetRange(1, 100)): RpcRequest,
-      s"""(:ensime-api-ast-at-point-req (:file (:file "$file1" :contents "{/* code here */}" :contents-in "$file2") :offset (:from 1 :to 100)))"""
-    )
-
-    roundtrip(
       UnloadFileReq(sourceFileInfo2): RpcRequest,
       s"""(:ensime-api-unload-file-req (:file-info (:file "$file1")))"""
     )
@@ -538,11 +533,6 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     roundtrip(
       structureView: StructureView,
       s"""(:ensime-api-structure-view (:view ((:keyword "class" :name "StructureView" :position (:ensime-api-line-source-position (:file "$file1" :line 57))) (:keyword "object" :name "StructureView" :position (:ensime-api-line-source-position (:file "$file1" :line 59)) :members ((:keyword "type" :name "BasicType" :position (:ensime-api-offset-source-position (:file "$file1" :offset 456))))))))"""
-    )
-
-    roundtrip(
-      astInfo: AstInfo,
-      """(:ensime-api-ast-info (:ast "List(Apply(Select(Literal(Constant(1)), TermName(\"$plus\")), List(Literal(Constant(1)))))"))"""
     )
   }
 

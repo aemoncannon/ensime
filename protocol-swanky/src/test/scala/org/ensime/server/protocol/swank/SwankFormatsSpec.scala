@@ -205,11 +205,6 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     unmarshal(
-      s"""(swank:ast-at-point (:file "$file1" :contents "{/* code here */}" :contents-in "$file2") (1 100))""",
-      AstAtPointReq(sourceFileInfo, OffsetRange(1, 100)): RpcRequest
-    )
-
-    unmarshal(
       s"""(swank:unload-file (:file "$file1"))""",
       UnloadFileReq(sourceFileInfo2): RpcRequest
     )
@@ -551,11 +546,6 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     marshal(
       structureView: StructureView,
       s"""(:view ((:keyword "class" :name "StructureView" :position (:type line :file "$file1" :line 57)) (:keyword "object" :name "StructureView" :position (:type line :file "$file1" :line 59) :members ((:keyword "type" :name "BasicType" :position (:type offset :file "$file1" :offset 456))))))"""
-    )
-
-    marshal(
-      astInfo: AstInfo,
-      """(:ast "List(Apply(Select(Literal(Constant(1)), TermName(\"$plus\")), List(Literal(Constant(1)))))")"""
     )
   }
 
