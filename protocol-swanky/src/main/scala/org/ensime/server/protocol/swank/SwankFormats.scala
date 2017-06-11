@@ -606,9 +606,25 @@ object SwankProtocolRequest {
     }
   }
 
+  implicit object ReloadStrategyFormat extends SexpFormat[ReloadStrategy] {
+    def write(ns: ReloadStrategy): Sexp = ns match {
+      case ReloadStrategy.UnloadAll => SexpSymbol("unload")
+      case ReloadStrategy.LoadProject => SexpSymbol("load")
+      case ReloadStrategy.KeepLoaded => SexpSymbol("keep")
+    }
+    def read(s: Sexp): ReloadStrategy = s match {
+      case SexpSymbol("unload") => ReloadStrategy.UnloadAll
+      case SexpSymbol("load") => ReloadStrategy.LoadProject
+      case SexpSymbol("keep") => ReloadStrategy.KeepLoaded
+      case _ => deserializationError(s)
+    }
+  }
+
   implicit val ConnectionInfoReqHint: TypeHint[ConnectionInfoReq.type] = TypeHint[ConnectionInfoReq.type](SexpSymbol("swank:connection-info"))
 
   implicit val RemoveFileReqHint: TypeHint[RemoveFileReq] = TypeHint[RemoveFileReq](SexpSymbol("swank:remove-file"))
+  implicit val UnloadFilesReqHint: TypeHint[UnloadFilesReq] = TypeHint[UnloadFilesReq](SexpSymbol("swank:unload-files"))
+  implicit val RestartScalaCompilerReqHint: TypeHint[RestartScalaCompilerReq] = TypeHint[RestartScalaCompilerReq](SexpSymbol("swank:restart-scala-compiler"))
   implicit val UnloadFileReqHint: TypeHint[UnloadFileReq] = TypeHint[UnloadFileReq](SexpSymbol("swank:unload-file"))
   implicit val TypecheckFileReqHint: TypeHint[TypecheckFileReq] = TypeHint[TypecheckFileReq](SexpSymbol("swank:typecheck-file"))
   implicit val TypecheckFilesReqHint: TypeHint[TypecheckFilesReq] = TypeHint[TypecheckFilesReq](SexpSymbol("swank:typecheck-files"))
@@ -765,6 +781,7 @@ object SwankProtocolRequest {
   // incoming messages
   implicit def RemoveFileReqFormat: SexpFormat[RemoveFileReq] = { def RemoveFileReqFormat = ???; implicitly[SexpFormat[RemoveFileReq]] }
   implicit def UnloadFileReqFormat: SexpFormat[UnloadFileReq] = { def UnloadFileReqFormat = ???; implicitly[SexpFormat[UnloadFileReq]] }
+  implicit def UnloadFilesReqFormat: SexpFormat[UnloadFilesReq] = { def UnloadFilesReqFormat = ???; implicitly[SexpFormat[UnloadFilesReq]] }
   implicit def TypecheckFileReqFormat: SexpFormat[TypecheckFileReq] = { def TypecheckFileReqFormat = ???; implicitly[SexpFormat[TypecheckFileReq]] }
   implicit def TypecheckFilesReqFormat: SexpFormat[TypecheckFilesReq] = { def TypecheckFilesReqFormat = ???; implicitly[SexpFormat[TypecheckFilesReq]] }
   implicit def PublicSymbolSearchHint: SexpFormat[PublicSymbolSearchReq] = { def PublicSymbolSearchHint = ???; implicitly[SexpFormat[PublicSymbolSearchReq]] }
@@ -807,6 +824,8 @@ object SwankProtocolRequest {
         kind match {
           case s if s == ConnectionInfoReqHint.hint => ConnectionInfoReq
           case s if s == RemoveFileReqHint.hint => value.convertTo[RemoveFileReq]
+          case s if s == RestartScalaCompilerReqHint.hint => value.convertTo[RestartScalaCompilerReq]
+          case s if s == UnloadFilesReqHint.hint => value.convertTo[UnloadFilesReq]
           case s if s == UnloadFileReqHint.hint => value.convertTo[UnloadFileReq]
           case s if s == TypecheckFileReqHint.hint => value.convertTo[TypecheckFileReq]
           case s if s == TypecheckFilesReqHint.hint => value.convertTo[TypecheckFilesReq]

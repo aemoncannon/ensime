@@ -84,8 +84,8 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     unmarshal(
-      """(swank:unload-all)""",
-      UnloadAllReq: RpcRequest
+      """(swank:restart-scala-compiler nil keep)""",
+      RestartScalaCompilerReq(None, ReloadStrategy.KeepLoaded): RpcRequest
     )
 
     unmarshal(
