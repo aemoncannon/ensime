@@ -155,17 +155,6 @@ final case class DocUriAtPointReq(
 ) extends RpcAnalyserRequest
 
 /**
- * Responds with a `StringResponse` for the URL of the documentation if valid,
- * or `FalseResponse`.
- */
-@deprecating("https://github.com/ensime/ensime-server/issues/1787")
-final case class DocUriForSymbolReq(
-  typeFullName: String,
-  memberName: Option[String],
-  signatureString: Option[String]
-) extends RpcAnalyserRequest
-
-/**
  * Responds with a `CompletionInfoList`.
  */
 final case class CompletionsReq(
@@ -174,29 +163,6 @@ final case class CompletionsReq(
   maxResults: Int,
   caseSens: Boolean,
   reload: Boolean
-) extends RpcAnalyserRequest
-
-/**
- * Responds with a `List[CompletionInfo]`.
- */
-@deprecating("https://github.com/ensime/ensime-server/issues/1787")
-final case class PackageMemberCompletionReq(
-  path: String,
-  prefix: String
-) extends RpcAnalyserRequest
-
-/**
- * Responds with `TypeInfo` if valid, or `FalseResponse`.
- */
-@deprecating("https://github.com/ensime/ensime-server/issues/1787")
-final case class TypeByNameReq(name: String) extends RpcAnalyserRequest
-
-/**
- * Responds with `TypeInfo` if valid, or `FalseResponse`.
- */
-@deprecating("https://github.com/ensime/ensime-server/issues/1787")
-final case class TypeByNameAtPointReq(
-  name: String, file: Either[File, SourceFileInfo], range: OffsetRange
 ) extends RpcAnalyserRequest
 
 /**
@@ -219,42 +185,9 @@ final case class TypeAtPointReq(
 final case class InspectTypeAtPointReq(file: Either[File, SourceFileInfo], range: OffsetRange) extends RpcAnalyserRequest
 
 /**
- * Request detailed type description by fully qualified class name.
- *
- * Responds with a `TypeInspectInfo` if the FQN is valid, or
- * `FalseResponse`.
- *
- * @param name fully qualified type name to inspect
- */
-@deprecating("https://github.com/ensime/ensime-server/issues/1787")
-final case class InspectTypeByNameReq(name: String) extends RpcAnalyserRequest
-
-/**
  * Responds with a `SymbolInfo` if valid, or `FalseResponse`.
  */
 final case class SymbolAtPointReq(file: Either[File, SourceFileInfo], point: Int) extends RpcAnalyserRequest
-
-/**
- * Request detailed symbol description by fully qualified symbol name.
- *
- * Responds with a `SymbolInfo` if valid, or `FalseResponse`.
- *
- * @param typeFullName fully qualified name of a type, object or package.
- * @param memberName short name of a member symbol of the qualified symbol.
- * @param signatureString to disambiguate overloaded methods.
- */
-@deprecating("https://github.com/ensime/ensime-server/issues/1787")
-final case class SymbolByNameReq(
-  typeFullName: String,
-  memberName: Option[String],
-  signatureString: Option[String]
-) extends RpcAnalyserRequest
-
-/**
- * Responds with `PackageInfo`.
- */
-@deprecating("https://github.com/ensime/ensime-server/issues/1787")
-final case class InspectPackageByPathReq(path: String) extends RpcAnalyserRequest
 
 /**
  * Responds with a `RefactorFailure` or a `RefactorDiffEffect`.

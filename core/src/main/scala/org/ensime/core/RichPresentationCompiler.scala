@@ -131,6 +131,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askTypeInfoByName(name: String): Option[TypeInfo] =
     askOption(TypeInfo(toSymbol(name).tpe, PosNeededYes))
 
+  // FIXME delete unused PC methods
   def askTypeInfoByNameAt(name: String, p: Position): Option[TypeInfo] = {
     val nameSegs = name.split("\\.")
     val firstName: String = nameSegs.head

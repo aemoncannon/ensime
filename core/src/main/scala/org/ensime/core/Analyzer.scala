@@ -214,46 +214,27 @@ class Analyzer(
         uses.map(positions => ERangePositions(positions.map(ERangePositionHelper.fromRangePosition)))
       } else Future.successful(EnsimeServerError(s"File does not exist: ${file.file}"))
       pipe(response) to sender
-    case PackageMemberCompletionReq(path: String, prefix: String) =>
-      val members = scalaCompiler.askCompletePackageMember(path, prefix)
-      sender ! members
     case InspectTypeAtPointReq(file, range: OffsetRange) =>
       sender ! withExisting(file) {
         val p = pos(file, range)
         scalaCompiler.askLoadedTyped(p.source)
         scalaCompiler.askInspectTypeAt(p).getOrElse(FalseResponse)
       }
-    case InspectTypeByNameReq(name: String) =>
-      sender ! scalaCompiler.askInspectTypeByName(name).getOrElse(FalseResponse)
     case SymbolAtPointReq(file, point: Int) =>
       sender ! withExisting(file) {
         val p = pos(file, point)
         scalaCompiler.askLoadedTyped(p.source)
         scalaCompiler.askSymbolInfoAt(p).getOrElse(FalseResponse)
       }
-    case SymbolByNameReq(typeFullName: String, memberName: Option[String], signatureString: Option[String]) =>
-      sender ! scalaCompiler.askSymbolByName(typeFullName, memberName, signatureString).getOrElse(FalseResponse)
     case DocUriAtPointReq(file, range: OffsetRange) =>
       val p = pos(file, range)
       scalaCompiler.askLoadedTyped(p.source)
       sender() ! scalaCompiler.askDocSignatureAtPoint(p)
-    case DocUriForSymbolReq(typeFullName: String, memberName: Option[String], signatureString: Option[String]) =>
-      sender() ! scalaCompiler.askDocSignatureForSymbol(typeFullName, memberName, signatureString)
-    case InspectPackageByPathReq(path: String) =>
-      sender ! scalaCompiler.askPackageByPath(path).getOrElse(FalseResponse)
     case TypeAtPointReq(file, range: OffsetRange) =>
       sender ! withExisting(file) {
         val p = pos(file, range)
         scalaCompiler.askLoadedTyped(p.source)
         scalaCompiler.askTypeInfoAt(p).getOrElse(FalseResponse)
-      }
-    case TypeByNameReq(name: String) =>
-      sender ! scalaCompiler.askTypeInfoByName(name).getOrElse(FalseResponse)
-    case TypeByNameAtPointReq(name: String, file, range: OffsetRange) =>
-      sender ! withExisting(file) {
-        val p = pos(file, range)
-        scalaCompiler.askLoadedTyped(p.source)
-        scalaCompiler.askTypeInfoByNameAt(name, p).getOrElse(FalseResponse)
       }
     case SymbolDesignationsReq(f, start, end, Nil) =>
       sender ! SymbolDesignations(f.file, List.empty)
