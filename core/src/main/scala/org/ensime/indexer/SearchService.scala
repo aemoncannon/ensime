@@ -12,6 +12,7 @@ import akka.actor._
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.ensime.api._
+import org.ensime.config.richconfig._
 import org.ensime.indexer.graph._
 import org.ensime.util.file._
 import org.ensime.util.map._
@@ -37,7 +38,7 @@ class SearchService(
   import SearchService._
   import ExecutionContext.Implicits.global // not used for heavy lifting (indexing, graph or lucene)
 
-  private[indexer] val allTargets = config.allTargets.map(vfs.vfile)
+  private[indexer] val allTargets = config.targets.map(vfs.vfile)
 
   private[indexer] def isUserFile(file: FileName): Boolean = allTargets.exists(file isAncestor _.getName)
 
@@ -135,8 +136,8 @@ class SearchService(
 
     // a snapshot of everything that we want to index
     def findBases(): (Set[FileObject], Map[FileName, Set[FileObject]]) = {
-      val (jarFiles, dirs) = config.modules.flatMap {
-        case (_, m) =>
+      val (jarFiles, dirs) = config.projects.flatMap {
+        case m =>
           m.targets.filter(_.exists()).toList ::: m.libraryJars.toList
       }.partition(_.isJar)
       val grouped = dirs.map(d => scanGrouped(vfs.vfile(d))).fold(Map.empty[FileName, Set[FileObject]])(_ merge _)

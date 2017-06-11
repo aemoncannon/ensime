@@ -87,11 +87,6 @@ class JerkyFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeT
     )
 
     roundtrip(
-      TypecheckAllReq: RpcRequest,
-      """{"typehint":"TypecheckAllReq"}"""
-    )
-
-    roundtrip(
       DocUriAtPointReq(Left(file1), OffsetRange(1, 10)): RpcRequest,
       s"""{"typehint":"DocUriAtPointReq","file":"$file1","point":{"from":1,"to":10}}"""
     )

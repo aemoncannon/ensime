@@ -14,6 +14,7 @@ import akka.event.slf4j.SLF4JLogging
 import akka.testkit._
 import org.ensime.api._
 import org.ensime.core._
+import org.ensime.config.richconfig._
 import org.ensime.fixture._
 import org.ensime.util._
 import org.ensime.util.file._
@@ -627,7 +628,7 @@ object VMStarter extends SLF4JLogging {
     // would be nice to have ephemeral debug ports
     val port = 5000 + scala.util.Random.nextInt(1000)
 
-    val classpath = (config.compileClasspath ++ config.targetClasspath).mkString(File.pathSeparator)
+    val classpath = config.classpath.mkString(File.pathSeparator)
     val args = Seq(
       java,
       "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=" + port,

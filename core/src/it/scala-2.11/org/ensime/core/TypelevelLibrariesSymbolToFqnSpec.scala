@@ -3,6 +3,7 @@
 package org.ensime.core
 
 import org.ensime.api.{ DeclaredAs, EnsimeConfig }
+import org.ensime.config.richconfig._
 import org.ensime.fixture.{ EnsimeConfigFixture, IsolatedRichPresentationCompilerFixture }
 import org.ensime.indexer.{ ClassfileDepickler, FieldName, FullyQualifiedName }
 import org.ensime.util.EnsimeSpec
@@ -29,7 +30,9 @@ class TypelevelLibrariesSymbolToFqnSpec extends EnsimeSpec
 
   it should "index all class file in typelevel libraries" in withPresCompiler { (config, cc) =>
     val vfs = cc.vfs
-    val jars = config.allJars.filter(!_.getName.contains("macro-compat"))
+    val jars = config.classpath
+      .filter(_.getName.endsWith(".jar"))
+      .filter(!_.getName.contains("macro-compat"))
     jars.foreach { file =>
       val jar = vfs.vjar(file)
       val classes = (jar.findFiles(ClassfileSelector) match {

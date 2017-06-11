@@ -8,6 +8,7 @@ import org.apache.commons.vfs2._
 import scala.util.Properties._
 
 import org.ensime.api._
+import org.ensime.config.richconfig._
 import org.ensime.vfs._
 
 import org.ensime.util.file._
@@ -48,7 +49,7 @@ class ClassfileWatcher(
     else {
       val jarJava7WatcherBuilder = new JarJava7WatcherBuilder()
       val classJava7WatcherBuilder = new ClassJava7WatcherBuilder()
-      config.targetClasspath.map { target =>
+      config.targets.map { target =>
         if (target.isJar) {
           if (log.isTraceEnabled())
             log.trace(s"creating a Java 7 jar watcher for ${target}")
@@ -82,8 +83,8 @@ class SourceWatcher(
     else {
       val sourceJava7WatcherBuilder = new SourceJava7WatcherBuilder()
       for {
-        module <- config.modules.values
-        root <- module.sources
+        project <- config.projects
+        root <- project.sources
       } yield {
         if (log.isTraceEnabled())
           log.trace(s"creating a Java 7 source watcher for $root")

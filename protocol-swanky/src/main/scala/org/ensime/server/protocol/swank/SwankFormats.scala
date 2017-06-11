@@ -616,7 +616,6 @@ object SwankProtocolRequest {
   implicit val TypecheckFileReqHint: TypeHint[TypecheckFileReq] = TypeHint[TypecheckFileReq](SexpSymbol("swank:typecheck-file"))
   implicit val TypecheckFilesReqHint: TypeHint[TypecheckFilesReq] = TypeHint[TypecheckFilesReq](SexpSymbol("swank:typecheck-files"))
   implicit val UnloadAllReqHint: TypeHint[UnloadAllReq.type] = TypeHint[UnloadAllReq.type](SexpSymbol("swank:unload-all"))
-  implicit val TypecheckAllReqHint: TypeHint[TypecheckAllReq.type] = TypeHint[TypecheckAllReq.type](SexpSymbol("swank:typecheck-all"))
   implicit val PublicSymbolSearchReqHint: TypeHint[PublicSymbolSearchReq] = TypeHint[PublicSymbolSearchReq](SexpSymbol("swank:public-symbol-search"))
   implicit val ImportSuggestionsReqHint: TypeHint[ImportSuggestionsReq] = TypeHint[ImportSuggestionsReq](SexpSymbol("swank:import-suggestions"))
   implicit val DocUriAtPointReqHint: TypeHint[DocUriAtPointReq] = TypeHint[DocUriAtPointReq](SexpSymbol("swank:doc-uri-at-point"))
@@ -817,7 +816,6 @@ object SwankProtocolRequest {
           case s if s == TypecheckFileReqHint.hint => value.convertTo[TypecheckFileReq]
           case s if s == TypecheckFilesReqHint.hint => value.convertTo[TypecheckFilesReq]
           case s if s == UnloadAllReqHint.hint => UnloadAllReq
-          case s if s == TypecheckAllReqHint.hint => TypecheckAllReq
           case s if s == PublicSymbolSearchReqHint.hint => value.convertTo[PublicSymbolSearchReq]
           case s if s == ImportSuggestionsReqHint.hint => value.convertTo[ImportSuggestionsReq]
           case s if s == DocUriAtPointReqHint.hint => value.convertTo[DocUriAtPointReq]

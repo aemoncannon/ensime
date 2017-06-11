@@ -33,21 +33,19 @@ class BasicWorkflow extends EnsimeSpec
           val barFile = sourceRoot / "org/example/Bar.scala"
           val barPath = barFile.toPath
 
-          // typeCheck module
-
           project ! TypecheckModule(EnsimeProjectId("testing_simple", "compile"))
           expectMsg(VoidResponse)
-          asyncHelper.expectMsgType[NewScalaNotesEvent]
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+          all(asyncHelper.receiveN(2)) should matchPattern {
+            case CompilerRestartedEvent =>
+            case n: NewScalaNotesEvent =>
+          }
 
           project ! TypeByNameReq("org.example.Bloo")
           expectMsgType[api.BasicTypeInfo]
 
-          project ! UnloadModuleReq(EnsimeProjectId("testing_simple", "compile"))
+          project ! UnloadAllReq
           expectMsg(VoidResponse)
-
-          project ! TypeByNameReq("org.example.Bloo")
-          expectMsg(BasicTypeInfo("<none>", DeclaredAs.Nil, "<none>"))
+          asyncHelper.expectMsg(CompilerRestartedEvent)
 
           // trigger typeCheck
           project ! TypecheckFilesReq(List(Left(fooFile), Left(barFile)))

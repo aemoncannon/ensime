@@ -41,43 +41,79 @@ final case class ImplicitInfoReq(
 ) extends RpcAnalyserRequest
 
 /**
+ * Tell the Analyzer that this file has been deleted. This is
+ * different to simply unloading the file (which can keeps symbols
+ * around).
+ *
  * Responds with a `VoidResponse`.
  */
+@deprecating("prefer UnloadFilesReq")
 final case class RemoveFileReq(file: File) extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`.
  */
+@deprecating("redundant query, use TypecheckFilesReq")
 final case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
-
-/**
- * Response with a `VoidResponse`.
- */
-final case class UnloadModuleReq(moduleId: EnsimeProjectId) extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`
  */
+@deprecating("prefer UnloadFilesReq")
 final case class UnloadFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+
+/**
+ * Unload the given files from the compiler. The additional `remove`
+ * flag signals if previously loaded symbols should be removed (use
+ * this if the user has deleted / renamed the file on disk).
+ *
+ * Responds with a `VoidResponse`
+ */
+final case class UnloadFilesReq(
+  source: SourceFileInfo,
+  remove: Boolean
+) extends RpcAnalyserRequest
 
 /**
  * Response with a `VoidResponse`.
  */
+@deprecating("replaced by RestartAnalyzerReq")
 final case class TypecheckModule(moduleId: EnsimeProjectId) extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`.
  */
+@deprecating("replaced by RestartAnalyzerReq")
 case object UnloadAllReq extends RpcAnalyserRequest
 
+sealed trait ReloadStrategy
+object ReloadStrategy {
+  /** a clean slate, client should reload all open files */
+  case object UnloadAll extends ReloadStrategy
+  /**
+   * compiles all project sources, e.g. project is not batch compiled.
+   * Client should reload all third party files.
+   */
+  case object LoadProject extends ReloadStrategy
+  /** reload all the files that were previously loaded */
+  case object KeepLoaded extends ReloadStrategy
+}
+
 /**
- * Responds with a `VoidResponse`.
+ * Restart the scala presentation compiler for the given id, using the
+ * provided file loading strategy.
+ *
+ * No RPC response, there will be CompilerRestartedEvent
  */
-case object TypecheckAllReq extends RpcAnalyserRequest
+case class RestartScalaCompilerReq(
+  id: Option[EnsimeProjectId],
+  strategy: ReloadStrategy
+) extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`.
  */
+@deprecating("should only support SourceFileInfo")
 final case class TypecheckFilesReq(files: List[Either[File, SourceFileInfo]]) extends RpcAnalyserRequest
 
 // related to searching the indexer
@@ -122,6 +158,7 @@ final case class DocUriAtPointReq(
  * Responds with a `StringResponse` for the URL of the documentation if valid,
  * or `FalseResponse`.
  */
+@deprecating("https://github.com/ensime/ensime-server/issues/1787")
 final case class DocUriForSymbolReq(
   typeFullName: String,
   memberName: Option[String],
@@ -142,6 +179,7 @@ final case class CompletionsReq(
 /**
  * Responds with a `List[CompletionInfo]`.
  */
+@deprecating("https://github.com/ensime/ensime-server/issues/1787")
 final case class PackageMemberCompletionReq(
   path: String,
   prefix: String
@@ -150,11 +188,13 @@ final case class PackageMemberCompletionReq(
 /**
  * Responds with `TypeInfo` if valid, or `FalseResponse`.
  */
+@deprecating("https://github.com/ensime/ensime-server/issues/1787")
 final case class TypeByNameReq(name: String) extends RpcAnalyserRequest
 
 /**
  * Responds with `TypeInfo` if valid, or `FalseResponse`.
  */
+@deprecating("https://github.com/ensime/ensime-server/issues/1787")
 final case class TypeByNameAtPointReq(
   name: String, file: Either[File, SourceFileInfo], range: OffsetRange
 ) extends RpcAnalyserRequest
@@ -186,6 +226,7 @@ final case class InspectTypeAtPointReq(file: Either[File, SourceFileInfo], range
  *
  * @param name fully qualified type name to inspect
  */
+@deprecating("https://github.com/ensime/ensime-server/issues/1787")
 final case class InspectTypeByNameReq(name: String) extends RpcAnalyserRequest
 
 /**
@@ -202,6 +243,7 @@ final case class SymbolAtPointReq(file: Either[File, SourceFileInfo], point: Int
  * @param memberName short name of a member symbol of the qualified symbol.
  * @param signatureString to disambiguate overloaded methods.
  */
+@deprecating("https://github.com/ensime/ensime-server/issues/1787")
 final case class SymbolByNameReq(
   typeFullName: String,
   memberName: Option[String],
@@ -211,6 +253,7 @@ final case class SymbolByNameReq(
 /**
  * Responds with `PackageInfo`.
  */
+@deprecating("https://github.com/ensime/ensime-server/issues/1787")
 final case class InspectPackageByPathReq(path: String) extends RpcAnalyserRequest
 
 /**

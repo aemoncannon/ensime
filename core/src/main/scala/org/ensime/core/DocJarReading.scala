@@ -6,6 +6,7 @@ import java.io.File
 import java.util.jar.JarFile
 
 import org.ensime.api.EnsimeConfig
+import org.ensime.config.richconfig._
 import org.ensime.util.io._
 
 trait DocJarReading {

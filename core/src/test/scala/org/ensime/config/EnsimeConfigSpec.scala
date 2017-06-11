@@ -6,6 +6,7 @@ import org.ensime.util.file._
 import org.ensime.util.{ EnsimeSpec, EscapingStringInterpolation }
 
 import org.ensime.api._
+import org.ensime.config.richconfig._
 
 import scala.util.Properties
 
@@ -53,7 +54,7 @@ class EnsimeConfigSpec extends EnsimeSpec {
              :library-docs ())))""", { implicit config =>
       config.name shouldBe "project"
       config.scalaVersion shouldBe "2.10.4"
-      val module1 = config.modules(EnsimeProjectId("module1", "compile"))
+      val module1 = config.lookup(EnsimeProjectId("module1", "compile"))
       module1.id.project shouldBe "module1"
       module1.dependencies shouldBe empty
       config.projects.size shouldBe 1
@@ -80,7 +81,7 @@ class EnsimeConfigSpec extends EnsimeSpec {
 
       config.name shouldBe "project"
       config.scalaVersion shouldBe "2.10.4"
-      val module1 = config.modules(EnsimeProjectId("module1", "compile"))
+      val module1 = config.lookup(EnsimeProjectId("module1", "compile"))
       module1.id.project shouldBe "module1"
       module1.dependencies shouldBe empty
       module1.targets should have size 1

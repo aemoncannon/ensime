@@ -56,7 +56,6 @@ import scala.tools.nsc.util._
 import scala.tools.refactoring.analysis.GlobalIndexes
 import akka.actor.ActorRef
 import org.ensime.api._
-import org.ensime.config._
 import org.ensime.indexer._
 import org.ensime.model._
 import org.ensime.util.ensimefile._
@@ -179,16 +178,6 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askRemoveAllDeleted(): Option[Unit] = askOption(removeAllDeleted())
 
   def askRemoveDeleted(f: File) = askOption(removeDeleted(AbstractFile.getFile(f)))
-
-  def askReloadAllFiles() = {
-    val all = {
-      for {
-        file <- config.scalaSourceFiles
-        source = createSourceFile(file)
-      } yield source
-    } ++ activeUnits().map(_.source)
-    askReloadFiles(all)
-  }
 
   def loadedFiles: List[SourceFile] = activeUnits().map(_.source)
 

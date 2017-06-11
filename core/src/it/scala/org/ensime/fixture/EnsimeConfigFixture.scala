@@ -8,6 +8,7 @@ import java.nio.file.Files
 
 import org.ensime.api._
 import org.ensime.config._
+import org.ensime.config.richconfig._
 import org.ensime.util.file._
 import org.ensime.util.path._
 import org.scalatest._
@@ -114,10 +115,10 @@ object EnsimeConfigFixture {
 
     def rename(from: File): File = {
       val toPath = from.getAbsolutePath.replace(
-        source.root.getAbsolutePath,
+        source.rootDir.getAbsolutePath,
         target.getAbsolutePath
       )
-      require(toPath != from.getAbsolutePath, s"${source.root.getAbsolutePath} ${target.getAbsolutePath} in ${from.getAbsolutePath}")
+      require(toPath != from.getAbsolutePath, s"${source.rootDir.getAbsolutePath} ${target.getAbsolutePath} in ${from.getAbsolutePath}")
       File(toPath)
     }
 
@@ -156,11 +157,14 @@ object EnsimeConfigFixture {
 
     // HACK: we must force OS line endings on sources or the tests
     // (which have fixed points within the file) will fail on Windows
-    config.scalaSourceFiles.foreach { file =>
-      file.writeLines(file.readLines())
+    for {
+      project <- config.projects
+      file <- project.scalaSourceFiles
+    } {
+      file.file.writeLines(file.file.readLines())
     }
 
-    if (preWarm && (config.compileClasspath ++ config.javaLibs).nonEmpty)
+    if (preWarm && (config.classpath ++ config.javaLibs).nonEmpty)
       EnsimeCacheProject.foreach { cacheProject =>
         log.info(s"copying ${cacheProject.cacheDir}")
         cacheProject.cacheDir.toPath.copyDirTo(config.cacheDir.toPath)

@@ -8,6 +8,7 @@ import akka.testkit._
 
 import org.ensime.api._
 import org.ensime.core._
+import org.ensime.config.richconfig._
 
 import scala.concurrent.duration._
 

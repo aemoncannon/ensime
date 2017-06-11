@@ -40,9 +40,19 @@ object EnsimeConfigProtocol {
     if (Properties.envOrNone("ENSIME_SKIP_JRE_INDEX").isDefined) Nil
     else javaHome.tree.filter(_.getName == "rt.jar").toList
 
-  def validated(c: EnsimeConfig): EnsimeConfig = c.copy(
-    projects = c.projects.map(validated)
-  )
+  def validated(c: EnsimeConfig): EnsimeConfig = {
+    // cats.data.Validated would be a cleaner way to do this
+    {
+      import c._
+      (rootDir :: javaHome :: javaSources ::: javaLibs).foreach { f =>
+        require(f.exists, "" + f + " is required but does not exist")
+      }
+    }
+
+    c.copy(
+      projects = c.projects.map(validated)
+    )
+  }
 
   /*
    We use the canonical form of files/directories to keep OS X happy
@@ -51,13 +61,13 @@ object EnsimeConfigProtocol {
    directories and then re-canon them, which is - admittedly - a weird
    side-effect.
    */
-  private[config] def validated(m: EnsimeProject): EnsimeProject = {
-    (m.targets ++ m.sources).foreach { dir =>
+  private[config] def validated(p: EnsimeProject): EnsimeProject = {
+    (p.targets ++ p.sources).foreach { dir =>
       if (!dir.exists() && !dir.isJar) {
         log.warn(s"$dir does not exist, creating")
         dir.mkdirs()
       }
     }
-    Canonised(m)
+    Canonised(p)
   }
 }

@@ -7,6 +7,7 @@ import akka.event.LoggingReceive.withLabel
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 import org.ensime.core.debug.DebugActor
+import org.ensime.config.richconfig._
 import org.ensime.util.{ Debouncer, Timing }
 import org.ensime.vfs._
 import org.ensime.indexer._
@@ -53,7 +54,7 @@ class Project(
     private val askReTypeCheck =
       Debouncer.forActor(
         self,
-        AskReTypecheck,
+        RestartScalaCompilerReq(None, ReloadStrategy.KeepLoaded),
         delay = (5 * Timing.dilation).seconds,
         maxDelay = (20 * Timing.dilation).seconds
       )
@@ -131,14 +132,11 @@ class Project(
     Try(vfs.close())
   }
 
-  // debounces ReloadExistingFilesEvent
+  // debounces compiler restarts
   private var rechecking: Cancellable = _
 
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case AskReTypecheck =>
-      scalac ! ReloadExistingFilesEvent
-    // HACK: to expedite initial dev, Java requests use the Scala API
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
     case m @ CompletionsReq(sfi, _, _, _, _) if sfi.file.isJava => javac forward m
     case m @ DocUriAtPointReq(sfi, _) if sfi.file.isJava => javac forward m

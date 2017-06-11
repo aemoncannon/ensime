@@ -12,6 +12,7 @@ import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.ensime.api._
 import org.ensime.core._
+import org.ensime.config.richconfig._
 import org.ensime.indexer._
 import org.ensime.util.{ PresentationReporter, ReportHandler }
 import org.ensime.vfs._
@@ -51,7 +52,7 @@ object RichPresentationCompilerFixture {
     vfs: EnsimeVFS
   ): RichPresentationCompiler = {
     import system.dispatcher
-    val scalaLib = config.allJars.find(_.getName.contains("scala-library")).get
+    val scalaLib = config.scalaLibrary.get
 
     val presCompLog = LoggerFactory.getLogger(classOf[Global])
     val settings = new Settings(presCompLog.error)
@@ -60,7 +61,7 @@ object RichPresentationCompilerFixture {
     settings.verbose.value = presCompLog.isDebugEnabled
     //settings.usejavacp.value = true
     settings.bootclasspath.append(scalaLib.getAbsolutePath)
-    settings.classpath.value = config.compileClasspath.mkString(File.pathSeparator)
+    settings.classpath.value = config.classpath.mkString(File.pathSeparator)
 
     val reporter = new TestReporter
     val indexer = TestProbe()

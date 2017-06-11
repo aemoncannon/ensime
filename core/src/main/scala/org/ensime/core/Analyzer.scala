@@ -5,12 +5,11 @@ package org.ensime.core
 import java.io.{ File => JFile }
 import java.nio.charset.Charset
 
-import org.ensime.util.ensimefile._
 import akka.actor._
 import akka.pattern.pipe
 import akka.event.LoggingReceive.withLabel
 import org.ensime.api._
-import org.ensime.config._
+import org.ensime.config.richconfig._
 import org.ensime.vfs._
 import org.ensime.indexer.SearchService
 import org.ensime.model._
@@ -26,7 +25,6 @@ import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
 import scala.util.Try
-import scala.util.Properties._
 
 final case class CompilerFatalError(e: Throwable)
 
@@ -80,7 +78,7 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-    settings.classpath.value = config.compileClasspath.mkString(JFile.pathSeparator)
+    settings.classpath.value = config.classpath.mkString(JFile.pathSeparator)
     settings.processArguments(config.compilerArgs, processAll = false)
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
@@ -102,21 +100,37 @@ class Analyzer(
     broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
 
     scalaCompiler.askNotifyWhenReady()
-    if (propOrFalse("ensime.sourceMode")) scalaCompiler.askReloadAllFiles()
   }
 
   protected def makeScalaCompiler() = new RichPresentationCompiler(
     config, settings, reporter, self, indexer, search
   )
 
-  protected def restartCompiler(keepLoaded: Boolean): Unit = {
+  protected def restartCompiler(
+    strategy: ReloadStrategy,
+    scoped: Option[EnsimeProjectId]
+  ): Unit = {
     log.warning("Restarting the Presentation Compiler")
-    val files = scalaCompiler.loadedFiles
+    val files: List[SourceFile] = strategy match {
+      case ReloadStrategy.UnloadAll => Nil
+      case ReloadStrategy.LoadProject =>
+        val scope = scoped match {
+          case None => config.projects
+          case Some(id) => config.lookup(id) :: Nil
+        }
+        for {
+          project <- scope
+          file <- project.scalaSourceFiles
+        } yield scalaCompiler.createSourceFile(file)
+      case ReloadStrategy.KeepLoaded => scalaCompiler.loadedFiles
+    }
+
     scalaCompiler.askShutdown()
     scalaCompiler = makeScalaCompiler()
-    if (keepLoaded) {
+
+    if (files.nonEmpty)
       scalaCompiler.askReloadFiles(files)
-    }
+
     scalaCompiler.askNotifyWhenReady()
     broadcaster ! CompilerRestartedEvent
   }
@@ -144,13 +158,19 @@ class Analyzer(
   }
 
   def ready: Receive = withLabel("ready") {
-    case ReloadExistingFilesEvent if allFilesMode =>
-      log.info("Skipping reload, in all-files mode")
-    case ReloadExistingFilesEvent =>
-      restartCompiler(keepLoaded = true)
-
     case FullTypeCheckCompleteEvent =>
       broadcaster ! FullTypeCheckCompleteEvent
+
+    case RestartScalaCompilerReq(id, strategy) =>
+      restartCompiler(strategy, id)
+
+    case UnloadAllReq =>
+      restartCompiler(ReloadStrategy.UnloadAll, None)
+      sender ! VoidResponse
+
+    case TypecheckModule(id) =>
+      restartCompiler(ReloadStrategy.LoadProject, Some(id))
+      sender ! VoidResponse
 
     case req: RpcAnalyserRequest =>
       // fommil: I'm not entirely sure about the logic of
@@ -167,40 +187,12 @@ class Analyzer(
     case RemoveFileReq(file: File) =>
       scalaCompiler.askRemoveDeleted(file)
       sender ! VoidResponse
-    case TypecheckAllReq =>
-      allFilesMode = true
-      scalaCompiler.askRemoveAllDeleted()
-      scalaCompiler.askReloadAllFiles()
-      scalaCompiler.askNotifyWhenReady()
-      sender ! VoidResponse
-    case UnloadAllReq =>
-      if (propOrFalse("ensime.sourceMode")) {
-        log.info("in source mode, will reload all files")
-        scalaCompiler.askRemoveAllDeleted()
-        restartCompiler(keepLoaded = true)
-      } else {
-        allFilesMode = false
-        restartCompiler(keepLoaded = false)
-      }
-      sender ! VoidResponse
-    case TypecheckModule(moduleId) =>
-      //consider the case of a project with no modules
-      config.modules get (moduleId) foreach {
-        module =>
-          val files: Set[SourceFileInfo] = module.scalaSourceFiles.map(s => SourceFileInfo(EnsimeFile(s), None, None))(breakOut)
-          sender ! scalaCompiler.handleReloadFiles(files)
-      }
-    case UnloadModuleReq(moduleId) =>
-      config.modules get (moduleId) foreach {
-        module =>
-          val files = module.scalaSourceFiles.toList
-          files.foreach(scalaCompiler.askRemoveDeleted)
-          sender ! VoidResponse
-      }
+
     case TypecheckFileReq(fileInfo) =>
-      sender ! scalaCompiler.handleReloadFiles(Set(fileInfo))
+      self forward TypecheckFilesReq(List(Right(fileInfo)))
     case TypecheckFilesReq(files) =>
       sender ! scalaCompiler.handleReloadFiles(files.map(toSourceFileInfo)(breakOut))
+
     case req: RefactorReq =>
       import context.dispatcher
       pipe(handleRefactorRequest(req)) to sender

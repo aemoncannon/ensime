@@ -6,6 +6,7 @@ import akka.actor._
 import java.io.{ File, IOException }
 import java.util.jar.JarFile
 import org.ensime.api._
+import org.ensime.config.richconfig._
 import org.ensime.util.io._
 
 class DocResolver(

@@ -89,11 +89,6 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     unmarshal(
-      """(swank:typecheck-all)""",
-      TypecheckAllReq: RpcRequest
-    )
-
-    unmarshal(
       s"""(swank:doc-uri-at-point "$file1" (1 10))""",
       DocUriAtPointReq(Left(file1), OffsetRange(1, 10)): RpcRequest
     )

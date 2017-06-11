@@ -41,6 +41,8 @@ package object path {
     def readLines(): List[String] = Files.readAllLines(path).asScala.toList
 
     def write(bytes: Array[Byte]): Unit = Files.write(path, bytes, StandardOpenOption.CREATE)
+    def write(text: String)(implicit cs: Charset): Unit = write(text.getBytes(cs))
+    def writeLines(lines: List[String])(implicit cs: Charset): Unit = write(lines.mkString("\n"))
 
     def /(child: String): Path = path.resolve(child)
     def canon(): Path = {

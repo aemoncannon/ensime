@@ -7,6 +7,7 @@ import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 
 import org.ensime.api._
+import org.ensime.config.richconfig._
 import org.ensime.util.Debouncer
 import org.ensime.vfs._
 
@@ -80,8 +81,8 @@ class SourceResolver(
   private val depSources = {
     val srcJars = config.referenceSourceJars.toSet ++ {
       for {
-        (_, module) <- config.modules
-        srcArchive <- module.librarySources
+        project <- config.projects
+        srcArchive <- project.librarySources
       } yield srcArchive
     }
     for {
@@ -99,8 +100,8 @@ class SourceResolver(
 
   private def userSources = {
     for {
-      (_, module) <- config.modules.toList
-      root <- module.sources
+      project <- config.projects
+      root <- project.sources
       dir = vfs.vfile(root)
       file <- scan(dir)
     } yield (infer(dir, file), file)

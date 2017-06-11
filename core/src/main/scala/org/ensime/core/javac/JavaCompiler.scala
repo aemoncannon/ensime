@@ -17,6 +17,7 @@ import com.sun.tools.javac.util.Abort
 import javax.tools._
 import org.ensime.api._
 import org.ensime.core.DocSigPair
+import org.ensime.config.richconfig._
 import org.ensime.indexer.{ FullyQualifiedName, SearchService }
 import org.ensime.util.ReportHandler
 import org.ensime.util.file._
@@ -39,7 +40,7 @@ class JavaCompiler(
 
   private val listener = new JavaDiagnosticListener()
   private val silencer = new SilencedDiagnosticListener()
-  private val cp = (config.allJars ++ config.targetClasspath).mkString(JFile.pathSeparator)
+  private val cp = config.classpath.mkString(JFile.pathSeparator)
   private val workingSet = new ConcurrentHashMap[String, JavaFileObject]()
 
   private implicit def charset = Charset.defaultCharset() // how can we infer this?

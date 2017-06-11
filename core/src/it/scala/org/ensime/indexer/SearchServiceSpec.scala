@@ -43,8 +43,8 @@ class SearchServiceSpec extends EnsimeSpec
       implicit val s = service
       val now = System.currentTimeMillis()
       for {
-        m <- config.modules.values
-        r <- m.targets
+        p <- config.projects
+        r <- p.targets
         f <- r.tree
       } {
         // simulate a full recompile

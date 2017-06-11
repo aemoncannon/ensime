@@ -79,11 +79,6 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      TypecheckAllReq: RpcRequest,
-      """:ensime-api-typecheck-all-req"""
-    )
-
-    roundtrip(
       DocUriAtPointReq(Left(file1), OffsetRange(1, 10)): RpcRequest,
       s"""(:ensime-api-doc-uri-at-point-req (:file "$file1" :point (:from 1 :to 10)))"""
     )
