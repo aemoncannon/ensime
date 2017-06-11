@@ -59,11 +59,11 @@ class JavaCompiler(
   }
 
   def createJavaFileObject(sf: SourceFileInfo): JavaFileObject = sf match {
-    case SourceFileInfo(f, None, None) =>
+    case SourceFileInfo(f, None, None, _) =>
       new JavaObjectEnsimeFile(f, None)
-    case SourceFileInfo(f, None, Some(contentsIn)) =>
+    case SourceFileInfo(f, None, Some(contentsIn), _) =>
       new JavaObjectEnsimeFile(f, Some(contentsIn.readString))
-    case SourceFileInfo(f, contents, _) =>
+    case SourceFileInfo(f, contents, _, _) =>
       new JavaObjectEnsimeFile(f, contents)
   }
 

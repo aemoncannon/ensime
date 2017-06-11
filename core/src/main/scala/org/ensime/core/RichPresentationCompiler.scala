@@ -218,7 +218,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
       val missingFilePaths = missingFiles.map { f => "\"" + f.file + "\"" }.mkString(",")
       EnsimeServerError(s"file(s): $missingFilePaths do not exist")
     } else {
-      val scalas = existing.collect { case sfi @ SourceFileInfo(RawFile(path), _, _) if path.toString.endsWith(".scala") => sfi }
+      val scalas = existing.collect { case sfi: SourceFileInfo if sfi.file.isScala => sfi }
       val sourceFiles: List[SourceFile] = scalas.map(createSourceFile)(collection.breakOut)
       f(sourceFiles)
     }
@@ -306,21 +306,21 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def createSourceFile(file: AbstractFile): BatchSourceFile =
     createSourceFile(file.path)
   def createSourceFile(file: SourceFileInfo): BatchSourceFile = file match {
-    case SourceFileInfo(rf @ RawFile(f), None, None) => new BatchSourceFile(
+    case SourceFileInfo(rf @ RawFile(f), None, None, _) => new BatchSourceFile(
       new PlainFile(f.toFile), rf.readStringDirect().toCharArray
     )
-    case SourceFileInfo(ac @ ArchiveFile(archive, entry), None, None) =>
+    case SourceFileInfo(ac @ ArchiveFile(archive, entry), None, None, _) =>
       new BatchSourceFile(
         new VirtualFile(ac.fullPath), ac.readStringDirect().toCharArray
       )
-    case SourceFileInfo(rf @ RawFile(f), Some(contents), None) =>
+    case SourceFileInfo(rf @ RawFile(f), Some(contents), None, _) =>
       new BatchSourceFile(new PlainFile(f.toFile), contents.toCharArray)
-    case SourceFileInfo(ac @ ArchiveFile(a, e), Some(contents), None) => new BatchSourceFile(
+    case SourceFileInfo(ac @ ArchiveFile(a, e), Some(contents), None, _) => new BatchSourceFile(
       new VirtualFile(ac.fullPath), contents.toCharArray
     )
-    case SourceFileInfo(rf @ RawFile(f), None, Some(contentsIn)) =>
+    case SourceFileInfo(rf @ RawFile(f), None, Some(contentsIn), _) =>
       new BatchSourceFile(new PlainFile(f.toFile), contentsIn.readString()(charset).toCharArray)
-    case SourceFileInfo(ac @ ArchiveFile(a, e), None, Some(contentsIn)) => new BatchSourceFile(
+    case SourceFileInfo(ac @ ArchiveFile(a, e), None, Some(contentsIn), _) => new BatchSourceFile(
       new VirtualFile(ac.fullPath), contentsIn.readString()(charset).toCharArray
     )
     case _ => throw new IllegalArgumentException(s"Invalid contents of SourceFileInfo parameter: $file.")

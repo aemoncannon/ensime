@@ -104,11 +104,15 @@ object RefactorType {
  *
  * If both contents and contentsIn are provided, contents is
  * preferred.
+ *
+ * Good clients provide the `id` field so the server doesn't have to
+ * work it out all the time.
  */
 final case class SourceFileInfo(
     file: EnsimeFile,
     contents: Option[String] = None,
-    contentsIn: Option[File] = None
+    contentsIn: Option[File] = None,
+    id: Option[EnsimeProjectId] = None
 ) {
   // keep the log file sane for unsaved files
   override def toString = s"SourceFileInfo($file,${contents.map(_ => "...")},$contentsIn)"
