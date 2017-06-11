@@ -185,7 +185,11 @@ class Analyzer(
 
   def allTheThings: PartialFunction[RpcAnalyserRequest, Unit] = {
     case RemoveFileReq(file: File) =>
-      scalaCompiler.askRemoveDeleted(file)
+      self forward UnloadFilesReq(List(toSourceFileInfo(Left(file))), true)
+    case UnloadFileReq(source) =>
+      self forward UnloadFilesReq(List(source), false)
+    case UnloadFilesReq(files, remove) =>
+      scalaCompiler.askUnloadFiles(files, remove)
       sender ! VoidResponse
 
     case TypecheckFileReq(fileInfo) =>
@@ -276,9 +280,6 @@ class Analyzer(
         val sourceFile = createSourceFile(fileInfo)
         StructureView(scalaCompiler.askStructure(sourceFile))
       }
-    case UnloadFileReq(file) =>
-      scalaCompiler.askUnloadFile(file)
-      sender ! VoidResponse
   }
 
   def withExisting(x: SourceFileInfo)(f: => RpcResponse): RpcResponse =

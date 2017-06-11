@@ -4,7 +4,7 @@
   </contextListener>
   <appender name="file" class="ch.qos.logback.core.FileAppender">
     <file>${sbt.sensible.root}/${sbt.sensible.name}-it.log</file>
-    <if condition='!isNull("CI")'>
+    <if condition='isNull("CI")'>
       <then>
         <append>false</append>
       </then>

@@ -168,21 +168,12 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     x.get
   }
 
-  def askUnloadAllFiles(): Unit = askOption(unloadAllFiles())
-
-  def askUnloadFile(f: SourceFileInfo): Unit = {
-    val sourceFile = createSourceFile(f)
-    askOption(unloadFile(sourceFile))
+  def askUnloadFiles(sources: List[SourceFileInfo], remove: Boolean): Unit = {
+    val files = sources.map(createSourceFile)
+    askOption(unloadFiles(files, remove)).get
   }
 
-  def askRemoveAllDeleted(): Option[Unit] = askOption(removeAllDeleted())
-
-  def askRemoveDeleted(f: File) = askOption(removeDeleted(AbstractFile.getFile(f)))
-
   def loadedFiles: List[SourceFile] = activeUnits().map(_.source)
-
-  def askReloadExistingFiles() =
-    askReloadFiles(loadedFiles)
 
   def askInspectTypeAt(p: Position): Option[TypeInspectInfo] =
     askOption(inspectTypeAt(p)).flatten
@@ -393,34 +384,21 @@ class RichPresentationCompiler(
     symsByFile(sym.sourceFile) += sym
   }
 
-  def unloadAllFiles(): Unit = {
-    allSources.foreach(removeUnitOf)
-  }
+  def unloadFiles(files: List[SourceFile], remove: Boolean): Unit = {
+    files.foreach { f =>
+      removeUnitOf(f)
 
-  def unloadFile(s: SourceFile): Unit = removeUnitOf(s)
-
-  /**
-   * Remove symbols defined by files that no longer exist.
-   * Note that these symbols will not be collected by
-   * syncTopLevelSyms, since the units in question will
-   * never be reloaded again.
-   */
-  def removeAllDeleted(): Unit = {
-    allSources = allSources.filter { _.file.exists }
-    val deleted = symsByFile.keys.filter { !_.exists }
-    for (f <- deleted) {
-      removeDeleted(f)
+      // more aggressive, e.g. if the file was deleted/removed by the user
+      if (remove) {
+        val af = f.file
+        val syms = symsByFile(af)
+        for (s <- syms) {
+          s.owner.info.decls unlink s
+        }
+        symsByFile.remove(af)
+        unitOfFile.remove(af)
+      }
     }
-  }
-
-  /** Remove symbols defined by file that no longer exist. */
-  def removeDeleted(f: AbstractFile): Unit = {
-    val syms = symsByFile(f)
-    for (s <- syms) {
-      s.owner.info.decls unlink s
-    }
-    symsByFile.remove(f)
-    unitOfFile.remove(f)
   }
 
   private def typePublicMembers(tpe: Type): Iterable[TypeMember] = {

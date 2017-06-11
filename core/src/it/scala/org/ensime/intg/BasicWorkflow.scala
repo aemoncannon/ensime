@@ -2,6 +2,8 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.intg
 
+import scala.concurrent.duration._
+
 import org.ensime.api
 import org.ensime.api.{ BasicTypeInfo => _, EnsimeFile => _, _ }
 import org.ensime.core._
@@ -362,7 +364,9 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! TypecheckFilesReq(List(Left(bazFile)))
           expectMsg(VoidResponse)
+
           asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+          asyncHelper.expectNoMsg(3 seconds)
         }
       }
     }

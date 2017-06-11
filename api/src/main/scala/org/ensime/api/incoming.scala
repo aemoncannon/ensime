@@ -70,7 +70,7 @@ final case class UnloadFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequ
  * Responds with a `VoidResponse`
  */
 final case class UnloadFilesReq(
-  source: SourceFileInfo,
+  source: List[SourceFileInfo],
   remove: Boolean
 ) extends RpcAnalyserRequest
 
