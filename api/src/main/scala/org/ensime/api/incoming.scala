@@ -52,6 +52,7 @@ final case class RemoveFileReq(file: File) extends RpcAnalyserRequest
 /**
  * Responds with a `VoidResponse`.
  */
+@deprecating("redundant query, use TypecheckFilesReq")
 final case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
 
 /**
@@ -72,6 +73,7 @@ case object UnloadAllReq extends RpcAnalyserRequest
 /**
  * Responds with a `VoidResponse`.
  */
+@deprecating("should only support SourceFileInfo")
 final case class TypecheckFilesReq(files: List[Either[File, SourceFileInfo]]) extends RpcAnalyserRequest
 
 // related to searching the indexer
@@ -152,6 +154,7 @@ final case class TypeByNameReq(name: String) extends RpcAnalyserRequest
 /**
  * Responds with `TypeInfo` if valid, or `FalseResponse`.
  */
+@deprecating("https://github.com/ensime/ensime-server/issues/1787")
 final case class TypeByNameAtPointReq(
   name: String, file: Either[File, SourceFileInfo], range: OffsetRange
 ) extends RpcAnalyserRequest
