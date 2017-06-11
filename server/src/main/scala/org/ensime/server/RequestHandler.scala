@@ -21,7 +21,7 @@ class RequestHandler(
       log.debug(envelope.req.toString)
     envelope.req match {
       // multi-phase queries
-      case DocUriAtPointReq(_, _) | DocUriForSymbolReq(_, _, _) =>
+      case DocUriAtPointReq(_, _) =>
         project ! envelope.req
         context.become(resolveDocSig, discardOld = false)
 
