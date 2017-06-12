@@ -32,7 +32,7 @@ build_script:
 test_script:
   - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "testOnly -- -l tags.IgnoreOnAppVeyor")
   - SET SBT_TASK_LIMIT=2
-  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "it:testOnly -- -l tags.IgnoreOnAppVeyor")
+  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "core/it:testOnly *BasicWorkflow*")
 cache:
   - C:\Program Files\Java\jdk1.8.0\src.zip
   - C:\sbt -> appveyor.yml

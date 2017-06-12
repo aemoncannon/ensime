@@ -51,7 +51,7 @@ object ProjectFixture extends Matchers {
       // on windows we get a NewScalaNotesEvent warning from Predef
       // about precedure syntax. We have no idea what is loading
       // Predef and why it only happens on Windows
-      case NewScalaNotesEvent(_, notes) if notes.head.file.endsWith("Predef.scala") => true
+      //      case NewScalaNotesEvent(_, notes) if notes.head.file.endsWith("Predef.scala") => true
 
     }
 

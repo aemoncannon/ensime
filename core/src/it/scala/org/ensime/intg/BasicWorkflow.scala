@@ -13,6 +13,7 @@ import org.ensime.util.EnsimeSpec
 import org.ensime.util.ensimefile._
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.file._
+import scala.concurrent.duration._
 
 class BasicWorkflow extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
@@ -36,10 +37,11 @@ class BasicWorkflow extends EnsimeSpec
           val barPath = barFile.toPath
 
           project ! TypecheckModule(EnsimeProjectId("testing_simple", "compile"))
-          expectMsg(VoidResponse)
-          all(asyncHelper.receiveN(2)) should matchPattern {
+          expectMsg(5 seconds, VoidResponse)
+          all(asyncHelper.receiveN(3)) should matchPattern {
             case CompilerRestartedEvent =>
             case n: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
           }
 
           project ! TypeByNameReq("org.example.Bloo")
@@ -47,14 +49,14 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! UnloadAllReq
           expectMsg(VoidResponse)
-          asyncHelper.expectMsg(CompilerRestartedEvent)
-
+          all(asyncHelper.receiveN(2)) should matchPattern {
+            case CompilerRestartedEvent =>
+            case FullTypeCheckCompleteEvent =>
+          }
           // trigger typeCheck
           project ! TypecheckFilesReq(List(Left(fooFile), Left(barFile)))
           expectMsg(VoidResponse)
-
           asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
-
           // Asking to typecheck mising file should report an error not kill system
 
           val missingFile = sourceRoot / "missing.scala"
@@ -136,9 +138,9 @@ class BasicWorkflow extends EnsimeSpec
             ERangePosition(`packageFilePath`, 94, 80, 104)
           )
 
-          asyncHelper.fishForMessage() {
-            case FullTypeCheckCompleteEvent => true
-            case _ => false
+          all(asyncHelper.receiveN(2)) should matchPattern {
+            case n: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
           }
 
           // note that the line numbers appear to have been stripped from the
@@ -180,6 +182,10 @@ class BasicWorkflow extends EnsimeSpec
                 Nil, None, Nil)) =>
           }
 
+          all(asyncHelper.receiveN(1)) should matchPattern {
+            case n: NewScalaNotesEvent =>
+          }
+
           project ! SymbolAtPointReq(Left(barFile), 150)
           expectMsgPF() {
             case SymbolInfo("apply", "apply", Some(OffsetSourcePosition(RawFile(`barPath`), 59)),
@@ -190,6 +196,10 @@ class BasicWorkflow extends EnsimeSpec
                     ("bar", BasicTypeInfo("String", DeclaredAs.Class, "java.lang.String")),
                     ("baz", BasicTypeInfo("Int", DeclaredAs.Class, "scala.Int"))), false)),
                 Nil)) =>
+          }
+
+          all(asyncHelper.receiveN(6)) should matchPattern {
+            case n: NewScalaNotesEvent =>
           }
 
           project ! SymbolAtPointReq(Left(barFile), 193)
@@ -288,10 +298,9 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! TypecheckFilesReq(List(Left(fooFile), Left(barFile)))
           expectMsg(VoidResponse)
-
-          asyncHelper.fishForMessage() {
-            case FullTypeCheckCompleteEvent => true
-            case _ => false
+          all(asyncHelper.receiveN(2)) should matchPattern {
+            case n: NewScalaNotesEvent =>
+            case FullTypeCheckCompleteEvent =>
           }
 
           project ! RefactorReq(4321, RenameRefactorDesc("Renamed", barFile, 30, 30), false)
