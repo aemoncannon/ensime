@@ -25,6 +25,7 @@ import org.ensime.util.sourcefile._
 import org.ensime.vfs._
 import org.slf4j.LoggerFactory
 
+
 final case class CompilerFatalError(e: Throwable)
 
 /**
@@ -56,8 +57,8 @@ class Analyzer(
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
 
-  import context.dispatcher
   import FileUtils._
+  import context.dispatcher
 
   private var allFilesMode = false
   private var settings: Settings = _
