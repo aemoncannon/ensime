@@ -6,18 +6,17 @@ import java.io.{ File => JFile }
 import java.nio.charset.Charset
 
 import akka.actor._
-import akka.pattern.pipe
 import akka.event.LoggingReceive.withLabel
+import akka.pattern.pipe
 import org.ensime.api._
 import org.ensime.config.richconfig._
-import org.ensime.vfs._
 import org.ensime.indexer.SearchService
 import org.ensime.model._
-import org.ensime.util.{ FileUtils, PresentationReporter, ReportHandler }
-import org.ensime.util.sourcefile._
-import org.slf4j.LoggerFactory
 import org.ensime.util.file._
 import org.ensime.util.sourcefile._
+import org.ensime.util.{ FileUtils, PresentationReporter, ReportHandler }
+import org.ensime.vfs._
+import org.slf4j.LoggerFactory
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -56,8 +55,8 @@ class Analyzer(
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
 
-  import context.dispatcher
   import FileUtils._
+  import context.dispatcher
 
   private var allFilesMode = false
 

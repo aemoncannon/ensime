@@ -3,10 +3,10 @@
 package org.ensime.indexer
 
 import org.ensime.api.DeclaredAs
-import scala.collection.immutable.Queue
-import scala.collection.Set
-
 import org.objectweb.asm.Opcodes._
+
+import scala.collection.Set
+import scala.collection.immutable.Queue
 
 sealed trait Access
 case object Public extends Access
