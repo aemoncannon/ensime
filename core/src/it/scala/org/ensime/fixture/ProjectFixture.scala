@@ -3,12 +3,11 @@
 package org.ensime.fixture
 
 import akka.actor.{ ActorRef, ActorSystem }
-import org.scalatest._
 import akka.testkit._
-
 import org.ensime.api._
-import org.ensime.core._
 import org.ensime.config.richconfig._
+import org.ensime.core._
+import org.scalatest._
 
 import scala.concurrent.duration._
 
@@ -47,12 +46,6 @@ object ProjectFixture extends Matchers {
       case DebugVmDisconnectEvent => true
       case ClearAllScalaNotesEvent => true
       case ClearAllJavaNotesEvent => true
-
-      // on windows we get a NewScalaNotesEvent warning from Predef
-      // about precedure syntax. We have no idea what is loading
-      // Predef and why it only happens on Windows
-      //      case NewScalaNotesEvent(_, notes) if notes.head.file.endsWith("Predef.scala") => true
-
     }
 
     val project = TestActorRef[Project](Project(probe.ref), "project")
