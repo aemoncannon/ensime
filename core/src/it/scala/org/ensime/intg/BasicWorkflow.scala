@@ -45,11 +45,12 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! UnloadAllReq
           expectMsg(VoidResponse)
-          
+
           all(asyncHelper.receiveN(2)) should matchPattern {
             case CompilerRestartedEvent =>
             case FullTypeCheckCompleteEvent =>
           }
+
 
           // trigger typeCheck
           project ! TypecheckFilesReq(List(Left(fooFile), Left(barFile)))
@@ -209,7 +210,6 @@ class BasicWorkflow extends EnsimeSpec
                 )
               ) =>
           }
-          
           // expand selection around "seven" in `foo.testMethod` call
           project ! ExpandSelectionReq(fooFile, 215, 215)
           val expandRange1 = expectMsgType[FileRange]
