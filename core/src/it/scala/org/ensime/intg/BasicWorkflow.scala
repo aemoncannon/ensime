@@ -37,7 +37,7 @@ class BasicWorkflow extends EnsimeSpec
           val barPath = barFile.toPath
 
           project ! TypecheckModule(EnsimeProjectId("testing_simple", "compile"))
-          expectMsg(5 seconds, VoidResponse)
+          expectMsg(VoidResponse)
           all(asyncHelper.receiveN(3)) should matchPattern {
             case CompilerRestartedEvent =>
             case n: NewScalaNotesEvent =>
