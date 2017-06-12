@@ -632,18 +632,11 @@ object SwankProtocolRequest {
   implicit val PublicSymbolSearchReqHint: TypeHint[PublicSymbolSearchReq] = TypeHint[PublicSymbolSearchReq](SexpSymbol("swank:public-symbol-search"))
   implicit val ImportSuggestionsReqHint: TypeHint[ImportSuggestionsReq] = TypeHint[ImportSuggestionsReq](SexpSymbol("swank:import-suggestions"))
   implicit val DocUriAtPointReqHint: TypeHint[DocUriAtPointReq] = TypeHint[DocUriAtPointReq](SexpSymbol("swank:doc-uri-at-point"))
-  implicit val DocUriForSymbolReqHint: TypeHint[DocUriForSymbolReq] = TypeHint[DocUriForSymbolReq](SexpSymbol("swank:doc-uri-for-symbol"))
   implicit val CompletionsReqHint: TypeHint[CompletionsReq] = TypeHint[CompletionsReq](SexpSymbol("swank:completions"))
-  implicit val PackageMemberCompletionReqHint: TypeHint[PackageMemberCompletionReq] = TypeHint[PackageMemberCompletionReq](SexpSymbol("swank:package-member-completion"))
   implicit val UsesOfSymbolAtPointReqHint: TypeHint[UsesOfSymbolAtPointReq] = TypeHint[UsesOfSymbolAtPointReq](SexpSymbol("swank:uses-of-symbol-at-point"))
-  implicit val TypeByNameReqHint: TypeHint[TypeByNameReq] = TypeHint[TypeByNameReq](SexpSymbol("swank:type-by-name"))
-  implicit val TypeByNameAtPointReqHint: TypeHint[TypeByNameAtPointReq] = TypeHint[TypeByNameAtPointReq](SexpSymbol("swank:type-by-name-at-point"))
   implicit val TypeAtPointReqHint: TypeHint[TypeAtPointReq] = TypeHint[TypeAtPointReq](SexpSymbol("swank:type-at-point"))
   implicit val InspectTypeAtPointReqHint: TypeHint[InspectTypeAtPointReq] = TypeHint[InspectTypeAtPointReq](SexpSymbol("swank:inspect-type-at-point"))
-  implicit val InspectTypeByNameReqHint: TypeHint[InspectTypeByNameReq] = TypeHint[InspectTypeByNameReq](SexpSymbol("swank:inspect-type-by-name"))
   implicit val SymbolAtPointReqHint: TypeHint[SymbolAtPointReq] = TypeHint[SymbolAtPointReq](SexpSymbol("swank:symbol-at-point"))
-  implicit val SymbolByNameReqHint: TypeHint[SymbolByNameReq] = TypeHint[SymbolByNameReq](SexpSymbol("swank:symbol-by-name"))
-  implicit val InspectPackageByPathReqHint: TypeHint[InspectPackageByPathReq] = TypeHint[InspectPackageByPathReq](SexpSymbol("swank:inspect-package-by-path"))
   implicit val RefactorReqHint: TypeHint[RefactorReq] = TypeHint[RefactorReq](SexpSymbol("swank:diff-refactor"))
   implicit val SymbolDesignationsReqHint: TypeHint[SymbolDesignationsReq] = TypeHint[SymbolDesignationsReq](SexpSymbol("swank:symbol-designations"))
   implicit val ImplicitInfoReqHint: TypeHint[ImplicitInfoReq] = TypeHint[ImplicitInfoReq](SexpSymbol("swank:implicit-info"))
@@ -787,18 +780,11 @@ object SwankProtocolRequest {
   implicit def PublicSymbolSearchHint: SexpFormat[PublicSymbolSearchReq] = { def PublicSymbolSearchHint = ???; implicitly[SexpFormat[PublicSymbolSearchReq]] }
   implicit def ImportSuggestionsReqFormat: SexpFormat[ImportSuggestionsReq] = { def ImportSuggestionsReqFormat = ???; implicitly[SexpFormat[ImportSuggestionsReq]] }
   implicit def DocUriAtPointReqFormat: SexpFormat[DocUriAtPointReq] = { def DocUriAtPointReqFormat = ???; implicitly[SexpFormat[DocUriAtPointReq]] }
-  implicit def DocUriForSymbolReqFormat: SexpFormat[DocUriForSymbolReq] = { def DocUriForSymbolReqFormat = ???; implicitly[SexpFormat[DocUriForSymbolReq]] }
   implicit def CompletionsReqFormat: SexpFormat[CompletionsReq] = { def CompletionsReqFormat = ???; implicitly[SexpFormat[CompletionsReq]] }
-  implicit def PackageMemberCompletionReqFormat: SexpFormat[PackageMemberCompletionReq] = { def PackageMemberCompletionReqFormat = ???; implicitly[SexpFormat[PackageMemberCompletionReq]] }
   implicit def UsesOfSymbolAtPointReqFormat: SexpFormat[UsesOfSymbolAtPointReq] = { def UsesOfSymbolAtPointReqFormat = ???; implicitly[SexpFormat[UsesOfSymbolAtPointReq]] }
-  implicit def TypeByNameReqFormat: SexpFormat[TypeByNameReq] = { def TypeByNameReqFormat = ???; implicitly[SexpFormat[TypeByNameReq]] }
-  implicit def TypeByNameAtPointReqFormat: SexpFormat[TypeByNameAtPointReq] = { def TypeByNameAtPointReqFormat = ???; implicitly[SexpFormat[TypeByNameAtPointReq]] }
   implicit def TypeAtPointReqFormat: SexpFormat[TypeAtPointReq] = { def TypeAtPointReqFormat = ???; implicitly[SexpFormat[TypeAtPointReq]] }
   implicit def InspectTypeAtPointReqFormat: SexpFormat[InspectTypeAtPointReq] = { def InspectTypeAtPointReqFormat = ???; implicitly[SexpFormat[InspectTypeAtPointReq]] }
-  implicit def InspectTypeByNameReqFormat: SexpFormat[InspectTypeByNameReq] = { def InspectTypeByNameReqFormat = ???; implicitly[SexpFormat[InspectTypeByNameReq]] }
   implicit def SymbolAtPointReqFormat: SexpFormat[SymbolAtPointReq] = { def SymbolAtPointReqFormat = ???; implicitly[SexpFormat[SymbolAtPointReq]] }
-  implicit def SymbolByNameReqFormat: SexpFormat[SymbolByNameReq] = { def SymbolByNameReqFormat = ???; implicitly[SexpFormat[SymbolByNameReq]] }
-  implicit def InspectPackageByPathReqFormat: SexpFormat[InspectPackageByPathReq] = { def InspectPackageByPathReqFormat = ???; implicitly[SexpFormat[InspectPackageByPathReq]] }
   implicit def RefactorReqFormat: SexpFormat[RefactorReq] = { def RefactorReqFormat = ???; implicitly[SexpFormat[RefactorReq]] }
   implicit def SymbolDesignationsReqFormat: SexpFormat[SymbolDesignationsReq] = { def SymbolDesignationsReqFormat = ???; implicitly[SexpFormat[SymbolDesignationsReq]] }
   implicit def ImplicitInfoReqFormat: SexpFormat[ImplicitInfoReq] = { def ImplicitInfoReqFormat = ???; implicitly[SexpFormat[ImplicitInfoReq]] }
@@ -833,18 +819,11 @@ object SwankProtocolRequest {
           case s if s == PublicSymbolSearchReqHint.hint => value.convertTo[PublicSymbolSearchReq]
           case s if s == ImportSuggestionsReqHint.hint => value.convertTo[ImportSuggestionsReq]
           case s if s == DocUriAtPointReqHint.hint => value.convertTo[DocUriAtPointReq]
-          case s if s == DocUriForSymbolReqHint.hint => value.convertTo[DocUriForSymbolReq]
           case s if s == CompletionsReqHint.hint => value.convertTo[CompletionsReq]
-          case s if s == PackageMemberCompletionReqHint.hint => value.convertTo[PackageMemberCompletionReq]
           case s if s == UsesOfSymbolAtPointReqHint.hint => value.convertTo[UsesOfSymbolAtPointReq]
-          case s if s == TypeByNameReqHint.hint => value.convertTo[TypeByNameReq]
-          case s if s == TypeByNameAtPointReqHint.hint => value.convertTo[TypeByNameAtPointReq]
           case s if s == TypeAtPointReqHint.hint => value.convertTo[TypeAtPointReq]
           case s if s == InspectTypeAtPointReqHint.hint => value.convertTo[InspectTypeAtPointReq]
-          case s if s == InspectTypeByNameReqHint.hint => value.convertTo[InspectTypeByNameReq]
           case s if s == SymbolAtPointReqHint.hint => value.convertTo[SymbolAtPointReq]
-          case s if s == SymbolByNameReqHint.hint => value.convertTo[SymbolByNameReq]
-          case s if s == InspectPackageByPathReqHint.hint => value.convertTo[InspectPackageByPathReq]
           case s if s == RefactorReqHint.hint => value.convertTo[RefactorReq]
           case s if s == SymbolDesignationsReqHint.hint => value.convertTo[SymbolDesignationsReq]
           case s if s == ImplicitInfoReqHint.hint => value.convertTo[ImplicitInfoReq]

@@ -92,33 +92,13 @@ class JerkyFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeT
     )
 
     roundtrip(
-      DocUriForSymbolReq("foo.bar", Some("Baz"), None): RpcRequest,
-      """{"typehint":"DocUriForSymbolReq","typeFullName":"foo.bar","memberName":"Baz"}"""
-    )
-
-    roundtrip(
       CompletionsReq(sourceFileInfo, 10, 100, true, false): RpcRequest,
       s"""{"point":10,"maxResults":100,"typehint":"CompletionsReq","caseSens":true,"fileInfo":{"file":"$file1","contents":"{/* code here */}","contentsIn":"$file2"},"reload":false}"""
     )
 
     roundtrip(
-      PackageMemberCompletionReq("foo", "bar"): RpcRequest,
-      """{"typehint":"PackageMemberCompletionReq","path":"foo","prefix":"bar"}"""
-    )
-
-    roundtrip(
       UsesOfSymbolAtPointReq(Left(file1), 100): RpcRequest,
       s"""{"typehint":"UsesOfSymbolAtPointReq","file":"$file1","point":100}"""
-    )
-
-    roundtrip(
-      TypeByNameReq("foo.bar"): RpcRequest,
-      """{"typehint":"TypeByNameReq","name":"foo.bar"}"""
-    )
-
-    roundtrip(
-      TypeByNameAtPointReq("foo.bar", Left(file1), OffsetRange(1, 10)): RpcRequest,
-      s"""{"typehint":"TypeByNameAtPointReq","name":"foo.bar","file":"$file1","range":{"from":1,"to":10}}"""
     )
 
     roundtrip(
@@ -132,23 +112,8 @@ class JerkyFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeT
     )
 
     roundtrip(
-      InspectTypeByNameReq("foo.Bar"): RpcRequest,
-      """{"typehint":"InspectTypeByNameReq","name":"foo.Bar"}"""
-    )
-
-    roundtrip(
       SymbolAtPointReq(Left(file1), 101): RpcRequest,
       s"""{"typehint":"SymbolAtPointReq","file":"$file1","point":101}"""
-    )
-
-    roundtrip(
-      SymbolByNameReq("foo.Bar", Some("baz"), None): RpcRequest,
-      """{"typehint":"SymbolByNameReq","typeFullName":"foo.Bar","memberName":"baz"}"""
-    )
-
-    roundtrip(
-      InspectPackageByPathReq("foo.bar"): RpcRequest,
-      """{"typehint":"InspectPackageByPathReq","path":"foo.bar"}"""
     )
 
     roundtrip(

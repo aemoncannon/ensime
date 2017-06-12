@@ -89,33 +89,13 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      DocUriForSymbolReq("foo.bar", Some("Baz"), None): RpcRequest,
-      s"""(:ensime-api-doc-uri-for-symbol-req (:type-full-name "foo.bar" :member-name "Baz"))"""
-    )
-
-    roundtrip(
       CompletionsReq(sourceFileInfo, 10, 100, true, false): RpcRequest,
       s"""(:ensime-api-completions-req (:file-info (:file "$file1" :contents "{/* code here */}" :contents-in "$file2") :point 10 :max-results 100 :case-sens t))"""
     )
 
     roundtrip(
-      PackageMemberCompletionReq("foo", "bar"): RpcRequest,
-      """(:ensime-api-package-member-completion-req (:path "foo" :prefix "bar"))"""
-    )
-
-    roundtrip(
       UsesOfSymbolAtPointReq(Left(file1), 100): RpcRequest,
       s"""(:ensime-api-uses-of-symbol-at-point-req (:file "$file1" :point 100))"""
-    )
-
-    roundtrip(
-      TypeByNameReq("foo.bar"): RpcRequest,
-      s"""(:ensime-api-type-by-name-req (:name "foo.bar"))"""
-    )
-
-    roundtrip(
-      TypeByNameAtPointReq("foo.bar", Left(file1), OffsetRange(1, 10)): RpcRequest,
-      s"""(:ensime-api-type-by-name-at-point-req (:name "foo.bar" :file "$file1" :range (:from 1 :to 10)))"""
     )
 
     roundtrip(
@@ -129,23 +109,8 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      InspectTypeByNameReq("foo.Bar"): RpcRequest,
-      s"""(:ensime-api-inspect-type-by-name-req (:name "foo.Bar"))"""
-    )
-
-    roundtrip(
       SymbolAtPointReq(Left(file1), 101): RpcRequest,
       s"""(:ensime-api-symbol-at-point-req (:file "$file1" :point 101))"""
-    )
-
-    roundtrip(
-      SymbolByNameReq("foo.Bar", Some("baz"), None): RpcRequest,
-      s"""(:ensime-api-symbol-by-name-req (:type-full-name "foo.Bar" :member-name "baz"))"""
-    )
-
-    roundtrip(
-      InspectPackageByPathReq("foo.bar"): RpcRequest,
-      s"""(:ensime-api-inspect-package-by-path-req (:path "foo.bar"))"""
     )
 
     roundtrip(

@@ -43,9 +43,6 @@ class BasicWorkflow extends EnsimeSpec
             case FullTypeCheckCompleteEvent =>
           }
 
-          project ! TypeByNameReq("org.example.Bloo")
-          expectMsgType[api.BasicTypeInfo]
-
           project ! UnloadAllReq
           expectMsg(VoidResponse)
           all(asyncHelper.receiveN(2)) should matchPattern {
@@ -80,12 +77,6 @@ class BasicWorkflow extends EnsimeSpec
           project ! SymbolAtPointReq(Left(fooFile), 128)
           val symbolAtPointOpt: SymbolInfo = expectMsgType[SymbolInfo]
 
-          project ! TypeByNameReq("org.example.Foo")
-          val fooClassByNameOpt = expectMsgType[TypeInfo]
-
-          project ! TypeByNameReq("org.example.Foo$")
-          val fooObjectByNameOpt = expectMsgType[TypeInfo]
-
           //-----------------------------------------------------------------------------------------------
           // public symbol search - java.io.File
 
@@ -110,15 +101,6 @@ class BasicWorkflow extends EnsimeSpec
           // NOTE these are handled as multi-phase queries in requesthandler
           project ! DocUriAtPointReq(Left(fooFile), OffsetRange(128))
           expectMsg(Some(intDocSig))
-
-          project ! DocUriForSymbolReq("scala.Int", None, None)
-          expectMsg(Some(intDocSig))
-
-          project ! intDocSig
-          expectMsgType[StringResponse].text should (
-            endWith("/index.html#scala.Int") or // <= 2.11
-            endWith("/scala/Int.html") // 2.12
-          )
 
           //-----------------------------------------------------------------------------------------------
           // uses of symbol at point
@@ -226,37 +208,6 @@ class BasicWorkflow extends EnsimeSpec
                 )
               ) =>
           }
-
-          // C-c C-v p Inspect source of current package
-          project ! InspectPackageByPathReq("org.example")
-
-          val packageInfo = expectMsgType[PackageInfo]
-          packageInfo.name shouldBe "example"
-          packageInfo.fullName shouldBe "org.example"
-
-          packageInfo.members.collect {
-            case b: api.BasicTypeInfo => b.copy(pos = None)
-          } should contain theSameElementsAs List(
-            BasicTypeInfo("Bar", DeclaredAs.Class, "org.example.Bar"),
-            BasicTypeInfo("Bar", DeclaredAs.Object, "org.example.Bar"),
-            BasicTypeInfo("Bloo", DeclaredAs.Class, "org.example.Bloo"),
-            BasicTypeInfo("Bloo", DeclaredAs.Object, "org.example.Bloo"),
-            BasicTypeInfo("Blue", DeclaredAs.Class, "org.example.Blue"),
-            BasicTypeInfo("Blue", DeclaredAs.Object, "org.example.Blue"),
-            BasicTypeInfo("CaseClassWithCamelCaseName", DeclaredAs.Class, "org.example.CaseClassWithCamelCaseName"),
-            BasicTypeInfo("CaseClassWithCamelCaseName", DeclaredAs.Object, "org.example.CaseClassWithCamelCaseName"),
-            BasicTypeInfo("Foo", DeclaredAs.Class, "org.example.Foo"),
-            BasicTypeInfo("Foo", DeclaredAs.Object, "org.example.Foo"),
-            BasicTypeInfo("Qux", DeclaredAs.Class, "org.example.Qux"),
-            BasicTypeInfo("Test1", DeclaredAs.Class, "org.example.Test1"),
-            BasicTypeInfo("Test1", DeclaredAs.Object, "org.example.Test1"),
-            BasicTypeInfo("Test2", DeclaredAs.Class, "org.example.Test2"),
-            BasicTypeInfo("Test2", DeclaredAs.Object, "org.example.Test2"),
-            BasicTypeInfo("WithPolyMethod", DeclaredAs.Object, "org.example.WithPolyMethod"),
-            BasicTypeInfo("WithPolyMethod", DeclaredAs.Class, "org.example.WithPolyMethod"),
-            BasicTypeInfo("package", DeclaredAs.Object, "org.example.package"),
-            BasicTypeInfo("package", DeclaredAs.Object, "org.example.package")
-          )
 
           // expand selection around "seven" in `foo.testMethod` call
           project ! ExpandSelectionReq(fooFile, 215, 215)

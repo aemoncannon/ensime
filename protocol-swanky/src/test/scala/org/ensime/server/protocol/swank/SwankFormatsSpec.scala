@@ -99,33 +99,13 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     unmarshal(
-      s"""(swank:doc-uri-for-symbol "foo.bar" "Baz" nil)""",
-      DocUriForSymbolReq("foo.bar", Some("Baz"), None): RpcRequest
-    )
-
-    unmarshal(
       s"""(swank:completions (:file "$file1" :contents "{/* code here */}" :contents-in "$file2") 10 100 t nil)""",
       CompletionsReq(sourceFileInfo, 10, 100, true, false): RpcRequest
     )
 
     unmarshal(
-      """(swank:package-member-completion "foo" "bar")""",
-      PackageMemberCompletionReq("foo", "bar"): RpcRequest
-    )
-
-    unmarshal(
       s"""(swank:uses-of-symbol-at-point "$file1" 100)""",
       UsesOfSymbolAtPointReq(Left(file1), 100): RpcRequest
-    )
-
-    unmarshal(
-      s"""(swank:type-by-name "foo.bar")""",
-      TypeByNameReq("foo.bar"): RpcRequest
-    )
-
-    unmarshal(
-      s"""(swank:type-by-name-at-point "foo.bar" "$file1" (1 10))""",
-      TypeByNameAtPointReq("foo.bar", Left(file1), OffsetRange(1, 10)): RpcRequest
     )
 
     unmarshal(
@@ -139,23 +119,8 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     unmarshal(
-      s"""(swank:inspect-type-by-name "foo.Bar")""",
-      InspectTypeByNameReq("foo.Bar"): RpcRequest
-    )
-
-    unmarshal(
       s"""(swank:symbol-at-point "$file1" 101)""",
       SymbolAtPointReq(Left(file1), 101): RpcRequest
-    )
-
-    unmarshal(
-      s"""(swank:symbol-by-name "foo.Bar" "baz" nil)""",
-      SymbolByNameReq("foo.Bar", Some("baz"), None): RpcRequest
-    )
-
-    unmarshal(
-      s"""(swank:inspect-package-by-path "foo.bar")""",
-      InspectPackageByPathReq("foo.bar"): RpcRequest
     )
 
     unmarshal(
