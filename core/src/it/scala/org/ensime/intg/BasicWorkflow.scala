@@ -39,6 +39,7 @@ class BasicWorkflow extends EnsimeSpec
           expectMsg(VoidResponse)
           all(asyncHelper.receiveN(3)) should matchPattern {
             case CompilerRestartedEvent =>
+            case FullTypeCheckCompleteEvent =>
             case n: NewScalaNotesEvent =>
             case FullTypeCheckCompleteEvent =>
           }
@@ -49,6 +50,7 @@ class BasicWorkflow extends EnsimeSpec
             case CompilerRestartedEvent =>
             case FullTypeCheckCompleteEvent =>
           }
+
           // trigger typeCheck
           project ! TypecheckFilesReq(List(Left(fooFile), Left(barFile)))
           expectMsg(VoidResponse)
