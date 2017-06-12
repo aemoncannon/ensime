@@ -138,9 +138,9 @@ class BasicWorkflow extends EnsimeSpec
             ERangePosition(`packageFilePath`, 94, 80, 104)
           )
 
-          all(asyncHelper.receiveN(2)) should matchPattern {
-            case n: NewScalaNotesEvent =>
-            case FullTypeCheckCompleteEvent =>
+          asyncHelper.fishForMessage() {
+            case FullTypeCheckCompleteEvent => true
+            case _ => false
           }
 
           // note that the line numbers appear to have been stripped from the
@@ -182,10 +182,6 @@ class BasicWorkflow extends EnsimeSpec
                 Nil, None, Nil)) =>
           }
 
-          all(asyncHelper.receiveN(1)) should matchPattern {
-            case n: NewScalaNotesEvent =>
-          }
-
           project ! SymbolAtPointReq(Left(barFile), 150)
           expectMsgPF() {
             case SymbolInfo("apply", "apply", Some(OffsetSourcePosition(RawFile(`barPath`), 59)),
@@ -196,10 +192,6 @@ class BasicWorkflow extends EnsimeSpec
                     ("bar", BasicTypeInfo("String", DeclaredAs.Class, "java.lang.String")),
                     ("baz", BasicTypeInfo("Int", DeclaredAs.Class, "scala.Int"))), false)),
                 Nil)) =>
-          }
-
-          all(asyncHelper.receiveN(6)) should matchPattern {
-            case n: NewScalaNotesEvent =>
           }
 
           project ! SymbolAtPointReq(Left(barFile), 193)
@@ -298,9 +290,10 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! TypecheckFilesReq(List(Left(fooFile), Left(barFile)))
           expectMsg(VoidResponse)
-          all(asyncHelper.receiveN(2)) should matchPattern {
-            case n: NewScalaNotesEvent =>
-            case FullTypeCheckCompleteEvent =>
+
+          asyncHelper.fishForMessage() {
+            case FullTypeCheckCompleteEvent => true
+            case _ => false
           }
 
           project ! RefactorReq(4321, RenameRefactorDesc("Renamed", barFile, 30, 30), false)
