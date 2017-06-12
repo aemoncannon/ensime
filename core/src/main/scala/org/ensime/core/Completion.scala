@@ -342,27 +342,6 @@ object Keywords {
   }
 }
 
-trait Completion { self: RichPresentationCompiler =>
-
-  def completePackageMember(path: String, prefix: String): List[CompletionInfo] = {
-    toSymbol(PackageName(path.split('.').toList)) match {
-      case NoSymbol => List.empty
-      case sym =>
-        val memberSyms = packageMembers(sym).filterNot { s =>
-          s == NoSymbol || s.nameString.contains("$")
-        }
-        memberSyms.flatMap { s =>
-          val name = if (s.hasPackageFlag) { s.nameString } else { shortName(s).underlying }
-          if (name.startsWith(prefix))
-            Some(CompletionInfo(None, name, 50, None))
-          else
-            None
-        }.toList.sortBy(ci => (ci.relevance, ci.name))
-    }
-  }
-
-}
-
 object CompletionUtil {
   val IdentRegexp = """([a-zA-Z0-9_#:<=>@!%&*+/?\\^|~-]*)\z""".r
   val JavaIdentRegexp = """([a-zA-Z0-9_]+)\z""".r

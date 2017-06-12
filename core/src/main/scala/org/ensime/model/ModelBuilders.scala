@@ -2,21 +2,20 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.model
 
-import scala.collection.mutable
-import scala.reflect.internal.util.{ NoPosition, Position, RangePosition }
 import org.ensime.api
 import org.ensime.api._
 import org.ensime.core.{ FqnToSymbol, RichPresentationCompiler }
-import org.ensime.indexer.{ MethodName, PackageName }
+import org.ensime.indexer.MethodName
 import org.ensime.indexer.graph._
-import org.ensime.vfs._
 import org.ensime.util.ensimefile._
 import org.ensime.util.fileobject._
+import org.ensime.vfs._
+
+import scala.collection.mutable
+import scala.reflect.internal.util.{ NoPosition, Position, RangePosition }
 
 trait ModelBuilders {
   self: RichPresentationCompiler with FqnToSymbol =>
-
-  import rootMirror.RootPackage
 
   def locateSymbolPos(sym: Symbol, needPos: PosNeeded): Option[SourcePosition] = {
     _locateSymbolPos(sym, needPos).orElse({
@@ -119,52 +118,6 @@ trait ModelBuilders {
         val sortedInfos = nestedTypes ++ fields ++ constructors ++ methods
 
         new InterfaceInfo(TypeInfo(ownerSym.tpe, PosNeededAvail, sortedInfos), viaView.map(_.name.toString))
-    }
-  }
-
-  object PackageInfo {
-    def root: PackageInfo = fromSymbol(RootPackage)
-
-    def fromPath(path: String): PackageInfo =
-      toSymbol(PackageName(path.split('.').toList)) match {
-        case NoSymbol => nullInfo
-        case packSym => fromSymbol(packSym)
-      }
-
-    val nullInfo = new PackageInfo("NA", "NA", List.empty)
-
-    private def sortedMembers(items: Iterable[EntityInfo]) = {
-      items.toList.sortBy(_.name)
-    }
-
-    def fromSymbol(sym: Symbol): PackageInfo = {
-      val members = sortedMembers(packageMembers(sym).flatMap(packageMemberInfoFromSym))
-      if (sym.isRoot || sym.isRootPackage) {
-        new PackageInfo("root", "_root_", members)
-      } else {
-        new PackageInfo(sym.name.toString, sym.fullName, members)
-      }
-    }
-
-    def packageMemberInfoFromSym(sym: Symbol): Option[EntityInfo] = {
-      try {
-        if (sym == RootPackage) {
-          Some(root)
-        } else if (sym.hasPackageFlag) {
-          Some(fromSymbol(sym))
-        } else if (!sym.nameString.contains("$") && (sym != NoSymbol) && (sym.tpe != NoType)) {
-          if (sym.isClass || sym.isTrait || sym.isModule ||
-            sym.isModuleClass || sym.isPackageClass) {
-            Some(TypeInfo(sym.tpe, PosNeededAvail))
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-      } catch {
-        case e: Throwable => None
-      }
     }
   }
 

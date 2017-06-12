@@ -38,22 +38,10 @@
  */
 package org.ensime.core
 
+import java.net.URI
 import java.nio.charset.Charset
 import java.nio.file.{ Path, Paths }
-import java.net.URI
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.collection.mutable
-import scala.collection.immutable.{ Set => SCISet }
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
-import scala.reflect.io.{ PlainFile, VirtualFile }
-import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.{ CompilerControl, Global }
-import scala.tools.nsc.io.AbstractFile
-import scala.tools.nsc.reporters.Reporter
-import scala.tools.nsc.util._
-import scala.tools.refactoring.analysis.GlobalIndexes
 import akka.actor.ActorRef
 import org.ensime.api._
 import org.ensime.indexer._
@@ -63,6 +51,18 @@ import org.ensime.util.file._
 import org.ensime.util.sourcefile._
 import org.ensime.vfs._
 import org.slf4j.LoggerFactory
+
+import scala.collection.immutable.{ Set => SCISet }
+import scala.collection.mutable
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
+import scala.reflect.io.{ PlainFile, VirtualFile }
+import scala.tools.nsc.Settings
+import scala.tools.nsc.interactive.{ CompilerControl, Global }
+import scala.tools.nsc.io.AbstractFile
+import scala.tools.nsc.reporters.Reporter
+import scala.tools.nsc.util._
+import scala.tools.refactoring.analysis.GlobalIndexes
 
 trait RichCompilerControl extends CompilerControl with RefactoringControl with CompletionControl with DocFinding {
   self: RichPresentationCompiler =>
@@ -93,13 +93,6 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
       symbolAt(p).orElse(typeAt(p).flatMap(_.typeSymbol.toOption)).flatMap(docSignature(_, Some(p)))
     }.flatten
 
-  def askDocSignatureForSymbol(typeFullName: String, memberName: Option[String],
-    signatureString: Option[String]): Option[DocSigPair] =
-    askOption {
-      val sym = symbolMemberByName(typeFullName, memberName, signatureString)
-      docSignature(sym, None)
-    }.flatten
-
   ////////////////////////////////////////////////////////////////////////////////
   // exposed for testing
   def askSymbolFqn(p: Position): Option[FullyQualifiedName] =
@@ -120,37 +113,8 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askSymbolInfoAt(p: Position): Option[SymbolInfo] =
     askOption(symbolAt(p).map(SymbolInfo(_))).flatten
 
-  def askSymbolByName(fqn: String, memberName: Option[String], signatureString: Option[String]): Option[SymbolInfo] =
-    askOption {
-      SymbolInfo(symbolMemberByName(fqn, memberName, signatureString))
-    }
-
   def askTypeInfoAt(p: Position): Option[TypeInfo] =
     askOption(typeAt(p).map(TypeInfo(_, PosNeededYes))).flatten
-
-  def askTypeInfoByName(name: String): Option[TypeInfo] =
-    askOption(TypeInfo(toSymbol(name).tpe, PosNeededYes))
-
-  def askTypeInfoByNameAt(name: String, p: Position): Option[TypeInfo] = {
-    val nameSegs = name.split("\\.")
-    val firstName: String = nameSegs.head
-    val x = new Response[List[Member]]()
-    askScopeCompletion(p, x)
-    (for (
-      members <- x.get.left.toOption;
-      infos <- askOption {
-        val roots = filterMembersByPrefix(
-          members, firstName, matchEntire = true, caseSens = true
-        ).map { _.sym }
-        val restOfPath = nameSegs.drop(1).mkString(".")
-        val syms = roots.map { toSymbol(restOfPath, None, _) }
-        syms.find(_.tpe != NoType).map { sym => TypeInfo(sym.tpe) }
-      }
-    ) yield infos).flatten
-  }
-
-  def askPackageByPath(path: String): Option[PackageInfo] =
-    askOption(PackageInfo.fromPath(path))
 
   def askReloadFile(f: SourceFile): Unit = {
     askReloadFiles(List(f))
@@ -177,12 +141,6 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def askInspectTypeAt(p: Position): Option[TypeInspectInfo] =
     askOption(inspectTypeAt(p)).flatten
-
-  def askInspectTypeByName(name: String): Option[TypeInspectInfo] =
-    askOption(inspectType(toSymbol(name).tpe))
-
-  def askCompletePackageMember(path: String, prefix: String): List[CompletionInfo] =
-    askOption(completePackageMember(path, prefix)).getOrElse(List.empty)
 
   def askCompletionsAt(p: Position, maxResults: Int, caseSens: Boolean): Future[CompletionInfoList] =
     completionsAt(p, maxResults, caseSens)
@@ -356,7 +314,7 @@ class RichPresentationCompiler(
   val ec: ExecutionContext
 ) extends Global(settings, richReporter)
     with ModelBuilders with RichCompilerControl
-    with RefactoringImpl with Completion with Helpers
+    with RefactoringImpl with Helpers
     with PresentationCompilerBackCompat with PositionBackCompat
     with StructureViewBuilder
     with SymbolToFqn
@@ -450,14 +408,6 @@ class RichPresentationCompiler(
     }
   }
 
-  protected def inspectType(tpe: Type): TypeInspectInfo = {
-    val parents = tpe.parents
-    TypeInspectInfo(
-      TypeInfo(tpe, PosNeededAvail),
-      prepareSortedInterfaceInfo(typePublicMembers(tpe.asInstanceOf[Type]), parents)
-    )
-  }
-
   protected def inspectTypeAt(p: Position): Option[TypeInspectInfo] = {
     typeAt(p).map(tpe => {
       val members = getMembersForTypeAt(tpe, p)
@@ -495,29 +445,6 @@ class RichPresentationCompiler(
       case Import(_, _) => symbolAt(p).map(_.tpe)
       case tree => typeOfTree(tree)
     }
-  }
-
-  protected def symbolMemberByName(
-    name: String, member: Option[String], descriptor: Option[String]
-  ): Symbol = {
-    val clazz = ClassName.fromFqn(name)
-    val fqn = (member, descriptor) match {
-      case (Some(field), None) => FieldName(clazz, field)
-      case (Some(method), Some(desc)) => MethodName(clazz, method, DescriptorParser.parse(desc))
-      case _ => clazz
-    }
-    toSymbol(fqn)
-  }
-
-  protected def filterMembersByPrefix(members: List[Member], prefix: String,
-    matchEntire: Boolean, caseSens: Boolean): List[Member] = members.filter { m =>
-    val prefixUpper = prefix.toUpperCase
-    val sym = m.sym
-    val ns = sym.nameString
-    (((matchEntire && ns == prefix) ||
-      (!matchEntire && caseSens && ns.startsWith(prefix)) ||
-      (!matchEntire && !caseSens && ns.toUpperCase.startsWith(prefixUpper)))
-      && !sym.nameString.contains("$"))
   }
 
   private def noDefinitionFound(tree: Tree) = {
