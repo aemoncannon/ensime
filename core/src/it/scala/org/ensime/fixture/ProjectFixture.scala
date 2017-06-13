@@ -2,14 +2,14 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.fixture
 
-import akka.actor.{ ActorRef, ActorSystem }
+import scala.concurrent.duration._
+
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit._
 import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.core._
 import org.scalatest._
-
-import scala.concurrent.duration._
 
 // WORKAROUND http://stackoverflow.com/questions/13420809
 object LoggingTestProbe {
