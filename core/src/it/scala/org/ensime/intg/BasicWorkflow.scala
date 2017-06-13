@@ -2,17 +2,17 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.intg
 
+import scala.concurrent.duration._
+
 import org.ensime.api
 import org.ensime.api.{ BasicTypeInfo => _, EnsimeFile => _, _ }
 import org.ensime.core._
 import org.ensime.fixture._
 import org.ensime.model.BasicTypeInfo
 import org.ensime.util.EnsimeSpec
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.ensimefile._
+import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.file._
-
-import scala.concurrent.duration._
 
 class BasicWorkflow extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
@@ -45,17 +45,10 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! UnloadAllReq
           expectMsg(VoidResponse)
-
           all(asyncHelper.receiveN(2)) should matchPattern {
             case CompilerRestartedEvent =>
             case FullTypeCheckCompleteEvent =>
           }
-
-          all(asyncHelper.receiveN(2)) should matchPattern {
-            case CompilerRestartedEvent =>
-            case FullTypeCheckCompleteEvent =>
-          }
-
 
           // trigger typeCheck
           project ! TypecheckFilesReq(List(Left(fooFile), Left(barFile)))
@@ -127,10 +120,11 @@ class BasicWorkflow extends EnsimeSpec
             ERangePosition(`packageFilePath`, 94, 80, 104)
           )
 
-          all(asyncHelper.receiveN(2)) should matchPattern {
-            case note: NewScalaNotesEvent =>
-            case FullTypeCheckCompleteEvent =>
+          asyncHelper.fishForMessage() {
+            case FullTypeCheckCompleteEvent => true
+            case _ => false
           }
+
           // note that the line numbers appear to have been stripped from the
           // scala library classfiles, so offset/line comes out as zero unless
           // loaded by the pres compiler
@@ -308,8 +302,7 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! TypecheckFilesReq(List(Left(bazFile), Right(toBeUnloaded)))
           expectMsg(VoidResponse)
-
-          all(asyncHelper.receiveN(3)) should matchPattern {
+          all(asyncHelper.receiveN(2)) should matchPattern {
             case note: NewScalaNotesEvent =>
             case FullTypeCheckCompleteEvent =>
           }

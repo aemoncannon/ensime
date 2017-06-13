@@ -276,7 +276,8 @@ object EnsimeBuild {
 // projects used in the integration tests, not published
 object EnsimeTestingBuild {
   private def testingProject(dir: String) = Project(dir.replace("/", "_"), file(dir)).settings(
-    scalacOptions := Nil,
+    scalacOptions in (Compile, compile) := Nil,
+    scalacOptions in (Test, compile) := Nil,
     libraryDependencies := Seq("org.scala-lang" % "scala-library" % scalaVersion.value)
   )
 

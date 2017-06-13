@@ -4,6 +4,15 @@ package org.ensime.core
 
 import java.io.{ File => JFile }
 import java.nio.charset.Charset
+import java.time.Clock
+
+import scala.collection.breakOut
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
+import scala.tools.nsc.Settings
+import scala.tools.nsc.interactive.Global
+import scala.util.Try
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -57,12 +66,17 @@ class Analyzer(
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
 
-  import FileUtils._
   import context.dispatcher
+  import FileUtils._
+
+  private val clock: Clock = Clock.systemUTC
+  private val LIFE: Long = (5 minutes).toMillis
 
   private var allFilesMode = false
   private var settings: Settings = _
   private var reporter: PresentationReporter = _
+  private var loadedFiles: List[SourceFile] = List.empty
+  private var lastActivity: Long = _
 
   protected var scalaCompiler: RichCompilerControl = _
 
@@ -79,7 +93,7 @@ class Analyzer(
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
 
-    val projects = scoped.map(config.modules)
+    val projects = scoped.map(config.lookup)
 
     settings.classpath.value = {
       for {
@@ -163,6 +177,7 @@ class Analyzer(
       // FullTypeCheckCompleteEvent on connection.
       //      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
       //      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
+      // Already handled by AnalyzerManager
       context.become(ready)
       unstashAll()
 
@@ -173,11 +188,17 @@ class Analyzer(
   def ready: Receive = withLabel("ready") {
     case FullTypeCheckCompleteEvent =>
       broadcaster ! FullTypeCheckCompleteEvent
-      // FIXME: why do we need to tell the parent?
-      context.parent ! FullTypeCheckCompleteEvent
 
     case RestartScalaCompilerReq(id, strategy) =>
       restartCompiler(strategy, id)
+
+    case SuspendAnalyzer =>
+      val now = clock.millis()
+      if (now - lastActivity >= LIFE) {
+        loadedFiles = scalaCompiler.loadedFiles // remember the state
+        scalaCompiler.askShutdown()
+        context.become(suspended)
+      }
 
     case UnloadAllReq =>
       restartCompiler(ReloadStrategy.UnloadAll, None)
@@ -185,6 +206,7 @@ class Analyzer(
 
     case TypecheckModule(id) =>
       restartCompiler(ReloadStrategy.LoadProject, Some(id))
+      lastActivity = clock.millis()
       sender ! VoidResponse
 
     case req: RpcAnalyserRequest =>
@@ -195,7 +217,20 @@ class Analyzer(
       // disable it when we explicitly want it to be quiet, instead of
       // enabling on every incoming message.
       reporter.enable()
+      lastActivity = clock.millis()
       allTheThings(req)
+  }
+
+  def suspended: Receive = withLabel("suspended") {
+    case req: RpcAnalyserRequest =>
+      // re-start the pc
+      stash()
+      scalaCompiler = makeScalaCompiler()
+      if (loadedFiles.nonEmpty)
+        scalaCompiler.askReloadFiles(loadedFiles)
+      scalaCompiler.askNotifyWhenReady()
+      context.become(startup)
+      unstashAll()
   }
 
   def allTheThings: PartialFunction[RpcAnalyserRequest, Unit] = {
@@ -206,12 +241,10 @@ class Analyzer(
     case UnloadFilesReq(files, remove) =>
       scalaCompiler.askUnloadFiles(files, remove)
       sender ! VoidResponse
-
     case TypecheckFileReq(fileInfo) =>
       self forward TypecheckFilesReq(List(Right(fileInfo)))
     case TypecheckFilesReq(files) =>
       sender ! scalaCompiler.handleReloadFiles(files.map(toSourceFileInfo)(breakOut))
-
     case req: RefactorReq =>
       import context.dispatcher
       pipe(handleRefactorRequest(req)) to sender

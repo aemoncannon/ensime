@@ -44,7 +44,6 @@ import java.nio.file.{ Path, Paths }
 
 import scala.collection.mutable
 import scala.collection.immutable.{ Set => SCISet }
-import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
 import scala.reflect.io.{ PlainFile, VirtualFile }
@@ -64,7 +63,6 @@ import org.ensime.util.file._
 import org.ensime.util.sourcefile._
 import org.ensime.vfs._
 import org.slf4j.LoggerFactory
-
 
 trait RichCompilerControl extends CompilerControl with RefactoringControl with CompletionControl with DocFinding {
   self: RichPresentationCompiler =>

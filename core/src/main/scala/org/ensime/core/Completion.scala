@@ -39,17 +39,17 @@
  */
 package org.ensime.core
 
+import scala.collection.mutable
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.duration._
+import scala.reflect.internal.util.{ BatchSourceFile, SourceFile }
+
 import akka.actor.ActorRef
 import akka.pattern.Patterns
 import akka.util.Timeout
 import org.ensime.api._
 import org.ensime.indexer.lucene.SimpleLucene
 import org.ensime.util.Timing.dilation
-
-import scala.collection.mutable
-import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.reflect.internal.util.{ BatchSourceFile, SourceFile }
 
 trait CompletionControl {
   self: RichPresentationCompiler =>
