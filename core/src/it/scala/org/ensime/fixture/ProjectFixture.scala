@@ -4,7 +4,7 @@ package org.ensime.fixture
 
 import scala.concurrent.duration._
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ ActorRef, ActorSystem }
 import akka.testkit._
 import org.ensime.api._
 import org.ensime.config.richconfig._
