@@ -3,15 +3,15 @@
 package org.ensime.server.protocol.swank
 
 import java.io.File
-import org.ensime.sexp._
+
 import org.ensime.api._
+import org.ensime.sexp._
 import org.ensime.util.{ EnsimeSpec, EscapingStringInterpolation }
 import org.scalactic.source.Position
 
 class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
   import SwankFormats._
   import SwankTestData._
-
   import EscapingStringInterpolation._
 
   def marshal(value: EnsimeServerMessage, via: Option[String])(implicit p: Position): Unit = {

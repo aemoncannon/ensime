@@ -10,7 +10,6 @@ import org.ensime.util.{ EnsimeSpec, EscapingStringInterpolation }
 class JerkyFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeTestData {
 
   import JerkyFormats._
-
   import EscapingStringInterpolation._
 
   "Jerk Formats" should "roundtrip request envelopes" in {

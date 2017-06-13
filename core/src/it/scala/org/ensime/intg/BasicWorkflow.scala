@@ -2,17 +2,17 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.intg
 
+import scala.concurrent.duration._
+
 import org.ensime.api
 import org.ensime.api.{ BasicTypeInfo => _, EnsimeFile => _, _ }
 import org.ensime.core._
 import org.ensime.fixture._
 import org.ensime.model.BasicTypeInfo
 import org.ensime.util.EnsimeSpec
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.ensimefile._
+import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.file._
-
-import scala.concurrent.duration._
 
 class BasicWorkflow extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
@@ -41,7 +41,6 @@ class BasicWorkflow extends EnsimeSpec
             case CompilerRestartedEvent =>
             case FullTypeCheckCompleteEvent =>
             case n: NewScalaNotesEvent =>
-            case FullTypeCheckCompleteEvent =>
           }
 
           project ! UnloadAllReq
@@ -50,7 +49,7 @@ class BasicWorkflow extends EnsimeSpec
             case CompilerRestartedEvent =>
             case FullTypeCheckCompleteEvent =>
           }
-          
+
           // trigger typeCheck
           project ! TypecheckFilesReq(List(Left(fooFile), Left(barFile)))
           expectMsg(VoidResponse)

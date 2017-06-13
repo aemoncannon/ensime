@@ -5,6 +5,13 @@ package org.ensime.core
 import java.io.{ File => JFile }
 import java.nio.charset.Charset
 
+import scala.collection.breakOut
+import scala.concurrent.Future
+import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
+import scala.tools.nsc.Settings
+import scala.tools.nsc.interactive.Global
+import scala.util.Try
+
 import akka.actor._
 import akka.event.LoggingReceive.withLabel
 import akka.pattern.pipe
@@ -12,18 +19,11 @@ import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.indexer.SearchService
 import org.ensime.model._
+import org.ensime.util.{ FileUtils, PresentationReporter, ReportHandler }
 import org.ensime.util.file._
 import org.ensime.util.sourcefile._
-import org.ensime.util.{ FileUtils, PresentationReporter, ReportHandler }
 import org.ensime.vfs._
 import org.slf4j.LoggerFactory
-
-import scala.collection.breakOut
-import scala.concurrent.Future
-import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
-import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.Global
-import scala.util.Try
 
 final case class CompilerFatalError(e: Throwable)
 
@@ -55,8 +55,8 @@ class Analyzer(
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
 
-  import FileUtils._
   import context.dispatcher
+  import FileUtils._
 
   private var allFilesMode = false
 

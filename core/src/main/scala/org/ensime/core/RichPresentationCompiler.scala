@@ -42,18 +42,8 @@ import java.net.URI
 import java.nio.charset.Charset
 import java.nio.file.{ Path, Paths }
 
-import akka.actor.ActorRef
-import org.ensime.api._
-import org.ensime.indexer._
-import org.ensime.model._
-import org.ensime.util.ensimefile._
-import org.ensime.util.file._
-import org.ensime.util.sourcefile._
-import org.ensime.vfs._
-import org.slf4j.LoggerFactory
-
-import scala.collection.immutable.{ Set => SCISet }
 import scala.collection.mutable
+import scala.collection.immutable.{ Set => SCISet }
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
 import scala.reflect.io.{ PlainFile, VirtualFile }
@@ -63,6 +53,16 @@ import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.nsc.util._
 import scala.tools.refactoring.analysis.GlobalIndexes
+
+import akka.actor.ActorRef
+import org.ensime.api._
+import org.ensime.indexer._
+import org.ensime.model._
+import org.ensime.util.ensimefile._
+import org.ensime.util.file._
+import org.ensime.util.sourcefile._
+import org.ensime.vfs._
+import org.slf4j.LoggerFactory
 
 trait RichCompilerControl extends CompilerControl with RefactoringControl with CompletionControl with DocFinding {
   self: RichPresentationCompiler =>

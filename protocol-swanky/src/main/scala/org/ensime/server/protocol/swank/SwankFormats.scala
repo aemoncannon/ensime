@@ -178,8 +178,8 @@ object SwankProtocolCommon {
 }
 
 object SwankProtocolResponse {
-  import SwankProtocolConversions._
   import SwankProtocolCommon._
+  import SwankProtocolConversions._
 
   /**
    * By default, S-Express uses the simple name of a class as the
