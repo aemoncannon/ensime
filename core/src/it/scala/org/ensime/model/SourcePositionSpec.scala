@@ -14,9 +14,7 @@ class SourcePositionSpec extends EnsimeSpec
     with SharedEnsimeConfigFixture
     with SharedEnsimeVFSFixture {
 
-  val original = EnsimeConfigFixture.SimpleTestProject.copy(
-    javaLibs = Nil
-  )
+  val original = EnsimeConfigFixture.SimpleTestProject
 
   "SourcePosition" should "resolve FqnSymbols for local files with no line number" in {
     withEnsimeConfig { implicit config =>

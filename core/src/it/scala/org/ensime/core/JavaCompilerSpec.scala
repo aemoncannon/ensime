@@ -15,7 +15,7 @@ import org.scalatest.OptionValues
 class JavaCompilerSpec extends EnsimeSpec with OptionValues
     with IsolatedJavaCompilerFixture {
 
-  val original = EnsimeConfigFixture.SimpleTestProject.copy(javaSources = Nil, javaLibs = Nil)
+  val original = EnsimeConfigFixture.SimpleTestProject.copy(javaSources = Nil)
   override def usePreWarmedIndex = false
 
   // NOTE: we're intentionally removing the pre-indexing support so

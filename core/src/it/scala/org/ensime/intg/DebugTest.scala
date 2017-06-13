@@ -27,9 +27,7 @@ class DebugTest extends EnsimeSpec
     with IsolatedProjectFixture
     with DebugTestUtils {
 
-  val original = EnsimeConfigFixture.DebugTestProject.copy(
-    javaLibs = Nil // no need to index the JRE
-  )
+  val original = EnsimeConfigFixture.DebugTestProject
 
   "Debug - stepping" should "be able to step over/in/out" in withEnsimeConfig { implicit config =>
     withTestKit { implicit testkit =>

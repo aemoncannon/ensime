@@ -164,7 +164,7 @@ object EnsimeConfigFixture {
       file.file.writeLines(file.file.readLines())
     }
 
-    if (preWarm && (config.classpath ++ config.javaLibs).nonEmpty)
+    if (preWarm && config.classpath.nonEmpty)
       EnsimeCacheProject.foreach { cacheProject =>
         log.info(s"copying ${cacheProject.cacheDir}")
         cacheProject.cacheDir.toPath.copyDirTo(config.cacheDir.toPath)

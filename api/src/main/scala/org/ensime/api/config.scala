@@ -12,8 +12,7 @@ final case class EnsimeConfig(
   scalaVersion: String,
   @deprecating("each project will have a compiler") compilerArgs: List[String],
   javaSources: List[File],
-  projects: List[EnsimeProject],
-  @deprecating("leaked SearchService impl detail") javaLibs: List[File]
+  projects: List[EnsimeProject]
 )
 
 final case class EnsimeProjectId(

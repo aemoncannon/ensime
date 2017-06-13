@@ -141,7 +141,7 @@ class SearchService(
           m.targets.filter(_.exists()).toList ::: m.libraryJars.toList
       }.partition(_.isJar)
       val grouped = dirs.map(d => scanGrouped(vfs.vfile(d))).fold(Map.empty[FileName, Set[FileObject]])(_ merge _)
-      val jars: Set[FileObject] = (jarFiles ++ config.javaLibs).map(vfs.vfile)(collection.breakOut)
+      val jars: Set[FileObject] = jarFiles.map(vfs.vfile)(collection.breakOut)
       (jars, grouped)
     }
 
