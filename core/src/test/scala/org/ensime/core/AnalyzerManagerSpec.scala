@@ -1,13 +1,15 @@
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import akka.actor.{ Actor, Props }
+import akka.actor._
 import akka.testkit.TestActorRef
 import org.ensime.api.{ EnsimeConfig, EnsimeProject, EnsimeProjectId, EnsimeServerError, TypecheckFilesReq, VoidResponse }
 import org.ensime.fixture.SharedTestKitFixture
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.FileUtils.toSourceFileInfo
 import org.ensime.util.ensimefile.EnsimeFile
-import org.ensime.util.file.{ RichFile, withTempDir }
+import org.ensime.util.file._
 
 class AnalyzerManagerSpec extends EnsimeSpec with SharedTestKitFixture {
 

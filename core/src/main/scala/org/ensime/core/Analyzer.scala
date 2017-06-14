@@ -4,18 +4,10 @@ package org.ensime.core
 
 import java.io.{ File => JFile }
 import java.nio.charset.Charset
-import java.time.Clock
 
 import scala.collection.breakOut
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
-import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.Global
-import scala.util.Try
-
-import scala.collection.breakOut
-import scala.concurrent.Future
 import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
@@ -68,14 +60,14 @@ class Analyzer(
   import context.dispatcher
   import FileUtils._
 
-  private val clock: Clock = Clock.systemUTC
-  private val LIFE: Long = (5 minutes).toMillis
-
+  private val projects = scoped.map(config.lookup)
   private var allFilesMode = false
   private var settings: Settings = _
   private var reporter: PresentationReporter = _
   private var loadedFiles: List[SourceFile] = List.empty
-  private var lastActivity: Long = _
+  private var countdown: Cancellable = _
+
+  private case object SuspendAnalyzer
 
   protected var scalaCompiler: RichCompilerControl = _
 
@@ -91,8 +83,6 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-
-    val projects = scoped.map(config.lookup)
 
     settings.classpath.value = {
       for {
@@ -121,28 +111,30 @@ class Analyzer(
 
     scalaCompiler = makeScalaCompiler()
     broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
-
     scalaCompiler.askNotifyWhenReady()
+
+    countdown = setCountdown()
   }
+
+  private def setCountdown(): Cancellable = context.system.scheduler.scheduleOnce(
+    delay = 5 minutes,
+    receiver = self,
+    message = SuspendAnalyzer
+  )
 
   protected def makeScalaCompiler() = new RichPresentationCompiler(
     config, settings, reporter, self, indexer, search
   )
 
   protected def restartCompiler(
-    strategy: ReloadStrategy,
-    projectId: Option[EnsimeProjectId]
+    strategy: ReloadStrategy
   ): Unit = {
     log.warning("Restarting the Presentation Compiler")
     val files: List[SourceFile] = strategy match {
       case ReloadStrategy.UnloadAll => Nil
       case ReloadStrategy.LoadProject =>
-        val scope = projectId match {
-          case None => scoped.map(config.lookup) // used the scoped list that the actor is constructed with
-          case Some(id) => config.lookup(id) :: Nil
-        }
         for {
-          project <- scope
+          project <- projects
           file <- project.scalaSourceFiles
         } yield scalaCompiler.createSourceFile(file)
       case ReloadStrategy.KeepLoaded => scalaCompiler.loadedFiles
@@ -169,15 +161,8 @@ class Analyzer(
   def startup: Receive = withLabel("startup") {
     case FullTypeCheckCompleteEvent =>
       reporter.enable()
-
-      // legacy clients expect to see AnalyzerReady and a
-      // FullTypeCheckCompleteEvent on connection.
-      //      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
-      //      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
-      // Already handled by AnalyzerManager
       context.become(ready)
       unstashAll()
-
     case other =>
       stash()
   }
@@ -185,27 +170,18 @@ class Analyzer(
   def ready: Receive = withLabel("ready") {
     case FullTypeCheckCompleteEvent =>
       broadcaster ! FullTypeCheckCompleteEvent
-
     case RestartScalaCompilerReq(id, strategy) =>
-      restartCompiler(strategy, id)
-
+      restartCompiler(strategy)
     case SuspendAnalyzer =>
-      val now = clock.millis()
-      if (now - lastActivity >= LIFE) {
-        loadedFiles = scalaCompiler.loadedFiles // remember the state
-        scalaCompiler.askShutdown()
-        context.become(suspended)
-      }
-
+      loadedFiles = scalaCompiler.loadedFiles // remember the state
+      scalaCompiler.askShutdown()
+      context.become(suspended)
     case UnloadAllReq =>
-      restartCompiler(ReloadStrategy.UnloadAll, None)
+      restartCompiler(ReloadStrategy.UnloadAll)
       sender ! VoidResponse
-
     case TypecheckModule(id) =>
-      restartCompiler(ReloadStrategy.LoadProject, Some(id))
-      lastActivity = clock.millis()
+      restartCompiler(ReloadStrategy.LoadProject)
       sender ! VoidResponse
-
     case req: RpcAnalyserRequest =>
       // fommil: I'm not entirely sure about the logic of
       // enabling/disabling the reporter so I am reluctant to refactor
@@ -214,7 +190,8 @@ class Analyzer(
       // disable it when we explicitly want it to be quiet, instead of
       // enabling on every incoming message.
       reporter.enable()
-      lastActivity = clock.millis()
+      countdown.cancel()
+      countdown = setCountdown()
       allTheThings(req)
   }
 

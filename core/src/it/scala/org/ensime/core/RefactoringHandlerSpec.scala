@@ -20,12 +20,14 @@ class RefactoringHandlerSpec extends EnsimeSpec
     with RefactoringHandlerTestUtils {
 
   val encoding = "UTF-16"
-  val ensimeProject = EnsimeConfigFixture.EmptyTestProject.projects.head.copy(
-    scalacOptions = List("-encoding", encoding)
-  )
-  def original = EnsimeConfigFixture.EmptyTestProject.copy(
-    projects = ensimeProject :: Nil
-  )
+  def original = {
+    val empty = EnsimeConfigFixture.EmptyTestProject
+    empty.copy(
+      projects = List(empty.projects.head.copy(
+        scalacOptions = List("-encoding", encoding)
+      ))
+    )
+  }
 
   // transitionary methods
   def ContentsSourceFileInfo(file: File, contents: String) =

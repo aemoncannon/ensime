@@ -1,30 +1,19 @@
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
-
-import scala.concurrent.duration._
 
 import akka.actor._
 import akka.event.LoggingReceive.withLabel
 import org.ensime.api._
 import org.ensime.config.richconfig._
-import org.ensime.util.{ Debouncer, Timing }
 import org.ensime.util.FileUtils.toSourceFileInfo
 import org.ensime.util.file._
-
-final case object SuspendAnalyzer
 
 class AnalyzerManager(
     broadcaster: ActorRef,
     analyzerCreator: List[EnsimeProjectId] => Props,
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with Stash {
-
-  // is this okay ?
-  private val suspendAnalyzer = Debouncer.forActor(
-    self,
-    SuspendAnalyzer,
-    delay = (5 * Timing.dilation).minutes,
-    maxDelay = (1 * Timing.dilation).days // no max delay
-  )
 
   // maps the active modules to their analyzers
   private var analyzers: Map[EnsimeProjectId, ActorRef] = Map.empty
@@ -43,7 +32,6 @@ class AnalyzerManager(
     // for legacy clients on startup
     broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
     broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
-    suspendAnalyzer.call()
   }
 
   // I'm not convinced we need the borrow pattern here, it
@@ -62,13 +50,15 @@ class AnalyzerManager(
   override def receive: Receive = ready
 
   private def ready: Receive = withLabel("ready") {
-    case SuspendAnalyzer =>
-      analyzers.values foreach (_ forward SuspendAnalyzer)
-    case req @ RestartScalaCompilerReq(_, _) =>
-      if (analyzers.isEmpty)
-        broadcaster ! AnalyzerReadyEvent
-      else
-        analyzers.values foreach (_ forward req)
+    case req @ RestartScalaCompilerReq(id, _) =>
+      id match {
+        case Some(projectId) =>
+          getOrSpawnNew(projectId) forward req
+        case None if analyzers.nonEmpty =>
+          analyzers.values foreach (_ forward req)
+        case None =>
+          broadcaster ! AnalyzerReadyEvent
+      }
     case req @ UnloadAllReq =>
       analyzers.foreach {
         case (_, analyzer) => analyzer forward req
