@@ -46,9 +46,9 @@ class AnalyzerManager(
     suspendAnalyzer.call()
   }
 
-  // FIXME : I'm not convinced we need the borrow pattern here, it
+  // I'm not convinced we need the borrow pattern here, it
   // seems to introduce as much boilerplate as it removes
-  // keeps the error handling logic in one place
+  // --> keeps the error handling logic in one place
   private def withExistingModuleFor(
     fileInfo: SourceFileInfo, req: RpcAnalyserRequest
   )(f: (RpcAnalyserRequest, EnsimeProjectId) => Unit): Unit =
@@ -64,11 +64,11 @@ class AnalyzerManager(
   private def ready: Receive = withLabel("ready") {
     case SuspendAnalyzer =>
       analyzers.values foreach (_ forward SuspendAnalyzer)
-    case RestartScalaCompilerReq =>
+    case req @ RestartScalaCompilerReq(_, _) =>
       if (analyzers.isEmpty)
         broadcaster ! AnalyzerReadyEvent
       else
-        analyzers.values foreach (_ forward RestartScalaCompilerReq)
+        analyzers.values foreach (_ forward req)
     case req @ UnloadAllReq =>
       analyzers.foreach {
         case (_, analyzer) => analyzer forward req

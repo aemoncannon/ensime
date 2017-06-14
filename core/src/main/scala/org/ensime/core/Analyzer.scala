@@ -34,7 +34,6 @@ import org.ensime.util.sourcefile._
 import org.ensime.vfs._
 import org.slf4j.LoggerFactory
 
-
 final case class CompilerFatalError(e: Throwable)
 
 /**
@@ -130,17 +129,16 @@ class Analyzer(
     config, settings, reporter, self, indexer, search
   )
 
-  // FIXME: use the scoped list that the actor is constructed with
   protected def restartCompiler(
     strategy: ReloadStrategy,
-    scoped: Option[EnsimeProjectId]
+    projectId: Option[EnsimeProjectId]
   ): Unit = {
     log.warning("Restarting the Presentation Compiler")
     val files: List[SourceFile] = strategy match {
       case ReloadStrategy.UnloadAll => Nil
       case ReloadStrategy.LoadProject =>
-        val scope = scoped match {
-          case None => config.projects
+        val scope = projectId match {
+          case None => scoped.map(config.lookup) // used the scoped list that the actor is constructed with
           case Some(id) => config.lookup(id) :: Nil
         }
         for {
@@ -172,7 +170,6 @@ class Analyzer(
     case FullTypeCheckCompleteEvent =>
       reporter.enable()
 
-      // FIXME: think about this
       // legacy clients expect to see AnalyzerReady and a
       // FullTypeCheckCompleteEvent on connection.
       //      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
