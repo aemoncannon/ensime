@@ -34,7 +34,7 @@ object EnsimeConfigProtocol {
     // cats.data.Validated would be a cleaner way to do this
     {
       import c._
-      (rootDir :: javaHome :: javaSources).foreach { f =>
+      (rootDir :: javaHome :: javaSources ::: c.javaRunTime).foreach { f =>
         require(f.exists, "" + f + " is required but does not exist")
       }
     }
