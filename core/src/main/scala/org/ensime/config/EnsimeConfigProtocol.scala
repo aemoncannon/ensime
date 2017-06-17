@@ -34,7 +34,7 @@ object EnsimeConfigProtocol {
     // cats.data.Validated would be a cleaner way to do this
     {
       import c._
-      (rootDir :: javaHome :: javaSources ::: c.javaRunTime).foreach { f =>
+      (rootDir :: javaHome :: javaSources ::: javaRunTime(c)).foreach { f =>
         require(f.exists, "" + f + " is required but does not exist")
       }
     }
@@ -43,6 +43,8 @@ object EnsimeConfigProtocol {
       projects = c.projects.map(validated)
     )
   }
+
+  def javaRunTime(c: EnsimeConfig): List[File] = c.javaHome.tree.filter(_.getName == "rt.jar").toList
 
   /*
    We use the canonical form of files/directories to keep OS X happy

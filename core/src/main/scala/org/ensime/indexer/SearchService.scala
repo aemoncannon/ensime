@@ -12,6 +12,7 @@ import akka.actor._
 import akka.event.slf4j.SLF4JLogging
 import org.apache.commons.vfs2._
 import org.ensime.api._
+import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.config.richconfig._
 import org.ensime.indexer.graph._
 import org.ensime.util.file._
@@ -141,7 +142,7 @@ class SearchService(
           m.targets.filter(_.exists()).toList ::: m.libraryJars.toList
       }.partition(_.isJar)
       val grouped = dirs.map(d => scanGrouped(vfs.vfile(d))).fold(Map.empty[FileName, Set[FileObject]])(_ merge _)
-      val jars: Set[FileObject] = (jarFiles ++ config.javaRunTime).map(vfs.vfile)(collection.breakOut)
+      val jars: Set[FileObject] = (jarFiles ++ EnsimeConfigProtocol.javaRunTime(config)).map(vfs.vfile)(collection.breakOut)
       (jars, grouped)
     }
 

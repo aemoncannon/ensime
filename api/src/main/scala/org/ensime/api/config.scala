@@ -3,26 +3,17 @@
 package org.ensime.api
 
 import java.io.File
-import java.nio.file.Files
-
-import scala.collection.JavaConverters._
 
 final case class EnsimeConfig(
-    @deprecating("rootDir is no longer used except in testing") rootDir: File,
-    cacheDir: File,
-    javaHome: File,
-    name: String,
-    scalaVersion: String,
-    @deprecating("each project will have a compiler") compilerArgs: List[String],
-    javaSources: List[File],
-    projects: List[EnsimeProject]
-) {
-  lazy val javaRunTime: List[File] = tree(javaHome).filter(_.getName == "rt.jar").toList
-
-  private def tree(file: File): Stream[File] = {
-    Files.walk(file.toPath).iterator().asScala.toStream.map(_.toFile)
-  }
-}
+  @deprecating("rootDir is no longer used except in testing") rootDir: File,
+  cacheDir: File,
+  javaHome: File,
+  name: String,
+  scalaVersion: String,
+  @deprecating("each project will have a compiler") compilerArgs: List[String],
+  javaSources: List[File],
+  projects: List[EnsimeProject]
+)
 
 final case class EnsimeProjectId(
   project: String,
