@@ -53,7 +53,7 @@ class AnalyzerManager(
     case req @ RestartScalaCompilerReq(id, _) =>
       id match {
         case Some(projectId) =>
-          getOrSpawnNew(projectId) forward req
+          analyzers.get(projectId).foreach(_ forward req)
         case None if analyzers.nonEmpty =>
           analyzers.values foreach (_ forward req)
         case None =>

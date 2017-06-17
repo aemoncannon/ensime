@@ -197,7 +197,6 @@ class Analyzer(
 
   def suspended: Receive = withLabel("suspended") {
     case req: RpcAnalyserRequest =>
-      // re-start the pc
       stash()
       scalaCompiler = makeScalaCompiler()
       if (loadedFiles.nonEmpty)

@@ -50,12 +50,9 @@ trait FqnToSymbol { self: Global with SymbolToFqn =>
       segToSym(nme.segments(scalaName, assumeTerm = assumeTerm), rootSymbol)
     }
   }.getOrElse {
-    val nameSegments = nme.segments(scalaName, assumeTerm = true)
-    val term = segToSym(nameSegments, rootSymbol)
+    val term = segToSym(nme.segments(scalaName, assumeTerm = true), rootSymbol)
     if (term != NoSymbol) term
-    else
-      segToSym(nme.segments(scalaName, assumeTerm = false), rootSymbol)
-
+    else segToSym(nme.segments(scalaName, assumeTerm = false), rootSymbol)
   }
 
   private def traverseSymbolTree(sym: Symbol, name: Seq[String], isTermName: Boolean): Symbol = {

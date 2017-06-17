@@ -4,6 +4,11 @@ package org.ensime.core
 
 import java.nio.charset.Charset
 
+import org.ensime.api._
+import org.ensime.util.FileUtils._
+import org.ensime.util._
+import org.ensime.util.file.File
+
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.refactoring._
@@ -11,11 +16,6 @@ import scala.tools.refactoring.analysis.{ GlobalIndexes, TreeAnalysis }
 import scala.tools.refactoring.common.{ Change, CompilerAccess, RenameSourceFileChange }
 import scala.tools.refactoring.implementations._
 import scala.tools.refactoring.transformation.TreeFactory
-
-import org.ensime.api._
-import org.ensime.util._
-import org.ensime.util.FileUtils._
-import org.ensime.util.file.File
 
 abstract class RefactoringEnvironment(file: String, start: Int, end: Int) {
 
@@ -221,7 +221,7 @@ trait RefactoringImpl {
           doInlineLocal(procId, tpe, file, start, end)
         }
       case RenameRefactorDesc(newName, file, start, end) =>
-        import scala.reflect.internal.util.{ OffsetPosition, RangePosition }
+        import scala.reflect.internal.util.{ RangePosition, OffsetPosition }
         val sourceFile = createSourceFile(file.getPath)
         askLoadedTyped(sourceFile)
         val pos = if (start == end) new OffsetPosition(sourceFile, start)

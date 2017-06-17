@@ -2,12 +2,13 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.util
 
+import org.slf4j.LoggerFactory
+
 import scala.reflect.internal.util.Position
 import scala.tools.nsc.reporters.Reporter
 
 import org.ensime.api._
 import org.ensime.core.PositionBackCompat
-import org.slf4j.LoggerFactory
 
 trait ReportHandler {
   def messageUser(@deprecated("local", "") str: String): Unit = {}

@@ -2,9 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.model
 
-import scala.collection.mutable
-import scala.reflect.internal.util.{ NoPosition, Position, RangePosition }
-
 import org.ensime.api
 import org.ensime.api._
 import org.ensime.core.{ FqnToSymbol, RichPresentationCompiler }
@@ -13,6 +10,9 @@ import org.ensime.indexer.graph._
 import org.ensime.util.ensimefile._
 import org.ensime.util.fileobject._
 import org.ensime.vfs._
+
+import scala.collection.mutable
+import scala.reflect.internal.util.{ NoPosition, Position, RangePosition }
 
 trait ModelBuilders {
   self: RichPresentationCompiler with FqnToSymbol =>

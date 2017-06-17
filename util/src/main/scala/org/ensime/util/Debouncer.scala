@@ -63,8 +63,8 @@ class Debouncer(
   /** See if it's time to invoke the debounce action */
   private[this] def tryActionOrPostpone(): Unit = {
     val now = clock.millis()
-    val delaySurpassed = (now - lastCallAttempt) >= delayMs
-    val maxDelaySurpassed = (now - lastInvocation) >= maxDelayMs
+    val delaySurpassed = ((now - lastCallAttempt) >= delayMs)
+    val maxDelaySurpassed = ((now - lastInvocation) >= maxDelayMs)
 
     if (delaySurpassed || maxDelaySurpassed) {
       lastInvocation = now

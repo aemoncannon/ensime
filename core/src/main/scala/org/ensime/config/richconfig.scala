@@ -37,9 +37,8 @@ package object richconfig {
     def findProject(path: Path): Option[EnsimeProjectId] = {
       // should use NIO relations instead of string comparison...
       // needs https://github.com/ensime/ensime-server/issues/1791
-      val p = path.toFile.getPath
       c.projects collectFirst {
-        case project if project.sources.exists(f => p.startsWith(f.getPath)) => project.id
+        case project if project.sources.exists(f => path.startsWith(f.toPath)) => project.id
       }
     }
     def findProject(file: EnsimeFile): Option[EnsimeProjectId] = file match {
