@@ -26,6 +26,9 @@ object ProjectPlugin extends AutoPlugin {
     scalaVersion := "2.12.2",
     organization := "org.ensime",
 
+    // so M2 releases don't impact SNAPSHOT versioning
+    version := version.value.replaceAll("(-M.*|-RC.*)-SNAPSHOT", "-SNAPSHOT"),
+
     ensimeIgnoreMissingDirectories := true,
     ensimeJavaFlags += "-Xmx4g",
 
