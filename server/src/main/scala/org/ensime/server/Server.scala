@@ -44,18 +44,18 @@ class ServerActor(
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
     val project = context.actorOf(Project(broadcaster), "project")
 
-    val preferredTcpPort = PortUtil.port(config.cacheDir, "port")
+    val preferredTcpPort = PortUtil.port(config.cacheDir.file, "port")
     val shutdownOnLastDisconnect = Environment.shutdownOnDisconnectFlag
     context.actorOf(Props(
       new TCPServer(
-        config.cacheDir, protocol, project,
+        config.cacheDir.file.toFile, protocol, project,
         broadcaster, shutdownOnLastDisconnect, preferredTcpPort
       )
     ), "tcp-server")
 
     // async start the HTTP Server
     val selfRef = self
-    val preferredHttpPort = PortUtil.port(config.cacheDir, "http")
+    val preferredHttpPort = PortUtil.port(config.cacheDir.file, "http")
 
     val hookHandlers: WebServer.HookHandlers = {
       outHandler =>
@@ -80,7 +80,7 @@ class ServerActor(
         log.info(s"ENSIME HTTP on ${ch.localAddress()}")
         try {
           val port = ch.localAddress().asInstanceOf[InetSocketAddress].getPort()
-          PortUtil.writePort(config.cacheDir, port, "http")
+          PortUtil.writePort(config.cacheDir.file, port, "http")
         } catch {
           case ex: Throwable =>
             log.error(ex, s"Error initializing http endpoint ${ex.getMessage}")

@@ -70,6 +70,7 @@ package object path {
       require(path.isDirectory)
       Files.walkFileTree(path, Collections.emptySet[FileVisitOption], Integer.MAX_VALUE, new DeleteDirVisitor(path))
     }
+    def tree: Stream[Path] = Files.walk(path).iterator().asScala.toStream
   }
 
 }

@@ -82,7 +82,7 @@ class SourceResolver(
     val srcJars = config.referenceSourceJars.toSet ++ {
       for {
         project <- config.projects
-        srcArchive <- project.librarySources
+        srcArchive <- project.librarySources.map(_.file.toFile)
       } yield srcArchive
     }
     for {
@@ -101,7 +101,7 @@ class SourceResolver(
   private def userSources = {
     for {
       project <- config.projects
-      root <- project.sources
+      root <- project.sources.map(_.file.toFile)
       dir = vfs.vfile(root)
       file <- scan(dir)
     } yield (infer(dir, file), file)

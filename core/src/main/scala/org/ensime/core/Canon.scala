@@ -27,7 +27,7 @@ object Canon extends Poly1 {
   // we really want extractor to be a constructor parameter to a Canon instance
   private def extractor: Option[LegacyArchiveExtraction] =
     if (!legacyJarUrls || config == null) None
-    else Some(new LegacyArchiveExtraction(config.cacheDir.toPath))
+    else Some(new LegacyArchiveExtraction(config.cacheDir.file))
 
   implicit def caseEnsimeFile[EF <: EnsimeFile]: Case[EF] { type Result = EnsimeFile } = at[EF] { f =>
     extractor.flatMap { extractor => Try(extractor.write(f)).toOption }.getOrElse(f).canon

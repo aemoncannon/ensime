@@ -11,6 +11,7 @@ import org.ensime.fixture._
 import org.ensime.indexer.graph._
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
+import org.ensime.util.path._
 import org.scalactic.source.Position
 import org.scalatest.Matchers._
 import org.scalatest.matchers.{ BeMatcher, MatchResult }
@@ -44,7 +45,7 @@ class SearchServiceSpec extends EnsimeSpec
       val now = System.currentTimeMillis()
       for {
         p <- config.projects
-        r <- p.targets
+        r <- p.targets.map(_.file.toFile)
         f <- r.tree
       } {
         // simulate a full recompile
@@ -60,7 +61,7 @@ class SearchServiceSpec extends EnsimeSpec
   it should "remove classfiles that have been deleted" in {
     withSearchService { (config, service) =>
       implicit val s = service
-      val classfile = config.projects.head.targets.head / "org/example/Foo$.class"
+      val classfile = (config.projects.head.targets.head.file / "org/example/Foo$.class").toFile
 
       classfile shouldBe 'exists
       service.findUnique("org.example.Foo$") shouldBe defined
@@ -372,7 +373,7 @@ class SearchServiceSpec extends EnsimeSpec
   "findClasses" should "recover classes by source" in withSearchService { (config, search) =>
     import org.ensime.util.ensimefile._
 
-    val jdksrc = config.javaSources.head.toPath
+    val jdksrc = config.javaSources.head.file
     val query = ArchiveFile(jdksrc, "/java/lang/String.java").canon
 
     val hits = search.findClasses(query)

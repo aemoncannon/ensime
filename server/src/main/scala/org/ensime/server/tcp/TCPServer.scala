@@ -34,7 +34,7 @@ class TCPServer(
     case b @ Bound(localAddress) =>
       val boundPort = localAddress.getPort
       log.info(s"Bound server on port $boundPort")
-      PortUtil.writePort(cacheDir, boundPort, "port")
+      PortUtil.writePort(cacheDir.toPath, boundPort, "port")
     case CommandFailed(_: Bind) =>
       context.parent ! ShutdownRequest(s"TCP protocol failed to bind ($preferredPort)", isError = true)
 

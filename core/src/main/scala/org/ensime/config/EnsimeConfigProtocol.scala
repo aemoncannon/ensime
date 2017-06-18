@@ -2,6 +2,8 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.config
 
+import java.nio.file.Paths
+
 import akka.event.slf4j.Logger
 import shapeless._
 
@@ -10,6 +12,8 @@ import org.ensime.sexp.formats._
 import org.ensime.core.Canonised
 
 import org.ensime.util.file._
+import org.ensime.util.path._
+import org.ensime.util.ensimefile._
 
 import org.ensime.api._
 
@@ -20,6 +24,14 @@ object EnsimeConfigProtocol {
   import org.ensime.config.EnsimeConfigProtocol.Protocol._
 
   private def log = Logger(this.getClass.getName)
+
+  implicit object EnsimeFileFormat extends SexpFormat[RawFile] {
+    def write(f: RawFile): Sexp = SexpString(f.file.toString)
+    def read(sexp: Sexp): RawFile = sexp match {
+      case SexpString(file) => RawFile(Paths.get(file))
+      case got => deserializationError(got)
+    }
+  }
 
   private implicit val projectIdFormat: SexpFormat[EnsimeProjectId] = cachedImplicit
   private implicit val projectFormat: SexpFormat[EnsimeProject] = cachedImplicit
@@ -34,7 +46,8 @@ object EnsimeConfigProtocol {
     // cats.data.Validated would be a cleaner way to do this
     {
       import c._
-      (rootDir :: javaHome :: javaSources ::: javaRunTime(c)).foreach { f =>
+      val files = (rootDir :: javaHome :: javaSources).map { _.file.toFile }
+      (files ::: javaRunTime(c)).foreach { f =>
         require(f.exists, "" + f + " is required but does not exist")
       }
     }
@@ -44,7 +57,7 @@ object EnsimeConfigProtocol {
     )
   }
 
-  def javaRunTime(c: EnsimeConfig): List[File] = c.javaHome.tree.filter(_.getName == "rt.jar").toList
+  def javaRunTime(c: EnsimeConfig): List[File] = c.javaHome.file.toFile.tree.filter(_.getName == "rt.jar").toList
 
   /*
    We use the canonical form of files/directories to keep OS X happy
@@ -57,7 +70,7 @@ object EnsimeConfigProtocol {
     (p.targets ++ p.sources).foreach { dir =>
       if (!dir.exists() && !dir.isJar) {
         log.warn(s"$dir does not exist, creating")
-        dir.mkdirs()
+        dir.file.mkdirs()
       }
     }
     Canonised(p)

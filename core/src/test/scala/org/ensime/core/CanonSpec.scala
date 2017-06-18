@@ -51,11 +51,12 @@ class CanonSpec extends EnsimeSpec {
   }
 
   it should "canon a RawFile" in withTempDir { dir =>
+    val rawDir = RawFile(dir.toPath)
     val ef = List(RawFile(file.toPath))
     val expected = List(RawFile(canon.toPath))
 
     Canon.config = EnsimeConfig(
-      dir, dir, dir,
+      rawDir, rawDir, rawDir,
       "config", "version",
       Nil, Nil, Nil
     )
@@ -64,6 +65,7 @@ class CanonSpec extends EnsimeSpec {
   }
 
   it should "canon an ArchiveFile" in withTempDir { dir =>
+    val rawDir = RawFile(dir.toPath)
     val src = Paths.get(jdkHome) / "src.zip"
 
     val entry = EnsimeFile(s"$src!/java/lang/String.java")
@@ -73,7 +75,7 @@ class CanonSpec extends EnsimeSpec {
     val expected = List(extracted.canon)
 
     Canon.config = EnsimeConfig(
-      dir, dir, dir,
+      rawDir, rawDir, rawDir,
       "config", "version",
       Nil, Nil, Nil
     )

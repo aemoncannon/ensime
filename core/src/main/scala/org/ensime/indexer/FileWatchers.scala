@@ -88,7 +88,7 @@ class SourceWatcher(
       } yield {
         if (log.isTraceEnabled())
           log.trace(s"creating a Java 7 source watcher for $root")
-        sourceJava7WatcherBuilder.build(root, listeners)
+        sourceJava7WatcherBuilder.build(root.file.toFile, listeners)
       }
     }
 

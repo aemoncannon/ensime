@@ -27,9 +27,10 @@ class AnalyzerManagerSpec extends EnsimeSpec with SharedTestKitFixture {
       val module1 = dir / "module1"
       val module2 = dir / "module2"
       if (module1.mkdir() && module2.mkdir()) {
-        implicit val dummyConfig: EnsimeConfig = EnsimeConfig(dir, dir, dir, null, null, Nil, Nil, List(
-          EnsimeProject(EnsimeProjectId("module1", "compile"), Nil, Set(module1), Set.empty, Nil, Nil, Nil, Nil, Nil),
-          EnsimeProject(EnsimeProjectId("module2", "compile"), Nil, Set(module2), Set.empty, Nil, Nil, Nil, Nil, Nil)
+        var rawDir = RawFile(dir.toPath)
+        implicit val dummyConfig: EnsimeConfig = EnsimeConfig(rawDir, rawDir, rawDir, null, null, Nil, Nil, List(
+          EnsimeProject(EnsimeProjectId("module1", "compile"), Nil, Set(RawFile(module1.toPath)), Set.empty, Nil, Nil, Nil, Nil, Nil),
+          EnsimeProject(EnsimeProjectId("module2", "compile"), Nil, Set(RawFile(module2.toPath)), Set.empty, Nil, Nil, Nil, Nil, Nil)
         ))
         val analyzerManager = TestActorRef(AnalyzerManager(TestActorRef[Broadcaster], (module) => Props(new DummyFileMissingAnalyzer())))
         val file1 = module1 / "missing1.scala"

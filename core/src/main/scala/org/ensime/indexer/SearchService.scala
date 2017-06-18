@@ -17,6 +17,7 @@ import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.config.richconfig._
 import org.ensime.indexer.graph._
 import org.ensime.util.file._
+import org.ensime.util.path._
 import org.ensime.util.map._
 import org.ensime.util.fileobject._
 import org.ensime.vfs._
@@ -77,8 +78,8 @@ class SearchService(
    */
   private val version = "2.0.3g"
 
-  private[indexer] val index = new IndexService((config.cacheDir / ("index-" + version)).toPath)
-  private val db = new GraphService(config.cacheDir / ("graph-" + version))
+  private[indexer] val index = new IndexService(config.cacheDir.file / ("index-" + version))
+  private val db = new GraphService((config.cacheDir.file / ("graph-" + version)).toFile)
 
   val noReverseLookups: Boolean = Properties.propOrFalse("ensime.index.no.reverse.lookups")
 
@@ -140,7 +141,7 @@ class SearchService(
     def findBases(): (Set[FileObject], Map[FileName, Set[FileObject]]) = {
       val (jarFiles, dirs) = config.projects.flatMap {
         case m =>
-          m.targets.filter(_.exists()).toList ::: m.libraryJars.toList
+          m.targets.map(_.file.toFile).filter(_.exists()).toList ::: m.libraryJars.toList.map(_.file.toFile)
       }.partition(_.isJar)
       val grouped = dirs.map(d => scanGrouped(vfs.vfile(d))).fold(Map.empty[FileName, Set[FileObject]])(_ merge _)
       val jars: Set[FileObject] = (jarFiles ++ EnsimeConfigProtocol.javaRunTime(config)).map(vfs.vfile)(collection.breakOut)

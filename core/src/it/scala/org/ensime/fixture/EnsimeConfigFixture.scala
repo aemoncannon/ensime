@@ -4,7 +4,7 @@ package org.ensime.fixture
 
 import java.io.{ File => JFile }
 import java.nio.charset.Charset
-import java.nio.file.Files
+import java.nio.file.{ Files, Paths }
 
 import org.ensime.api._
 import org.ensime.config._
@@ -33,18 +33,18 @@ trait EnsimeConfigFixture {
   def main(lang: String)(implicit config: EnsimeConfig): File =
     config.projects.head.sources.filter { dir =>
       val sep = JFile.separator
-      dir.getPath.endsWith(s"${sep}main$sep$lang")
-    }.head
+      dir.file.endsWith(s"main$sep$lang")
+    }.head.file.toFile
   def test(lang: String)(implicit config: EnsimeConfig): File =
     config.projects.filter(_.id.config == "test").head.sources.filter { dir =>
       val sep = JFile.separator
-      dir.getPath.endsWith(s"${sep}test$sep$lang")
-    }.head
+      dir.file.endsWith(s"test$sep$lang")
+    }.head.file.toFile
   def scalaMain(implicit config: EnsimeConfig): File = main("scala")
   def javaMain(implicit config: EnsimeConfig): File = main("java")
   def scalaTest(implicit config: EnsimeConfig): File = test("scala")
   def mainTarget(implicit config: EnsimeConfig): File =
-    config.projects.head.targets.head
+    config.projects.head.targets.head.file.toFile
 }
 
 object EnsimeConfigFixture {
@@ -118,32 +118,34 @@ object EnsimeConfigFixture {
     preWarm: Boolean
   ): EnsimeConfig = {
 
-    def rename(from: File): File = {
-      val toPath = from.getAbsolutePath.replace(
-        source.rootDir.getAbsolutePath,
+    def rename(from: RawFile): RawFile = {
+      val rootDirAbsolutePath = source.rootDir.file.toAbsolutePath.toString
+      val fromAbsolutePath = from.file.toAbsolutePath.toString
+      val toPath = fromAbsolutePath.replace(
+        rootDirAbsolutePath,
         target.getAbsolutePath
       )
-      require(toPath != from.getAbsolutePath, s"${source.rootDir.getAbsolutePath} ${target.getAbsolutePath} in ${from.getAbsolutePath}")
-      File(toPath)
+      require(toPath != fromAbsolutePath, s"${rootDirAbsolutePath} ${target.getAbsolutePath} in ${fromAbsolutePath}")
+      RawFile(Paths.get(toPath))
     }
 
-    def renameAndCopy(from: File): File = {
+    def renameAndCopy(from: RawFile): RawFile = {
       val to = rename(from)
 
-      if (from.isDirectory) {
-        Files.createDirectories(to.toPath)
-        from.toPath.copyDirTo(to.toPath)
+      if (from.file.isDirectory) {
+        to.file.mkdirs()
+        from.file.copyDirTo(to.file)
       } else {
-        val parent = to.getParentFile
+        val parent = to.file.getParent
         if (!parent.exists())
-          Files.createDirectories(parent.toPath)
+          parent.mkdirs()
 
-        Files.copy(from.toPath, to.toPath)
+        from.file.copyFileTo(to.file)
       }
       to
     }
 
-    def renameAndCopyTarget(from: File): File =
+    def renameAndCopyTarget(from: RawFile): RawFile =
       if (copyTargets) renameAndCopy(from)
       else rename(from)
 
@@ -156,7 +158,7 @@ object EnsimeConfigFixture {
     cacheDir.mkdirs()
     val config = EnsimeConfigProtocol.validated(source.copy(
       rootDir = rename(source.rootDir),
-      cacheDir = cacheDir,
+      cacheDir = RawFile(cacheDir.toPath),
       projects = source.projects.map(cloneProject)
     ))
 
@@ -172,7 +174,7 @@ object EnsimeConfigFixture {
     if (preWarm && config.classpath.nonEmpty)
       EnsimeCacheProject.foreach { cacheProject =>
         log.info(s"copying ${cacheProject.cacheDir}")
-        cacheProject.cacheDir.toPath.copyDirTo(config.cacheDir.toPath)
+        cacheProject.cacheDir.file.copyDirTo(config.cacheDir.file)
       }
 
     config

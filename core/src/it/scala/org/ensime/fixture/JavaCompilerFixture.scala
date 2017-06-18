@@ -2,8 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.fixture
 
-import java.io.File
-
 import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.ensime.api._
@@ -11,7 +9,7 @@ import org.ensime.core.javac.JavaCompiler
 import org.ensime.vfs._
 import org.ensime.indexer._
 import org.ensime.util._
-import org.ensime.util.file._
+import org.ensime.util.path._
 import scala.collection.immutable.Queue
 
 trait JavaCompilerFixture {
@@ -28,8 +26,8 @@ trait JavaCompilerFixture {
       points :+= ((m.start - offset, m.group(1)))
       offset += ((m.end - m.start))
     }
-    val f = new File(config.rootDir, "testing/simple/src/main/java/org/example/Test1.java")
-    val file = SourceFileInfo(RawFile(f.toPath), Some(contents.replaceAll(re, "")), None)
+    val f = RawFile(config.rootDir.file / "testing/simple/src/main/java/org/example/Test1.java")
+    val file = SourceFileInfo(f, Some(contents.replaceAll(re, "")), None)
     cc.askTypecheckFiles(List(file))
     assert(points.nonEmpty)
     for (pt <- points) {

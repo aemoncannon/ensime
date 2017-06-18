@@ -2,13 +2,12 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import java.io.File
-
 import org.ensime.api, api.{ BasicTypeInfo => _, _ }
 import org.ensime.fixture._
 import org.ensime.indexer.SearchServiceTestUtils._
 import org.ensime.model.BasicTypeInfo
 import org.ensime.util.EnsimeSpec
+import org.ensime.util.path._
 import org.ensime.indexer._
 import org.scalatest.OptionValues
 
@@ -68,8 +67,8 @@ class JavaCompilerSpec extends EnsimeSpec with OptionValues
 
   it should "link symbols to their source positions" in {
     withJavaCompiler { (_, config, cc, store, _) =>
-      val test1 = SourceFileInfo(new RawFile(new File(config.rootDir, "testing/simple/src/main/java/org/example/Test1.java").toPath))
-      val test2 = SourceFileInfo(new RawFile(new File(config.rootDir, "testing/simple/src/main/java/org/example/Test2.java").toPath))
+      val test1 = SourceFileInfo(RawFile(config.rootDir.file / "testing/simple/src/main/java/org/example/Test1.java"))
+      val test2 = SourceFileInfo(RawFile(config.rootDir.file / "testing/simple/src/main/java/org/example/Test2.java"))
 
       cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Test2"), test2) should matchPattern { case Some(OffsetSourcePosition(f, 22)) => }
       cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Foo"), test2) should matchPattern { case None => }
