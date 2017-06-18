@@ -22,9 +22,10 @@ class RefactoringHandlerSpec extends EnsimeSpec
   val encoding = "UTF-16"
   def original = {
     val empty = EnsimeConfigFixture.EmptyTestProject
+    val origScalacOptions = empty.projects.head.scalacOptions
     empty.copy(
       projects = List(empty.projects.head.copy(
-        scalacOptions = List("-encoding", encoding)
+        scalacOptions = origScalacOptions ::: List("-encoding", encoding)
       ))
     )
   }
