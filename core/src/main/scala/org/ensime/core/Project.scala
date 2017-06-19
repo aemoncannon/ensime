@@ -2,22 +2,23 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import scala.collection.immutable.ListSet
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.util._
-import scala.util.Properties._
-
 import akka.actor._
 import akka.event.LoggingReceive.withLabel
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
-import org.ensime.config.richconfig._
 import org.ensime.core.debug.DebugActor
-import org.ensime.indexer._
-import org.ensime.util.{ Debouncer, FileUtils, Timing }
-import org.ensime.util.ensimefile._
+import org.ensime.config.richconfig._
+import org.ensime.util.{ Debouncer, Timing }
 import org.ensime.vfs._
+import org.ensime.indexer._
+
+import scala.collection.immutable.ListSet
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import scala.util.Properties._
+import scala.util._
+import org.ensime.util.FileUtils
+import org.ensime.util.ensimefile._
 
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
@@ -30,6 +31,7 @@ class Project(
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with Stash {
   import context.system
+
   import FileUtils._
 
   /* The main components of the ENSIME server */
@@ -112,7 +114,7 @@ class Project(
         }
       }))
 
-      scalac = context.actorOf(AnalyzerManager(merger, Analyzer(merger, indexer, searchService, _)), "scalac")
+      scalac = context.actorOf(Analyzer(merger, indexer, searchService), "scalac")
       javac = context.actorOf(JavaAnalyzer(merger, indexer, searchService), "javac")
     } else {
       log.warning("Detected a pure Java project. Scala queries are not available.")
@@ -135,7 +137,6 @@ class Project(
 
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case req @ RestartScalaCompilerReq(_, _) => scalac forward req
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
     case m @ CompletionsReq(sfi, _, _, _, _) if sfi.file.isJava => javac forward m
     case m @ DocUriAtPointReq(sfi, _) if sfi.file.isJava => javac forward m

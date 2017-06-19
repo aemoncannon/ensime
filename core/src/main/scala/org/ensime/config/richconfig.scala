@@ -34,18 +34,17 @@ package object richconfig {
         name.startsWith("scala-library") && name.endsWith(".jar")
       }
 
-    def findProject(path: Path): Option[EnsimeProjectId] = {
+    def findProject(path: Path): Option[EnsimeProject] = {
       // should use NIO relations instead of string comparison...
       // needs https://github.com/ensime/ensime-server/issues/1791
-      c.projects collectFirst {
-        case project if project.sources.exists(f => path.startsWith(f.toPath)) => project.id
-      }
+      val p = path.toFile.getPath
+      c.projects.find(_.sources.exists(f => p.startsWith(f.getPath)))
     }
-    def findProject(file: EnsimeFile): Option[EnsimeProjectId] = file match {
+    def findProject(file: EnsimeFile): Option[EnsimeProject] = file match {
       case RawFile(file) => findProject(file)
       case ArchiveFile(jar, _) => findProject(jar)
     }
-    def findProject(file: SourceFileInfo): Option[EnsimeProjectId] = findProject(file.file)
+    def findProject(file: SourceFileInfo): Option[EnsimeProject] = findProject(file.file)
   }
 
   implicit class RichEnsimeProject(val p: EnsimeProject) extends AnyVal {

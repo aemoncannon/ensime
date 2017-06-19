@@ -7,7 +7,6 @@ import java.nio.charset.Charset
 
 import scala.collection.breakOut
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.reflect.internal.util.{ OffsetPosition, RangePosition, SourceFile }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
@@ -52,7 +51,6 @@ class Analyzer(
     broadcaster: ActorRef,
     indexer: ActorRef,
     search: SearchService,
-    scoped: List[EnsimeProjectId],
     implicit val config: EnsimeConfig,
     implicit val vfs: EnsimeVFS
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
@@ -60,14 +58,10 @@ class Analyzer(
   import context.dispatcher
   import FileUtils._
 
-  private val projects = scoped.map(config.lookup)
   private var allFilesMode = false
+
   private var settings: Settings = _
   private var reporter: PresentationReporter = _
-  private var loadedFiles: List[SourceFile] = List.empty
-  private var countdown: Cancellable = _
-
-  private case object SuspendAnalyzer
 
   protected var scalaCompiler: RichCompilerControl = _
 
@@ -83,17 +77,8 @@ class Analyzer(
       case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
       case None => log.warning("scala-library.jar not present, enabling Odersky mode")
     }
-
-    settings.classpath.value = {
-      for {
-        project <- projects
-        entry <- project.classpath
-      } yield entry
-    }.distinct.mkString(JFile.pathSeparator)
-
-    // arbitrarily pick the first project when there are multiple
-    settings.processArguments(projects.head.scalacOptions, processAll = false)
-
+    settings.classpath.value = config.classpath.mkString(JFile.pathSeparator)
+    settings.processArguments(config.compilerArgs, processAll = false)
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
     reporter = new PresentationReporter(new ReportHandler {
@@ -110,31 +95,30 @@ class Analyzer(
     reporter.disable() // until we start up
 
     scalaCompiler = makeScalaCompiler()
+
     broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
+
     scalaCompiler.askNotifyWhenReady()
-
-    countdown = setCountdown()
   }
-
-  private def setCountdown(): Cancellable = context.system.scheduler.scheduleOnce(
-    delay = 5 minutes,
-    receiver = self,
-    message = SuspendAnalyzer
-  )
 
   protected def makeScalaCompiler() = new RichPresentationCompiler(
     config, settings, reporter, self, indexer, search
   )
 
   protected def restartCompiler(
-    strategy: ReloadStrategy
+    strategy: ReloadStrategy,
+    scoped: Option[EnsimeProjectId]
   ): Unit = {
     log.warning("Restarting the Presentation Compiler")
     val files: List[SourceFile] = strategy match {
       case ReloadStrategy.UnloadAll => Nil
       case ReloadStrategy.LoadProject =>
+        val scope = scoped match {
+          case None => config.projects
+          case Some(id) => config.lookup(id) :: Nil
+        }
         for {
-          project <- projects
+          project <- scope
           file <- project.scalaSourceFiles
         } yield scalaCompiler.createSourceFile(file)
       case ReloadStrategy.KeepLoaded => scalaCompiler.loadedFiles
@@ -161,8 +145,13 @@ class Analyzer(
   def startup: Receive = withLabel("startup") {
     case FullTypeCheckCompleteEvent =>
       reporter.enable()
+      // legacy clients expect to see AnalyzerReady and a
+      // FullTypeCheckCompleteEvent on connection.
+      broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
+      broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
       context.become(ready)
       unstashAll()
+
     case other =>
       stash()
   }
@@ -170,18 +159,18 @@ class Analyzer(
   def ready: Receive = withLabel("ready") {
     case FullTypeCheckCompleteEvent =>
       broadcaster ! FullTypeCheckCompleteEvent
+
     case RestartScalaCompilerReq(id, strategy) =>
-      restartCompiler(strategy)
-    case SuspendAnalyzer =>
-      loadedFiles = scalaCompiler.loadedFiles // remember the state
-      scalaCompiler.askShutdown()
-      context.become(suspended)
+      restartCompiler(strategy, id)
+
     case UnloadAllReq =>
-      restartCompiler(ReloadStrategy.UnloadAll)
+      restartCompiler(ReloadStrategy.UnloadAll, None)
       sender ! VoidResponse
+
     case TypecheckModule(id) =>
-      restartCompiler(ReloadStrategy.LoadProject)
+      restartCompiler(ReloadStrategy.LoadProject, Some(id))
       sender ! VoidResponse
+
     case req: RpcAnalyserRequest =>
       // fommil: I'm not entirely sure about the logic of
       // enabling/disabling the reporter so I am reluctant to refactor
@@ -190,20 +179,7 @@ class Analyzer(
       // disable it when we explicitly want it to be quiet, instead of
       // enabling on every incoming message.
       reporter.enable()
-      countdown.cancel()
-      countdown = setCountdown()
       allTheThings(req)
-  }
-
-  def suspended: Receive = withLabel("suspended") {
-    case req: RpcAnalyserRequest =>
-      stash()
-      scalaCompiler = makeScalaCompiler()
-      if (loadedFiles.nonEmpty)
-        scalaCompiler.askReloadFiles(loadedFiles)
-      scalaCompiler.askNotifyWhenReady()
-      context.become(startup)
-      unstashAll()
   }
 
   def allTheThings: PartialFunction[RpcAnalyserRequest, Unit] = {
@@ -214,10 +190,12 @@ class Analyzer(
     case UnloadFilesReq(files, remove) =>
       scalaCompiler.askUnloadFiles(files, remove)
       sender ! VoidResponse
+
     case TypecheckFileReq(fileInfo) =>
       self forward TypecheckFilesReq(List(Right(fileInfo)))
     case TypecheckFilesReq(files) =>
       sender ! scalaCompiler.handleReloadFiles(files.map(toSourceFileInfo)(breakOut))
+
     case req: RefactorReq =>
       import context.dispatcher
       pipe(handleRefactorRequest(req)) to sender
@@ -226,6 +204,7 @@ class Analyzer(
         reporter.disable()
         scalaCompiler.askCompletionsAt(pos(fileInfo, point), maxResults, caseSens)
       } pipeTo sender
+
     case UsesOfSymbolAtPointReq(file, point) =>
       import context.dispatcher
       val response = if (toSourceFileInfo(file).exists()) {
@@ -314,11 +293,10 @@ object Analyzer {
   def apply(
     broadcaster: ActorRef,
     indexer: ActorRef,
-    search: SearchService,
-    scoped: List[EnsimeProjectId]
+    search: SearchService
   )(
     implicit
     config: EnsimeConfig,
     vfs: EnsimeVFS
-  ) = Props(new Analyzer(broadcaster, indexer, search, scoped, config, vfs))
+  ) = Props(new Analyzer(broadcaster, indexer, search, config, vfs))
 }
