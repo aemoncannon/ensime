@@ -35,9 +35,14 @@ trait EnsimeConfigFixture {
       val sep = JFile.separator
       dir.getPath.endsWith(s"${sep}main$sep$lang")
     }.head
+  def test(lang: String)(implicit config: EnsimeConfig): File =
+    config.projects.filter(_.id.config == "test").head.sources.filter { dir =>
+      val sep = JFile.separator
+      dir.getPath.endsWith(s"${sep}test$sep$lang")
+    }.head
   def scalaMain(implicit config: EnsimeConfig): File = main("scala")
   def javaMain(implicit config: EnsimeConfig): File = main("java")
-
+  def scalaTest(implicit config: EnsimeConfig): File = test("scala")
   def mainTarget(implicit config: EnsimeConfig): File =
     config.projects.head.targets.head
 }

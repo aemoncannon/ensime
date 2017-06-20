@@ -34,6 +34,27 @@ class BasicWorkflow extends EnsimeSpec
           val fooFilePath = fooFile.getAbsolutePath
           val barFile = sourceRoot / "org/example/Bar.scala"
           val barPath = barFile.toPath
+          val testRoot = scalaTest(config)
+          val blooSpecFile = testRoot / "org/example/BlooSpec.scala"
+
+          project ! TypecheckFilesReq(List(Left(blooSpecFile)))
+          expectMsg(VoidResponse)
+          var note = asyncHelper.expectMsgType[NewScalaNotesEvent]
+          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+          note.notes.head.msg should be("not found: value Bloo")
+
+          project ! UnloadFileReq(SourceFileInfo(EnsimeFile(blooSpecFile)))
+          expectMsg(VoidResponse)
+
+          project ! TypecheckFilesReq(List(Left(fooFile))) // contains definition for case class Bloo()
+          expectMsg(VoidResponse)
+          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+
+          project ! TypecheckFilesReq(List(Left(blooSpecFile))) // still get scala notes as Foo was loaded on a different PC
+          expectMsg(VoidResponse)
+          note = asyncHelper.expectMsgType[NewScalaNotesEvent]
+          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+          note.notes.head.msg should be("not found: value Bloo")
 
           project ! TypecheckModule(EnsimeProjectId("testing_simple", "compile"))
           expectMsg(VoidResponse)
@@ -45,7 +66,8 @@ class BasicWorkflow extends EnsimeSpec
 
           project ! UnloadAllReq
           expectMsg(VoidResponse)
-          all(asyncHelper.receiveN(2)) should matchPattern {
+          expectMsg(VoidResponse)
+          all(asyncHelper.receiveN(4)) should matchPattern {
             case CompilerRestartedEvent =>
             case FullTypeCheckCompleteEvent =>
           }
