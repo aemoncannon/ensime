@@ -6,7 +6,7 @@ addSbtPlugin("com.fommil" % "sbt-sensible" % "1.2.0")
 addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.6.0")
 
 // sbt-ensime is needed for the integration tests
-addSbtPlugin("org.ensime" % "sbt-ensime" % "1.12.12")
+addSbtPlugin("org.ensime" % "sbt-ensime" % "1.12.13")
 
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "1.5.1") // 1.8.0 causes https://github.com/sbt/sbt-header/issues/56
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.4" exclude("org.apache.maven", "maven-plugin-api"))
