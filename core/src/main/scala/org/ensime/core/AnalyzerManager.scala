@@ -15,6 +15,7 @@ class AnalyzerManager(
     implicit val config: EnsimeConfig
 ) extends Actor with ActorLogging with Stash {
 
+  private val sauron = context.actorOf(analyzerCreator(config.projects.map(_.id)))
   // maps the active modules to their analyzers
   private var analyzers: Map[EnsimeProjectId, ActorRef] = Map.empty
 
@@ -44,7 +45,7 @@ class AnalyzerManager(
       case Some(moduleId) =>
         f(req, moduleId)
       case None =>
-        sender ! EnsimeServerError(s"Couldn't find the project for ${fileInfo.file}")
+        sauron ! EnsimeServerError(s"Couldn't find the project for ${fileInfo.file}")
     }
 
   override def receive: Receive = ready
@@ -73,44 +74,46 @@ class AnalyzerManager(
       withExistingModuleFor(fileInfo, req)((req, moduleId) =>
         getOrSpawnNew(moduleId) forward req)
     case req @ TypecheckFilesReq(files) =>
-      if (files.exists(config.findProject(_).isEmpty))
-        sender ! EnsimeServerError("Update .ensime file.")
-      else {
-        val original = sender
-        val filesPerProject = files.groupBy(config.findProject(_)).map(x => x._1.get -> x._2)
+      val original = sender
+      val filesPerProject = files.groupBy(config.findProject(_)).map(x => x._1 -> x._2)
 
-        context.actorOf(Props(new Actor {
-          private var remaining = filesPerProject.size
-          private var aggregate: List[String] = List.empty
+      context.actorOf(Props(new Actor {
+        private var remaining = filesPerProject.size
+        private var aggregate: List[String] = List.empty
 
-          override def preStart: Unit =
-            for ((moduleId, list) <- filesPerProject)
-              getOrSpawnNew(moduleId) ! TypecheckFilesReq(list)
+        override def preStart: Unit =
+          for ((optionalModuleId, list) <- filesPerProject)
+            optionalModuleId match {
+              case Some(moduleId) =>
+                getOrSpawnNew(moduleId) ! TypecheckFilesReq(list)
+              case None =>
+                sauron ! TypecheckFilesReq(list)
+            }
 
-          override def receive = {
-            case res: RpcResponse if remaining > 1 =>
-              aggregate = addResponse(res, aggregate)
-              remaining -= 1
-            case res: RpcResponse =>
-              aggregate = addResponse(res, aggregate)
-              original ! combine(aggregate)
-              context.stop(self)
-          }
+        override def receive = {
+          case res: RpcResponse if remaining > 1 =>
+            aggregate = addResponse(res, aggregate)
+            remaining -= 1
+          case res: RpcResponse =>
+            aggregate = addResponse(res, aggregate)
+            original ! combine(aggregate)
+            context.stop(self)
+        }
 
-          def addResponse(res: RpcResponse, agg: List[String]) = res match {
-            case EnsimeServerError(desc) =>
-              desc :: aggregate
-            case _ =>
-              aggregate
-          }
+        def addResponse(res: RpcResponse, agg: List[String]) = res match {
+          case EnsimeServerError(desc) =>
+            desc :: aggregate
+          case _ =>
+            aggregate
+        }
 
-          def combine(errors: List[String]): RpcResponse =
-            if (aggregate.isEmpty) // had no errors; return a  VoidResponse
-              VoidResponse
-            else // return the cumulative error
-              EnsimeServerError(aggregate mkString ", ")
-        }))
-      }
+        def combine(errors: List[String]): RpcResponse =
+          if (aggregate.isEmpty) // had no errors; return a  VoidResponse
+            VoidResponse
+          else // return the cumulative error
+            EnsimeServerError(aggregate mkString ", ")
+      }))
+
     case req @ RefactorReq(_, _, _) =>
       val original = sender
       context.actorOf(Props(new Actor {

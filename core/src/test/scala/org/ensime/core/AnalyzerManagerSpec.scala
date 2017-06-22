@@ -4,7 +4,7 @@ package org.ensime.core
 
 import akka.actor._
 import akka.testkit.TestActorRef
-import org.ensime.api.{ EnsimeConfig, EnsimeProject, EnsimeProjectId, EnsimeServerError, TypecheckFilesReq, VoidResponse }
+import org.ensime.api._
 import org.ensime.fixture.SharedTestKitFixture
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.FileUtils.toSourceFileInfo
@@ -45,27 +45,4 @@ class AnalyzerManagerSpec extends EnsimeSpec with SharedTestKitFixture {
     })
 
   }
-
-  it should "ask to update .ensime if module for a file is not found" in withTestKit { testKit =>
-    import testKit._
-
-    class DummyAnalyzer extends Actor {
-      override def receive: Receive = {
-        case TypecheckFilesReq(files) =>
-          sender ! VoidResponse
-      }
-    }
-
-    withTempDir(dir => {
-
-      implicit val dummyConfig: EnsimeConfig = EnsimeConfig(dir, dir, dir, null, null, Nil, Nil, Nil)
-      val analyzerManager = TestActorRef(AnalyzerManager(TestActorRef[Broadcaster], (module) => Props(new DummyAnalyzer)))
-      val testFile = dir / "inNoModule.scala"
-
-      analyzerManager ! TypecheckFilesReq(List(Left(testFile)))
-      expectMsg(EnsimeServerError("Update .ensime file."))
-
-    })
-  }
-
 }
