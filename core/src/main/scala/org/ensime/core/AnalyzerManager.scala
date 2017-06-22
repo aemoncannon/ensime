@@ -45,7 +45,7 @@ class AnalyzerManager(
       case Some(moduleId) =>
         f(req, moduleId)
       case None =>
-        sauron ! EnsimeServerError(s"Couldn't find the project for ${fileInfo.file}")
+        sauron forward req
     }
 
   override def receive: Receive = ready
