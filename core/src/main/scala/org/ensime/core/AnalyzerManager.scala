@@ -19,14 +19,20 @@ class AnalyzerManager(
   // maps the active modules to their analyzers
   private var analyzers: Map[EnsimeProjectId, ActorRef] = Map.empty
 
-  private def getOrSpawnNew(id: EnsimeProjectId): ActorRef =
-    analyzers.get(id) match {
-      case Some(analyzer) => analyzer
+  private def getOrSpawnNew(optionalId: Option[EnsimeProjectId]): ActorRef =
+    optionalId match {
+      case Some(id) =>
+        analyzers.get(id) match {
+          case Some(analyzer) =>
+            analyzer
+          case None =>
+            val name = s"${id.project}_${id.config}"
+            val newAnalyzer = context.actorOf(analyzerCreator(id :: Nil), name)
+            analyzers += (id -> newAnalyzer)
+            newAnalyzer
+        }
       case None =>
-        val name = s"${id.project}_${id.config}"
-        val newAnalyzer = context.actorOf(analyzerCreator(id :: Nil), name)
-        analyzers += (id -> newAnalyzer)
-        newAnalyzer
+        sauron
     }
 
   override def preStart(): Unit = {
@@ -34,19 +40,6 @@ class AnalyzerManager(
     broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
     broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
   }
-
-  // I'm not convinced we need the borrow pattern here, it
-  // seems to introduce as much boilerplate as it removes
-  // --> keeps the error handling logic in one place
-  private def withExistingModuleFor(
-    fileInfo: SourceFileInfo, req: RpcAnalyserRequest
-  )(f: (RpcAnalyserRequest, EnsimeProjectId) => Unit): Unit =
-    config.findProject(fileInfo) match {
-      case Some(moduleId) =>
-        f(req, moduleId)
-      case None =>
-        sauron forward req
-    }
 
   override def receive: Receive = ready
 
@@ -65,17 +58,15 @@ class AnalyzerManager(
         case (_, analyzer) => analyzer forward req
       }
     case req @ TypecheckModule(moduleId) =>
-      getOrSpawnNew(moduleId) forward req
+      getOrSpawnNew(Some(moduleId)) forward req
     case req @ RemoveFileReq(file: File) =>
-      val f = SourceFileInfo(RawFile(file.toPath), None, None)
-      withExistingModuleFor(f, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      val fileInfo = SourceFileInfo(RawFile(file.toPath), None, None)
+      getOrSpawnNew(config.findProject(fileInfo)) forward req
     case req @ TypecheckFileReq(fileInfo) =>
-      withExistingModuleFor(fileInfo, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      getOrSpawnNew(config.findProject(fileInfo)) forward req
     case req @ TypecheckFilesReq(files) =>
       val original = sender
-      val filesPerProject = files.groupBy(config.findProject(_)).map(x => x._1 -> x._2)
+      val filesPerProject = files.groupBy(config.findProject(_))
 
       context.actorOf(Props(new Actor {
         private var remaining = filesPerProject.size
@@ -83,12 +74,7 @@ class AnalyzerManager(
 
         override def preStart: Unit =
           for ((optionalModuleId, list) <- filesPerProject)
-            optionalModuleId match {
-              case Some(moduleId) =>
-                getOrSpawnNew(moduleId) ! TypecheckFilesReq(list)
-              case None =>
-                sauron ! TypecheckFilesReq(list)
-            }
+            getOrSpawnNew(optionalModuleId) ! TypecheckFilesReq(list)
 
         override def receive = {
           case res: RpcResponse if remaining > 1 =>
@@ -127,36 +113,26 @@ class AnalyzerManager(
         }
       }))
     case req @ CompletionsReq(fileInfo, _, _, _, _) =>
-      withExistingModuleFor(fileInfo, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
-    case req @ UsesOfSymbolAtPointReq(f, _) =>
-      withExistingModuleFor(f, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      getOrSpawnNew(config.findProject(fileInfo)) forward req
+    case req @ UsesOfSymbolAtPointReq(file, _) =>
+        getOrSpawnNew(config.findProject(file)) forward req
     case req @ SymbolAtPointReq(file, point: Int) =>
-      withExistingModuleFor(file, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      getOrSpawnNew(config.findProject(file)) forward req
     case req @ DocUriAtPointReq(file, range: OffsetRange) =>
-      withExistingModuleFor(file, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      getOrSpawnNew(config.findProject(file)) forward req
     case req @ TypeAtPointReq(file, range: OffsetRange) =>
-      withExistingModuleFor(file, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
-    case req @ SymbolDesignationsReq(f, start, end, _) =>
-      withExistingModuleFor(f, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      getOrSpawnNew(config.findProject(file)) forward req
+    case req @ SymbolDesignationsReq(file, start, end, _) =>
+      getOrSpawnNew(config.findProject(file)) forward req
     case req @ ImplicitInfoReq(file, range: OffsetRange) =>
-      withExistingModuleFor(file, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      getOrSpawnNew(config.findProject(file)) forward req
     case req @ ExpandSelectionReq(file, start: Int, stop: Int) =>
-      val f = SourceFileInfo(RawFile(file.toPath), None, None)
-      withExistingModuleFor(f, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      val fileInfo = SourceFileInfo(RawFile(file.toPath), None, None)
+      getOrSpawnNew(config.findProject(fileInfo)) forward req
     case req @ StructureViewReq(fileInfo: SourceFileInfo) =>
-      withExistingModuleFor(fileInfo, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      getOrSpawnNew(config.findProject(fileInfo)) forward req
     case req @ UnloadFileReq(file) =>
-      withExistingModuleFor(file, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
+      getOrSpawnNew(config.findProject(file)) forward req
   }
 }
 
