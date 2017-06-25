@@ -426,46 +426,6 @@ class RichPresentationCompilerSpec extends EnsimeSpec
       result.completions shouldBe empty
     }
 
-  it should "show all type arguments in the inspector" in withPosInCompiledSource(
-    "package com.example",
-    "class A { ",
-    "def banana(p: List[String]): List[String] = p",
-    "def pineapple: List[String] = List(\"spiky\")",
-    "}",
-    "object Main { def main { val my@@A = new A() }}"
-  ) { (p, cc) =>
-      val info = cc.askInspectTypeAt(p).get
-      val sup = info.supers.find(sup => sup.tpe.name == "A").get;
-      {
-        val mem = sup.tpe.members.find(_.name == "banana").get.asInstanceOf[NamedTypeMemberInfo]
-        val tpe = mem.tpe.asInstanceOf[ArrowTypeInfo]
-
-        tpe.resultType.name shouldBe "List[String]"
-        tpe.resultType.args.head.name shouldBe "String"
-        val (paramName, paramTpe) = tpe.paramSections.head.params.head
-        paramName shouldBe "p"
-        paramTpe.name shouldBe "List[String]"
-        paramTpe.args.head.name shouldBe "String"
-      }
-      {
-        val mem = sup.tpe.members.find(_.name == "pineapple").get.asInstanceOf[NamedTypeMemberInfo]
-        val tpe = mem.tpe.asInstanceOf[BasicTypeInfo]
-        tpe.name shouldBe "List[String]"
-        tpe.args.head.name shouldBe "String"
-      }
-    }
-
-  it should "show classes without visible members in the inspector" in withPosInCompiledSource(
-    "package com.example",
-    "trait bidon { }",
-    "case class pi@@po extends bidon { }"
-  ) { (p, cc) =>
-      val info = cc.askInspectTypeAt(p)
-      val supers = info.map(_.supers).getOrElse(Nil)
-      val supersNames = supers.map(_.tpe.name).toList
-      supersNames.toSet should ===(Set("pipo", "bidon", "Object", "Product", "Serializable", "Any"))
-    }
-
   it should "get symbol positions for compiled files" in withPresCompiler { (config, cc) =>
     val defsFile = srcFile(config, "com/example/defs.scala", contents(
       "package com.example",

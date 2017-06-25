@@ -173,18 +173,6 @@ final case class TypeAtPointReq(
 ) extends RpcAnalyserRequest
 
 /**
- * Request detailed type information about the item at the given file
- * position.
- *
- * Responds with a `TypeInspectInfo` if the range is a valid type or
- * `FalseResponse`.
- *
- * @param file source.
- * @param range in the file to inspect.
- */
-final case class InspectTypeAtPointReq(file: Either[File, SourceFileInfo], range: OffsetRange) extends RpcAnalyserRequest
-
-/**
  * Responds with a `SymbolInfo` if valid, or `FalseResponse`.
  */
 final case class SymbolAtPointReq(file: Either[File, SourceFileInfo], point: Int) extends RpcAnalyserRequest

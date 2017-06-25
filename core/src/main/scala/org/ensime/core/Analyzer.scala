@@ -234,12 +234,6 @@ class Analyzer(
         uses.map(positions => ERangePositions(positions.map(ERangePositionHelper.fromRangePosition)))
       } else Future.successful(EnsimeServerError(s"File does not exist: ${file.file}"))
       pipe(response) to sender
-    case InspectTypeAtPointReq(file, range: OffsetRange) =>
-      sender ! withExisting(file) {
-        val p = pos(file, range)
-        scalaCompiler.askLoadedTyped(p.source)
-        scalaCompiler.askInspectTypeAt(p).getOrElse(FalseResponse)
-      }
     case SymbolAtPointReq(file, point: Int) =>
       sender ! withExisting(file) {
         val p = pos(file, point)

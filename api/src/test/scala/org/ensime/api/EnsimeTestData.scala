@@ -18,7 +18,6 @@ trait EnsimeTestData {
   val typeInfo = BasicTypeInfo("type1", DeclaredAs.Method, "FOO.type1", Nil, Nil, None, Nil)
 
   val interfaceInfo = new InterfaceInfo(typeInfo, Some("DEF"))
-  val typeInspectInfo = new TypeInspectInfo(typeInfo, List(interfaceInfo))
 
   val paramSectionInfo = new ParamSectionInfo(List(("ABC", typeInfo)), false)
 

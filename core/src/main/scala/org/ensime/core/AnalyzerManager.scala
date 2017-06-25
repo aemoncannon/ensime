@@ -129,9 +129,6 @@ class AnalyzerManager(
     case req @ UsesOfSymbolAtPointReq(f, _) =>
       withExistingModuleFor(f, req)((req, moduleId) =>
         getOrSpawnNew(moduleId) forward req)
-    case req @ InspectTypeAtPointReq(file, range: OffsetRange) =>
-      withExistingModuleFor(file, req)((req, moduleId) =>
-        getOrSpawnNew(moduleId) forward req)
     case req @ SymbolAtPointReq(file, point: Int) =>
       withExistingModuleFor(file, req)((req, moduleId) =>
         getOrSpawnNew(moduleId) forward req)

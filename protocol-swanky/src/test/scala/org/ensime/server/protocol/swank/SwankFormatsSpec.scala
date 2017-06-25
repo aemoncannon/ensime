@@ -114,11 +114,6 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     unmarshal(
-      s"""(swank:inspect-type-at-point "$file1" (1 100))""",
-      InspectTypeAtPointReq(Left(file1), OffsetRange(1, 100)): RpcRequest
-    )
-
-    unmarshal(
       s"""(swank:symbol-at-point "$file1" 101)""",
       SymbolAtPointReq(Left(file1), 101): RpcRequest
     )
@@ -501,11 +496,6 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     marshal(
       interfaceInfo: InterfaceInfo,
       """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :via-view "DEF")"""
-    )
-
-    marshal(
-      TypeInspectInfo(typeInfo, List(interfaceInfo)): TypeInspectInfo,
-      """(:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :interfaces ((:type (:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1") :via-view "DEF")) :info-type typeInspect)"""
     )
 
     marshal(

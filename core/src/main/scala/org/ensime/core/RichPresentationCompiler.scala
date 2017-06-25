@@ -139,9 +139,6 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def loadedFiles: List[SourceFile] = activeUnits().map(_.source)
 
-  def askInspectTypeAt(p: Position): Option[TypeInspectInfo] =
-    askOption(inspectTypeAt(p)).flatten
-
   def askCompletionsAt(p: Position, maxResults: Int, caseSens: Boolean): Future[CompletionInfoList] =
     completionsAt(p, maxResults, caseSens)
 
@@ -405,21 +402,6 @@ class RichPresentationCompiler(
         }
       }
       bySym.values
-    }
-  }
-
-  protected def inspectTypeAt(p: Position): Option[TypeInspectInfo] = {
-    typeAt(p).map(tpe => {
-      val members = getMembersForTypeAt(tpe, p)
-      val parents = tpe.parents
-      val preparedMembers = prepareSortedInterfaceInfo(members, parents)
-      TypeInspectInfo(
-        TypeInfo(tpe, PosNeededAvail),
-        preparedMembers
-      )
-    }).orElse {
-      logger.error("ERROR: Failed to get any type information :(  ")
-      None
     }
   }
 

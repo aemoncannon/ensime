@@ -8,8 +8,6 @@ object SwankTestData extends EnsimeTestData {
 
   val typeInfoStr = """(:arrow-type nil :name "type1" :decl-as method :full-name "FOO.type1")"""
 
-  val typeInspectInfoStr = s"""(:type $typeInfoStr :companion-id 1 :interfaces ((:type """ + typeInfoStr + """ :via-view "DEF")) :info-type typeInspect)"""
-
   val callCompletionInfoStr = """(:result-type """ + typeInfoStr + """ :param-sections ((:params (("ABC" """ + typeInfoStr + """)))))"""
 
   val symbolDesignationsStr = s"""(:file $symFile :syms ((object 7 9) (trait 11 22)))"""

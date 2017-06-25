@@ -489,14 +489,6 @@ final case class InterfaceInfo(
   def tpe = `type`
 }
 
-final case class TypeInspectInfo(
-    `type`: TypeInfo,
-    interfaces: Iterable[InterfaceInfo],
-    infoType: scala.Symbol = 'typeInspect // redundant field in protocol
-) extends RpcResponse {
-  def supers = interfaces
-}
-
 /** ERangePosition is a mirror of scala compiler internal RangePosition as a case class to */
 @deprecating("file should not be a String")
 final case class ERangePosition(file: String, offset: Int, start: Int, end: Int)

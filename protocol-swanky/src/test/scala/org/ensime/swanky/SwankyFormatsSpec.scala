@@ -104,11 +104,6 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      InspectTypeAtPointReq(Left(file1), OffsetRange(1, 100)): RpcRequest,
-      s"""(:ensime-api-inspect-type-at-point-req (:file "$file1" :range (:from 1 :to 100)))"""
-    )
-
-    roundtrip(
       SymbolAtPointReq(Left(file1), 101): RpcRequest,
       s"""(:ensime-api-symbol-at-point-req (:file "$file1" :point 101))"""
     )
@@ -488,11 +483,6 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     roundtrip(
       interfaceInfo: InterfaceInfo,
       """(:ensime-api-interface-info (:type (:ensime-api-basic-type-info (:name "type1" :decl-as :ensime-api-method :full-name "FOO.type1")) :via-view "DEF"))"""
-    )
-
-    roundtrip(
-      TypeInspectInfo(typeInfo, List(interfaceInfo)): TypeInspectInfo,
-      """(:ensime-api-type-inspect-info (:type (:ensime-api-basic-type-info (:name "type1" :decl-as :ensime-api-method :full-name "FOO.type1")) :interfaces ((:type (:ensime-api-basic-type-info (:name "type1" :decl-as :ensime-api-method :full-name "FOO.type1")) :via-view "DEF")) :info-type typeInspect))"""
     )
 
     roundtrip(
