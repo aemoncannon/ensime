@@ -97,7 +97,7 @@ class BasicWorkflow extends EnsimeSpec
           val sourceFileLocation = symInfo.`type`.pos.get.asInstanceOf[OffsetSourcePosition].file
           project ! SymbolDesignationsReq(Right(SourceFileInfo(sourceFileLocation, None, None)), -1, 9999, SourceSymbol.allSymbols)
           val symbolDesignations = expectMsgType[SymbolDesignations]
-          symbolDesignations.syms should not be List.empty
+          symbolDesignations.syms should not be empty
 
           //-----------------------------------------------------------------------------------------------
           // public symbol search - java.io.File
