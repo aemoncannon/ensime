@@ -8,6 +8,7 @@ package org.ensime.indexer.orientdb
 import scala.Predef.{ any2stringadd => _, _ }
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.util.Try
 import akka.event.slf4j.SLF4JLogging
 import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.tinkerpop.blueprints._
@@ -138,8 +139,6 @@ package object syntax {
 
   implicit class RichVertexT[T](val v: VertexT[T]) extends AnyVal {
     def toDomain(implicit s: BigDataFormat[T]): T = v.underlying.to[T]
-
-    def remove(implicit graph: OrientBaseGraph): Unit = graph.removeVertex(v.underlying)
 
     def getProperty[P](key: String): P = v.underlying.getProperty[P](key)
 
@@ -292,7 +291,9 @@ package object syntax {
           .filter(_.getProperty[String]("typehint") != cdefFormat.label)
           .foreach(removeRecursive)
 
-        graph.removeVertex(v)
+        // race conditions can cause this to fail and then we loop
+        // forever. If we fail to delete it, meh.
+        Try(graph.removeVertex(v))
       }
 
       readUniqueV[T, P](u.value(t)) match {
