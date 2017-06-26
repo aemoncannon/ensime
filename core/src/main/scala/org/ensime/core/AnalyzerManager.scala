@@ -115,7 +115,7 @@ class AnalyzerManager(
     case req @ CompletionsReq(fileInfo, _, _, _, _) =>
       getOrSpawnNew(config.findProject(fileInfo)) forward req
     case req @ UsesOfSymbolAtPointReq(file, _) =>
-        getOrSpawnNew(config.findProject(file)) forward req
+      getOrSpawnNew(config.findProject(file)) forward req
     case req @ SymbolAtPointReq(file, point: Int) =>
       getOrSpawnNew(config.findProject(file)) forward req
     case req @ DocUriAtPointReq(file, range: OffsetRange) =>
