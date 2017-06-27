@@ -2,6 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import java.net.URI
 import org.ensime.util.Debouncer
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -89,7 +90,7 @@ class SearchService(
       if (className.contains("$")) NameTransformer.encode(NameTransformer.decode(className).split("\\$")(0)) + ".class"
       else className
     val uri = filename.uriString
-    vfs.vfile(uri.substring(0, uri.length - className.length) + baseClassName)
+    vfs.vfile(uri.substring(0, uri.length - new URI(className).toASCIIString.length) + new URI(baseClassName).toASCIIString)
   }
 
   private def scanGrouped(
