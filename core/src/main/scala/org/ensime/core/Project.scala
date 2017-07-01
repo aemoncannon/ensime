@@ -2,7 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import java.util
+import java.nio.file.Paths
 
 import scala.collection.immutable.ListSet
 import scala.concurrent.Await
@@ -81,20 +81,16 @@ class Project(
         delay = (5 * Timing.dilation).seconds,
         maxDelay = (20 * Timing.dilation).seconds
       )
-    def fileAdded(f: FileObject): Unit = {
-      val projectId = ???
+    def fileChanged(f: FileObject): Unit = {
+      val projectId = ??? // how to get projectId from f
       RestartOptions.push(projectId :: dependentProjects.getOrElse(???, Nil))
       askReTypeCheck.call()
     }
-    def fileChanged(f: FileObject): Unit = {
-      val projectId = ???
-      RestartOptions.push(projectId :: dependentProjects.getOrElse(???, Nil))
-      askReTypeCheck.call()
+    def fileAdded(f: FileObject): Unit = {
+      fileChanged(f)
     }
     def fileRemoved(f: FileObject): Unit = {
-      val projectId = ???
-      RestartOptions.push(projectId :: dependentProjects.getOrElse(???, Nil))
-      askReTypeCheck.call()
+      fileChanged(f)
     }
     override def baseReCreated(f: FileObject): Unit = askReTypeCheck.call()
   }
@@ -173,7 +169,7 @@ class Project(
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
     case AskReTypeCheck =>
-      for( projectId <- RestartOptions.get())
+      for (projectId <- RestartOptions.get())
         scalac ! RestartScalaCompilerReq(Some(projectId), ReloadStrategy.KeepLoaded)
     case req @ RestartScalaCompilerReq(_, _) => scalac forward req
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
