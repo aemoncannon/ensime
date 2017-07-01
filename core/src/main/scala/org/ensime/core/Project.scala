@@ -2,6 +2,8 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
+import java.util
+
 import scala.collection.immutable.ListSet
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -15,7 +17,7 @@ import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.core.debug.DebugActor
 import org.ensime.indexer._
-import org.ensime.util.{ Debouncer, FileUtils, Timing }
+import org.ensime.util.{Debouncer, FileUtils, Timing}
 import org.ensime.util.ensimefile._
 import org.ensime.vfs._
 
@@ -48,17 +50,52 @@ class Project(
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
   private val sourceWatcher = new SourceWatcher(config, resolver :: Nil)
+
+  private case object AskReTypeCheck
+
+  // map to get all projects that list the key project in 'depends'
+  private val dependentProjects: Map[EnsimeProjectId, List[EnsimeProjectId]] =
+    config.projects.map(
+      p => p.id -> config.projects.filter(_.depends.contains(p.id)).map(_.id)
+    ).toMap
+
+  object RestartOptions {
+    // double ended queue might be better and reduce code
+    private var optionsQueue: List[List[EnsimeProjectId]] = List.empty
+    def push(list: List[EnsimeProjectId]) = {
+      optionsQueue = list :: optionsQueue
+    }
+    def get(): List[EnsimeProjectId] = {
+      val returnValue = optionsQueue.last
+      optionsQueue = optionsQueue.init
+      returnValue
+    }
+  }
+
+  // FileChangeListener for ClassFileWatcher
   private val reTypecheck = new FileChangeListener {
     private val askReTypeCheck =
       Debouncer.forActor(
         self,
-        RestartScalaCompilerReq(None, ReloadStrategy.KeepLoaded),
+        AskReTypeCheck,
         delay = (5 * Timing.dilation).seconds,
         maxDelay = (20 * Timing.dilation).seconds
       )
-    def fileAdded(f: FileObject): Unit = askReTypeCheck.call()
-    def fileChanged(f: FileObject): Unit = askReTypeCheck.call()
-    def fileRemoved(f: FileObject): Unit = askReTypeCheck.call()
+    def fileAdded(f: FileObject): Unit = {
+      val projectId = ???
+      RestartOptions.push(projectId :: dependentProjects.getOrElse(???, Nil))
+      askReTypeCheck.call()
+    }
+    def fileChanged(f: FileObject): Unit = {
+      val projectId = ???
+      RestartOptions.push(projectId :: dependentProjects.getOrElse(???, Nil))
+      askReTypeCheck.call()
+    }
+    def fileRemoved(f: FileObject): Unit = {
+      val projectId = ???
+      RestartOptions.push(projectId :: dependentProjects.getOrElse(???, Nil))
+      askReTypeCheck.call()
+    }
     override def baseReCreated(f: FileObject): Unit = askReTypeCheck.call()
   }
   context.actorOf(Props(new ClassfileWatcher(config, searchService :: reTypecheck :: Nil)), "classFileWatcher")
@@ -135,6 +172,9 @@ class Project(
 
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
+    case AskReTypeCheck =>
+      for( projectId <- RestartOptions.get())
+        scalac ! RestartScalaCompilerReq(Some(projectId), ReloadStrategy.KeepLoaded)
     case req @ RestartScalaCompilerReq(_, _) => scalac forward req
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
     case m @ CompletionsReq(sfi, _, _, _, _) if sfi.file.isJava => javac forward m
