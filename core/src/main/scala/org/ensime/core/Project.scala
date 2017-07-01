@@ -9,6 +9,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util._
 import scala.util.Properties._
+import scala.collection.mutable
 
 import akka.actor._
 import akka.event.LoggingReceive.withLabel
@@ -59,19 +60,7 @@ class Project(
       p => p.id -> config.projects.filter(_.depends.contains(p.id)).map(_.id)
     ).toMap
 
-  object RestartOptions {
-    // double ended queue might be better and reduce code
-    private var optionsQueue: List[List[EnsimeProjectId]] = List.empty
-    def push(list: List[EnsimeProjectId]) = {
-      optionsQueue = list :: optionsQueue
-    }
-    def get(): List[EnsimeProjectId] = {
-      val returnValue = optionsQueue.last
-      optionsQueue = optionsQueue.init
-      returnValue
-    }
-  }
-
+  val restartProjects : mutable.Queue[List[EnsimeProjectId]] = mutable.Queue.empty
   // FileChangeListener for ClassFileWatcher
   private val reTypecheck = new FileChangeListener {
     private val askReTypeCheck =
@@ -82,8 +71,8 @@ class Project(
         maxDelay = (20 * Timing.dilation).seconds
       )
     def fileChanged(f: FileObject): Unit = {
-      val projectId = ??? // how to get projectId from f
-      RestartOptions.push(projectId :: dependentProjects.getOrElse(???, Nil))
+      val projectId = config.findProject(f) // assuming f is a File
+      restartProjects.enqueue(projectId :: dependentProjects.getOrElse(projectId, Nil))
       askReTypeCheck.call()
     }
     def fileAdded(f: FileObject): Unit = {
@@ -169,7 +158,7 @@ class Project(
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
     case AskReTypeCheck =>
-      for (projectId <- RestartOptions.get())
+      for (projectId <- restartProjects.dequeue())
         scalac ! RestartScalaCompilerReq(Some(projectId), ReloadStrategy.KeepLoaded)
     case req @ RestartScalaCompilerReq(_, _) => scalac forward req
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
