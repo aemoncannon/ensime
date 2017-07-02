@@ -2,8 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import java.nio.file.Paths
-
 import scala.collection.immutable.ListSet
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -18,7 +16,7 @@ import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.core.debug.DebugActor
 import org.ensime.indexer._
-import org.ensime.util.{Debouncer, FileUtils, Timing}
+import org.ensime.util.{ Debouncer, FileUtils, Timing }
 import org.ensime.util.ensimefile._
 import org.ensime.vfs._
 
@@ -50,7 +48,6 @@ class Project(
   private implicit val vfs: EnsimeVFS = EnsimeVFS()
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
-  private val sourceWatcher = new SourceWatcher(config, resolver :: Nil)
 
   private case object AskReTypeCheck
 
@@ -60,7 +57,7 @@ class Project(
       p => p.id -> config.projects.filter(_.depends.contains(p.id)).map(_.id)
     ).toMap
 
-  val restartProjects : mutable.Queue[List[EnsimeProjectId]] = mutable.Queue.empty
+  val restartProjects: mutable.Queue[List[EnsimeProjectId]] = mutable.Queue.empty
   // FileChangeListener for ClassFileWatcher
   private val reTypecheck = new FileChangeListener {
     private val askReTypeCheck =
@@ -71,7 +68,7 @@ class Project(
         maxDelay = (20 * Timing.dilation).seconds
       )
     def fileChanged(f: FileObject): Unit = {
-      val projectId = config.findProject(f) // assuming f is a File
+      val projectId = config.findProject(f)
       restartProjects.enqueue(projectId :: dependentProjects.getOrElse(projectId, Nil))
       askReTypeCheck.call()
     }
@@ -147,7 +144,6 @@ class Project(
 
   override def postStop(): Unit = {
     // make sure the "reliable" dependencies are cleaned up
-    Try(sourceWatcher.shutdown())
     Try(Await.result(searchService.shutdown(), Duration.Inf))
     Try(vfs.close())
   }

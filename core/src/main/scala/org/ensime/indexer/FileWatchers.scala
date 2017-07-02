@@ -71,31 +71,6 @@ class ClassfileWatcher(
   }
 }
 
-class SourceWatcher(
-    config: EnsimeConfig,
-    listeners: Seq[FileChangeListener]
-)(
-    implicit
-    vfs: EnsimeVFS
-) extends Watcher with SLF4JLogging {
-  private val impls =
-    if (propOrFalse("ensime.disableSourceMonitoring")) Nil
-    else {
-      val sourceJava7WatcherBuilder = new SourceJava7WatcherBuilder()
-      for {
-        project <- config.projects
-        root <- project.sources
-      } yield {
-        if (log.isTraceEnabled())
-          log.trace(s"creating a Java 7 source watcher for $root")
-        sourceJava7WatcherBuilder.build(root.file.toFile, listeners)
-      }
-    }
-
-  override def shutdown(): Unit = impls.foreach(_.shutdown)
-
-}
-
 trait Java7WatcherBuilder extends SLF4JLogging {
   import org.ensime.filewatcher.WatcherListener
   val serviceBuilder = new Java7WatchServiceBuilder()
@@ -148,44 +123,6 @@ class JarJava7WatcherBuilder() extends Java7WatcherBuilder {
     }
   }
 
-}
-
-private class SourceJava7WatcherBuilder() extends Java7WatcherBuilder {
-  import org.ensime.filewatcher.WatcherListener
-  override def toWatcherListener(
-    l: FileChangeListener,
-    baseFile: File,
-    uuid: UUID,
-    vfs: EnsimeVFS
-  ) = {
-    new WatcherListener() {
-      override val base = baseFile
-      override val recursive = true
-      override val extensions = SourceSelector.include
-      override val watcherId = uuid
-      @volatile private var notifyExisting = false
-      override def fileCreated(f: File) =
-        l.fileAdded(vfs.vfile(f))
-      override def fileDeleted(f: File) =
-        l.fileRemoved(vfs.vfile(f))
-      override def fileModified(f: File) =
-        l.fileChanged(vfs.vfile(f))
-      override def baseRegistered(): Unit = {
-        notifyExisting = true
-        l.baseRegistered()
-      }
-      override def baseRemoved(): Unit =
-        l.baseRemoved(vfs.vfile(baseFile))
-      override def missingBaseRegistered(): Unit =
-        l.baseReCreated(vfs.vfile(baseFile))
-      override def baseSubdirRegistered(f: File): Unit = {}
-      override def proxyRegistered(f: File): Unit =
-        notifyExisting = true
-      override def existingFile(f: File): Unit =
-        if (notifyExisting)
-          l.fileAdded(vfs.vfile(f))
-    }
-  }
 }
 
 private class ClassJava7WatcherBuilder() extends Java7WatcherBuilder {
