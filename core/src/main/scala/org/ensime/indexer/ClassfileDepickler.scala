@@ -4,17 +4,19 @@ package org.ensime.indexer
 
 import scala.tools.scalap.scalax.rules.scalasig._
 
-import org.apache.commons.vfs2.FileObject
 import org.ensime.core.ScalapSymbolToFqn
 import org.ensime.util.io._
 
-class ClassfileDepickler(file: FileObject) extends ScalapSymbolToFqn {
+import java.nio.file.{ Path, Files, StandardOpenOption }
+
+class ClassfileDepickler(path: Path) extends ScalapSymbolToFqn {
 
   val scalasig: Option[ScalaSig] = depickle
 
   /** Uses scalap to produce a scala reflective view of the classfile */
   private def depickle: Option[ScalaSig] = {
-    val in = file.getContent.getInputStream
+    // TODO: Use Files.readAllBytes instead of RichInputStream implicits?
+    val in = Files.newInputStream(path, StandardOpenOption.READ)
     try {
       val bytes = in.toByteArray()
       val byteCode = ByteCode(bytes)

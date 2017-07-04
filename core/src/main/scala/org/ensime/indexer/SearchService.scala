@@ -3,6 +3,8 @@
 package org.ensime.indexer
 
 import java.net.URI
+import java.nio.file.{ Path, Paths }
+
 import org.ensime.util.Debouncer
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -234,12 +236,16 @@ class SearchService(
           case classfile if classfile.getName.getExtension == "class" =>
             // too noisy to log
             val files = grouped(classfile.getName)
-            try extractSymbols(classfile, files, classfile)
+            try extractSymbols(classfile, files, Paths.get(classfile.getPublicURIString))
             finally { files.foreach(_.close()); classfile.close() }
           case jar =>
             log.debug(s"indexing $jar")
             val vJar = vfs.vjar(jar.asLocalFile)
-            try { (scanGrouped(vJar) flatMap { case (root, files) => extractSymbols(jar, files, vfs.vfile(root.uriString)) }).toList }
+            try {
+              (scanGrouped(vJar).flatMap { 
+                case (root, files) => extractSymbols(jar, files, Paths.get(root.uriString))
+              }).toList
+            }
             finally { vfs.nuke(vJar) }
         }
       }
@@ -252,7 +258,7 @@ class SearchService(
   private def extractSymbols(
     container: FileObject,
     files: collection.Set[FileObject],
-    rootClassFile: FileObject
+    rootClassFile: Path
   ): List[SourceSymbolInfo] = {
     def getInternalRefs(isUserFile: Boolean, s: RawSymbol): List[FullyQualifiedReference] = if (isUserFile && !noReverseLookups) s.internalRefs else List.empty
 
