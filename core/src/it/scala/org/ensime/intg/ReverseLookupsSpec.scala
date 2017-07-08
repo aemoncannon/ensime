@@ -27,11 +27,11 @@ class ReverseLookupsSpec extends EnsimeSpec
 
           // uses of `testMethod`
           project ! UsesOfSymbolAtPointReq(Left(fooFile), 119)
-          val uses = expectMsgType[ERangePositions]
-          uses.positions.map(usage => (s"${File(usage.file).getName}", usage.offset, usage.start, usage.end)) should contain theSameElementsAs List(
-            ("Foo.scala", 114, 110, 172),
-            ("Foo.scala", 273, 269, 283),
-            ("package.scala", 94, 80, 104)
+          val uses = expectMsgType[SymbolLocations]
+          uses.positions.map(usage => (s"${File(usage.file).getName}", usage.line)) should contain theSameElementsAs List(
+            ("Foo.scala", 9),
+            ("Foo.scala", 16),
+            ("package.scala", 6)
           )
         }
       }

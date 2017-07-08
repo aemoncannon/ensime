@@ -494,6 +494,9 @@ final case class InterfaceInfo(
 final case class ERangePosition(file: String, offset: Int, start: Int, end: Int)
 final case class ERangePositions(positions: List[ERangePosition]) extends RpcResponse
 
+final case class SymbolLocation(file: String, line: Int)
+final case class SymbolLocations(positions: List[SymbolLocation]) extends RpcResponse
+
 final case class FileRange(file: String, start: Int, end: Int) extends RpcResponse
 
 final case class EnsimeImplementation(
