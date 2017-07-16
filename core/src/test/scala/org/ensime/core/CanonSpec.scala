@@ -2,10 +2,9 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import java.io.File
+import java.io.{ File, OutputStreamWriter }
 import java.nio.file._
-
-import scala.util.Properties.jdkHome
+import java.util.zip.{ ZipEntry, ZipOutputStream }
 
 import org.ensime.util.file._
 import org.ensime.util.path._
@@ -65,13 +64,26 @@ class CanonSpec extends EnsimeSpec {
   }
 
   it should "canon an ArchiveFile" in withTempDir { dir =>
+    def archiveFile: File = {
+      val tmpFile = dir.toPath / "tmp.zip"
+      val zipStream = new ZipOutputStream(Files.newOutputStream(tmpFile))
+      val zipWriter = new OutputStreamWriter(zipStream)
+
+      try {
+        zipStream.putNextEntry(new ZipEntry("test"))
+        zipWriter.write("Hello")
+        tmpFile.toFile
+      } finally {
+        zipStream.close()
+      }
+    }
+
     val rawDir = RawFile(dir.toPath)
-    val src = Paths.get(jdkHome) / "src.zip"
+    val src = archiveFile
 
-    val entry = EnsimeFile(s"$src!/java/lang/String.java")
-    val extracted = RawFile(dir.toPath / "dep-src/source-jars/java/lang/String.java")
+    val entry = List(EnsimeFile(s"$src!test"))
+    val extracted = RawFile(dir.toPath / "dep-src/source-jars/test")
 
-    val ef = List(entry)
     val expected = List(extracted.canon)
 
     Canon.config = EnsimeConfig(
@@ -80,7 +92,7 @@ class CanonSpec extends EnsimeSpec {
       Nil, Nil, Nil
     )
 
-    Canonised(ef) shouldBe expected
+    Canonised(entry) shouldBe expected
   }
 
 }
