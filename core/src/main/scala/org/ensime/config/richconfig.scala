@@ -34,7 +34,7 @@ package object richconfig {
 
     def findProject(path: Path): Option[EnsimeProjectId] = {
       c.projects collectFirst {
-        case project if project.sources.exists(f => path.startsWith(f.file)) => project.id
+        case project if (project.sources ++ project.targets).exists(f => path.startsWith(f.file)) => project.id
       }
     }
     def findProject(file: EnsimeFile): Option[EnsimeProjectId] = file match {

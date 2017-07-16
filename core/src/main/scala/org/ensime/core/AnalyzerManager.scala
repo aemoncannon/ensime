@@ -45,14 +45,15 @@ class AnalyzerManager(
 
   private def ready: Receive = withLabel("ready") {
     case req @ RestartScalaCompilerReq(id, _) =>
-      id match {
-        case Some(projectId) =>
-          analyzers.get(projectId).foreach(_ forward req)
-        case None if analyzers.nonEmpty =>
-          analyzers.values foreach (_ forward req)
-        case None =>
-          broadcaster ! AnalyzerReadyEvent
-      }
+      if (analyzers.isEmpty)
+        broadcaster ! AnalyzerReadyEvent
+      else
+        id match {
+          case Some(projectId) =>
+            analyzers.get(projectId).foreach(_ forward req)
+          case None =>
+            analyzers.values foreach (_ forward req)
+        }
     case req @ UnloadAllReq =>
       analyzers.foreach {
         case (_, analyzer) => analyzer forward req

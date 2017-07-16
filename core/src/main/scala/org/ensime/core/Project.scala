@@ -2,6 +2,8 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
+import java.nio.file.Paths
+
 import scala.collection.immutable.ListSet
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -68,9 +70,11 @@ class Project(
         maxDelay = (20 * Timing.dilation).seconds
       )
     def fileChanged(f: FileObject): Unit = {
-      val projectId = config.findProject(f)
-      restartProjects.enqueue(projectId :: dependentProjects.getOrElse(projectId, Nil))
-      askReTypeCheck.call()
+      val projectId = config.findProject(Paths.get(f.getName.getPath))
+      projectId foreach { projectId =>
+        restartProjects.enqueue(projectId :: dependentProjects.getOrElse(projectId, Nil))
+        askReTypeCheck.call()
+      }
     }
     def fileAdded(f: FileObject): Unit = {
       fileChanged(f)
