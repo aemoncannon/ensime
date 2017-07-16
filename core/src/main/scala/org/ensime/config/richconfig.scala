@@ -7,10 +7,12 @@ import java.nio.file.Path
 
 import scala.collection.breakOut
 
+import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 import org.ensime.util.file._
 import org.ensime.util.path._
 import org.ensime.util.ensimefile._
+import org.ensime.vfs.`package`.EnsimeVFS
 
 package object richconfig {
 
@@ -31,6 +33,15 @@ package object richconfig {
         val name = f.getName
         name.startsWith("scala-library") && name.endsWith(".jar")
       }
+
+    def findProject(f: FileObject)(implicit vfs: EnsimeVFS) = {
+      val filePath = f.getName.getPath
+      c.projects collectFirst {
+        case project if (project.sources ++ project.targets).map(rf =>
+          vfs.toFileObject(rf.file.toFile).getName.getPath).exists(filePath.startsWith) =>
+          project.id
+      }
+    }
 
     def findProject(path: Path): Option[EnsimeProjectId] = {
       c.projects collectFirst {
