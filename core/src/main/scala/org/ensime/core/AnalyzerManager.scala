@@ -18,7 +18,6 @@ class AnalyzerManager(
   private val sauron = context.actorOf(analyzerCreator(config.projects.map(_.id)))
   // maps the active modules to their analyzers
   private var analyzers: Map[EnsimeProjectId, ActorRef] = Map.empty
-
   private def getOrSpawnNew(optionalId: Option[EnsimeProjectId]): ActorRef =
     optionalId match {
       case Some(id) =>

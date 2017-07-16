@@ -231,7 +231,7 @@ class Analyzer(
       val response = if (toSourceFileInfo(file).exists()) {
         val p = pos(file, point)
         val uses = scalaCompiler.askUsesOfSymAtPos(p)
-        uses.map(positions => ERangePositions(positions.map(ERangePositionHelper.fromRangePosition)))
+        uses.map(positions => SourcePositions(positions))
       } else Future.successful(EnsimeServerError(s"File does not exist: ${file.file}"))
       pipe(response) to sender
     case SymbolAtPointReq(file, point: Int) =>

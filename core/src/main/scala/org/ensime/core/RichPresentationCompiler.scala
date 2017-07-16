@@ -145,17 +145,28 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askReloadAndTypeFiles(files: Iterable[SourceFile]) =
     askOption(reloadAndTypeFiles(files))
 
-  def askUsesOfSymAtPos(pos: Position)(implicit ec: ExecutionContext): Future[List[RangePosition]] = {
+  def askUsesOfSymAtPos(pos: Position)(implicit ec: ExecutionContext): Future[List[LineSourcePosition]] = {
     askLoadedTyped(pos.source)
     val symbol = askSymbolAt(pos)
     symbol match {
       case None => Future.successful(Nil)
       case Some(sym) =>
         val source = pos.source
-        val loadedFiles = loadUsesOfSym(sym)
-        loadedFiles.map { lfs =>
-          val files = lfs.map(_.file) + source.file.file.toPath
-          askUsesOfSym(sym, files)
+        val noReverseLookups = search.noReverseLookups
+        if (noReverseLookups) {
+          Future.successful(List.empty)
+        } else {
+          val symbolFqn = askSymbolFqn(sym)
+          symbolFqn.fold(Future.successful(List.empty[LineSourcePosition])) { fqn =>
+            val usages = search.findUsages(fqn.fqnString)
+            usages.map { usages =>
+              val results: List[LineSourcePosition] = usages.flatMap { u =>
+                val source = u.source
+                source.map(s => LineSourcePosition(EnsimeFile(Paths.get(new URI(s)).toString), u.line.getOrElse(0)))
+              }(collection.breakOut)
+              results
+            }
+          }
         }
     }
   }

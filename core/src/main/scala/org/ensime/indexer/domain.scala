@@ -22,6 +22,8 @@ object Access {
     else Default
 }
 
+final case class FullyQualifiedReference(fqn: FullyQualifiedName, line: Option[Int])
+
 sealed trait FullyQualifiedName {
   def contains(o: FullyQualifiedName): Boolean
   def fqnString: String

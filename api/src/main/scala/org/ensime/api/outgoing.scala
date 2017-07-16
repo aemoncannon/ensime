@@ -235,6 +235,8 @@ final case class EmptySourcePosition() extends SourcePosition
 final case class OffsetSourcePosition(file: EnsimeFile, offset: Int) extends SourcePosition
 final case class LineSourcePosition(file: EnsimeFile, line: Int) extends SourcePosition
 
+case class SourcePositions(positions: List[SourcePosition]) extends RpcResponse
+
 final case class PackageInfo(
     name: String,
     fullName: String,
@@ -493,9 +495,6 @@ final case class InterfaceInfo(
 @deprecating("file should not be a String")
 final case class ERangePosition(file: String, offset: Int, start: Int, end: Int)
 final case class ERangePositions(positions: List[ERangePosition]) extends RpcResponse
-
-final case class SymbolLocation(file: String, line: Int)
-final case class SymbolLocations(positions: List[SymbolLocation]) extends RpcResponse
 
 final case class FileRange(file: String, start: Int, end: Int) extends RpcResponse
 

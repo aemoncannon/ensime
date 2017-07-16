@@ -251,6 +251,7 @@ class GraphService(dir: File) extends SLF4JLogging {
 
         case MethodSymbolInfo(_, source, refs, bs, scalap) =>
           val owner = classes(bs.name.owner.fqnString)
+          //          if (s.fqn.contains("testMethod")) println(s"${s.fqn} at ${bs.line}")
           val method = Method(s.fqn, bs.line, source, bs.access, (scalaName ++ typeSignature).reduceOption(_ + _))
           val methodV: VertexT[FqnSymbol] = RichGraph.upsertV[Method, String](method)
           RichGraph.insertE(methodV, owner, EnclosingClass)

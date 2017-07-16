@@ -382,7 +382,9 @@ package object syntax {
 
       readUniqueV[FqnSymbol, P](value) match {
         case Some(vertexT) =>
+          println(vertexT.toDomain)
           val innerClasses = traverseEnclosingClasses(vertexT).toList
+          (vertexT :: innerClasses).flatMap(_.getOutVertices[FqnSymbol, UsedIn.type]).distinct.map(_.toDomain) foreach println
           (vertexT :: innerClasses).flatMap(_.getOutVertices[FqnSymbol, UsedIn.type]).distinct
         case None => Seq.empty
       }

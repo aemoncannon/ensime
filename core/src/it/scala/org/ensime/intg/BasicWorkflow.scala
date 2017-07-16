@@ -135,10 +135,10 @@ class BasicWorkflow extends EnsimeSpec
           val packageFile = sourceRoot / "org/example/package.scala"
           val packageFilePath = packageFile.getAbsolutePath
           project ! UsesOfSymbolAtPointReq(Left(fooFile), 119) // point on testMethod
-          expectMsgType[SymbolLocations].positions should contain theSameElementsAs List(
-            SymbolLocation(`fooFilePath`, 9),
-            SymbolLocation(`fooFilePath`, 16),
-            SymbolLocation(`packageFilePath`, 6)
+          expectMsgType[List[LineSourcePosition]] should contain theSameElementsAs List(
+            LineSourcePosition(EnsimeFile(fooFile), 9),
+            LineSourcePosition(EnsimeFile(fooFile), 16),
+            LineSourcePosition(EnsimeFile(packageFile), 6)
           )
 
           asyncHelper.fishForMessage() {
@@ -345,7 +345,7 @@ class BasicWorkflow extends EnsimeSpec
           // uses of symbol at point with a symbol defined in classfiles
 
           project ! UsesOfSymbolAtPointReq(Left(fooFile), 162) // point on String.length
-          expectMsgType[SymbolLocations].positions shouldBe empty
+          expectMsgType[List[LineSourcePosition]] shouldBe empty
 
           asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
           asyncHelper.expectNoMsg(3 seconds)
