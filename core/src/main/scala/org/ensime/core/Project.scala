@@ -7,7 +7,6 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util._
 import scala.util.Properties._
-import scala.collection.mutable
 
 import akka.actor._
 import akka.event.LoggingReceive.withLabel
@@ -49,7 +48,7 @@ class Project(
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
 
-  private case object AskReTypeCheck
+  private case class AskReTypeCheck(projects: List[EnsimeProjectId])
 
   // map to get all projects that list the key project in 'depends'
   private val dependentProjects: Map[EnsimeProjectId, List[EnsimeProjectId]] =
@@ -57,21 +56,20 @@ class Project(
       p => p.id -> config.projects.filter(_.depends.contains(p.id)).map(_.id)
     ).toMap
 
-  val restartProjects: mutable.Queue[List[EnsimeProjectId]] = mutable.Queue.empty
   // FileChangeListener for ClassFileWatcher
   private val reTypecheck = new FileChangeListener {
+    private val projectActor = self
     private val askReTypeCheck =
       Debouncer.forActor(
-        self,
-        AskReTypeCheck,
+        projectActor,
+        RestartScalaCompilerReq(None, ReloadStrategy.KeepLoaded),
         delay = (5 * Timing.dilation).seconds,
         maxDelay = (20 * Timing.dilation).seconds
       )
     def fileChanged(f: FileObject): Unit = {
       val projectId = config.findProject(f)
       projectId foreach { projectId =>
-        restartProjects.enqueue(projectId :: dependentProjects.getOrElse(projectId, Nil))
-        askReTypeCheck.call()
+        projectActor ! AskReTypeCheck(projectId :: dependentProjects.getOrElse(projectId, Nil))
       }
     }
     def fileAdded(f: FileObject): Unit = {
@@ -155,8 +153,8 @@ class Project(
 
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case AskReTypeCheck =>
-      for (projectId <- restartProjects.dequeue())
+    case AskReTypeCheck(projects) =>
+      for (projectId <- projects)
         scalac ! RestartScalaCompilerReq(Some(projectId), ReloadStrategy.KeepLoaded)
     case req @ RestartScalaCompilerReq(_, _) => scalac forward req
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
