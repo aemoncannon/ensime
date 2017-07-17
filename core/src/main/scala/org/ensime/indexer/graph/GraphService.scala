@@ -46,10 +46,10 @@ sealed trait FqnSymbol {
 }
 
 object FqnSymbol {
-  private[graph] def fromFullyQualifiedName(name: FullyQualifiedName): Option[FqnSymbol] = name match {
-    case cn: ClassName if !cn.isPrimitive => Some(ClassDef(name.fqnString, null, null, None, None, null, None, None, None))
-    case fn: FieldName => Some(Field(name.fqnString, None, None, None, null, None))
-    case mn: MethodName => Some(Method(name.fqnString, None, None, null, None))
+  private[graph] def fromFullyQualifiedReference(ref: FullyQualifiedReference): Option[FqnSymbol] = ref.fqn match {
+    case cn: ClassName if !cn.isPrimitive => Some(ClassDef(ref.fqn.fqnString, null, null, None, None, null, None, None, None))
+    case fn: FieldName => Some(Field(ref.fqn.fqnString, None, None, None, null, None))
+    case mn: MethodName => Some(Method(ref.fqn.fqnString, None, None, null, None))
     case _ => None
   }
 }
@@ -272,7 +272,7 @@ class GraphService(dir: File) extends SLF4JLogging {
           Some(fieldV)
       }
       s.internalRefs.foreach { ref =>
-        val sym = FqnSymbol.fromFullyQualifiedName(ref)
+        val sym = FqnSymbol.fromFullyQualifiedReference(ref)
         val usage: Option[VertexT[FqnSymbol]] = sym.map {
           case cd: ClassDef => RichGraph.insertIfNotExists[ClassDef, String](cd)
           case m: Method => RichGraph.insertIfNotExists[Method, String](m)

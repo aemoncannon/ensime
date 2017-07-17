@@ -245,7 +245,7 @@ class SearchService(
     files: collection.Set[FileObject],
     rootClassFile: FileObject
   ): List[SourceSymbolInfo] = {
-    def getInternalRefs(isUserFile: Boolean, s: RawSymbol): Set[FullyQualifiedName] = if (isUserFile && !noReverseLookups) s.internalRefs else Set.empty
+    def getInternalRefs(isUserFile: Boolean, s: RawSymbol): Set[FullyQualifiedReference] = if (isUserFile && !noReverseLookups) s.internalRefs else Set.empty
 
     val depickler = new ClassfileDepickler(rootClassFile)
     val scalapClasses = depickler.getClasses
@@ -385,7 +385,7 @@ object SearchService {
   sealed trait SourceSymbolInfo {
     def file: FileCheck
     def fqn: String
-    def internalRefs: Set[FullyQualifiedName]
+    def internalRefs: Set[FullyQualifiedReference]
     def scalapSymbol: Option[RawScalapSymbol]
   }
 
@@ -393,7 +393,7 @@ object SearchService {
       file: FileCheck
   ) extends SourceSymbolInfo {
     override def fqn: String = ""
-    override def internalRefs: Set[FullyQualifiedName] = Set.empty
+    override def internalRefs: Set[FullyQualifiedReference] = Set.empty
     override def scalapSymbol: Option[RawScalapSymbol] = None
   }
 
@@ -401,7 +401,7 @@ object SearchService {
       file: FileCheck,
       path: String,
       source: Option[String],
-      internalRefs: Set[FullyQualifiedName],
+      internalRefs: Set[FullyQualifiedReference],
       bytecodeSymbol: RawClassfile,
       scalapSymbol: Option[RawScalapClass],
       jdi: Option[String]
@@ -412,7 +412,7 @@ object SearchService {
   final case class MethodSymbolInfo(
       file: FileCheck,
       source: Option[String],
-      internalRefs: Set[FullyQualifiedName],
+      internalRefs: Set[FullyQualifiedReference],
       bytecodeSymbol: RawMethod,
       scalapSymbol: Option[RawScalapMethod]
   ) extends SourceSymbolInfo {
@@ -422,7 +422,7 @@ object SearchService {
   final case class FieldSymbolInfo(
       file: FileCheck,
       source: Option[String],
-      internalRefs: Set[FullyQualifiedName],
+      internalRefs: Set[FullyQualifiedReference],
       bytecodeSymbol: RawField,
       scalapSymbol: Option[RawScalapField]
   ) extends SourceSymbolInfo {
@@ -436,7 +436,7 @@ object SearchService {
   ) extends SourceSymbolInfo {
     override def scalapSymbol: Option[RawScalapSymbol] = Some(t)
     override def fqn: String = t.javaName.fqnString
-    override def internalRefs: Set[FullyQualifiedName] = Set.empty
+    override def internalRefs: Set[FullyQualifiedReference] = Set.empty
   }
 }
 
