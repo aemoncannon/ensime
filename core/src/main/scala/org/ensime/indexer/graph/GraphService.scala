@@ -281,7 +281,7 @@ class GraphService(dir: File) extends SLF4JLogging {
         for {
           u <- usage
           v <- vertex
-        } yield RichGraph.insertE(u, v, UsedIn)
+        } yield RichGraph.insertE(u, v, UsedIn(ref.line))
       }
     }
 
@@ -345,7 +345,7 @@ class GraphService(dir: File) extends SLF4JLogging {
 object GraphService {
   private[indexer] case object DefinedIn extends EdgeT[ClassDef, FileCheck]
   private[indexer] case object EnclosingClass extends EdgeT[FqnSymbol, ClassDef]
-  private[indexer] case object UsedIn extends EdgeT[FqnSymbol, FqnSymbol]
+  private[indexer] case class UsedIn(atLine: Option[Int]) extends EdgeT[FqnSymbol, FqnSymbol]
   private[indexer] case object IsParent extends EdgeT[ClassDef, ClassDef]
 
   // the domain-specific formats for schema generation
