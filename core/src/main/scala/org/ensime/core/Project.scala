@@ -48,8 +48,6 @@ class Project(
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
 
-  private case class AskReTypeCheck(projects: List[EnsimeProjectId])
-
   // map to get all projects that list the key project in 'depends'
   private val dependentProjects: Map[EnsimeProjectId, List[EnsimeProjectId]] =
     config.projects.map(
@@ -58,18 +56,17 @@ class Project(
 
   // FileChangeListener for ClassFileWatcher
   private val reTypecheck = new FileChangeListener {
-    private val projectActor = self
-    private val askReTypeCheck =
-      Debouncer.forActor(
-        projectActor,
-        RestartScalaCompilerReq(None, ReloadStrategy.KeepLoaded),
+    private val askReTypeCheck: Map[EnsimeProjectId, Debouncer] = config.projects.map(p =>
+      p.id -> Debouncer.forActor(
+        self,
+        RestartScalaCompilerReq(Some(p.id), ReloadStrategy.KeepLoaded),
         delay = (5 * Timing.dilation).seconds,
         maxDelay = (20 * Timing.dilation).seconds
-      )
+      ))(collection.breakOut)
     def fileChanged(f: FileObject): Unit = {
       val projectId = config.findProject(f)
       projectId foreach { projectId =>
-        projectActor ! AskReTypeCheck(projectId :: dependentProjects.getOrElse(projectId, Nil))
+        (projectId :: dependentProjects.getOrElse(projectId, Nil)).foreach(askReTypeCheck.get(_).foreach(_.call()))
       }
     }
     def fileAdded(f: FileObject): Unit = {
@@ -78,7 +75,7 @@ class Project(
     def fileRemoved(f: FileObject): Unit = {
       fileChanged(f)
     }
-    override def baseReCreated(f: FileObject): Unit = askReTypeCheck.call()
+    override def baseReCreated(f: FileObject): Unit = askReTypeCheck.values.foreach(_.call())
   }
   context.actorOf(Props(new ClassfileWatcher(config, searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
@@ -153,9 +150,6 @@ class Project(
 
   def handleRequests: Receive = withLabel("handleRequests") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case AskReTypeCheck(projects) =>
-      for (projectId <- projects)
-        scalac ! RestartScalaCompilerReq(Some(projectId), ReloadStrategy.KeepLoaded)
     case req @ RestartScalaCompilerReq(_, _) => scalac forward req
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
     case m @ CompletionsReq(sfi, _, _, _, _) if sfi.file.isJava => javac forward m

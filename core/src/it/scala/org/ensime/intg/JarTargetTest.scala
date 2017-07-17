@@ -88,9 +88,7 @@ class MissingJarTargetTest extends EnsimeSpec
           mainTarget should be a 'file
 
           // means the file addition was detected
-          all(asyncHelper.receiveN(2, 10 seconds)) should matchPattern {
-            case AnalyzerReadyEvent =>
-          }
+          asyncHelper.expectMsg(10 seconds, AnalyzerReadyEvent)
 
           eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             project ! PublicSymbolSearchReq(List("Foo"), 5)
