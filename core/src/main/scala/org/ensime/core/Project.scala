@@ -48,13 +48,8 @@ class Project(
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
 
-  // map to get all projects that list the key project in 'depends'
-  private val dependentProjects: Map[EnsimeProjectId, List[EnsimeProjectId]] =
-    config.projects.map(
-      p => p.id -> config.projects.filter(_.depends.contains(p.id)).map(_.id)
-    ).toMap
+  private var dependentProjects: Map[EnsimeProjectId, List[EnsimeProjectId]] = _
 
-  // FileChangeListener for ClassFileWatcher
   private val reTypecheck = new FileChangeListener {
     private val askReTypeCheck: Map[EnsimeProjectId, Debouncer] = config.projects.map(p =>
       p.id -> Debouncer.forActor(
@@ -99,7 +94,9 @@ class Project(
 
   override def preStart(): Unit = {
     delayedBroadcaster = system.actorOf(FloodGate(broadcaster), "delay")
-
+    dependentProjects = config.projects.map(
+      p => p.id -> config.projects.filter(_.depends.contains(p.id)).map(_.id)
+    )(collection.breakOut)
     searchService.refresh().onComplete {
       case Success((deletes, inserts)) =>
         // legacy clients expect to see IndexerReady on connection.
