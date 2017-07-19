@@ -101,6 +101,8 @@ final case class Method(
   override def declAs: DeclaredAs = DeclaredAs.Method
 }
 
+final case class LineNumber(line: Option[Int])
+
 final case class FileCheck(filename: String, timestamp: Timestamp) {
   def file(implicit vfs: EnsimeVFS): FileObject = vfs.vfile(filename)
   def lastModified: Long = timestamp.getTime
@@ -281,7 +283,11 @@ class GraphService(dir: File) extends SLF4JLogging {
         for {
           u <- usage
           v <- vertex
-        } yield RichGraph.insertE(u, v, UsedIn(ref.line))
+        } yield {
+          val intermediary: VertexT[LineNumber] = RichGraph.insertV[LineNumber](LineNumber(ref.line))
+          RichGraph.insertE(u, intermediary, UsedAt)
+          RichGraph.insertE(intermediary, v, UsedIn)
+        }
       }
     }
 
@@ -327,8 +333,8 @@ class GraphService(dir: File) extends SLF4JLogging {
     RichGraph.classHierarchy[String](fqn, hierarchyType)
   }
 
-  def findUsages(fqn: String): Future[Iterable[FqnSymbol]] = withGraphAsync { implicit g =>
-    RichGraph.findUsages[String](fqn).map(_.toDomain)
+  def findUsages(fqn: String): Future[Iterable[(FqnSymbol, Option[Int])]] = withGraphAsync { implicit g =>
+    RichGraph.findUsages[String](fqn).map(tple => (tple._1.toDomain, tple._2.toDomain.line))
   }
 
   def findClasses(source: EnsimeFile): Future[Seq[ClassDef]] = withGraphAsync { implicit g =>
@@ -345,7 +351,8 @@ class GraphService(dir: File) extends SLF4JLogging {
 object GraphService {
   private[indexer] case object DefinedIn extends EdgeT[ClassDef, FileCheck]
   private[indexer] case object EnclosingClass extends EdgeT[FqnSymbol, ClassDef]
-  private[indexer] case class UsedIn(atLine: Option[Int]) extends EdgeT[FqnSymbol, FqnSymbol]
+  private[indexer] case object UsedAt extends EdgeT[FqnSymbol, LineNumber]
+  private[indexer] case object UsedIn extends EdgeT[LineNumber, FqnSymbol]
   private[indexer] case object IsParent extends EdgeT[ClassDef, ClassDef]
 
   // the domain-specific formats for schema generation
@@ -394,9 +401,12 @@ object GraphService {
 
   implicit val FqnSymbolBdf: BigDataFormat[FqnSymbol] = cachedImplicit
 
+  implicit val LineNumberBdf: BigDataFormat[LineNumber] = cachedImplicit
+
   implicit val DefinedInS: BigDataFormat[DefinedIn.type] = cachedImplicit
   implicit val EnclosingClassS: BigDataFormat[EnclosingClass.type] = cachedImplicit
   implicit val UsedInS: BigDataFormat[UsedIn.type] = cachedImplicit
+  implicit val UsedAtS: BigDataFormat[UsedAt.type] = cachedImplicit
   implicit val IsParentS: BigDataFormat[IsParent.type] = cachedImplicit
 
   implicit val UniqueFileCheckV: OrientIdFormat[FileCheck, String] =

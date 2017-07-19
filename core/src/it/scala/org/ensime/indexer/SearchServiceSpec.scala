@@ -451,7 +451,7 @@ object SearchServiceTestUtils {
     case TypeHierarchy(cdef, typeRefs) => Set(cdef) ++ typeRefs.flatMap(hierarchyToSet)
   }
 
-  def findUsages(fqn: String)(implicit service: SearchService): List[FqnSymbol] = Await.result(service.findUsages(fqn), Duration.Inf).toList
+  def findUsages(fqn: String)(implicit service: SearchService): List[FqnSymbol] = Await.result(service.findUsages(fqn), Duration.Inf).toList.map(_._1)
 
   // 2.10 scalap has slightly different formatting for method names
   def unifyMethodName(s: String): String = s.replaceAll(" : ", ": ")

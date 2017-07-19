@@ -19,7 +19,6 @@ import akka.pattern.pipe
 import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.indexer.SearchService
-import org.ensime.model._
 import org.ensime.util.{ FileUtils, PresentationReporter, ReportHandler }
 import org.ensime.util.file._
 import org.ensime.util.sourcefile._

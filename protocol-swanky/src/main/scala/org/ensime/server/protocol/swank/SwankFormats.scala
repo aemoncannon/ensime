@@ -552,6 +552,7 @@ object SwankProtocolResponse {
       case value: RefactorDiffEffect => value.toSexp
       case value: ImplicitInfos => value.toSexp
       case value: StructureView => value.toSexp
+      case value: SourcePositions => value.toSexp
       case error: EnsimeServerError =>
         throw new IllegalArgumentException(
           s"for legacy reasons, RpcError should be marshalled as an EnsimeServerMessage: $error"

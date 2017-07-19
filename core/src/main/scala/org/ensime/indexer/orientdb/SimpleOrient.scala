@@ -7,13 +7,14 @@ package org.ensime.indexer.orientdb
 
 import scala.Predef.{ any2stringadd => _, _ }
 import scala.collection.JavaConverters._
-import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.concurrent.{ blocking, ExecutionContext, Future }
 import scala.util.Try
+
 import akka.event.slf4j.SLF4JLogging
 import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.tinkerpop.blueprints._
 import com.tinkerpop.blueprints.impls.orient._
-import org.ensime.indexer.graph.GraphService.{ IsParent, UsedIn, EnclosingClass }
+import org.ensime.indexer.graph.GraphService.{ EnclosingClass, IsParent, UsedAt, UsedIn }
 import org.ensime.indexer.graph._
 import org.ensime.indexer.orientdb.api._
 import org.ensime.indexer.orientdb.schema.api._
@@ -149,7 +150,7 @@ package object syntax {
       bdf: BigDataFormat[E]
     ): Iterable[VertexT[S]] = v.underlying.getVertices(Direction.IN, bdf.label).asScala.map(VertexT[S])
 
-    def getOutVertices[S, E <: EdgeT[T, S]](
+    def getOutVertices[S, E](
       implicit
       bdf: BigDataFormat[E]
     ): Iterable[VertexT[S]] = v.underlying.getVertices(Direction.OUT, bdf.label).asScala.map(VertexT[S])
@@ -372,7 +373,7 @@ package object syntax {
       bdf: BigDataFormat[FqnSymbol],
       oid: OrientIdFormat[FqnSymbol, P],
       p: SPrimitive[P]
-    ): Seq[VertexT[FqnSymbol]] = {
+    ): Seq[(VertexT[FqnSymbol], VertexT[LineNumber])] = {
       import GraphService.{ UsedInS, EnclosingClassS }
 
       def traverseEnclosingClasses(v: VertexT[FqnSymbol]): Iterable[VertexT[FqnSymbol]] = {
@@ -382,10 +383,9 @@ package object syntax {
 
       readUniqueV[FqnSymbol, P](value) match {
         case Some(vertexT) =>
-          println(vertexT.toDomain)
           val innerClasses = traverseEnclosingClasses(vertexT).toList
-          (vertexT :: innerClasses).flatMap(_.getOutVertices[FqnSymbol, UsedIn.type]).distinct.map(_.toDomain) foreach println
-          (vertexT :: innerClasses).flatMap(_.getOutVertices[FqnSymbol, UsedIn.type]).distinct
+          val lineNumbers = (vertexT :: innerClasses).flatMap(_.getOutVertices[LineNumber, UsedAt.type]).distinct
+          lineNumbers.map(ln => (ln.getOutVertices[FqnSymbol, UsedIn.type].head, ln)).distinct
         case None => Seq.empty
       }
     }

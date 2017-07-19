@@ -333,7 +333,7 @@ class SearchService(
   def getTypeHierarchy(fqn: String, hierarchyType: Hierarchy.Direction): Future[Option[Hierarchy]] = db.getClassHierarchy(fqn, hierarchyType)
 
   /** returns FqnSymbol which reference given fqn */
-  def findUsages(fqn: String): Future[Iterable[FqnSymbol]] = db.findUsages(fqn)
+  def findUsages(fqn: String): Future[Iterable[(FqnSymbol, Option[Int])]] = db.findUsages(fqn)
 
   // blocking badness
   def findClasses(file: EnsimeFile): Seq[ClassDef] = Await.result(db.findClasses(file), QUERY_TIMEOUT)
