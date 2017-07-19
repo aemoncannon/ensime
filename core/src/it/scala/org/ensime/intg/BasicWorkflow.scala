@@ -135,10 +135,9 @@ class BasicWorkflow extends EnsimeSpec
           val packageFile = sourceRoot / "org/example/package.scala"
           val packageFilePath = packageFile.getAbsolutePath
           project ! UsesOfSymbolAtPointReq(Left(fooFile), 119) // point on testMethod
-          expectMsgType[List[LineSourcePosition]] should contain theSameElementsAs List(
-            LineSourcePosition(EnsimeFile(fooFile), 9),
-            LineSourcePosition(EnsimeFile(fooFile), 16),
-            LineSourcePosition(EnsimeFile(packageFile), 6)
+          expectMsgType[SourcePositions].positions should contain theSameElementsAs List(
+            LineSourcePosition(EnsimeFile(fooFile), 17),
+            LineSourcePosition(EnsimeFile(packageFile), 7)
           )
 
           asyncHelper.fishForMessage() {
