@@ -140,10 +140,10 @@ class BasicWorkflow extends EnsimeSpec
             LineSourcePosition(EnsimeFile(packageFile), 7)
           )
 
-          asyncHelper.fishForMessage() {
-            case FullTypeCheckCompleteEvent => true
-            case _ => false
-          }
+          project ! UsesOfSymbolAtPointReq(Left(fooFile), 162) // point on String.length
+          expectMsgType[SourcePositions].positions should contain theSameElementsAs List(
+            LineSourcePosition(EnsimeFile(fooFile), 11)
+          )
 
           // note that the line numbers appear to have been stripped from the
           // scala library classfiles, so offset/line comes out as zero unless
@@ -321,13 +321,12 @@ class BasicWorkflow extends EnsimeSpec
           val toBeUnloaded = SourceFileInfo(EnsimeFile(sourceRoot / "org/example2/ToBeUnloaded.scala"))
           val toBeUnloaded2 = SourceFileInfo(EnsimeFile(sourceRoot / "org/example/package.scala"))
 
-          project ! TypecheckFilesReq(List(Left(bazFile), Right(toBeUnloaded)))
+          project ! TypecheckFilesReq(List(Left(bazFile), Right(toBeUnloaded), Right(toBeUnloaded2)))
           expectMsg(VoidResponse)
           all(asyncHelper.receiveN(2)) should matchPattern {
             case note: NewScalaNotesEvent =>
             case FullTypeCheckCompleteEvent =>
           }
-
           project ! UnloadFileReq(toBeUnloaded)
           expectMsg(VoidResponse)
           project ! UnloadFileReq(toBeUnloaded2)
@@ -340,13 +339,6 @@ class BasicWorkflow extends EnsimeSpec
 
           asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
-          //-----------------------------------------------------------------------------------------------
-          // uses of symbol at point with a symbol defined in classfiles
-
-          project ! UsesOfSymbolAtPointReq(Left(fooFile), 162) // point on String.length
-          expectMsgType[List[LineSourcePosition]] shouldBe empty
-
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
           asyncHelper.expectNoMsg(3 seconds)
         }
       }
