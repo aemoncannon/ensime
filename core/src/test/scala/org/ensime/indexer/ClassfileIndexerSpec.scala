@@ -45,7 +45,7 @@ class ClassfileIndexerSpec extends EnsimeSpec with IsolatedEnsimeVFSFixture {
         name = MethodName(
           ClassName(PackageName(Nil), "Test"),
           "main",
-          Descriptor(List(ArrayDescriptor(ClassName(PackageName(List("java", "lang")), "String"))), ClassName(PackageName(Nil), "void")),
+          Descriptor(List(ArrayDescriptor(ClassName(PackageName(List("java", "lang")), "String"))), ClassName(PackageName(Nil), "void"))
         ),
         access = Public,
         generics = None,
@@ -59,10 +59,9 @@ class ClassfileIndexerSpec extends EnsimeSpec with IsolatedEnsimeVFSFixture {
           FullyQualifiedReference(MethodName(
             ClassName(PackageName(List("java", "io")), "PrintStream"),
             "print",
-            Descriptor(List(ClassName(PackageName(List("java", "lang")), "String")), ClassName(PackageName(Nil), "void")))
-            ,Some(3)
-          ),
-          FullyQualifiedReference(ClassName(PackageName(List()),"void"),Some(4))
+            Descriptor(List(ClassName(PackageName(List("java", "lang")), "String")), ClassName(PackageName(Nil), "void"))
+          ), Some(3)),
+          FullyQualifiedReference(ClassName(PackageName(List()), "void"), Some(4))
         )
       )
     )
