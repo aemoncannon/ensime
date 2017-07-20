@@ -138,13 +138,20 @@ final case class ImportSuggestionsReq(
 ) extends RpcSearchRequest
 
 /**
- * Responds with `ERangePositions`.
+ * Responds with `SourcePositions`.
  */
 final case class UsesOfSymbolAtPointReq(
   file: Either[File, SourceFileInfo],
   point: Int
 ) extends RpcAnalyserRequest // will probably become a search request
 
+/**
+ * Responds with `HierarchyInfo`
+ */
+/*final case class HierarchyOfSymbolAtPointReq(
+  file: Either[File, SourceFileInfo],
+  point: Int
+) extends RpcAnalyserRequest*/
 /**
  * Responds with a `StringResponse` for the URL of the documentation if valid,
  * or `FalseResponse`.

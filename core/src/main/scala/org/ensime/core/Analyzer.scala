@@ -226,13 +226,19 @@ class Analyzer(
         scalaCompiler.askCompletionsAt(pos(fileInfo, point), maxResults, caseSens)
       } pipeTo sender
     case UsesOfSymbolAtPointReq(file, point) =>
-      import context.dispatcher
-      val response = if (toSourceFileInfo(file).exists()) {
+      if (toSourceFileInfo(file).exists()) {
         val p = pos(file, point)
-        val uses = scalaCompiler.askUsesOfSymAtPos(p)
-        uses.map(positions => SourcePositions(positions))
-      } else Future.successful(EnsimeServerError(s"File does not exist: ${file.file}"))
-      pipe(response) to sender
+        scalaCompiler.askLoadedTyped(p.source)
+        scalaCompiler.askSymbolFqn(p) match {
+          case Some(fqn) =>
+            indexer forward FindUsages(fqn.fqnString)
+          case None =>
+            sender ! FalseResponse
+        }
+
+      } else sender ! EnsimeServerError((s"File does not exist: ${file.file}"))
+    /*case HierarchyOfSymbolAtPointReq(file, point) =>
+      ???*/
     case SymbolAtPointReq(file, point: Int) =>
       sender ! withExisting(file) {
         val p = pos(file, point)

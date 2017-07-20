@@ -2,16 +2,23 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
+import java.net.URI
+import java.nio.file.Paths
+
 import akka.actor._
 import akka.event.LoggingReceive
+import akka.pattern.pipe
 import org.ensime.api._
 import org.ensime.indexer.SearchService
-import org.ensime.indexer.graph.{ ClassDef, FqnSymbol, Field, Method }
+import org.ensime.indexer.graph._
 import org.ensime.model._
+import org.ensime.util.ensimefile.EnsimeFile
 import org.ensime.vfs._
 
 // only used for queries by other components
 final case class TypeCompletionsReq(prefix: String, maxResults: Int)
+final case class FindUsages(fqn: String)
+final case class FindHierarchy(fqn: String)
 
 class Indexer(
     index: SearchService,
@@ -64,6 +71,38 @@ class Indexer(
     case TypeCompletionsReq(query: String, maxResults: Int) =>
       sender ! SymbolSearchResults(oldSearchTypes(query, maxResults))
 
+    case FindUsages(fqn: String) =>
+      import context.dispatcher
+      val usages = index.findUsages(fqn)
+      val response = usages.map { usages =>
+        val results: List[LineSourcePosition] = usages.flatMap {
+          case (u, line) =>
+            val source = u.source
+            source.map(s =>
+              LineSourcePosition(
+                EnsimeFile(Paths.get(new URI(s)).toString),
+                line.getOrElse(u.line.getOrElse(0))
+              ))
+        }(collection.breakOut)
+        SourcePositions(results)
+      }
+      pipe(response) to sender
+
+    /*    case FindHierarchy(fqn: String) =>
+      import context.dispatcher
+      val ancestors = index.getTypeHierarchy(fqn, Hierarchy.Supertypes).map(hierarchy =>
+        hierarchy.fold(???) {
+          ???c
+        })
+      val inheritors = index.getTypeHierarchy(fqn, Hierarchy.Subtypes).map(hierarchy =>
+        hierarchy.fold(???) {
+          ???
+        })
+      val hierarchInfo: Future[HierarchyInfo] = for {
+        anc <- ancestors
+        inh <- inheritors
+      } yield HierarchyInfo(anc, inh)
+      pipe(hierarchInfo) to sender()*/
   }
 }
 object Indexer {

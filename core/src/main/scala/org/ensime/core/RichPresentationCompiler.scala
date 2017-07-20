@@ -145,33 +145,6 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askReloadAndTypeFiles(files: Iterable[SourceFile]) =
     askOption(reloadAndTypeFiles(files))
 
-  def askUsesOfSymAtPos(pos: Position)(implicit ec: ExecutionContext): Future[List[LineSourcePosition]] = {
-    askLoadedTyped(pos.source)
-    val symbol = askSymbolAt(pos)
-    symbol match {
-      case None => Future.successful(Nil)
-      case Some(sym) =>
-        val source = pos.source
-        val noReverseLookups = search.noReverseLookups
-        if (noReverseLookups) {
-          Future.successful(List.empty)
-        } else {
-          val symbolFqn = askSymbolFqn(sym)
-          symbolFqn.fold(Future.successful(List.empty[LineSourcePosition])) { fqn =>
-            val usages = search.findUsages(fqn.fqnString)
-            usages.map { usages =>
-              val results: List[LineSourcePosition] = usages.flatMap {
-                case (u, line) =>
-                  val source = u.source
-                  source.map(s => LineSourcePosition(EnsimeFile(Paths.get(new URI(s)).toString), line.getOrElse(0)))
-              }(collection.breakOut)
-              results
-            }
-          }
-        }
-    }
-  }
-
   def askUsesOfSym(sym: Symbol, files: SCISet[Path]): List[RangePosition] =
     askOption(usesOfSymbol(sym.pos, files).toList).getOrElse(List.empty)
 
@@ -213,14 +186,6 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   }
 
   import org.ensime.util.file.File
-  def loadUsesOfSym(sym: Symbol)(implicit ec: ExecutionContext): Future[SCISet[RawFile]] = {
-    val files = usesOfSym(sym)
-    files.map { rfs =>
-      val sfis = rfs.map(rf => SourceFileInfo(rf))
-      handleReloadAndRetypeFiles(sfis)
-      rfs
-    }
-  }
 
   def usesOfSym(sym: Symbol)(implicit ec: ExecutionContext): Future[SCISet[RawFile]] = {
     val noReverseLookups = search.noReverseLookups

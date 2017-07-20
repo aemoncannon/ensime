@@ -237,6 +237,9 @@ final case class LineSourcePosition(file: EnsimeFile, line: Int) extends SourceP
 
 case class SourcePositions(positions: List[SourcePosition]) extends RpcResponse
 
+// think about what should these be, or if something could be reused here
+// final case class HierarchyInfo(ancestors: Any, inheritors: Any) extends RpcResponse
+
 final case class PackageInfo(
     name: String,
     fullName: String,
