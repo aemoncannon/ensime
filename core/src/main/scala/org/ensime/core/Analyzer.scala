@@ -236,9 +236,18 @@ class Analyzer(
             sender ! FalseResponse
         }
 
-      } else sender ! EnsimeServerError((s"File does not exist: ${file.file}"))
-    /*case HierarchyOfSymbolAtPointReq(file, point) =>
-      ???*/
+      } else sender ! EnsimeServerError(s"File does not exist: ${file.file}")
+    case TreeOfSymbolAtPointReq(file, point) =>
+      if (toSourceFileInfo(file).exists()) {
+        val p = pos(file, point)
+        scalaCompiler.askLoadedTyped(p.source)
+        scalaCompiler.askSymbolFqn(p) match {
+          case Some(fqn) =>
+            indexer forward FindHierarchy(fqn.fqnString)
+          case None =>
+            sender ! FalseResponse
+        }
+      } else sender ! EnsimeServerError(s"File does not exist: ${file.file}")
     case SymbolAtPointReq(file, point: Int) =>
       sender ! withExisting(file) {
         val p = pos(file, point)

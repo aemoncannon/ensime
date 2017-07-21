@@ -88,21 +88,19 @@ class Indexer(
       }
       pipe(response) to sender
 
-    /*    case FindHierarchy(fqn: String) =>
+    case FindHierarchy(fqn: String) =>
       import context.dispatcher
-      val ancestors = index.getTypeHierarchy(fqn, Hierarchy.Supertypes).map(hierarchy =>
-        hierarchy.fold(???) {
-          ???c
-        })
-      val inheritors = index.getTypeHierarchy(fqn, Hierarchy.Subtypes).map(hierarchy =>
-        hierarchy.fold(???) {
-          ???
-        })
-      val hierarchInfo: Future[HierarchyInfo] = for {
+      def toHierarchyInfo(h: Hierarchy): HierarchyInfo = h match {
+        case c: ClassDef => ClassInfo(c.fqn, LineSourcePositionHelper.fromFqnSymbol(c))
+        case TypeHierarchy(cls, h) => TreeInfo(ClassInfo(cls.fqn, LineSourcePositionHelper.fromFqnSymbol(cls)), h.map(toHierarchyInfo))
+      }
+      val ancestors = index.getTypeHierarchy(fqn, Hierarchy.Supertypes).map(_.map(toHierarchyInfo))
+      val inheritors = index.getTypeHierarchy(fqn, Hierarchy.Subtypes).map(_.map(toHierarchyInfo))
+      val symbolTreeInfo = for {
         anc <- ancestors
         inh <- inheritors
-      } yield HierarchyInfo(anc, inh)
-      pipe(hierarchInfo) to sender()*/
+      } yield SymbolTreeInfo(anc, inh)
+      pipe(symbolTreeInfo) to sender
   }
 }
 object Indexer {

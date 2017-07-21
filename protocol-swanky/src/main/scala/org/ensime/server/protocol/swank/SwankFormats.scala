@@ -79,6 +79,14 @@ object SwankProtocolCommon {
     }
   }
 
+  implicit object HierarchyInfoFormat extends SexpFormat[HierarchyInfo] {
+    def write(hi: HierarchyInfo): Sexp = hi match {
+      case value: ClassInfo => ???
+      case value: TreeInfo => ???
+    }
+    def read(sexp: Sexp): HierarchyInfo = ???
+  }
+
   implicit val SourceFileInfoFormat: SexpFormat[SourceFileInfo] = cachedImplicit
 
   private val sourceSymbolMap = Map(
@@ -553,6 +561,7 @@ object SwankProtocolResponse {
       case value: ImplicitInfos => value.toSexp
       case value: StructureView => value.toSexp
       case value: SourcePositions => value.toSexp
+      case value: SymbolTreeInfo => value.toSexp
       case error: EnsimeServerError =>
         throw new IllegalArgumentException(
           s"for legacy reasons, RpcError should be marshalled as an EnsimeServerMessage: $error"

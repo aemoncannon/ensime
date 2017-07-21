@@ -10,7 +10,7 @@ import org.ensime.core._
 import org.ensime.fixture._
 import org.ensime.model.BasicTypeInfo
 import org.ensime.util.EnsimeSpec
-import org.ensime.util.ensimefile._
+import org.ensime.util.ensimefile.EnsimeFile
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.file._
 
@@ -144,6 +144,20 @@ class BasicWorkflow extends EnsimeSpec
           expectMsgType[SourcePositions].positions should contain theSameElementsAs List(
             LineSourcePosition(EnsimeFile(fooFile), 11)
           )
+
+          //-----------------------------------------------------------------------------------------------
+          // tree of symbol at point
+          project ! TreeOfSymbolAtPointReq(Left(fooFile), 89) // point on class Foo
+          expectMsgType[SymbolTreeInfo] should matchPattern {
+            case SymbolTreeInfo(
+              Some(TreeInfo(ClassInfo("org.example.Foo$Foo", _), List(
+                TreeInfo(ClassInfo("org.example.Foo$Bar", _), List(
+                  ClassInfo("java.lang.Object", _))
+                  ))
+                )),
+              Some(ClassInfo("org.example.Foo$Foo", _))
+              ) =>
+          }
 
           // note that the line numbers appear to have been stripped from the
           // scala library classfiles, so offset/line comes out as zero unless

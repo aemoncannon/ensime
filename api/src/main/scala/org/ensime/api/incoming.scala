@@ -146,12 +146,13 @@ final case class UsesOfSymbolAtPointReq(
 ) extends RpcAnalyserRequest // will probably become a search request
 
 /**
- * Responds with `HierarchyInfo`
+ * Responds with `SymbolTreeInfo`
  */
-/*final case class HierarchyOfSymbolAtPointReq(
+final case class TreeOfSymbolAtPointReq(
   file: Either[File, SourceFileInfo],
   point: Int
-) extends RpcAnalyserRequest*/
+) extends RpcAnalyserRequest
+
 /**
  * Responds with a `StringResponse` for the URL of the documentation if valid,
  * or `FalseResponse`.
