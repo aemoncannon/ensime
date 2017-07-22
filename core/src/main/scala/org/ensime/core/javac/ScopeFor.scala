@@ -35,7 +35,11 @@ object ScopeFor {
         tree <- statements.reverse.find(isAtPosition)
       } yield new TreePath(path, tree)
 
-      compilation.trees.getScope(treePathOption.getOrElse(path))
+      // FIXME: It's just a workaround to let Emacs not disconnect to ensime-server, but the result is not correct. #1764
+      treePathOption match {
+        case Some(newPath) => compilation.trees.getScope(treePathOption.getOrElse(path))
+        case _ => throw new IllegalStateException("Unexpected response type from request.")
+      }
     }
   }
 }
