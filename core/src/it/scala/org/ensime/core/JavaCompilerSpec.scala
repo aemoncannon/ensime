@@ -9,9 +9,9 @@ import org.ensime.model.BasicTypeInfo
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.path._
 import org.ensime.indexer._
-import org.scalatest.OptionValues
+import org.scalatest.{ Inside, OptionValues }
 
-class JavaCompilerSpec extends EnsimeSpec with OptionValues
+class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
     with IsolatedJavaCompilerFixture {
 
   val original = EnsimeConfigFixture.SimpleTestProject.copy(javaSources = Nil)
@@ -239,6 +239,7 @@ class JavaCompilerSpec extends EnsimeSpec with OptionValues
     withJavaCompiler { (_, config, cc, store, search) =>
       runForPositionInCompiledSource(config, cc,
         "import java.io.File;",
+        "import java.util.Map;",
         "import java.lang.Str@5@;",
         "import java.util.Map.E@6@;",
         "import java.util.Map.E@7@blablabla;",
@@ -247,6 +248,13 @@ class JavaCompilerSpec extends EnsimeSpec with OptionValues
         "  public static class TestInner {",
         "    public int maxValue = 10;",
         "    private int privateValue = 10;",
+        "    private String[] arrayValue;",
+        "    private Iterable<String> parameterizedValue;",
+        "    private Map<String,Integer> doubleParameterizedValue;",
+        "    private Iterable<String>[] arrayOfParameterizedValue;",
+        "    private Map<String,Integer>[] arrayOfDoubleParameterizedValue;",
+        "    private Iterable<String[]> parameterizedWithArrayValue;",
+        "    private Iterable<Iterable<String>> nestedParameterizedValue;",
         "    private void main(String foo, String bar) {",
         "      File f = new File(\".\");",
         "      f.toSt@0@;",
@@ -264,6 +272,13 @@ class JavaCompilerSpec extends EnsimeSpec with OptionValues
         "      System.out.@14@",
         "      privateVa@15@",
         "      int hashCode = \"Blah\".has@16@;",
+        "      System.out.println(arrayV@17@);",
+        "      System.out.println(parameterizedV@18@);",
+        "      System.out.println(doubleParamV@19@);",
+        "      System.out.println(arrayOfParamV@20@);",
+        "      System.out.println(arrayOfDoubleParam@21@);",
+        "      System.out.println(parameterizedWithA@22@);",
+        "      System.out.println(nestedParam@23@);",
         "    }",
         "  }",
         "}") { (sf, offset, label, cc) =>
@@ -305,6 +320,62 @@ class JavaCompilerSpec extends EnsimeSpec with OptionValues
               c.typeInfo.value.name shouldBe "int"
             }
             case "16" => forAll(info.completions)(_.name shouldNot be("hash"))
+            case "17" => forAtLeast(1, info.completions) { c =>
+              c.name shouldBe "arrayValue"
+              inside(c.typeInfo.value) {
+                case BasicTypeInfo(name, _, fullName) =>
+                  name shouldBe "String[]"
+                  fullName shouldBe "java.lang.String[]"
+              }
+            }
+            case "18" => forAtLeast(1, info.completions) { c =>
+              c.name shouldBe "parameterizedValue"
+              inside(c.typeInfo.value) {
+                case BasicTypeInfo(name, _, fullName) =>
+                  name shouldBe "Iterable<String>"
+                  fullName shouldBe "java.lang.Iterable<java.lang.String>"
+              }
+            }
+            case "19" => forAtLeast(1, info.completions) { c =>
+              c.name shouldBe "doubleParameterizedValue"
+              inside(c.typeInfo.value) {
+                case BasicTypeInfo(name, _, fullName) =>
+                  name shouldBe "Map<String,Integer>"
+                  fullName shouldBe "java.util.Map<java.lang.String,java.lang.Integer>"
+              }
+            }
+            case "20" => forAtLeast(1, info.completions) { c =>
+              c.name shouldBe "arrayOfParameterizedValue"
+              inside(c.typeInfo.value) {
+                case BasicTypeInfo(name, _, fullName) =>
+                  name shouldBe "Iterable<String>[]"
+                  fullName shouldBe "java.lang.Iterable<java.lang.String>[]"
+              }
+            }
+            case "21" => forAtLeast(1, info.completions) { c =>
+              c.name shouldBe "arrayOfDoubleParameterizedValue"
+              inside(c.typeInfo.value) {
+                case BasicTypeInfo(name, _, fullName) =>
+                  name shouldBe "Map<String,Integer>[]"
+                  fullName shouldBe "java.util.Map<java.lang.String,java.lang.Integer>[]"
+              }
+            }
+            case "22" => forAtLeast(1, info.completions) { c =>
+              c.name shouldBe "parameterizedWithArrayValue"
+              inside(c.typeInfo.value) {
+                case BasicTypeInfo(name, _, fullName) =>
+                  name shouldBe "Iterable<String[]>"
+                  fullName shouldBe "java.lang.Iterable<java.lang.String[]>"
+              }
+            }
+            case "23" => forAtLeast(1, info.completions) { c =>
+              c.name shouldBe "nestedParameterizedValue"
+              inside(c.typeInfo.value) {
+                case BasicTypeInfo(name, _, fullName) =>
+                  name shouldBe "Iterable<Iterable<String>>"
+                  fullName shouldBe "java.lang.Iterable<java.lang.Iterable<java.lang.String>>"
+              }
+            }
           }
         }
     }

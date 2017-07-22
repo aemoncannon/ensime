@@ -2,6 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core.javac
 
+import javax.lang.model.`type`.{ ArrayType, DeclaredType }
 import scala.collection.JavaConverters._
 import scala.collection.breakOut
 import scala.collection.mutable.ArrayBuffer
@@ -263,10 +264,20 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
   }
 
   private def fieldInfo(e: VariableElement, relevance: Int): CompletionInfo = {
-    val t = e.asType.toString
+    val t = e.asType
     CompletionInfo(
-      Some(BasicTypeInfo(JavaIdentRegexp.findAllIn(t).toArray.last, DeclaredAs.Field, t)), e.getSimpleName.toString, relevance, None
+      Some(BasicTypeInfo(renderShortType(t), DeclaredAs.Field, t.toString)), e.getSimpleName.toString, relevance, None
     )
+  }
+
+  private def renderShortType(t: TypeMirror): String = t match {
+    case t: ArrayType => renderShortType(t.getComponentType) + "[]"
+    case t: DeclaredType =>
+      t.asElement.getSimpleName + (t.getTypeArguments.asScala match {
+        case Seq() => ""
+        case args => args.map(renderShortType).mkString("<", ",", ">")
+      })
+    case _ => t.toString
   }
 
   private def typeInfo(e: TypeElement, relevance: Int): CompletionInfo = {
