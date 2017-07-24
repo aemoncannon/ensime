@@ -5,6 +5,7 @@ package org.ensime.intg
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
+import org.ensime.util.ensimefile.EnsimeFile
 import org.ensime.util.file._
 
 /**
@@ -71,7 +72,7 @@ class UnsavedFileTest extends EnsimeSpec
           project ! CompletionsReq(unsaved, 0, 0, false, false)
           expectMsgPF() { case EnsimeServerError(e) => }
 
-          project ! UsesOfSymbolAtPointReq(Left(unsavedEmpty), 0)
+          project ! FqnOfSymbolAtPointReq(SourceFileInfo(EnsimeFile(unsavedEmpty), None, None), 0)
           expectMsgPF() { case EnsimeServerError(e) => }
 
         }

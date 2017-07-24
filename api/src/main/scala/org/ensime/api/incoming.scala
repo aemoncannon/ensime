@@ -137,21 +137,29 @@ final case class ImportSuggestionsReq(
   maxResults: Int
 ) extends RpcSearchRequest
 
+final case class FqnOfSymbolAtPointReq(file: SourceFileInfo, point: Int) extends RpcAnalyserRequest
+
+final case class FqnOfTypeAtPointReq(file: SourceFileInfo, point: Int) extends RpcAnalyserRequest
+
 /**
  * Responds with `SourcePositions`.
  */
 final case class UsesOfSymbolAtPointReq(
-  file: Either[File, SourceFileInfo],
+  file: SourceFileInfo,
   point: Int
-) extends RpcAnalyserRequest // will probably become a search request
+) extends RpcRequest
 
 /**
- * Responds with `SymbolTreeInfo`
+ * Responds with `SymbolHierarchyInfo`
  */
-final case class TreeOfSymbolAtPointReq(
-  file: Either[File, SourceFileInfo],
+final case class HierarchyOfTypeAtPointReq(
+  file: SourceFileInfo,
   point: Int
-) extends RpcAnalyserRequest
+) extends RpcRequest
+
+final case class FindUsages(fqn: String) extends RpcSearchRequest
+
+final case class FindHierarchy(fqn: String) extends RpcSearchRequest
 
 /**
  * Responds with a `StringResponse` for the URL of the documentation if valid,

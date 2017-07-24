@@ -6,6 +6,7 @@ import akka.actor._
 import akka.event.LoggingReceive
 import org.ensime.api._
 import org.ensime.core._
+import org.ensime.indexer.FullyQualifiedName
 
 /**
  * Spawned to listen to the server's response to an RpcRequest.
@@ -24,9 +25,23 @@ class RequestHandler(
       case DocUriAtPointReq(_, _) =>
         project ! envelope.req
         context.become(resolveDocSig, discardOld = false)
-
+      case HierarchyOfTypeAtPointReq(file, point) =>
+        project ! FqnOfTypeAtPointReq(file, point)
+        context.become(redirectToIndexer(FindHierarchy))
+      case UsesOfSymbolAtPointReq(file, point) =>
+        project ! FqnOfSymbolAtPointReq(file, point)
+        context.become(redirectToIndexer(FindUsages))
       case req => project ! req
     }
+  }
+
+  def redirectToIndexer(req: String => RpcSearchRequest): Receive = LoggingReceive.withLabel("redirectToIndexer") {
+    case fqn: FullyQualifiedName =>
+      project ! req(fqn.fqnString)
+      context.unbecome()
+    case failure =>
+      self ! failure
+      context.unbecome()
   }
 
   def resolveDocSig: Receive = LoggingReceive.withLabel("resolveDocSig") {

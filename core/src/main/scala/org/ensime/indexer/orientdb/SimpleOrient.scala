@@ -14,8 +14,8 @@ import akka.event.slf4j.SLF4JLogging
 import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.tinkerpop.blueprints._
 import com.tinkerpop.blueprints.impls.orient._
-import org.ensime.indexer.graph.GraphService.{ EnclosingClass, IsParent, UsedAt, UsedIn }
 import org.ensime.indexer.graph._
+import org.ensime.indexer.graph.GraphService.{ EnclosingClass, IsParent, UsedAt, UsedIn }
 import org.ensime.indexer.orientdb.api._
 import org.ensime.indexer.orientdb.schema.api._
 import org.ensime.util.stringymap.api._
@@ -365,7 +365,7 @@ package object syntax {
     }
 
     // this is domain specific and should not be here (a general Orient layer)
-    def findUsages[P](
+    def findUsageLocations[P](
       value: P
     )(
       implicit
@@ -373,8 +373,8 @@ package object syntax {
       bdf: BigDataFormat[FqnSymbol],
       oid: OrientIdFormat[FqnSymbol, P],
       p: SPrimitive[P]
-    ): Seq[(VertexT[FqnSymbol], VertexT[LineNumber])] = {
-      import GraphService.{ UsedInS, EnclosingClassS }
+    ): Seq[VertexT[UsageLocation]] = {
+      import GraphService.{ UsedAtS, EnclosingClassS }
 
       def traverseEnclosingClasses(v: VertexT[FqnSymbol]): Iterable[VertexT[FqnSymbol]] = {
         val vertices = v.getInVertices[FqnSymbol, EnclosingClass.type]
@@ -384,8 +384,24 @@ package object syntax {
       readUniqueV[FqnSymbol, P](value) match {
         case Some(vertexT) =>
           val innerClasses = traverseEnclosingClasses(vertexT).toList
-          val lineNumbers = (vertexT :: innerClasses).flatMap(_.getOutVertices[LineNumber, UsedAt.type]).distinct
-          lineNumbers.map(ln => (ln.getOutVertices[FqnSymbol, UsedIn.type].head, ln)).distinct
+          (vertexT :: innerClasses).flatMap(_.getOutVertices[UsageLocation, UsedAt.type]).distinct
+        case None => Seq.empty
+      }
+    }
+
+    def findUsages[P](
+      value: P
+    )(
+      implicit
+      graph: OrientBaseGraph,
+      bdf: BigDataFormat[FqnSymbol],
+      oid: OrientIdFormat[FqnSymbol, P],
+      p: SPrimitive[P]
+    ): Seq[VertexT[FqnSymbol]] = {
+      readUniqueV[FqnSymbol, P](value) match {
+        case Some(vertexT) =>
+          val intermediary: Seq[VertexT[UsageLocation]] = findUsageLocations(value)
+          intermediary.map(_.getOutVertices[FqnSymbol, UsedIn.type].head).distinct
         case None => Seq.empty
       }
     }

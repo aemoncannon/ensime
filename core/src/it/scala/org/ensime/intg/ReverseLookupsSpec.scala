@@ -2,11 +2,10 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.intg
 
-import scala.concurrent.duration._
-
 import org.ensime.api._
 import org.ensime.core.RefactoringHandlerTestUtils
 import org.ensime.fixture._
+import org.ensime.indexer.FullyQualifiedName
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.file._
@@ -30,8 +29,11 @@ class ReverseLookupsSpec extends EnsimeSpec
           val packageFile = sourceRoot / "org/example/package.scala"
 
           // uses of `testMethod`
-          project ! UsesOfSymbolAtPointReq(Left(fooFile), 119)
-          val uses = expectMsgType[SourcePositions](10 seconds)
+          project ! FqnOfSymbolAtPointReq(SourceFileInfo(EnsimeFile(fooFile), None, None), 119)
+          var fqn = expectMsgType[FullyQualifiedName].fqnString
+
+          project ! FindUsages(fqn)
+          val uses = expectMsgType[SourcePositions]
           uses.positions should contain theSameElementsAs List(
             LineSourcePosition(EnsimeFile(fooFile), 17),
             LineSourcePosition(EnsimeFile(packageFile), 7)

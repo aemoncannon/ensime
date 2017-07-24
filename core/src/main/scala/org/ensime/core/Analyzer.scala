@@ -19,7 +19,7 @@ import akka.pattern.pipe
 import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.indexer.SearchService
-import org.ensime.util.{ FileUtils, PresentationReporter, ReportHandler }
+import org.ensime.util.{ PresentationReporter, ReportHandler }
 import org.ensime.util.file._
 import org.ensime.util.sourcefile._
 import org.ensime.vfs._
@@ -57,7 +57,7 @@ class Analyzer(
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
 
   import context.dispatcher
-  import FileUtils._
+  import org.ensime.util.FileUtils._
 
   private val projects = scoped.map(config.lookup)
   private var allFilesMode = false
@@ -111,7 +111,6 @@ class Analyzer(
     scalaCompiler = makeScalaCompiler()
     broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
     scalaCompiler.askNotifyWhenReady()
-
     countdown = setCountdown()
   }
 
@@ -218,35 +217,23 @@ class Analyzer(
     case TypecheckFilesReq(files) =>
       sender ! scalaCompiler.handleReloadFiles(files.map(toSourceFileInfo)(breakOut))
     case req: RefactorReq =>
-      import context.dispatcher
       pipe(handleRefactorRequest(req)) to sender
     case CompletionsReq(fileInfo, point, maxResults, caseSens, _reload) =>
       withExistingAsync(fileInfo) {
         reporter.disable()
         scalaCompiler.askCompletionsAt(pos(fileInfo, point), maxResults, caseSens)
       } pipeTo sender
-    case UsesOfSymbolAtPointReq(file, point) =>
-      if (toSourceFileInfo(file).exists()) {
+    case FqnOfSymbolAtPointReq(file, point) =>
+      if (file.exists()) {
         val p = pos(file, point)
         scalaCompiler.askLoadedTyped(p.source)
-        scalaCompiler.askSymbolFqn(p) match {
-          case Some(fqn) =>
-            indexer forward FindUsages(fqn.fqnString)
-          case None =>
-            sender ! FalseResponse
-        }
-
+        sender ! scalaCompiler.askSymbolFqn(p).getOrElse(FalseResponse)
       } else sender ! EnsimeServerError(s"File does not exist: ${file.file}")
-    case TreeOfSymbolAtPointReq(file, point) =>
-      if (toSourceFileInfo(file).exists()) {
+    case FqnOfTypeAtPointReq(file, point) =>
+      if (file.exists()) {
         val p = pos(file, point)
         scalaCompiler.askLoadedTyped(p.source)
-        scalaCompiler.askSymbolFqn(p) match {
-          case Some(fqn) =>
-            indexer forward FindHierarchy(fqn.fqnString)
-          case None =>
-            sender ! FalseResponse
-        }
+        sender ! scalaCompiler.askTypeFqn(p).getOrElse(FalseResponse)
       } else sender ! EnsimeServerError(s"File does not exist: ${file.file}")
     case SymbolAtPointReq(file, point: Int) =>
       sender ! withExisting(file) {

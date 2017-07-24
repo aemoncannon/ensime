@@ -8,6 +8,7 @@ import org.ensime.api
 import org.ensime.api.{ BasicTypeInfo => _, EnsimeFile => _, _ }
 import org.ensime.core._
 import org.ensime.fixture._
+import org.ensime.indexer.FullyQualifiedName
 import org.ensime.model.BasicTypeInfo
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.ensimefile.EnsimeFile
@@ -134,20 +135,22 @@ class BasicWorkflow extends EnsimeSpec
 
           val packageFile = sourceRoot / "org/example/package.scala"
           val packageFilePath = packageFile.getAbsolutePath
-          project ! UsesOfSymbolAtPointReq(Left(fooFile), 119) // point on testMethod
+
+          project ! FqnOfSymbolAtPointReq(SourceFileInfo(EnsimeFile(fooFile), None, None), 119)
+          var fqn = expectMsgType[FullyQualifiedName].fqnString
+
+          project ! FindUsages(fqn) // point on testMethod
           expectMsgType[SourcePositions].positions should contain theSameElementsAs List(
             LineSourcePosition(EnsimeFile(fooFile), 17),
             LineSourcePosition(EnsimeFile(packageFile), 7)
           )
 
-          project ! UsesOfSymbolAtPointReq(Left(fooFile), 162) // point on String.length
-          expectMsgType[SourcePositions].positions should contain theSameElementsAs List(
-            LineSourcePosition(EnsimeFile(fooFile), 11)
-          )
-
           //-----------------------------------------------------------------------------------------------
           // tree of symbol at point
-          project ! TreeOfSymbolAtPointReq(Left(fooFile), 89) // point on class Foo
+          project ! FqnOfTypeAtPointReq(SourceFileInfo(EnsimeFile(fooFile), None, None), 89)
+          fqn = expectMsgType[FullyQualifiedName].fqnString
+
+          project ! FindHierarchy(fqn) // point on class Foo
           expectMsgType[SymbolTreeInfo] should matchPattern {
             case SymbolTreeInfo(
               Some(TreeInfo(ClassInfo("org.example.Foo$Foo", _), List(

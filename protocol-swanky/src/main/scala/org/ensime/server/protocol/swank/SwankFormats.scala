@@ -826,7 +826,6 @@ object SwankProtocolRequest {
           case s if s == ImportSuggestionsReqHint.hint => value.convertTo[ImportSuggestionsReq]
           case s if s == DocUriAtPointReqHint.hint => value.convertTo[DocUriAtPointReq]
           case s if s == CompletionsReqHint.hint => value.convertTo[CompletionsReq]
-          case s if s == UsesOfSymbolAtPointReqHint.hint => value.convertTo[UsesOfSymbolAtPointReq]
           case s if s == TypeAtPointReqHint.hint => value.convertTo[TypeAtPointReq]
           case s if s == SymbolAtPointReqHint.hint => value.convertTo[SymbolAtPointReq]
           case s if s == RefactorReqHint.hint => value.convertTo[RefactorReq]

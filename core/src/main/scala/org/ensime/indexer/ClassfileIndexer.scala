@@ -3,6 +3,7 @@
 package org.ensime.indexer
 
 import java.util
+
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Queue
 import scala.util._
@@ -79,7 +80,7 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
         (ACC_DEPRECATED & access) > 0,
         Nil, Queue.empty, RawSource(None, None),
         isScala = false,
-        internalRefs.asScala
+        internalRefs.asScala.toList.distinct
       )
     }
 
@@ -101,12 +102,12 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
       super.visitField(access, name, desc, signature, value)
       new FieldVisitor(ASM5) with ReferenceInFieldHunter {
         override def visitEnd(): Unit = {
-          internalRefs.add(FullyQualifiedReference(ClassName.fromDescriptor(desc), None))
+          internalRefs.add(FullyQualifiedReference(ClassName.fromDescriptor(desc), clazz.source.line))
           val field = RawField(
             FieldName(clazz.name, name),
             DescriptorParser.parseType(desc),
             Option(signature), Access(access),
-            internalRefs.asScala
+            internalRefs.asScala.toList.distinct
           )
           clazz = clazz.copy(fields = field :: clazz.fields)
         }
@@ -117,6 +118,8 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
       super.visitMethod(access, region, desc, signature, exceptions)
       new MethodVisitor(ASM5) with ReferenceInMethodHunter {
         var firstLine: Option[Int] = None
+
+        override def addRef(ref: FullyQualifiedName): Unit = internalRefs.add(FullyQualifiedReference(ref, Some(currentLine)))
 
         override def visitLineNumber(line: Int, start: Label): Unit = {
           val isEarliestLineSeen = firstLine.forall(_ < line)
@@ -144,7 +147,7 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
             Access(access),
             Option(signature),
             firstLine,
-            internalRefs.asScala
+            internalRefs.asScala.toList.distinct
           )
           clazz = clazz.copy(methods = clazz.methods enqueue method)
         }
@@ -158,7 +161,7 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
 
     var clazz: RawClassfile
 
-    var internalRefs = new util.HashSet[FullyQualifiedReference]()
+    var internalRefs = new util.LinkedList[FullyQualifiedReference]()
 
     private val annVisitor: AnnotationVisitor = new AnnotationVisitor(ASM5) {
       override def visitAnnotation(name: String, desc: String) = handleAnn(desc)
@@ -168,7 +171,7 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
     }
 
     private def handleAnn(desc: String): AnnotationVisitor = {
-      clazz = clazz.copy(internalRefs = clazz.internalRefs + FullyQualifiedReference(ClassName.fromDescriptor(desc), None))
+      clazz = clazz.copy(internalRefs = FullyQualifiedReference(ClassName.fromDescriptor(desc), clazz.source.line) :: clazz.internalRefs)
       annVisitor
     }
     override def visitAnnotation(desc: String, visible: Boolean) = handleAnn(desc)
@@ -180,7 +183,7 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
   private trait ReferenceInFieldHunter {
     this: FieldVisitor =>
 
-    protected var internalRefs = new util.HashSet[FullyQualifiedReference]()
+    protected var internalRefs = new util.LinkedList[FullyQualifiedReference]()
 
     private val annVisitor = new AnnotationVisitor(ASM5) {
       override def visitAnnotation(name: String, desc: String): AnnotationVisitor = handleAnn(desc)
@@ -196,7 +199,7 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
   private trait ReferenceInMethodHunter {
     this: MethodVisitor =>
 
-    protected var internalRefs = new util.HashSet[FullyQualifiedReference]()
+    protected var internalRefs = new util.LinkedList[FullyQualifiedReference]()
     protected var currentLine: Int = _
     // doesn't disambiguate FQNs of methods, so storing as FieldName references
     private def memberOrInit(owner: String, name: String): FullyQualifiedName =

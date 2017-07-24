@@ -196,10 +196,9 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
       symbolFqn.fold(Future.successful(Set.empty[RawFile])) { fqn =>
         val usages = search.findUsages(fqn.fqnString)
         usages.map { usages =>
-          val uniqueFiles: SCISet[RawFile] = usages.flatMap {
-            case (u, _) =>
-              val source = u.source
-              source.map(s => RawFile(Paths.get(new URI(s))))
+          val uniqueFiles: SCISet[RawFile] = usages.flatMap { u =>
+            val source = u.source
+            source.map(s => RawFile(Paths.get(new URI(s))))
           }(collection.breakOut)
           if (sym.sourceFile != null) {
             uniqueFiles + RawFile(sym.sourceFile.file.toPath)

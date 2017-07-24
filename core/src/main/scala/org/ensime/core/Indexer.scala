@@ -17,8 +17,6 @@ import org.ensime.vfs._
 
 // only used for queries by other components
 final case class TypeCompletionsReq(prefix: String, maxResults: Int)
-final case class FindUsages(fqn: String)
-final case class FindHierarchy(fqn: String)
 
 class Indexer(
     index: SearchService,
@@ -73,16 +71,16 @@ class Indexer(
 
     case FindUsages(fqn: String) =>
       import context.dispatcher
-      val usages = index.findUsages(fqn)
+      val usages = index.findUsageLocations(fqn)
       val response = usages.map { usages =>
-        val results: List[LineSourcePosition] = usages.flatMap {
-          case (u, line) =>
-            val source = u.source
-            source.map(s =>
-              LineSourcePosition(
-                EnsimeFile(Paths.get(new URI(s)).toString),
-                line.getOrElse(u.line.getOrElse(0))
-              ))
+        val results: List[LineSourcePosition] = usages.flatMap { u =>
+          val file = u.file
+          file.map { f =>
+            LineSourcePosition(
+              EnsimeFile(Paths.get(new URI(f)).toString),
+              u.line.getOrElse(u.line.getOrElse(0))
+            )
+          }
         }(collection.breakOut)
         SourcePositions(results)
       }
