@@ -94,8 +94,8 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      UsesOfSymbolAtPointReq(Left(file1), 100): RpcRequest,
-      s"""(:ensime-api-uses-of-symbol-at-point-req (:file "$file1" :point 100))"""
+      UsesOfSymbolAtPointReq(sourceFileInfo2, 100): RpcRequest,
+      s"""(:ensime-api-uses-of-symbol-at-point-req (:file "$sourceFileInfo2" :point 100))"""
     )
 
     roundtrip(
