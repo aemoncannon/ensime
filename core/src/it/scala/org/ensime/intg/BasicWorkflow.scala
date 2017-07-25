@@ -151,15 +151,8 @@ class BasicWorkflow extends EnsimeSpec
           fqn = expectMsgType[FullyQualifiedName].fqnString
 
           project ! FindHierarchy(fqn) // point on class Foo
-          expectMsgType[SymbolTreeInfo] should matchPattern {
-            case SymbolTreeInfo(
-              Some(TreeInfo(ClassInfo("org.example.Foo$Foo", _), List(
-                TreeInfo(ClassInfo("org.example.Foo$Bar", _), List(
-                  ClassInfo("java.lang.Object", _))
-                  ))
-                )),
-              Some(ClassInfo("org.example.Foo$Foo", _))
-              ) =>
+          expectMsgType[HierarchyInfo] should matchPattern {
+            case HierarchyInfo(List(ClassInfo("org.example.Foo$Bar", _)), Nil) =>
           }
 
           // note that the line numbers appear to have been stripped from the

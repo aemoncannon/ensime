@@ -334,7 +334,8 @@ package object syntax {
     // this is domain specific and should not be here (a general Orient layer)
     def classHierarchy[P: Ordering](
       value: P,
-      hierarchyType: Hierarchy.Direction
+      hierarchyType: Hierarchy.Direction,
+      levels: Option[Int]
     )(
       implicit
       graph: OrientBaseGraph,
@@ -345,21 +346,30 @@ package object syntax {
       import GraphService.IsParentS
 
       def traverseClassHierarchy(
-        v: VertexT[ClassDef]
+        v: VertexT[ClassDef],
+        noOfTimesLeft: Option[Int] = None
       ): Hierarchy = {
         val vertices: Iterable[VertexT[ClassDef]] = hierarchyType match {
           case Hierarchy.Subtypes => v.getInVertices[ClassDef, IsParent.type]
           case Hierarchy.Supertypes => v.getOutVertices[ClassDef, IsParent.type]
         }
-
         vertices.toList match {
           case Nil => v.toDomain
-          case xs => TypeHierarchy(v.toDomain, xs.sortBy(_.getProperty[P](u.key)).map(traverseClassHierarchy))
+          case xs =>
+            noOfTimesLeft match {
+              case None =>
+                TypeHierarchy(v.toDomain, xs.sortBy(_.getProperty[P](u.key)).map(traverseClassHierarchy(_)))
+              case Some(n) if n > 0 =>
+                TypeHierarchy(v.toDomain, xs.sortBy(_.getProperty[P](u.key)).map(traverseClassHierarchy(_, Some(n - 1))))
+              case _ =>
+                TypeHierarchy(v.toDomain, xs.map(_.toDomain))
+            }
+
         }
       }
 
       readUniqueV[ClassDef, P](value) match {
-        case Some(vertexT) => Some(traverseClassHierarchy(vertexT))
+        case Some(vertexT) => Some(traverseClassHierarchy(vertexT, levels.map(_ - 1)))
         case None => None
       }
     }

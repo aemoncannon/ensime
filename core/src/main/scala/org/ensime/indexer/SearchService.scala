@@ -330,7 +330,7 @@ class SearchService(
   def findUnique(fqn: String): Option[FqnSymbol] = Await.result(db.find(fqn), QUERY_TIMEOUT)
 
   /** returns hierarchy of a type identified by fqn */
-  def getTypeHierarchy(fqn: String, hierarchyType: Hierarchy.Direction): Future[Option[Hierarchy]] = db.getClassHierarchy(fqn, hierarchyType)
+  def getTypeHierarchy(fqn: String, hierarchyType: Hierarchy.Direction, levels: Option[Int] = None): Future[Option[Hierarchy]] = db.getClassHierarchy(fqn, hierarchyType, levels)
 
   /** returns locations where given fqn is referred*/
   def findUsageLocations(fqn: String): Future[Iterable[UsageLocation]] = db.findUsageLocations(fqn)

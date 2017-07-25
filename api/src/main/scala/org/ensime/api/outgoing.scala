@@ -237,11 +237,10 @@ final case class LineSourcePosition(file: EnsimeFile, line: Int) extends SourceP
 
 case class SourcePositions(positions: List[SourcePosition]) extends RpcResponse
 
-sealed trait HierarchyInfo
-final case class ClassInfo(fqn: String, sourcePosition: Option[SourcePosition]) extends HierarchyInfo
-final case class TreeInfo(classInfo: ClassInfo, hierarchy: Seq[HierarchyInfo]) extends HierarchyInfo
+// See if `TypeInfo` can be used instead
+final case class ClassInfo(fqn: String, sourcePosition: Option[SourcePosition])
 
-final case class SymbolTreeInfo(ancestors: Option[HierarchyInfo], inheritors: Option[HierarchyInfo]) extends RpcResponse
+final case class HierarchyInfo(ancestors: List[ClassInfo], inheritors: List[ClassInfo]) extends RpcResponse
 
 final case class PackageInfo(
     name: String,

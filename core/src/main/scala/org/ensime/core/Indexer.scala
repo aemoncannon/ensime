@@ -88,16 +88,25 @@ class Indexer(
 
     case FindHierarchy(fqn: String) =>
       import context.dispatcher
-      def toHierarchyInfo(h: Hierarchy): HierarchyInfo = h match {
-        case c: ClassDef => ClassInfo(c.fqn, LineSourcePositionHelper.fromFqnSymbol(c))
-        case TypeHierarchy(cls, h) => TreeInfo(ClassInfo(cls.fqn, LineSourcePositionHelper.fromFqnSymbol(cls)), h.map(toHierarchyInfo))
+
+      def toClassInfos(h: Hierarchy): List[ClassInfo] = {
+        def toClassInfo(c: ClassDef) = ClassInfo(c.fqn, LineSourcePositionHelper.fromFqnSymbol(c))
+        h match {
+          case TypeHierarchy(aClass, typeRefs) =>
+            typeRefs.map {
+              case TypeHierarchy(aCls, _) => toClassInfo(aCls)
+              case c: ClassDef => toClassInfo(c)
+            }(collection.breakOut)
+          case _ => Nil
+        }
       }
-      val ancestors = index.getTypeHierarchy(fqn, Hierarchy.Supertypes).map(_.map(toHierarchyInfo))
-      val inheritors = index.getTypeHierarchy(fqn, Hierarchy.Subtypes).map(_.map(toHierarchyInfo))
+
+      val ancestors = index.getTypeHierarchy(fqn, Hierarchy.Supertypes, Some(1)).map(_.map(toClassInfos))
+      val inheritors = index.getTypeHierarchy(fqn, Hierarchy.Subtypes, Some(1)).map(_.map(toClassInfos))
       val symbolTreeInfo = for {
         anc <- ancestors
         inh <- inheritors
-      } yield SymbolTreeInfo(anc, inh)
+      } yield HierarchyInfo(anc.getOrElse(Nil), inh.getOrElse(Nil))
       pipe(symbolTreeInfo) to sender
   }
 }

@@ -327,8 +327,8 @@ class GraphService(dir: File) extends SLF4JLogging {
       RichGraph.readUniqueV[FqnSymbol, String](fqn.fqn).map(_.toDomain))
   }
 
-  def getClassHierarchy(fqn: String, hierarchyType: Hierarchy.Direction): Future[Option[Hierarchy]] = withGraphAsync { implicit g =>
-    RichGraph.classHierarchy[String](fqn, hierarchyType)
+  def getClassHierarchy(fqn: String, hierarchyType: Hierarchy.Direction, levels: Option[Int]): Future[Option[Hierarchy]] = withGraphAsync { implicit g =>
+    RichGraph.classHierarchy[String](fqn, hierarchyType, levels)
   }
 
   def findUsageLocations(fqn: String): Future[Iterable[UsageLocation]] = withGraphAsync { implicit g =>
