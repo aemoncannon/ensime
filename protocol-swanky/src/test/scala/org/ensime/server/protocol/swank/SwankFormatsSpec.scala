@@ -103,10 +103,11 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
       CompletionsReq(sourceFileInfo, 10, 100, true, false): RpcRequest
     )
 
+    /* leaving out this part for now
     unmarshal(
       s"""(swank:uses-of-symbol-at-point "$sourceFileInfo2" 100)""",
       UsesOfSymbolAtPointReq(sourceFileInfo2, 100): RpcRequest
-    )
+    )*/
 
     unmarshal(
       s"""(swank:type-at-point "$file1" (1 100))""",

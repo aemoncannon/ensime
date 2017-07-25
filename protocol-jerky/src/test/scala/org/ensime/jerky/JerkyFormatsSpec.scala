@@ -95,10 +95,11 @@ class JerkyFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeT
       s"""{"point":10,"maxResults":100,"typehint":"CompletionsReq","caseSens":true,"fileInfo":{"file":"$file1","contents":"{/* code here */}","contentsIn":"$file2"},"reload":false}"""
     )
 
+    /* leaving out this part for now
     roundtrip(
       UsesOfSymbolAtPointReq(sourceFileInfo2, 100): RpcRequest,
       s"""{"typehint":"UsesOfSymbolAtPointReq","file":"$sourceFileInfo2","point":100}"""
-    )
+    )*/
 
     roundtrip(
       TypeAtPointReq(Left(file1), OffsetRange(1, 100)): RpcRequest,
