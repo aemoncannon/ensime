@@ -238,7 +238,7 @@ final case class LineSourcePosition(file: EnsimeFile, line: Int) extends SourceP
 case class SourcePositions(positions: List[SourcePosition]) extends RpcResponse
 
 // See if `TypeInfo` can be used instead
-final case class ClassInfo(fqn: String, sourcePosition: Option[SourcePosition])
+final case class ClassInfo(scalaName: Option[String], fqn: String, declAs: DeclaredAs, sourcePosition: Option[SourcePosition])
 
 final case class HierarchyInfo(ancestors: List[ClassInfo], inheritors: List[ClassInfo]) extends RpcResponse
 
@@ -496,11 +496,6 @@ final case class InterfaceInfo(
   def tpe = `type`
 }
 
-/** ERangePosition is a mirror of scala compiler internal RangePosition as a case class to */
-@deprecating("file should not be a String")
-final case class ERangePosition(file: String, offset: Int, start: Int, end: Int)
-final case class ERangePositions(positions: List[ERangePosition]) extends RpcResponse
-
 final case class FileRange(file: String, start: Int, end: Int) extends RpcResponse
 
 final case class EnsimeImplementation(
@@ -509,7 +504,7 @@ final case class EnsimeImplementation(
 final case class ConnectionInfo(
   pid: Option[Int] = None,
   implementation: EnsimeImplementation = EnsimeImplementation("ENSIME"),
-  version: String = "1.9.4"
+  version: String = "1.9.5"
 ) extends RpcResponse
 
 sealed trait ImplicitInfo

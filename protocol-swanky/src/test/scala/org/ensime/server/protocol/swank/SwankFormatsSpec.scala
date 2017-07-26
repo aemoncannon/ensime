@@ -103,11 +103,15 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
       CompletionsReq(sourceFileInfo, 10, 100, true, false): RpcRequest
     )
 
-    /* leaving out this part for now
     unmarshal(
-      s"""(swank:uses-of-symbol-at-point "$sourceFileInfo2" 100)""",
-      UsesOfSymbolAtPointReq(sourceFileInfo2, 100): RpcRequest
-    )*/
+      s"""(swank:uses-of-symbol-at-point (:file "$file1" :contents "{/* code here */}" :contents-in "$file2") 100)""",
+      UsesOfSymbolAtPointReq(sourceFileInfo, 100): RpcRequest
+    )
+
+    unmarshal(
+      s"""(swank:hierarchy-of-type-at-point (:file "$file1" :contents "{/* code here */}" :contents-in "$file2") 100)""",
+      HierarchyOfTypeAtPointReq(sourceFileInfo, 100): RpcRequest
+    )
 
     unmarshal(
       s"""(swank:type-at-point "$file1" (1 100))""",
@@ -525,14 +529,19 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
       typeSearchRes: SymbolSearchResult,
       s"""(:type type :name "abc" :local-name "a" :decl-as trait :pos (:type line :file "$abd" :line 10))"""
     )
+
+    marshal(
+      SourcePositions(sourcePos2 :: Nil),
+      s"""((:type line :file "$file1" :line 59))"""
+    )
+
+    marshal(
+      hierarchyInfo: HierarchyInfo,
+      s"""(:ancestors ((:fqn "java.lang.object" :decl-as class)) :inheritors ((:scala-name "def.foo" :fqn "def$$foo" :decl-as class :source-position (:type line :file "$file1" :line 59))))"""
+    )
   }
 
   it should "marshal ranges and semantic highlighting" in {
-    marshal(
-      ERangePositions(ERangePosition(batchSourceFile, 75, 70, 90) :: Nil),
-      s"""((:file "$batchSourceFile" :offset 75 :start 70 :end 90))"""
-    )
-
     marshal(
       FileRange("/abc", 7, 9): FileRange,
       """(:file "/abc" :start 7 :end 9)"""

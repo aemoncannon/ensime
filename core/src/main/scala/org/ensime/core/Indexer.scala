@@ -90,7 +90,7 @@ class Indexer(
       import context.dispatcher
 
       def toClassInfos(h: Hierarchy): List[ClassInfo] = {
-        def toClassInfo(c: ClassDef) = ClassInfo(c.fqn, LineSourcePositionHelper.fromFqnSymbol(c))
+        def toClassInfo(c: ClassDef) = ClassInfo(c.scalaName, c.fqn, c.declAs, LineSourcePositionHelper.fromFqnSymbol(c))
         h match {
           case TypeHierarchy(aClass, typeRefs) =>
             typeRefs.map {

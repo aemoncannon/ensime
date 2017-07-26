@@ -277,7 +277,7 @@ package object syntax {
       p: SPrimitive[P],
       cdefFormat: BigDataFormat[ClassDef]
     ): Boolean = {
-      import GraphService.{ DefinedInS, EnclosingClassS }
+      import GraphService.{ DefinedInS, EnclosingClassS, UsedAtS }
 
       // this is domain specific and should not be here (a general Orient layer)
       def removeRecursive(
@@ -291,6 +291,10 @@ package object syntax {
           .asScala
           .filter(_.getProperty[String]("typehint") != cdefFormat.label)
           .foreach(removeRecursive)
+
+        v.getVertices(Direction.OUT, UsedAtS.label)
+          .asScala
+          .foreach(v => Try(graph.removeVertex(v)))
 
         // race conditions can cause this to fail and then we loop
         // forever. If we fail to delete it, meh.
@@ -408,6 +412,8 @@ package object syntax {
       oid: OrientIdFormat[FqnSymbol, P],
       p: SPrimitive[P]
     ): Seq[VertexT[FqnSymbol]] = {
+      import GraphService.UsedInS
+
       readUniqueV[FqnSymbol, P](value) match {
         case Some(vertexT) =>
           val intermediary: Seq[VertexT[UsageLocation]] = findUsageLocations(value)

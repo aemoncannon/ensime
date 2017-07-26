@@ -147,12 +147,15 @@ class BasicWorkflow extends EnsimeSpec
 
           //-----------------------------------------------------------------------------------------------
           // tree of symbol at point
-          project ! FqnOfTypeAtPointReq(SourceFileInfo(EnsimeFile(fooFile), None, None), 89)
+          project ! FqnOfTypeAtPointReq(SourceFileInfo(EnsimeFile(fooFile), None, None), 56)
           fqn = expectMsgType[FullyQualifiedName].fqnString
 
-          project ! FindHierarchy(fqn) // point on class Foo
+          project ! FindHierarchy(fqn) // point on class Bar
           expectMsgType[HierarchyInfo] should matchPattern {
-            case HierarchyInfo(List(ClassInfo("org.example.Foo$Bar", _)), Nil) =>
+            case HierarchyInfo(
+              List(ClassInfo(None, "java.lang.Object", DeclaredAs.Class, _)),
+              List(ClassInfo(Some("org.example.Foo.Foo"), "org.example.Foo$Foo", DeclaredAs.Class, _))
+              ) =>
           }
 
           // note that the line numbers appear to have been stripped from the

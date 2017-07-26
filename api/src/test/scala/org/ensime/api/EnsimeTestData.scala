@@ -39,10 +39,6 @@ trait EnsimeTestData {
 
   val batchSourceFile = "/abc"
 
-  val rangePos1 = new ERangePosition(batchSourceFile, 75, 70, 90)
-
-  val rangePos2 = new ERangePosition(batchSourceFile, 85, 80, 100)
-
   val packageInfo = new PackageInfo("name", "fullName", Nil)
 
   val refactorFailure = RefactorFailure(7, "message")
@@ -145,4 +141,7 @@ trait EnsimeTestData {
     )
   ))
 
+  val classInfo = ClassInfo(Some("def.foo"), "def$foo", DeclaredAs.Class, Some(sourcePos2))
+  val classInfo2 = ClassInfo(None, "java.lang.object", DeclaredAs.Class, None)
+  val hierarchyInfo = HierarchyInfo(classInfo2 :: Nil, classInfo :: Nil)
 }

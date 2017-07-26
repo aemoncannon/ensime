@@ -137,8 +137,14 @@ final case class ImportSuggestionsReq(
   maxResults: Int
 ) extends RpcSearchRequest
 
+/**
+ * Responds with `FullyQualifiedName`
+ */
 final case class FqnOfSymbolAtPointReq(file: SourceFileInfo, point: Int) extends RpcAnalyserRequest
 
+/**
+ * Responds with `FullyQualifiedName`
+ */
 final case class FqnOfTypeAtPointReq(file: SourceFileInfo, point: Int) extends RpcAnalyserRequest
 
 /**
@@ -150,15 +156,21 @@ final case class UsesOfSymbolAtPointReq(
 ) extends RpcRequest
 
 /**
- * Responds with `SymbolHierarchyInfo`
+ * Responds with `HierarchyInfo`
  */
 final case class HierarchyOfTypeAtPointReq(
   file: SourceFileInfo,
   point: Int
 ) extends RpcRequest
 
+/**
+ * Responds with `SourcePositions`.
+ */
 final case class FindUsages(fqn: String) extends RpcSearchRequest
 
+/**
+ * Responds with `HierarchyInfo`
+ */
 final case class FindHierarchy(fqn: String) extends RpcSearchRequest
 
 /**

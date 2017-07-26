@@ -12,7 +12,7 @@ import org.ensime.util.fileobject._
 import org.ensime.vfs._
 
 import scala.collection.mutable
-import scala.reflect.internal.util.{ NoPosition, Position, RangePosition }
+import scala.reflect.internal.util.{ NoPosition, Position }
 
 trait ModelBuilders {
   self: RichPresentationCompiler with FqnToSymbol =>
@@ -310,10 +310,6 @@ object OffsetSourcePositionHelper {
     case realPos =>
       Some(new OffsetSourcePosition(EnsimeFile(realPos.source.file.path), realPos.point))
   }
-}
-
-object ERangePositionHelper {
-  def fromRangePosition(rp: RangePosition): ERangePosition = new ERangePosition(rp.source.path, rp.point, rp.start, rp.end)
 }
 
 object BasicTypeInfo {

@@ -252,18 +252,12 @@ object SwankProtocolResponse {
   implicit val BreakpointFormat: SexpFormat[Breakpoint] = cachedImplicit
   implicit val BreakpointListFormat: SexpFormat[BreakpointList] = cachedImplicit
   implicit val FileRangeFormat: SexpFormat[FileRange] = cachedImplicit
-  implicit val ERangePositionFormat: SexpFormat[ERangePosition] = cachedImplicit
   implicit val RefactorFailureFormat: SexpFormat[RefactorFailure] = cachedImplicit
   implicit val TextEditFormat: SexpFormat[TextEdit] = cachedImplicit
   implicit val NewFileFormat: SexpFormat[NewFile] = cachedImplicit
   implicit val DeleteFileFormat: SexpFormat[DeleteFile] = cachedImplicit
   implicit val DebugVmErrorFormat: SexpFormat[DebugVmError] = cachedImplicit
   implicit val EmptySourcePositionFormat: SexpFormat[EmptySourcePosition] = cachedImplicit
-
-  implicit object ERangePositionsFormat extends SexpFormat[ERangePositions] {
-    def read(s: Sexp): ERangePositions = ???
-    def write(rs: ERangePositions): Sexp = rs.positions.toSexp
-  }
 
   implicit object DebugValueFormat extends TraitFormatAlt[DebugValue] {
     override val key = SexpSymbol(":val-type")
@@ -304,6 +298,13 @@ object SwankProtocolResponse {
         value.convertTo[OffsetSourcePosition]
       case _ => deserializationError(hint)
     }
+  }
+
+  implicit object SourcePositionsFormat extends SexpFormat[SourcePositions] {
+    def write(sp: SourcePositions): Sexp = sp.positions.toSexp
+    def read(sexp: Sexp): SourcePositions = SourcePositions(
+      sexp.convertTo[List[SourcePosition]]
+    )
   }
 
   implicit object NoteSeverityFormat extends TraitFormat[NoteSeverity] {
@@ -425,6 +426,7 @@ object SwankProtocolResponse {
   implicit def BasicTypeInfoFormat: SexpFormat[BasicTypeInfo] = { def BasicTypeInfoFormat = ???; implicitly[SexpFormat[BasicTypeInfo]] }
   implicit def SymbolInfoFormat: SexpFormat[SymbolInfo] = { def SymbolInfoFormat = ???; implicitly[SexpFormat[SymbolInfo]] }
   implicit def InterfaceInfoFormat: SexpFormat[InterfaceInfo] = { def InterfaceInfoFormat = ???; implicitly[SexpFormat[InterfaceInfo]] }
+  implicit def ClassInfoFormat: SexpFormat[ClassInfo] = { def ClassInfoFormat = ???; implicitly[SexpFormat[ClassInfo]] }
 
   // must be defined after CompletionSignatureFormat and TypeInfo
   implicit val CompletionInfoFormat: SexpFormat[CompletionInfo] = cachedImplicit
@@ -545,14 +547,13 @@ object SwankProtocolResponse {
       case value: InterfaceInfo => value.toSexp
       case value: SymbolSearchResults => value.toSexp
       case value: ImportSuggestions => value.toSexp
-      case value: ERangePositions => value.toSexp
+      case value: SourcePositions => value.toSexp
       case value: FileRange => value.toSexp
       case value: SymbolDesignations => value.toSexp
       case value: RefactorFailure => value.toSexp
       case value: RefactorDiffEffect => value.toSexp
       case value: ImplicitInfos => value.toSexp
       case value: StructureView => value.toSexp
-      case value: SourcePositions => value.toSexp
       case value: HierarchyInfo => value.toSexp
       case error: EnsimeServerError =>
         throw new IllegalArgumentException(
@@ -634,6 +635,7 @@ object SwankProtocolRequest {
   implicit val DocUriAtPointReqHint: TypeHint[DocUriAtPointReq] = TypeHint[DocUriAtPointReq](SexpSymbol("swank:doc-uri-at-point"))
   implicit val CompletionsReqHint: TypeHint[CompletionsReq] = TypeHint[CompletionsReq](SexpSymbol("swank:completions"))
   implicit val UsesOfSymbolAtPointReqHint: TypeHint[UsesOfSymbolAtPointReq] = TypeHint[UsesOfSymbolAtPointReq](SexpSymbol("swank:uses-of-symbol-at-point"))
+  implicit val HierarchyOfTypeAtPointReqHint: TypeHint[HierarchyOfTypeAtPointReq] = TypeHint[HierarchyOfTypeAtPointReq](SexpSymbol("swank:hierarchy-of-type-at-point"))
   implicit val TypeAtPointReqHint: TypeHint[TypeAtPointReq] = TypeHint[TypeAtPointReq](SexpSymbol("swank:type-at-point"))
   implicit val SymbolAtPointReqHint: TypeHint[SymbolAtPointReq] = TypeHint[SymbolAtPointReq](SexpSymbol("swank:symbol-at-point"))
   implicit val RefactorReqHint: TypeHint[RefactorReq] = TypeHint[RefactorReq](SexpSymbol("swank:diff-refactor"))
@@ -781,6 +783,7 @@ object SwankProtocolRequest {
   implicit def DocUriAtPointReqFormat: SexpFormat[DocUriAtPointReq] = { def DocUriAtPointReqFormat = ???; implicitly[SexpFormat[DocUriAtPointReq]] }
   implicit def CompletionsReqFormat: SexpFormat[CompletionsReq] = { def CompletionsReqFormat = ???; implicitly[SexpFormat[CompletionsReq]] }
   implicit def UsesOfSymbolAtPointReqFormat: SexpFormat[UsesOfSymbolAtPointReq] = { def UsesOfSymbolAtPointReqFormat = ???; implicitly[SexpFormat[UsesOfSymbolAtPointReq]] }
+  implicit def HierarchyOfTypeAtPointReqFormat: SexpFormat[HierarchyOfTypeAtPointReq] = { def HierarchyOfTypeAtPointReqFormat = ???; implicitly[SexpFormat[HierarchyOfTypeAtPointReq]] }
   implicit def TypeAtPointReqFormat: SexpFormat[TypeAtPointReq] = { def TypeAtPointReqFormat = ???; implicitly[SexpFormat[TypeAtPointReq]] }
   implicit def SymbolAtPointReqFormat: SexpFormat[SymbolAtPointReq] = { def SymbolAtPointReqFormat = ???; implicitly[SexpFormat[SymbolAtPointReq]] }
   implicit def RefactorReqFormat: SexpFormat[RefactorReq] = { def RefactorReqFormat = ???; implicitly[SexpFormat[RefactorReq]] }
@@ -818,6 +821,8 @@ object SwankProtocolRequest {
           case s if s == ImportSuggestionsReqHint.hint => value.convertTo[ImportSuggestionsReq]
           case s if s == DocUriAtPointReqHint.hint => value.convertTo[DocUriAtPointReq]
           case s if s == CompletionsReqHint.hint => value.convertTo[CompletionsReq]
+          case s if s == UsesOfSymbolAtPointReqHint.hint => value.convertTo[UsesOfSymbolAtPointReq]
+          case s if s == HierarchyOfTypeAtPointReqHint.hint => value.convertTo[HierarchyOfTypeAtPointReq]
           case s if s == TypeAtPointReqHint.hint => value.convertTo[TypeAtPointReq]
           case s if s == SymbolAtPointReqHint.hint => value.convertTo[SymbolAtPointReq]
           case s if s == RefactorReqHint.hint => value.convertTo[RefactorReq]
