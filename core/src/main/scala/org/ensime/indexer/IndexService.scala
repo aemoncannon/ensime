@@ -7,7 +7,6 @@ import java.nio.file.Path
 
 import scala.collection.JavaConverters._
 import akka.event.slf4j.SLF4JLogging
-import org.apache.commons.vfs2.FileObject
 import org.apache.lucene.document.{ Document, TextField }
 import org.apache.lucene.document.Field.Store
 import org.apache.lucene.index.Term
@@ -17,8 +16,8 @@ import org.ensime.indexer.graph._
 import org.ensime.indexer.SearchService._
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.ensime.indexer.lucene._
+import org.ensime.api.EnsimeFile
 import org.ensime.util.list._
-import org.ensime.util.fileobject._
 import shapeless.Typeable
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -139,7 +138,7 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
     }
   }
 
-  def remove(fs: List[FileObject]): Future[Unit] = {
+  def remove(fs: List[EnsimeFile]): Future[Unit] = {
     val terms = fs.map { f => new TermQuery(new Term("file", f.uriString)) }
     lucene.delete(terms, commit = false) // don't commit yet
   }

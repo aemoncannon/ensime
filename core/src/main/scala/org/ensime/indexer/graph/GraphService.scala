@@ -4,6 +4,7 @@ package org.ensime.indexer.graph
 
 import java.sql.Timestamp
 import java.util.concurrent.{ Executors, ThreadFactory, TimeUnit }
+import java.nio.file.Files
 
 import scala.Predef._
 import scala.collection.mutable
@@ -17,7 +18,6 @@ import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal
 import com.orientechnologies.orient.core.metadata.schema.OType
 import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory
-import org.apache.commons.vfs2.FileObject
 import org.ensime.api.{ DeclaredAs, EnsimeFile }
 import org.ensime.indexer._
 import org.ensime.indexer.IndexService.FqnIndex
@@ -25,11 +25,8 @@ import org.ensime.indexer.SearchService._
 import org.ensime.indexer.orientdb.api._
 import org.ensime.indexer.orientdb.schema.api._
 import org.ensime.indexer.orientdb.syntax._
-import org.ensime.util.ensimefile._
 import org.ensime.util.file._
-import org.ensime.util.fileobject._
 import org.ensime.util.stringymap.api.BigDataFormat
-import org.ensime.vfs._
 import shapeless.cachedImplicit
 
 // I'm not particularly keen on this kind of OOP modelling...
@@ -41,7 +38,7 @@ sealed trait FqnSymbol {
   def access: Access
   def scalaName: Option[String]
 
-  def sourceFileObject(implicit vfs: EnsimeVFS): Option[FileObject] = source.map(vfs.vfile)
+  def sourceFileObject: Option[EnsimeFile] = source.map(src => EnsimeFile(src))
   def toSearchResult: String = s"$declAs ${scalaName.getOrElse(fqn)}"
 }
 
@@ -103,20 +100,13 @@ final case class Method(
 
 final case class UsageLocation(file: Option[String], line: Option[Int])
 
-final case class FileCheck(filename: String, timestamp: Timestamp) {
-  def file(implicit vfs: EnsimeVFS): FileObject = vfs.vfile(filename)
-  def lastModified: Long = timestamp.getTime
-  def changed(implicit vfs: EnsimeVFS): Boolean = file.getContent.getLastModifiedTime != lastModified
-}
-object FileCheck extends ((String, Timestamp) => FileCheck) {
-  def apply(f: FileObject): FileCheck = {
-    val name = f.uriString
-    val ts = if (f.exists()) new Timestamp(f.getContent.getLastModifiedTime)
+final case class FileCheck(file: EnsimeFile) {
+  val filename = file.uriString
+  val timestamp =
+    if (file.exists) new Timestamp(Files.getLastModifiedTime(file.path).toMillis)
     else new Timestamp(-1L)
-    FileCheck(name, ts)
-  }
-
-  def fromPath(path: String)(implicit vfs: EnsimeVFS): FileCheck = apply(vfs.vfile(path))
+  val lastModified: Long = timestamp.getTime
+  def changed: Boolean = Files.getLastModifiedTime(file.path).toMillis != lastModified
 }
 
 // core/it:test-only *Search* -- -z prestine
@@ -208,8 +198,8 @@ class GraphService(dir: File) extends SLF4JLogging {
     RichGraph.allV[FileCheck]
   }
 
-  def outOfDate(f: FileObject)(implicit vfs: EnsimeVFS): Future[Boolean] = withGraphAsync { implicit g =>
-    RichGraph.readUniqueV[FileCheck, String](f.uriString) match {
+  def outOfDate(f: EnsimeFile): Future[Boolean] = withGraphAsync { implicit g =>
+    RichGraph.readUniqueV[FileCheck, String](f.path.toUri.toString) match {
       case None => true
       case Some(v) => v.toDomain.changed
     }
@@ -308,7 +298,7 @@ class GraphService(dir: File) extends SLF4JLogging {
   /**
    * Removes given `files` from the graph.
    */
-  def removeFiles(files: List[FileObject]): Future[Int] = withGraphAsync { implicit g =>
+  def removeFiles(files: List[EnsimeFile]): Future[Int] = withGraphAsync { implicit g =>
     RichGraph.removeV(files.map(FileCheck(_)))
   }
 

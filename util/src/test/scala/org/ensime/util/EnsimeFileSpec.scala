@@ -60,8 +60,8 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
   }
 
   it should "check for file existence with exists()" in {
-    EnsimeFile("../LICENSE").exists() shouldBe true
-    EnsimeFile("there-is-no-spoon").exists() shouldBe false
+    EnsimeFile("../LICENSE").exists shouldBe true
+    EnsimeFile("there-is-no-spoon").exists shouldBe false
   }
 
   it should "load file contents with readStringDirect()" in {
@@ -75,9 +75,10 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
   }
 
   it should "check for jar and entry existence with exists()" in {
-    EnsimeFile("there-is-no.jar!/thing").exists() shouldBe false
-    EnsimeFile(s"$src!/java/lang/String.java").exists() shouldBe true
-    EnsimeFile(s"$src!/java/lang/Ensime.scala").exists() shouldBe false
+    EnsimeFile("there-is-no.jar!/thing").exists shouldBe false
+    println(src)
+    EnsimeFile(s"$src!/java/lang/String.java").exists shouldBe true
+    EnsimeFile(s"$src!/java/lang/Ensime.scala").exists shouldBe false
   }
 
   it should "load entry contents with readStringDirect()" in {

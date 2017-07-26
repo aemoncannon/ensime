@@ -6,7 +6,6 @@ import spray.json._
 import shapeless._
 import org.ensime.api._
 import org.ensime.util.file._
-import org.ensime.util.ensimefile._
 
 private object JerkyConversions extends DefaultJsonProtocol with FamilyFormats {
   // This part of the code is brought to you by the words "accidental"

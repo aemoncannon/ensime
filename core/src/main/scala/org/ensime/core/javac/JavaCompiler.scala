@@ -22,14 +22,12 @@ import org.ensime.indexer.{ FullyQualifiedName, SearchService }
 import org.ensime.util.ReportHandler
 import org.ensime.util.file._
 import org.ensime.util.ensimefile._
-import org.ensime.vfs._
 
 class JavaCompiler(
   val config: EnsimeConfig,
   val reportHandler: ReportHandler,
   val indexer: ActorRef,
   val search: SearchService,
-  val vfs: EnsimeVFS
 ) extends JavaDocFinding
     with JavaCompletionsAtPoint
     with JavaTypeAtPoint

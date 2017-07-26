@@ -31,7 +31,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     assertFormat(enveloped, s"""(:payload $via)""".parseSexp)
   }
 
-  implicit def toFile(raw: RawFile): File = raw.file.toFile
+  implicit def toFile(raw: RawFile): File = raw.path.toFile
 
   "SWANK Formats" should "roundtrip startup messages" in {
     roundtrip(

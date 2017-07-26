@@ -2,7 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.util
 
-import java.io.File
 import java.net._
 import java.nio.charset.Charset
 import java.nio.file._
@@ -18,10 +17,6 @@ import org.ensime.util.path._
 package ensimefile {
 
   trait RichEnsimeFile {
-    def isJava: Boolean
-    def isJar: Boolean
-    def isScala: Boolean
-    def exists(): Boolean
     def lastModified(): Long
     def canon: EnsimeFile
 
@@ -41,44 +36,18 @@ package object ensimefile {
     implicit val DefaultCharset: Charset = Charset.defaultCharset()
   }
 
-  private val ArchiveRegex = "(?:(?:jar:)?file:)?([^!]++)!(.++)".r
-  private val FileRegex = "(?:(?:jar:)?file:)?(.++)".r
-  def EnsimeFile(path: String): EnsimeFile = path match {
-    case ArchiveRegex(file, entry) => ArchiveFile(Paths.get(cleanBadWindows(file)), entry)
-    case FileRegex(file) => RawFile(Paths.get(cleanBadWindows(file)))
-  }
-  def EnsimeFile(path: File): EnsimeFile = RawFile(path.toPath)
-  def EnsimeFile(url: URL): EnsimeFile = EnsimeFile(URLDecoder.decode(url.toExternalForm(), "UTF-8"))
-
-  // URIs on Windows can look like /C:/path/to/file, which are malformed
-  private val BadWindowsRegex = "/+([^:]+:[^:]+)".r
-  private def cleanBadWindows(file: String): String = file match {
-    case BadWindowsRegex(clean) => clean
-    case other => other
-  }
-
   implicit class RichRawFile(val raw: RawFile) extends RichEnsimeFile {
-    // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247
-    override def isJava: Boolean = raw.file.toString.toLowerCase.endsWith(".java")
-    override def isJar: Boolean = raw.file.toString.toLowerCase.endsWith(".jar")
-    override def isScala: Boolean = raw.file.toString.toLowerCase.endsWith(".scala")
-    override def exists(): Boolean = raw.file.exists()
-    override def lastModified(): Long = raw.file.attrs.lastModifiedTime().toMillis
-    override def readStringDirect()(implicit cs: Charset): String = raw.file.readString()
-    override def readAllLines: List[String] = raw.file.readLines()
-    override def uri: URI = raw.file.toUri()
-    override def canon: RawFile = RawFile(raw.file.canon)
+    override def lastModified(): Long = raw.path.attrs.lastModifiedTime().toMillis
+    override def readStringDirect()(implicit cs: Charset): String = raw.path.readString()
+    override def uri: URI = raw.path.toUri()
+    override def canon: RawFile = RawFile(raw.path.canon)
   }
 
   // most methods require obtaining the Path of the entry, within the
   // context of the archive file, and ensuring that we close the
   // resource afterwards (which is slow for random access)
   implicit class RichArchiveFile(val archive: ArchiveFile) extends RichEnsimeFile {
-    override def isJava: Boolean = archive.entry.toLowerCase.endsWith(".java")
-    override def isJar: Boolean = archive.entry.toLowerCase.endsWith(".jar")
-    override def isScala: Boolean = archive.entry.toLowerCase.endsWith(".scala")
-    override def exists(): Boolean = archive.jar.exists() && withEntry(_.exists())
-    override def lastModified(): Long = archive.jar.attrs.lastModifiedTime().toMillis
+    override def lastModified(): Long = archive.path.attrs.lastModifiedTime().toMillis
     override def readStringDirect()(implicit cs: Charset): String = withEntry(_.readString())
     override def readAllLines: List[String] = withEntry(_.readLines())
     override def uri: URI = URI.create(s"jar:${archive.jar.toUri}!${archive.entry}") // path is null (opaque)
@@ -87,7 +56,7 @@ package object ensimefile {
     def readBytes(): Array[Byte] = withEntry(_.readBytes())
 
     private def fileSystem(): FileSystem = FileSystems.newFileSystem(
-      URI.create(s"jar:${archive.jar.toUri}"),
+      URI.create(s"jar:${archive.path.toUri}"),
       new HashMap[String, String]
     )
     private def withFs[T](action: FileSystem => T): T = {
@@ -99,7 +68,7 @@ package object ensimefile {
       action(fs.getPath(archive.entry))
     }
 
-    def fullPath: String = s"${archive.jar}!${archive.entry}"
+    def fullPath: String = s"${archive.path}!${archive.entry}"
 
     /*
     import java.nio.file.attribute._

@@ -2,43 +2,35 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import java.nio.file.Files
+
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
-import org.apache.commons.vfs2._
 
 import org.ensime.api._
-import org.ensime.config.richconfig._
 import org.ensime.util.Debouncer
-import org.ensime.vfs._
 
-import org.ensime.util.file._
-import org.ensime.util.fileobject._
 import org.ensime.util.list._
 import org.ensime.util.map._
 import scala.annotation.tailrec
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 // mutable: lookup of user's source files are atomically updated
-class SourceResolver(
-    config: EnsimeConfig
-)(
-    implicit
-    actorSystem: ActorSystem,
-    vfs: EnsimeVFS
-) extends FileChangeListener with SLF4JLogging {
+class SourceResolver(config: EnsimeConfig)(implicit actorSystem: ActorSystem)
+    extends FileChangeListener with SLF4JLogging {
 
-  def fileAdded(f: FileObject) = if (relevant(f)) debouncedUpdate.call()
-  def fileRemoved(f: FileObject) = debouncedUpdate.call()
-  def fileChanged(f: FileObject) = {}
+  def fileAdded(f: EnsimeFile) = if (relevant(f)) debouncedUpdate.call()
+  def fileRemoved(f: EnsimeFile) = debouncedUpdate.call()
+  def fileChanged(f: EnsimeFile) = {}
 
-  def relevant(f: FileObject): Boolean = f.getName.isFile && {
-    val file = f.asLocalFile
-    (file.isScala || file.isJava) && !file.getPath.contains(".ensime_cache")
+  def relevant(f: EnsimeFile): Boolean = Files.isRegularFile(f.path) && {
+    (f.isScala || f.isJava) && !f.path.toString.contains(".ensime_cache")
   }
 
-  def resolve(clazz: PackageName, source: RawSource): Option[FileObject] = {
+  def resolve(clazz: PackageName, source: RawSource): Option[EnsimeFile] = {
     @tailrec
-    def loop(clazzes: List[PackageName]): Option[FileObject] = {
+    def loop(clazzes: List[PackageName]): Option[EnsimeFile] = {
       clazzes match {
         case Nil => None
         case h :: t => resolveClazz(h, source) match {
@@ -60,11 +52,12 @@ class SourceResolver(
   }
 
   // we only support the case where RawSource has a Some(filename)
-  private def resolveClazz(clazz: PackageName, source: RawSource): Option[FileObject] =
+  private def resolveClazz(clazz: PackageName, source: RawSource): Option[EnsimeFile] =
     source.filename match {
       case None => None
       case Some(filename) => all.get(clazz).flatMap {
-        _.find(_.getName.getBaseName == filename)
+        // TODO: filename could be path?
+        _.find(_.path.getFileName.toString == filename)
       }
     }
 
@@ -73,24 +66,26 @@ class SourceResolver(
     all = recalculate
   }
 
-  private def scan(f: FileObject) = f.findFiles(SourceSelector) match {
-    case null => Nil
-    case res => res.toList
-  }
+  private def scan(f: EnsimeFile) = Files.find(
+    f.path,
+    Integer.MAX_VALUE,
+    (path, attrs) => {
+      val name = path.getFileName.toString()
+      name.endsWith(".java") || name.endsWith(".scala")
+    }
+  ).iterator.asScala.toList.map(p => EnsimeFile(p.toFile))
 
   private val depSources = {
-    val srcJars = config.referenceSourceJars.toSet ++ {
+    val srcJars = config.javaSources.toSet ++ config.projects.flatMap(_.librarySources) ++ {
       for {
         project <- config.projects
-        srcArchive <- project.librarySources.map(_.file.toFile)
+        srcArchive <- project.librarySources
       } yield srcArchive
     }
     for {
       srcJarFile <- srcJars.toList
-      // interestingly, this is able to handle zip files
-      srcJar = vfs.vjar(srcJarFile)
-      srcEntry <- scan(srcJar)
-      inferred = infer(srcJar, srcEntry)
+      srcEntry <- scan(srcJarFile)
+      inferred = infer(srcJarFile, srcEntry)
       // continue to hold a reference to source jars
       // so that we can access their contents elsewhere.
       // this does mean we have a file handler, sorry.
@@ -101,10 +96,9 @@ class SourceResolver(
   private def userSources = {
     for {
       project <- config.projects
-      root <- project.sources.map(_.file.toFile)
-      dir = vfs.vfile(root)
-      file <- scan(dir)
-    } yield (infer(dir, file), file)
+      root <- project.sources
+      file <- scan(root)
+    } yield (infer(root, file), file)
   }.toMultiMapSet
 
   private def recalculate = depSources merge userSources
@@ -118,11 +112,10 @@ class SourceResolver(
     }
   }
 
-  private def infer(base: FileObject, file: FileObject): PackageName = {
-    // getRelativeName feels the wrong way round, but this is correct
-    val relative = base.getName.getRelativeName(file.getName)
-    // vfs separator char is always /
-    PackageName((relative split "/").toList.init)
+  private def infer(base: EnsimeFile, file: EnsimeFile): PackageName = {
+    // relativize feels the wrong way round, but this is correct
+    val relative = base.path.relativize(file.path)
+    PackageName(relative.iterator.asScala.toList.init.map(_.toString))
   }
 
 }

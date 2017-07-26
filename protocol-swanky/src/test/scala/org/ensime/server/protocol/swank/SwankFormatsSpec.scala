@@ -41,7 +41,7 @@ class SwankFormatsSpec extends EnsimeSpec with EnsimeTestData {
     sexp.parseSexp.convertTo[RpcRequestEnvelope].req shouldBe to
   }
 
-  implicit def toFile(raw: RawFile): File = raw.file.toFile
+  implicit def toFile(raw: RawFile): File = raw.path.toFile
 
   "SWANK Formats" should "unmarshal startup messages" in {
     unmarshal(
