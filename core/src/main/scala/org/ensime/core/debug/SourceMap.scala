@@ -4,6 +4,7 @@ package org.ensime.core.debug
 
 import java.io.File
 import org.ensime.api._
+import org.ensime.util.ensimefile._
 import org.ensime.indexer.SearchService
 
 object SourceMap {

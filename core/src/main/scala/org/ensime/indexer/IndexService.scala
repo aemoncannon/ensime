@@ -17,6 +17,7 @@ import org.ensime.indexer.SearchService._
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.ensime.indexer.lucene._
 import org.ensime.api.EnsimeFile
+import org.ensime.util.ensimefile._
 import org.ensime.util.list._
 import shapeless.Typeable
 

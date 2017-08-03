@@ -18,6 +18,7 @@ import org.ensime.api._
 import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.config.richconfig._
 import org.ensime.indexer.graph._
+import org.ensime.util.ensimefile._
 import org.ensime.util.path._
 import org.ensime.util.map._
 

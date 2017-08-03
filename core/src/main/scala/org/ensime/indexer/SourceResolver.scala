@@ -9,9 +9,10 @@ import akka.event.slf4j.SLF4JLogging
 
 import org.ensime.api._
 import org.ensime.util.Debouncer
-
+import org.ensime.util.ensimefile._
 import org.ensime.util.list._
 import org.ensime.util.map._
+
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._

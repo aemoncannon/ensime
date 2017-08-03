@@ -3,9 +3,7 @@
 package org.ensime.api
 
 import java.io.File
-import java.nio.file.{ Files, FileSystem, FileSystems, Path, Paths }
-import java.net.{ URI, URL, URLDecoder }
-import java.util.HashMap
+import java.nio.file.Path
 
 import scala.annotation.StaticAnnotation
 
@@ -133,73 +131,6 @@ object OffsetRange extends ((Int, Int) => OffsetRange) {
 // (and can be revalidated at any time)
 sealed trait EnsimeFile {
   def path: Path
-  def uriString: String = path.toUri.toASCIIString
-  // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247\
-  def isScala: Boolean = {
-    val str = getPathStr
-    str.toLowerCase.endsWith(".scala")
-  }
-
-  def isJava: Boolean = {
-    val str = getPathStr
-    str.toLowerCase.endsWith(".java")
-  }
-
-  private def getPathStr = this match {
-    case RawFile(path) => path.toString
-    case ArchiveFile(_, entry) => entry
-  }
-
-  def isJar: Boolean = path.toString.toLowerCase.endsWith(".jar")
-  def isClass: Boolean = path.toString.toLowerCase.endsWith(".class")
-  def pathWithinArchive: Option[String] = {
-    if (uriString.startsWith("jar") || uriString.startsWith("zip"))
-      Some(path.toString)
-    else
-      None
-  }
-
-  def exists: Boolean = this match {
-    case RawFile(path) => Files.exists(path)
-    case ArchiveFile(path, entry) => Files.exists(path) && withEntry(p => Files.exists(p), entry)
-  }
-
-  private def fileSystem(): FileSystem = FileSystems.newFileSystem(
-    URI.create(s"jar:${path.toUri}"),
-    new HashMap[String, String]
-  )
-
-  private def withFs[T](action: FileSystem => T): T = {
-    val fs = fileSystem()
-    try action(fs)
-    finally fs.close()
-  }
-
-  private def withEntry[T](action: Path => T, entry: String): T = withFs { fs =>
-    action(fs.getPath(entry))
-  }
-}
-
-object EnsimeFile {
-  private val ArchiveRegex = "(?:(?:jar:)?file:)?([^!]++)!(.++)".r
-  private val FileRegex = "(?:(?:jar:)?file:)?(.++)".r
-
-  def apply(name: String): EnsimeFile = name match {
-    case ArchiveRegex(file, entry) => ArchiveFile(Paths.get(cleanBadWindows(file)), entry)
-    case FileRegex(file) => RawFile(Paths.get(cleanBadWindows(file)))
-  }
-
-  // URIs on Windows can look like /C:/path/to/file, which are malformed
-  private val BadWindowsRegex = "/+([^:]+:[^:]+)".r
-  private def cleanBadWindows(file: String): String = file match {
-    case BadWindowsRegex(clean) => clean
-    case other => other
-  }
-
-  //TODO: Used anywhere?
-  def apply(url: URL): EnsimeFile = EnsimeFile(URLDecoder.decode(url.toExternalForm(), "UTF-8"))
-
-  def apply(file: File): EnsimeFile = RawFile(file.toPath)
 }
 
 final case class RawFile(path: Path) extends EnsimeFile

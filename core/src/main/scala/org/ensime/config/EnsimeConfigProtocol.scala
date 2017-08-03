@@ -10,7 +10,7 @@ import shapeless._
 import org.ensime.sexp._
 import org.ensime.sexp.formats._
 import org.ensime.core.Canonised
-
+import org.ensime.util.ensimefile._
 import org.ensime.util.path._
 
 import org.ensime.api._

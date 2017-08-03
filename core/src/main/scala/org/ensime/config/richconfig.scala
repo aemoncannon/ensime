@@ -12,6 +12,7 @@ import com.typesafe.config._
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 import org.ensime.util.file._
+import org.ensime.util.ensimefile._
 import org.ensime.util.path._
 
 package object richconfig {

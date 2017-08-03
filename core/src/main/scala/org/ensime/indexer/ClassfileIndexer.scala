@@ -13,6 +13,7 @@ import akka.event.slf4j.SLF4JLogging
 import org.objectweb.asm._
 import org.objectweb.asm.Opcodes._
 import org.ensime.api.EnsimeFile
+import org.ensime.util.ensimefile._
 
 final class ClassfileIndexer(file: EnsimeFile) extends SLF4JLogging {
 

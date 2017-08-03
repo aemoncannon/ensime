@@ -5,6 +5,7 @@ package org.ensime.jerky
 import spray.json._
 import shapeless._
 import org.ensime.api._
+import org.ensime.util.ensimefile._
 import org.ensime.util.file._
 
 private object JerkyConversions extends DefaultJsonProtocol with FamilyFormats {

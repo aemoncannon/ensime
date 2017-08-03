@@ -25,6 +25,7 @@ import org.ensime.indexer.SearchService._
 import org.ensime.indexer.orientdb.api._
 import org.ensime.indexer.orientdb.schema.api._
 import org.ensime.indexer.orientdb.syntax._
+import org.ensime.util.ensimefile._
 import org.ensime.util.file._
 import org.ensime.util.stringymap.api.BigDataFormat
 import shapeless.cachedImplicit

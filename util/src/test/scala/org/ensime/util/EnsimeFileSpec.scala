@@ -76,7 +76,6 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
 
   it should "check for jar and entry existence with exists()" in {
     EnsimeFile("there-is-no.jar!/thing").exists shouldBe false
-    println(src)
     EnsimeFile(s"$src!/java/lang/String.java").exists shouldBe true
     EnsimeFile(s"$src!/java/lang/Ensime.scala").exists shouldBe false
   }
