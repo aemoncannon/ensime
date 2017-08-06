@@ -35,7 +35,7 @@ package object richconfig {
     ImportsConfig(
       c.getString("strategy"),
       c.getStringList("groups").asScala.toList,
-      c.getBoolean("scalaPackageStrategy"),
+      c.getStringList("wildcards").asScala.toSet,
       c.getInt("maxIndividualImports"),
       c.getStringList("collapseExclude").asScala.toSet
     )

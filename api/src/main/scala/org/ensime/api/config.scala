@@ -46,7 +46,7 @@ final case class LegacyConfig(
 final case class ImportsConfig(
   strategy: String,
   groups: List[String],
-  scalaPackageStrategy: Boolean,
+  wildcards: Set[String],
   maxIndividualImports: Int,
   collapseExclude: Set[String]
 )

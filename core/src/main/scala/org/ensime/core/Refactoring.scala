@@ -97,7 +97,7 @@ trait RefactoringImpl {
         serverConfig.imports.strategy
       ),
       groups = serverConfig.imports.groups,
-      scalaPackageStrategy = serverConfig.imports.scalaPackageStrategy,
+      wildcards = serverConfig.imports.wildcards,
       collapseToWildcardConfig = Some(
         OrganizeImports.CollapseToWildcardConfig(
           serverConfig.imports.maxIndividualImports,
