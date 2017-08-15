@@ -103,16 +103,20 @@ class Indexer(
         def toClassInfo(c: ClassDef) = ClassInfo(c.scalaName, c.fqn, c.declAs, LineSourcePositionHelper.fromFqnSymbol(c))
         h match {
           case TypeHierarchy(aClass, typeRefs) =>
-            typeRefs.map {
-              case TypeHierarchy(aCls, _) => toClassInfo(aCls)
-              case c: ClassDef => toClassInfo(c)
-            }(collection.breakOut)
-          case _ => Nil
+            typeRefs.foldLeft(toClassInfo(aClass) :: Nil)((listOfInfos, hierarchy) =>
+              toClassInfos(hierarchy) ::: listOfInfos)
+          case classDef: ClassDef => toClassInfo(classDef) :: Nil
         }
       }
 
-      val ancestors = index.getTypeHierarchy(fqn, Hierarchy.Supertypes, Some(1)).map(_.map(toClassInfos))
-      val inheritors = index.getTypeHierarchy(fqn, Hierarchy.Subtypes, Some(1)).map(_.map(toClassInfos))
+      val ancestors = index.getTypeHierarchy(fqn, Hierarchy.Supertypes, None).map(_.map {
+        case TypeHierarchy(_, typeRefs) => typeRefs.toList.flatMap(toClassInfos)
+        case _ => Nil
+      })
+      val inheritors = index.getTypeHierarchy(fqn, Hierarchy.Subtypes, None).map(_.map {
+        case TypeHierarchy(_, typeRefs) => typeRefs.toList.flatMap(toClassInfos)
+        case _ => Nil
+      })
       val symbolTreeInfo = for {
         anc <- ancestors
         inh <- inheritors
