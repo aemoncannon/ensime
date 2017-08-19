@@ -154,7 +154,9 @@ class BasicWorkflow extends EnsimeSpec
           expectMsgType[HierarchyInfo] should matchPattern {
             case HierarchyInfo(
               List(ClassInfo(None, "java.lang.Object", DeclaredAs.Class, _)),
-              List(ClassInfo(Some("org.example.Foo.Foo"), "org.example.Foo$Foo", DeclaredAs.Class, _))
+              List(
+                ClassInfo(Some("org.example.Foo.Buz"), "org.example.Foo$Buz", DeclaredAs.Class, _),
+                ClassInfo(Some("org.example.Foo.Foo"), "org.example.Foo$Foo", DeclaredAs.Class, _))
               ) =>
           }
 
@@ -221,9 +223,9 @@ class BasicWorkflow extends EnsimeSpec
                 Nil)) =>
           }
 
-          project ! SymbolAtPointReq(Left(fooFile), 600)
+          project ! SymbolAtPointReq(Left(fooFile), 645)
           expectMsgPF() {
-            case SymbolInfo("poly", "poly", Some(OffsetSourcePosition(RawFile(`fooPath`), 548)),
+            case SymbolInfo("poly", "poly", Some(OffsetSourcePosition(RawFile(`fooPath`), 593)),
               ArrowTypeInfo("(A, B) => (A, B)", "(org.example.WithPolyMethod.A, org.example.WithPolyMethod.B) => (org.example.WithPolyMethod.A, org.example.WithPolyMethod.B)",
                 api.BasicTypeInfo(
                   "(A, B)", DeclaredAs.Class, "(org.example.WithPolyMethod.A, org.example.WithPolyMethod.B)",
@@ -299,7 +301,7 @@ class BasicWorkflow extends EnsimeSpec
                                    |-  }
                                    |-}
                                    |""".stripMargin
-              val fooChanges = s"""|@@ -30,3 +30,3 @@
+              val fooChanges = s"""|@@ -34,3 +34,3 @@
                                    |   List(1, 2, 3).head + 2
                                    |-  val x = Bar.Bla
                                    |+  val x = Renamed.Bla

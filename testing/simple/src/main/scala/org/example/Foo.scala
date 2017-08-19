@@ -19,6 +19,10 @@ object Foo extends App {
   val fn: String => Int = str => str.size
 
   fn("foobar")
+
+  class Buz extends Foo {
+    val y = 2
+  }
 }
 
 // for SearchServiceSpec
