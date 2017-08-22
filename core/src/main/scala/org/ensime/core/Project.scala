@@ -14,7 +14,7 @@ import org.ensime.config.richconfig._
 import org.ensime.core.debug.DebugActor
 import org.ensime.indexer._
 import org.ensime.util.FileUtils._
-import org.ensime.util.{ Debouncer, FileUtils, Timing }
+import org.ensime.util.{ Debouncer, Timing }
 import org.ensime.util.ensimefile._
 
 import java.nio.file.Path

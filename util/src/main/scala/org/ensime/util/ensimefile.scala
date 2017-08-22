@@ -29,6 +29,7 @@ package ensimefile {
 
     /** Direct access contents: not efficient for streaming. */
     def readStringDirect()(implicit cs: Charset): String
+    def readAllLines: List[String]
 
     def uri: URI
     def uriString: String = uri.toASCIIString
@@ -67,6 +68,7 @@ package object ensimefile {
     override def exists: Boolean = raw.path.exists
     override def lastModified(): Long = raw.path.attrs.lastModifiedTime().toMillis
     override def readStringDirect()(implicit cs: Charset): String = raw.path.readString()
+    override def readAllLines: List[String] = raw.path.readLines()
     override def uri: URI = raw.path.toUri()
     override def canon: RawFile = RawFile(raw.path.canon)
     override def pathWithinArchive = None
@@ -83,6 +85,7 @@ package object ensimefile {
     override def exists: Boolean = archive.path.exists && withEntry(_.exists())
     override def lastModified(): Long = archive.path.attrs.lastModifiedTime().toMillis
     override def readStringDirect()(implicit cs: Charset): String = withEntry(_.readString())
+    override def readAllLines: List[String] = withEntry(_.readLines())
     override def uri: URI = URI.create(s"jar:${archive.path.toUri}!${archive.entry}") // path is null (opaque)
     override def canon: ArchiveFile = ArchiveFile(archive.path.canon, archive.entry)
     override val pathWithinArchive = if (uriString.startsWith("jar") || uriString.startsWith("zip")) {

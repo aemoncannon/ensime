@@ -12,6 +12,7 @@ import org.ensime.api._
 import org.ensime.indexer.SearchService
 import org.ensime.indexer.graph._
 import org.ensime.model._
+import org.ensime.util.ensimefile._
 
 // only used for queries by other components
 final case class TypeCompletionsReq(prefix: String, maxResults: Int)
