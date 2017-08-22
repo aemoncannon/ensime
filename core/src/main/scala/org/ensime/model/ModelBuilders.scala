@@ -122,6 +122,18 @@ trait ModelBuilders {
   }
 
   object TypeInfo {
+    /**
+     * Check if we should dealias this type for display purposes. Types in the scala package
+     * and types that have a package called `Predef` in their prefix get dealiased.
+     */
+    def shouldDealiasType(tpe: Type): Boolean = {
+      val prefixFullName = tpe match {
+        case t: AliasTypeRef => t.pre.typeSymbol.fullName
+        case _ => tpe.prefix.typeSymbol.fullName
+      }
+
+      prefixFullName == "scala" || prefixFullName.contains("Predef")
+    }
 
     // use needPos=PosNeededYes sparingly as it potentially causes lots of I/O
     def apply(typ: Type, needPos: PosNeeded = PosNeededNo, members: Iterable[EntityInfo] = List.empty): TypeInfo = {
@@ -132,14 +144,18 @@ trait ModelBuilders {
       }
 
       def basicTypeInfo(tpe: Type): BasicTypeInfo = {
-        val typeSym = tpe.typeSymbol
+        val shouldDealias = shouldDealiasType(tpe)
+
+        val typeSym = if (shouldDealias) tpe.typeSymbol else tpe.typeSymbolDirect
         val symbolToLocate = if (typeSym.isModuleClass) typeSym.sourceModule else typeSym
         val symPos = locateSymbolPos(symbolToLocate, needPos)
+        val typeArgs = if (shouldDealias) tpe.dealias.typeArgs else tpe.typeArgs
+
         api.BasicTypeInfo(
-          shortName(tpe).underlying,
+          shortName(tpe, shouldDealias = shouldDealias).underlying,
           declaredAs(typeSym),
-          fullName(tpe).underlying,
-          tpe.typeArgs.map(TypeInfo(_)),
+          fullName(tpe, shouldDealias = shouldDealias).underlying,
+          typeArgs.map(TypeInfo(_)),
           members,
           symPos,
           Nil

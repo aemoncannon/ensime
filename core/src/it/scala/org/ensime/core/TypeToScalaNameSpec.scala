@@ -251,4 +251,69 @@ class TypeToScalaNameSpec extends EnsimeSpec
         }
       }
   }
+
+  it should "not dealias user-controlled type aliases" in withPresCompiler { (config, cc) =>
+    runForPositionInCompiledSource(
+      config, cc,
+      "package com.example",
+      "object TypeAliases {",
+      "  trait State[S, A]",
+      "  type IntState[A] = State[Int, A]",
+      "  val intInt@intintstate@State: IntState[Int] = ???",
+      "  type IntList = List[Int]",
+      "  val int@intlist@List: IntList = ???",
+      "  type IntMap[A] = Map[Int, A]",
+      "  val int@intmap@map: IntMap[Int] = ???",
+      "}"
+    ) { (p, label, cc) =>
+        withClue(label) {
+          val typeResult = cc.askTypeInfoAt(p).getOrElse(fail)
+          typeResult shouldEqual {
+            label match {
+              case "intintstate" =>
+                BasicTypeInfo("IntState[Int]", DeclaredAs.Nil, "com.example.TypeAliases.IntState[scala.Int]")
+              case "intlist" =>
+                BasicTypeInfo("IntList", DeclaredAs.Nil, "com.example.TypeAliases.IntList")
+              case "intmap" =>
+                BasicTypeInfo("IntMap[Int]", DeclaredAs.Nil, "com.example.TypeAliases.IntMap[scala.Int]")
+            }
+          }
+        }
+      }
+  }
+
+  it should "dealias types in scala.* and types that have Predef in their prefix" in withPresCompiler { (config, cc) =>
+    runForPositionInCompiledSource(
+      config, cc,
+      "package com.example",
+      "object ReferencesToTypeAliasesInScalaPredef {",
+      "  val str@str@ing: String = ???",
+      "  val m@map@ap: Map[String, String] = ???",
+      "}",
+      "object Predef {",
+      // type aliases in user-supplied Predef
+      "  type IntMap[A] = Map[Int, A]",
+      "  val in@intmap@tmap: IntMap[String] = ???",
+      "  trait State[S, A]",
+      "  type IntState[A] = State[Int, A]",
+      "  val in@intintstate@tintstate: IntState[Int] = ???",
+      "}"
+    ) { (p, label, cc) =>
+        withClue(label) {
+          val typeResult = cc.askTypeInfoAt(p).getOrElse(fail)
+          typeResult shouldEqual {
+            label match {
+              case "str" =>
+                BasicTypeInfo("String", DeclaredAs.Class, "java.lang.String")
+              case "map" =>
+                BasicTypeInfo("Map[String, String]", DeclaredAs.Trait, "scala.collection.immutable.Map[java.lang.String, java.lang.String]")
+              case "intmap" =>
+                BasicTypeInfo("Map[Int, String]", DeclaredAs.Trait, "scala.collection.immutable.Map[scala.Int, java.lang.String]")
+              case "intintstate" =>
+                BasicTypeInfo("State[Int, Int]", DeclaredAs.Trait, "com.example.Predef.State[scala.Int, scala.Int]")
+            }
+          }
+        }
+      }
+  }
 }

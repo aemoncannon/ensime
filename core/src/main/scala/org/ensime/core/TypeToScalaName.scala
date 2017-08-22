@@ -16,7 +16,7 @@ final class ScalaName(val underlying: String) extends AnyVal {
 trait TypeToScalaName { self: Global with Helpers =>
   import definitions._
 
-  def scalaName(tpe: Type, full: Boolean): ScalaName = tpe match {
+  def scalaName(tpe: Type, full: Boolean, shouldDealias: Boolean = true): ScalaName = tpe match {
     case _: MethodType | _: PolyType =>
       val tparams = tpe.paramss.map { sect =>
         sect.map { p => scalaName(p.tpe, full).underlying }.mkString("(", ", ", ")")
@@ -54,18 +54,26 @@ trait TypeToScalaName { self: Global with Helpers =>
           scalaName(c.underlying, full).underlying + "(" + c.value.escapedStringValue + ")"
         case r: RefinedType =>
           r.parents.map(scalaName(_, full).underlying).mkString(" with ")
+
+        case a: AliasTypeRef if !shouldDealias =>
+          if (full) tpe.typeSymbolDirect.fullNameString
+          else tpe.typeSymbolDirect.nameString
+
         case _ =>
           if (full) tpe.typeSymbol.fullNameString
           else tpe.typeSymbol.nameString
       }
+
       new ScalaName(name) + {
-        if (tpe.typeArgs.isEmpty) ""
-        else tpe.typeArgs.map(scalaName(_, full).underlying).mkString("[", ", ", "]")
+        val typeArgs = if (shouldDealias) tpe.dealias.typeArgs else tpe.typeArgs
+
+        if (typeArgs.isEmpty) ""
+        else typeArgs.map(scalaName(_, full).underlying).mkString("[", ", ", "]")
       }
   }
 
-  def fullName(tpe: Type): ScalaName = scalaName(tpe, full = true)
-  def shortName(tpe: Type): ScalaName = scalaName(tpe, full = false)
+  def fullName(tpe: Type, shouldDealias: Boolean = true): ScalaName = scalaName(tpe, full = true, shouldDealias = shouldDealias)
+  def shortName(tpe: Type, shouldDealias: Boolean = true): ScalaName = scalaName(tpe, full = false, shouldDealias = shouldDealias)
 
   def shortName(sym: Symbol): ScalaName = new ScalaName(sym.nameString)
 
