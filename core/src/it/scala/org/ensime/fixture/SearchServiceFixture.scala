@@ -11,11 +11,12 @@ import org.ensime.api._
 import org.ensime.AkkaBackCompat
 import org.ensime.indexer.SearchService
 import org.ensime.vfs._
-import EnsimeConfigFixture.serverConfig
+
 
 trait IsolatedSearchServiceFixture extends IsolatedSourceResolverFixture with AkkaBackCompat {
 
   def withSearchService(testCode: (EnsimeConfig, SearchService) => Any)(implicit actorSystem: ActorSystem, vfs: EnsimeVFS): Any = withSourceResolver { (config, resolver) =>
+    import EnsimeConfigFixture.serverConfig
     val searchService = new SearchService(config, resolver)
     try {
       testCode(config, searchService)
@@ -37,6 +38,7 @@ trait SharedSearchServiceFixture
   override def beforeAll(): Unit = {
     super.beforeAll()
     implicit val system = _testkit.system
+    import EnsimeConfigFixture.serverConfig
     _search = new SearchService(_config, _resolver)
   }
 
