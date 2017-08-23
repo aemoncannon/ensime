@@ -205,4 +205,50 @@ class TypeToScalaNameSpec extends EnsimeSpec
       }
   }
 
+  it should "return the full type when asking for the type of the qualifier in a method selection" in withPresCompiler { (config, cc) =>
+    runForPositionInCompiledSource(
+      config, cc,
+      "package com.example",
+      "object Test {",
+      "  val set: Set[(String, String)] = ???",
+      "  s@set@et.toMap",
+      "  def t(set2: Set[(String, String)]) = { se@set2@t2.toMap }",
+      "}"
+    ) { (p, label, cc) =>
+        withClue(label) {
+          val typeResult = cc.askTypeInfoAt(p).getOrElse(fail)
+          typeResult shouldEqual {
+            label match {
+              case "set" =>
+                BasicTypeInfo("Set[(String, String)]", DeclaredAs.Trait, "scala.collection.immutable.Set[(java.lang.String, java.lang.String)]")
+              case "set2" =>
+                BasicTypeInfo("Set[(String, String)]", DeclaredAs.Trait, "scala.collection.immutable.Set[(java.lang.String, java.lang.String)]")
+            }
+          }
+        }
+      }
+  }
+
+  it should "format constant types properly" in withPresCompiler { (config, cc) =>
+    runForPositionInCompiledSource(
+      config, cc,
+      "package com.example",
+      "object Test {",
+      "  1@twelve@2",
+      "  \"he@string@llo\"",
+      "}"
+    ) { (p, label, cc) =>
+        withClue(label) {
+          val typeResult = cc.askTypeInfoAt(p).getOrElse(fail)
+          typeResult shouldEqual {
+            label match {
+              case "twelve" =>
+                BasicTypeInfo("Int(12)", DeclaredAs.Class, "scala.Int(12)")
+              case "string" =>
+                BasicTypeInfo("String(\"hello\")", DeclaredAs.Class, "java.lang.String(\"hello\")")
+            }
+          }
+        }
+      }
+  }
 }

@@ -127,8 +127,10 @@ trait ModelBuilders {
     def apply(typ: Type, needPos: PosNeeded = PosNeededNo, members: Iterable[EntityInfo] = List.empty): TypeInfo = {
       val tpe = typ match {
         case et: ExistentialType => et.underlying
+        case s: SingleType => s.widen
         case t => t
       }
+
       def basicTypeInfo(tpe: Type): BasicTypeInfo = {
         val typeSym = tpe.typeSymbol
         val symbolToLocate = if (typeSym.isModuleClass) typeSym.sourceModule else typeSym
