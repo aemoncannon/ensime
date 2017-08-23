@@ -28,7 +28,8 @@ package object richconfig {
       c.getString("ensime.protocol"),
       c.getBoolean("ensime.exitAfterIndex"),
       c.getBoolean("ensime.disableClassMonitoring"),
-      LegacyConfig(c.getBoolean("ensime.legacy.jarurls"))
+      LegacyConfig(c.getBoolean("ensime.legacy.jarurls")),
+      c.getInt("ensime.index.batch.size")
     )
   }
   private def parseServerImportsConfig(c: Config): ImportsConfig = {

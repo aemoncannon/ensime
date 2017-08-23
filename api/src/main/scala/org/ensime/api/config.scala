@@ -38,7 +38,8 @@ final case class EnsimeServerConfig(
   protocol: String,
   exitAfterIndex: Boolean,
   disableClassMonitoring: Boolean,
-  legacy: LegacyConfig
+  legacy: LegacyConfig,
+  indexBatchSize: Int
 )
 final case class LegacyConfig(
   jarurls: Boolean

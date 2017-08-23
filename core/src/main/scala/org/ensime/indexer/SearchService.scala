@@ -36,6 +36,7 @@ class SearchService(
 )(
     implicit
     actorSystem: ActorSystem,
+    serverConfig: EnsimeServerConfig,
     val vfs: EnsimeVFS
 ) extends FileChangeListener with SLF4JLogging {
   import SearchService._
@@ -186,7 +187,7 @@ class SearchService(
           (outerClassFile, checksLookup.get(outerClassFile.uriString))
       }(collection.breakOut)
 
-      (jarsWithChecks ++ basesWithChecks).grouped(10).foldLeft(Future.successful(0)) {
+      (jarsWithChecks ++ basesWithChecks).grouped(serverConfig.indexBatchSize).foldLeft(Future.successful(0)) {
         (indexedCount, batch) =>
           for {
             c <- indexedCount
