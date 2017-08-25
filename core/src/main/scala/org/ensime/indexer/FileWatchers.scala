@@ -6,7 +6,6 @@ import java.util.UUID
 
 import akka.actor.Actor
 import akka.event.slf4j.SLF4JLogging
-import scala.util.Properties._
 
 import org.ensime.api._
 import org.ensime.config.richconfig._
@@ -14,11 +13,11 @@ import org.ensime.util.file._
 import org.ensime.vfs._
 
 trait FileChangeListener {
-  def fileAdded(f: EnsimeFile): Unit
-  def fileRemoved(f: EnsimeFile): Unit
-  def fileChanged(f: EnsimeFile): Unit
-  def baseReCreated(@deprecated("local", "") f: EnsimeFile): Unit = {}
-  def baseRemoved(@deprecated("local", "") f: EnsimeFile): Unit = {}
+  def fileAdded(f: RawFile): Unit
+  def fileRemoved(f: RawFile): Unit
+  def fileChanged(f: RawFile): Unit
+  def baseReCreated(@deprecated("local", "") f: RawFile): Unit = {}
+  def baseRemoved(@deprecated("local", "") f: RawFile): Unit = {}
   def baseRegistered(): Unit = {}
 }
 

@@ -6,7 +6,6 @@ import akka.actor._
 import akka.testkit._
 import org.ensime.api._
 import org.ensime.core._
-import org.ensime.vfs._
 import org.ensime.indexer.SearchService
 
 import EnsimeConfigFixture.serverConfig
@@ -16,7 +15,7 @@ trait AnalyzerFixture {
 }
 
 object AnalyzerFixture {
-  private[fixture] def create(search: SearchService, ids: List[EnsimeProjectId])(implicit system: ActorSystem, config: EnsimeConfig, vfs: EnsimeVFS): TestActorRef[Analyzer] = {
+  private[fixture] def create(search: SearchService, ids: List[EnsimeProjectId])(implicit system: ActorSystem, config: EnsimeConfig): TestActorRef[Analyzer] = {
     val indexer = TestProbe()
     val projectActor = TestProbe()
     TestActorRef(Analyzer(projectActor.ref, indexer.ref, search, ids))

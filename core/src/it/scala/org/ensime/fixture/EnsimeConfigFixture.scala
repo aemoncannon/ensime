@@ -33,21 +33,22 @@ trait EnsimeConfigFixture {
   def withEnsimeConfig(testCode: EnsimeConfig => Any): Any
 
   // convenience method
+  //TODO: Return Path rather than File?
   def main(lang: String)(implicit config: EnsimeConfig): File =
     config.projects.head.sources.filter { dir =>
       val sep = JFile.separator
-      dir.file.endsWith(s"main$sep$lang")
-    }.head.file.toFile
+      dir.path.endsWith(s"main$sep$lang")
+    }.head.path.toFile
   def test(lang: String)(implicit config: EnsimeConfig): File =
     config.projects.filter(_.id.config == "test").head.sources.filter { dir =>
       val sep = JFile.separator
-      dir.file.endsWith(s"test$sep$lang")
-    }.head.file.toFile
+      dir.path.endsWith(s"test$sep$lang")
+    }.head.path.toFile
   def scalaMain(implicit config: EnsimeConfig): File = main("scala")
   def javaMain(implicit config: EnsimeConfig): File = main("java")
   def scalaTest(implicit config: EnsimeConfig): File = test("scala")
   def mainTarget(implicit config: EnsimeConfig): File =
-    config.projects.head.targets.head.file.toFile
+    config.projects.head.targets.head.path.toFile
 }
 
 object EnsimeConfigFixture {
@@ -126,8 +127,8 @@ object EnsimeConfigFixture {
   ): EnsimeConfig = {
 
     def rename(from: RawFile): RawFile = {
-      val rootDirAbsolutePath = source.rootDir.file.toAbsolutePath.toString
-      val fromAbsolutePath = from.file.toAbsolutePath.toString
+      val rootDirAbsolutePath = source.rootDir.path.toAbsolutePath.toString
+      val fromAbsolutePath = from.path.toAbsolutePath.toString
       val toPath = fromAbsolutePath.replace(
         rootDirAbsolutePath,
         target.getAbsolutePath
@@ -139,15 +140,15 @@ object EnsimeConfigFixture {
     def renameAndCopy(from: RawFile): RawFile = {
       val to = rename(from)
 
-      if (from.file.isDirectory) {
-        to.file.mkdirs()
-        from.file.copyDirTo(to.file)
+      if (from.path.isDirectory) {
+        to.path.mkdirs()
+        from.path.copyDirTo(to.path)
       } else {
-        val parent = to.file.getParent
+        val parent = to.path.getParent
         if (!parent.exists())
           parent.mkdirs()
 
-        from.file.copyFileTo(to.file)
+        from.path.copyFileTo(to.path)
       }
       to
     }
@@ -175,13 +176,13 @@ object EnsimeConfigFixture {
       project <- config.projects
       file <- project.scalaSourceFiles
     } {
-      file.file.writeLines(file.file.readLines())
+      file.path.writeLines(file.path.readLines())
     }
 
     if (preWarm && config.classpath.nonEmpty)
       EnsimeCacheProject.foreach { cacheProject =>
         log.info(s"copying ${cacheProject.cacheDir}")
-        cacheProject.cacheDir.file.copyDirTo(config.cacheDir.file)
+        cacheProject.cacheDir.path.copyDirTo(config.cacheDir.path)
       }
 
     config

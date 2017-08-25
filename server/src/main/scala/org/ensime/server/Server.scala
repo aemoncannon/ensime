@@ -47,17 +47,17 @@ class ServerActor(
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
     val project = context.actorOf(Project(broadcaster), "project")
 
-    val preferredTcpPort = PortUtil.port(config.cacheDir.file, "port")
+    val preferredTcpPort = PortUtil.port(config.cacheDir.path, "port")
     context.actorOf(Props(
       new TCPServer(
-        config.cacheDir.file.toFile, protocol, project,
+        config.cacheDir.path, protocol, project,
         broadcaster, serverConfig.shutDownOnDisconnect, preferredTcpPort
       )
     ), "tcp-server")
 
     // async start the HTTP Server
     val selfRef = self
-    val preferredHttpPort = PortUtil.port(config.cacheDir.file, "http")
+    val preferredHttpPort = PortUtil.port(config.cacheDir.path, "http")
 
     val hookHandlers: WebServer.HookHandlers = {
       outHandler =>
@@ -82,7 +82,7 @@ class ServerActor(
         log.info(s"ENSIME HTTP on ${ch.localAddress()}")
         try {
           val port = ch.localAddress().asInstanceOf[InetSocketAddress].getPort()
-          PortUtil.writePort(config.cacheDir.file, port, "http")
+          PortUtil.writePort(config.cacheDir.path, port, "http")
         } catch {
           case ex: Throwable =>
             log.error(ex, s"Error initializing http endpoint ${ex.getMessage}")
@@ -132,7 +132,7 @@ object Server extends AkkaBackCompat {
   def loadConfig(): Config = {
     val fallback = ConfigFactory.load()
     val user = List(
-      parseServerConfig(fallback).config.file.getParent,
+      parseServerConfig(fallback).config.path.getParent,
       Paths.get(sys.env.get("XDG_CONFIG_HOME").getOrElse(sys.props("user.home")))
     ).map(_ / ".ensime-server.conf")
       .filter(_.exists())
@@ -145,7 +145,7 @@ object Server extends AkkaBackCompat {
   def main(args: Array[String]): Unit = {
     val config = loadConfig()
     implicit val serverConfig: EnsimeServerConfig = parseServerConfig(config)
-    implicit val ensimeConfig: EnsimeConfig = EnsimeConfigProtocol.parse(serverConfig.config.file.readString())
+    implicit val ensimeConfig: EnsimeConfig = EnsimeConfigProtocol.parse(serverConfig.config.path.readString())
 
     Canon.config = ensimeConfig
     Canon.serverConfig = serverConfig

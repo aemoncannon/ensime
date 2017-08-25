@@ -101,13 +101,19 @@ final case class Method(
 
 final case class UsageLocation(file: Option[String], line: Option[Int])
 
-final case class FileCheck(file: EnsimeFile) {
-  val filename = file.uriString
-  val timestamp =
-    if (file.exists) new Timestamp(Files.getLastModifiedTime(file.path).toMillis)
-    else new Timestamp(-1L)
-  val lastModified: Long = timestamp.getTime
+final case class FileCheck(filename: String, timestamp: Timestamp) {
+  def file: EnsimeFile = EnsimeFile(filename)
+  def lastModified: Long = timestamp.getTime
   def changed: Boolean = Files.getLastModifiedTime(file.path).toMillis != lastModified
+}
+
+object FileCheck extends ((String, Timestamp) => FileCheck) {
+  def apply(file: EnsimeFile): FileCheck = {
+    val name = file.uriString
+    val ts = if (file.exists) new Timestamp(Files.getLastModifiedTime(file.path).toMillis)
+    else new Timestamp(-1L)
+    FileCheck(name, ts)
+  }
 }
 
 // core/it:test-only *Search* -- -z prestine

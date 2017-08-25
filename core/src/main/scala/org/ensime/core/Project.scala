@@ -17,8 +17,6 @@ import org.ensime.util.FileUtils._
 import org.ensime.util.{ Debouncer, Timing }
 import org.ensime.util.ensimefile._
 
-import java.nio.file.Path
-
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
 /**
@@ -58,22 +56,22 @@ class Project(
         maxDelay = (20 * Timing.dilation).seconds
       ))(collection.breakOut)
 
-    def fileChanged(f: Path): Unit = {
+    override def fileChanged(f: RawFile): Unit = {
       val projectId = config.findProject(f)
       projectId foreach { projectId =>
         (projectId :: dependentProjects.getOrElse(projectId, Nil)).foreach(askReTypeCheck.get(_).foreach(_.call()))
       }
     }
 
-    def fileAdded(f: Path): Unit = {
+    override def fileAdded(f: RawFile): Unit = {
       fileChanged(f)
     }
 
-    def fileRemoved(f: Path): Unit = {
+    override def fileRemoved(f: RawFile): Unit = {
       fileChanged(f)
     }
 
-    override def baseReCreated(f: Path): Unit = askReTypeCheck.values.foreach(_.call())
+    override def baseReCreated(f: RawFile): Unit = askReTypeCheck.values.foreach(_.call())
   }
   context.actorOf(Props(new ClassfileWatcher(searchService :: reTypecheck :: Nil)), "classFileWatcher")
 

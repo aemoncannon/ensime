@@ -67,8 +67,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
 
   it should "link symbols to their source positions" in {
     withJavaCompiler { (_, config, cc, store, _) =>
-      val test1 = SourceFileInfo(RawFile(config.rootDir.file / "testing/simple/src/main/java/org/example/Test1.java"))
-      val test2 = SourceFileInfo(RawFile(config.rootDir.file / "testing/simple/src/main/java/org/example/Test2.java"))
+      val test1 = SourceFileInfo(RawFile(config.rootDir.path / "testing/simple/src/main/java/org/example/Test1.java"))
+      val test2 = SourceFileInfo(RawFile(config.rootDir.path / "testing/simple/src/main/java/org/example/Test2.java"))
 
       cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Test2"), test2) should matchPattern { case Some(OffsetSourcePosition(f, 22)) => }
       cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Foo"), test2) should matchPattern { case None => }

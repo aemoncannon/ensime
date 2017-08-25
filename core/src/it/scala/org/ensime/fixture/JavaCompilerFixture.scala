@@ -6,7 +6,6 @@ import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import org.ensime.api._
 import org.ensime.core.javac.JavaCompiler
-import org.ensime.vfs._
 import org.ensime.indexer._
 import org.ensime.util._
 import org.ensime.util.path._
@@ -26,7 +25,7 @@ trait JavaCompilerFixture {
       points :+= ((m.start - offset, m.group(1)))
       offset += ((m.end - m.start))
     }
-    val f = RawFile(config.rootDir.file / "testing/simple/src/main/java/org/example/Test1.java")
+    val f = RawFile(config.rootDir.path / "testing/simple/src/main/java/org/example/Test1.java")
     val file = SourceFileInfo(f, Some(contents.replaceAll(re, "")), None)
     cc.askTypecheckFiles(List(file))
     assert(points.nonEmpty)
@@ -43,12 +42,11 @@ object JavaCompilerFixture {
     search: SearchService
   )(
     implicit
-    system: ActorSystem,
-    vfs: EnsimeVFS
+    system: ActorSystem
   ): JavaCompiler = {
     val indexer = TestProbe()
     val parent = TestProbe()
-    new JavaCompiler(config, reportHandler, indexer.ref, search, vfs)
+    new JavaCompiler(config, reportHandler, indexer.ref, search)
   }
 }
 

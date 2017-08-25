@@ -3,15 +3,20 @@
 package org.ensime.core
 
 import org.ensime.api.{ DeclaredAs, EnsimeConfig }
+import org.ensime.config.richconfig._
 import org.ensime.fixture._
 import org.ensime.indexer._
 import org.ensime.util.EnsimeSpec
-import org.ensime.vfs._
+
+import java.nio.file.FileSystems
 
 class ScalapSymbolToFqnSpec extends EnsimeSpec
     with IsolatedRichPresentationCompilerFixture
     with RichPresentationCompilerTestUtils
     with ReallyRichPresentationCompilerFixture {
+
+  val scalaPath = original.scalaLibrary.map(_.toPath).getOrElse(throw new Exception("no scalal lib found!"))
+  val fs = FileSystems.newFileSystem(scalaPath, null)
 
   override def original: EnsimeConfig = EnsimeConfigFixture.FqnsTestProject
 
@@ -27,9 +32,7 @@ class ScalapSymbolToFqnSpec extends EnsimeSpec
   }
 
   "ScalapSymbolToFqn" should "find and resolve class names defined in Predef" in withPresCompiler { (_, cc) =>
-    val vfs = cc.vfs
-
-    val predef = vfs.vres("scala/Predef.class")
+    val predef = fs.getPath("scala/Predef.class")
     val definedClassNames = new ClassfileDepickler(predef).getClasses
     definedClassNames.foreach {
       case (_, scalaClass) =>
@@ -38,9 +41,7 @@ class ScalapSymbolToFqnSpec extends EnsimeSpec
   }
 
   it should "find and resolve field names in Predef" in withPresCompiler { (_, cc) =>
-    val vfs = cc.vfs
-
-    val predef = vfs.vres("scala/Predef.class")
+    val predef = fs.getPath("scala/Predef.class")
     val fieldNames = new ClassfileDepickler(predef).getClasses.values.flatMap(_.fields.values)
     fieldNames.foreach { field =>
       verify(field.javaName, field.scalaName, DeclaredAs.Field, cc)

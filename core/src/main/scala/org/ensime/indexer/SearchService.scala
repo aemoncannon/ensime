@@ -162,7 +162,7 @@ class SearchService(
       val (jarFiles, dirs) = config.projects.flatMap {
         case m =>
           m.targets.filter(_.exists).toList :::
-          m.libraryJars
+            m.libraryJars
       }.partition(_.isJar)
       val grouped = dirs.map(d => scanGrouped(d)).fold(Map.empty[EnsimeFile, Set[EnsimeFile]])(_ merge _)
       val jars: Set[EnsimeFile] =
@@ -170,7 +170,7 @@ class SearchService(
       (jars, grouped)
     }
 
-// TODO: private?
+    // TODO: private?
     def indexBase(
       base: EnsimeFile,
       fileCheck: Option[FileCheck],
@@ -190,7 +190,7 @@ class SearchService(
       }
     }
 
-// TODO: private?
+    // TODO: private?
     // index all the given bases and return number of rows written
     def indexBases(files: (Set[EnsimeFile], Map[EnsimeFile, Set[EnsimeFile]]), checks: Seq[FileCheck]): Future[Int] = {
       val (jars, classFiles) = files
@@ -254,7 +254,7 @@ class SearchService(
             val files = grouped(classfile)
             //try
             extractSymbols(classfile, files, classfile)
-            //TODO: Add java.nio closing logic
+          //TODO: Add java.nio closing logic
           //finally { files.foreach(_.close()); classfile.close() }
           case jar: ArchiveFile =>
             log.debug(s"indexing ${jar.path}")
@@ -406,9 +406,9 @@ class SearchService(
     } yield removals
   }
 
-  def fileChanged(f: EnsimeFile): Unit = backlogActor ! IndexFile(f)
-  def fileRemoved(f: EnsimeFile): Unit = fileChanged(f)
-  def fileAdded(f: EnsimeFile): Unit = fileChanged(f)
+  def fileChanged(f: RawFile): Unit = backlogActor ! IndexFile(f)
+  def fileRemoved(f: RawFile): Unit = fileChanged(f)
+  def fileAdded(f: RawFile): Unit = fileChanged(f)
 
   def shutdown(): Future[Unit] = Future.sequence {
     List(db.shutdown(), index.shutdown())

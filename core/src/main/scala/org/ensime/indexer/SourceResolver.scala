@@ -21,9 +21,9 @@ import scala.concurrent.duration._
 class SourceResolver(config: EnsimeConfig)(implicit actorSystem: ActorSystem)
     extends FileChangeListener with SLF4JLogging {
 
-  def fileAdded(f: EnsimeFile) = if (relevant(f)) debouncedUpdate.call()
-  def fileRemoved(f: EnsimeFile) = debouncedUpdate.call()
-  def fileChanged(f: EnsimeFile) = {}
+  def fileAdded(f: RawFile) = if (relevant(f)) debouncedUpdate.call()
+  def fileRemoved(f: RawFile) = debouncedUpdate.call()
+  def fileChanged(f: RawFile) = {}
 
   def relevant(f: EnsimeFile): Boolean = Files.isRegularFile(f.path) && {
     (f.isScala || f.isJava) && !f.path.toString.contains(".ensime_cache")

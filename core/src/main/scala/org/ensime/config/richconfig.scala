@@ -64,6 +64,7 @@ package object richconfig {
         case project if (project.sources ++ project.targets).exists(f => path.startsWith(f.path)) => project.id
       }
     }
+    //TODO: Remove
     def findProject(file: EnsimeFile): Option[EnsimeProjectId] = file match {
       case RawFile(file) => findProject(file)
       case ArchiveFile(jar, _) => findProject(jar)

@@ -10,7 +10,7 @@ import org.ensime.util.file._
 import org.ensime.util.path._
 
 object PortUtil extends SLF4JLogging {
-
+  //TODO: Change to EnsimeFile?
   def port(cacheDir: Path, name: String): Option[Int] = {
     val portPath = cacheDir / name
     if (portPath.exists())

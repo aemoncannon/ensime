@@ -7,6 +7,7 @@ import org.ensime.api._
 import org.ensime.core.{ FqnToSymbol, RichPresentationCompiler }
 import org.ensime.indexer.MethodName
 import org.ensime.indexer.graph._
+import org.ensime.util.ensimefile._
 
 import scala.collection.mutable
 import scala.reflect.internal.util.{ NoPosition, Position }

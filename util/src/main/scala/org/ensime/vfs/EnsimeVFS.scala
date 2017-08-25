@@ -31,10 +31,10 @@ object ClassfileSelector extends ExtSelector {
   val include = Set("class")
 }
 
-@deprecating("https://github.com/ensime/ensime-server/issues/1437")
-object SourceSelector extends ExtSelector {
-  val include = Set("scala", "java")
-}
+//@deprecating("https://github.com/ensime/ensime-server/issues/1437")
+//object SourceSelector extends ExtSelector {
+//  val include = Set("scala", "java")
+//}
 
 @deprecating("https://github.com/ensime/ensime-server/issues/1437")
 object EnsimeVFS {

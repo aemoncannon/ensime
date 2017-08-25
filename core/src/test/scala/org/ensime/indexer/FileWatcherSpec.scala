@@ -7,6 +7,7 @@ import java.nio.charset.Charset
 import scala.concurrent.duration._
 import akka.testkit._
 import org.apache.commons.vfs2._
+import org.ensime.api.RawFile
 import org.ensime.fixture._
 import org.ensime.util._
 import org.ensime.util.file._
@@ -18,11 +19,11 @@ import org.scalatest.tagobjects.Retryable
 import org.scalatest.time._
 
 sealed trait FileWatcherMessage
-final case class Added(f: FileObject) extends FileWatcherMessage
-final case class Removed(f: FileObject) extends FileWatcherMessage
-final case class Changed(f: FileObject) extends FileWatcherMessage
-final case class BaseAdded(f: FileObject) extends FileWatcherMessage
-final case class BaseRemoved(f: FileObject) extends FileWatcherMessage
+final case class Added(f: RawFile) extends FileWatcherMessage
+final case class Removed(f: RawFile) extends FileWatcherMessage
+final case class Changed(f: RawFile) extends FileWatcherMessage
+final case class BaseAdded(f: RawFile) extends FileWatcherMessage
+final case class BaseRemoved(f: RawFile) extends FileWatcherMessage
 final case class BaseRegistered() extends FileWatcherMessage
 
 /**
@@ -47,11 +48,11 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
   implicit val DefaultCharset: Charset = Charset.defaultCharset()
 
   // variant that watches a jar file
-  def createJarWatcher(jar: File)(implicit vfs: EnsimeVFS, tk: TestKit): Watcher =
+  def createJarWatcher(jar: File)(implicit tk: TestKit): Watcher =
     (new JarJava7WatcherBuilder()).build(jar, listeners)
 
   // variant that recursively watches a directory of classes
-  def createClassWatcher(base: File)(implicit vfs: EnsimeVFS, tk: TestKit): Watcher =
+  def createClassWatcher(base: File)(implicit tk: TestKit): Watcher =
     (new ClassJava7WatcherBuilder()).build(base, listeners)
 
   /**
@@ -67,28 +68,26 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
   val maxWait = 20 seconds
 
   "FileWatcher" should "detect added files" taggedAs (Retryable) in
-    withVFS { implicit vfs =>
-      withTestKit { implicit tk =>
-        withTempDir { dir =>
-          withClassWatcher(dir) { watcher =>
-            waitForBaseRegistered(tk)
+    withTestKit { implicit tk =>
+      withTempDir { dir =>
+        withClassWatcher(dir) { watcher =>
+          waitForBaseRegistered(tk)
 
-            val foo = (dir / "foo.class")
-            val bar = (dir / "b/bar.class")
+          val foo = (dir / "foo.class")
+          val bar = (dir / "b/bar.class")
 
-            foo.createWithParents() shouldBe true
-            bar.createWithParents() shouldBe true
+          foo.createWithParents() shouldBe true
+          bar.createWithParents() shouldBe true
 
-            val fishForFooBar: Fish = {
-              case Added(f) => {
-                f.asLocalFile.getAbsolutePath == foo.getAbsolutePath ||
-                  f.asLocalFile.getAbsolutePath == bar.getAbsolutePath
-              }
-              case _ => false
+          val fishForFooBar: Fish = {
+            case Added(f) => {
+              f.path.toAbsolutePath.toString == foo.getAbsolutePath ||
+                f.path.toAbsolutePath.toString == bar.getAbsolutePath
             }
-            tk.fishForMessage(maxWait)(fishForFooBar)
-            tk.fishForMessage(maxWait)(fishForFooBar)
+            case _ => false
           }
+          tk.fishForMessage(maxWait)(fishForFooBar)
+          tk.fishForMessage(maxWait)(fishForFooBar)
         }
       }
     }
@@ -266,8 +265,8 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
               val fishForFooBar: Fish = {
                 case Added(f) => {
-                  f.asLocalFile.getAbsolutePath == foo.getAbsolutePath ||
-                    f.asLocalFile.getAbsolutePath == bar.getAbsolutePath
+                  f.path.toAbsolutePath.toString == foo.getAbsolutePath ||
+                    f.path.toAbsolutePath.toString == bar.getAbsolutePath
                 }
                 case _ => false
               }
@@ -447,13 +446,13 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       case e: Throwable => true
     }
   }
-  def withClassWatcher[T](base: File)(code: Watcher => T)(implicit vfs: EnsimeVFS, tk: TestKit) = {
+  def withClassWatcher[T](base: File)(code: Watcher => T)(implicit tk: TestKit) = {
     val w = createClassWatcher(base)
     try code(w)
     finally w.shutdown()
   }
 
-  def withJarWatcher[T](jar: File)(code: Watcher => T)(implicit vfs: EnsimeVFS, tk: TestKit) = {
+  def withJarWatcher[T](jar: File)(code: Watcher => T)(implicit tk: TestKit) = {
     val w = createJarWatcher(jar)
     try code(w)
     finally w.shutdown()
@@ -461,11 +460,11 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
   def listeners(implicit tk: TestKit) = List(
     new FileChangeListener {
-      def fileAdded(f: FileObject): Unit = { tk.testActor ! Added(f) }
-      def fileRemoved(f: FileObject): Unit = { tk.testActor ! Removed(f) }
-      def fileChanged(f: FileObject): Unit = { tk.testActor ! Changed(f) }
-      override def baseReCreated(f: FileObject): Unit = { tk.testActor ! BaseAdded(f) }
-      override def baseRemoved(f: FileObject): Unit = { tk.testActor ! BaseRemoved(f) }
+      override def fileAdded(f: RawFile): Unit = { tk.testActor ! Added(f) }
+      override def fileRemoved(f: RawFile): Unit = { tk.testActor ! Removed(f) }
+      override def fileChanged(f: RawFile): Unit = { tk.testActor ! Changed(f) }
+      override def baseReCreated(f: RawFile): Unit = { tk.testActor ! BaseAdded(f) }
+      override def baseRemoved(f: RawFile): Unit = { tk.testActor ! BaseRemoved(f) }
       override def baseRegistered(): Unit = { tk.testActor ! BaseRegistered() }
     }
   )
