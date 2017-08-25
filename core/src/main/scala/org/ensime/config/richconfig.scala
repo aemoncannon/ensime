@@ -29,7 +29,7 @@ package object richconfig {
       c.getBoolean("ensime.exitAfterIndex"),
       c.getBoolean("ensime.disableClassMonitoring"),
       LegacyConfig(c.getBoolean("ensime.legacy.jarurls")),
-      c.getInt("ensime.index.batch.size")
+      c.getInt("ensime.index.batchSize")
     )
   }
   private def parseServerImportsConfig(c: Config): ImportsConfig = {
