@@ -3,6 +3,8 @@ pipeline:
     image: ensime/ensime:v2.x-cache
     pull: true
     privileged: true
+    when:
+      branch: 2.0
     environment:
       - SBT_VOLATILE_TARGET=/root/ramdisk
       - SBT_TASK_LIMIT=4

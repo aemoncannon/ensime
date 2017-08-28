@@ -208,9 +208,9 @@ object EnsimeBuild {
           val suffix = CrossVersion.partialVersion(scalaVersion.value) match {
             case Some((2, 10)) => "2.10.6"
             case Some((2, 11)) => "2.11.8"
-            case _             => "2.12.1"
+            case _             => "2.12.2"
           }
-          "org.scala-refactoring" % s"org.scala-refactoring.library_${suffix}" % "0.12.0"
+          "org.scala-refactoring" % s"org.scala-refactoring.library_${suffix}" % "0.13.0"
         },
         "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0",
         "org.scala-debugger" %% "scala-debugger-api" % "1.1.0-M3"
