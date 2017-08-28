@@ -170,7 +170,7 @@ trait RefactoringImpl {
       }
 
       val result = performRefactoring(procId, tpe, new refactoring.RefactoringParameters(
-        options = organizeImportOptions(refactoring),
+        organizeLocalImports = serverConfig.imports.locals,
         config = importsConfig
       ))
     }.result

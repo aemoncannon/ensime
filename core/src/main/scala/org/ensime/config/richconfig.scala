@@ -33,6 +33,7 @@ package object richconfig {
   }
   private def parseServerImportsConfig(c: Config): ImportsConfig = {
     ImportsConfig(
+      c.getBoolean("locals"),
       c.getString("strategy"),
       c.getStringList("groups").asScala.toList,
       c.getStringList("wildcards").asScala.toSet,

@@ -44,6 +44,7 @@ final case class LegacyConfig(
   jarurls: Boolean
 )
 final case class ImportsConfig(
+  locals: Boolean,
   strategy: String,
   groups: List[String],
   wildcards: Set[String],
