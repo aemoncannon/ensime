@@ -76,6 +76,13 @@ class Project(
 
   def receive: Receive = awaitingConnectionInfoReq
 
+  private def handleConnectionInfoReq(s: ActorRef): Unit = {
+    s ! ConnectionInfo()
+    context.become(handleRequests)
+    unstashAll()
+    delayedBroadcaster ! FloodGate.Activate
+  }
+
   // The original ensime protocol won't send any messages to the
   // client until it has obliged a request for the connection info.
   // Although this is irrelevant now, it is expected by clients and
@@ -83,11 +90,8 @@ class Project(
   // the response be an async message.
   def awaitingConnectionInfoReq: Receive = withLabel("awaitingConnectionInfoReq") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case ConnectionInfoReq =>
-      sender() ! ConnectionInfo()
-      context.become(handleRequests)
-      unstashAll()
-      delayedBroadcaster ! FloodGate.Activate
+    case AsynConnectionInfoReq => handleConnectionInfoReq(sender())
+    case ConnectionInfoReq => handleConnectionInfoReq(sender())
     case other =>
       stash()
   }
