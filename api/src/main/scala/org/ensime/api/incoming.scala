@@ -19,14 +19,9 @@ sealed trait RpcRequest
 sealed trait RpcStartupRequest extends RpcRequest
 
 /**
- * Respond with a `ConnectionInfo`.
- */
-case object AsynConnectionInfoReq extends RpcStartupRequest
-
-/**
  * Responds with a `ConnectionInfo`.
  */
-@deprecating("prefer AsynConnectionInfoReq")
+@deprecating("Please switch to asynchronous connection handling.")
 case object ConnectionInfoReq extends RpcStartupRequest
 
 // related to managing the state of the analyser

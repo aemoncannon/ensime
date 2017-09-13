@@ -74,7 +74,16 @@ class Project(
   }
   context.actorOf(Props(new ClassfileWatcher(searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
-  def receive: Receive = awaitingConnectionInfoReq
+  // If the system property `ensime.server.async` is missing or not set to 
+  // `true` the old behaviour will be used.
+  private val handleAsyncConnections: Boolean = scala.util.Try(System.getProperty("ensime.server.async") == "true").toOption.getOrElse(false)
+
+  def receive: Receive = {
+    if (handleAsyncConnections)
+      handleRequests
+    else
+      awaitingConnectionInfoReq
+  }
 
   private def handleConnectionInfoReq(s: ActorRef): Unit = {
     s ! ConnectionInfo()
@@ -90,7 +99,6 @@ class Project(
   // the response be an async message.
   def awaitingConnectionInfoReq: Receive = withLabel("awaitingConnectionInfoReq") {
     case ShutdownRequest => context.parent forward ShutdownRequest
-    case AsynConnectionInfoReq => handleConnectionInfoReq(sender())
     case ConnectionInfoReq => handleConnectionInfoReq(sender())
     case other =>
       stash()
