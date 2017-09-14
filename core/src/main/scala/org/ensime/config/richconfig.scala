@@ -28,7 +28,10 @@ package object richconfig {
       c.getString("ensime.protocol"),
       c.getBoolean("ensime.exitAfterIndex"),
       c.getBoolean("ensime.disableClassMonitoring"),
-      LegacyConfig(c.getBoolean("ensime.legacy.jarurls")),
+      LegacyConfig(
+        connectionInfoReq = c.getBoolean("ensime.legacy.connectionInfoReq"),
+        jarurls = c.getBoolean("ensime.legacy.jarurls")
+      ),
       c.getInt("ensime.index.batchSize")
     )
   }

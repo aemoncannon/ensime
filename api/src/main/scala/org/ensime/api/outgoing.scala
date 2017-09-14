@@ -44,6 +44,12 @@ final case class DebugVmError(
 sealed trait GeneralSwankEvent extends EnsimeEvent
 sealed trait DebugEvent extends EnsimeEvent
 
+final case class AsyncConnectionInfo(
+  pid: Option[Int] = None,
+  implementation: EnsimeImplementation = EnsimeImplementation("ENSIME"),
+  version: String = "1.9.6"
+) extends EnsimeEvent
+
 /**
  * Generic background notification.
  *

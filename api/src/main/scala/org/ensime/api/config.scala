@@ -42,6 +42,7 @@ final case class EnsimeServerConfig(
   indexBatchSize: Int
 )
 final case class LegacyConfig(
+  connectionInfoReq: Boolean,
   jarurls: Boolean
 )
 final case class ImportsConfig(
