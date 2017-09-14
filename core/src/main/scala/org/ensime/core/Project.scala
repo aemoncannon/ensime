@@ -134,10 +134,10 @@ class Project(
     }
     debugger = context.actorOf(DebugActor.props(delayedBroadcaster, searchService), "debugging")
     docs = context.actorOf(DocResolver(), "docs")
-    if (serverConfig.legacy.connectionInfoReq)
-      context.become(awaitingConnectionInfoReq)
-    else
+    if (!serverConfig.legacy.connectionInfoReq) {
+      broadcaster ! GreetingInfo()
       context.become(handleRequests)
+    }
   }
 
   override def postStop(): Unit = {
