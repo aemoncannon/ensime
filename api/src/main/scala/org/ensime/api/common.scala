@@ -129,13 +129,11 @@ object OffsetRange extends ((Int, Int) => OffsetRange) {
 // such as files/dirs, existance, content hints
 // (java/scala/class/resource) in the type, validated at construction
 // (and can be revalidated at any time)
-sealed trait EnsimeFile {
-  def path: Path
-}
+sealed trait EnsimeFile
 
 final case class RawFile(path: Path) extends EnsimeFile
 /**
  * @param path the container of entry (in nio terms, the FileSystem)
  * @param entry is relative to the container (this needs to be loaded by a FileSystem to be usable)
  */
-final case class ArchiveFile(path: Path, entry: String) extends EnsimeFile
+final case class ArchiveFile(root: Path, entry: String) extends EnsimeFile

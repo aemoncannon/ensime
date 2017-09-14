@@ -2,12 +2,8 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.net.URI
-import java.nio.file.{ Path, Paths }
-
 import org.ensime.util.Debouncer
 import scala.collection.{ mutable, Map, Set }
-import scala.collection.JavaConverters._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util.{ Failure, Properties, Success }
@@ -21,8 +17,6 @@ import org.ensime.indexer.graph._
 import org.ensime.util.ensimefile._
 import org.ensime.util.path._
 import org.ensime.util.map._
-
-import java.nio.file.{ Files, FileSystems, Paths }
 
 /**
  * Provides methods to perform ENSIME-specific indexing tasks,
@@ -45,7 +39,13 @@ class SearchService(
 
   private[indexer] val allTargets = config.targets.map(_.toPath)
 
-  private[indexer] def isUserFile(file: Path): Boolean = allTargets.exists(file.startsWith)
+  private[indexer] def isUserFile(file: EnsimeFile): Boolean = {
+    val rootPath = file match {
+      case RawFile(path) => path
+      case ArchiveFile(root, entry) => root
+    }
+    allTargets.exists(rootPath.startsWith)
+  }
 
   private val QUERY_TIMEOUT = 30 seconds
 
@@ -86,50 +86,6 @@ class SearchService(
   private val db = new GraphService((config.cacheDir.path / ("graph-" + version)).toFile)
   val noReverseLookups: Boolean = Properties.propOrFalse("ensime.index.no.reverse.lookups")
 
-  //TODO: Can jar be there, or we can assume always RawFile?
-  private[indexer] def getTopLevelClassFile(f: EnsimeFile): EnsimeFile = {
-    import scala.reflect.NameTransformer
-    val classPath = f match {
-      case RawFile(path) => path
-      case ArchiveFile(_, entry) => Paths.get(entry)
-    }
-    val className = classPath.getFileName.toString
-    val baseClassName = if (className.contains("$")) {
-      NameTransformer.encode(NameTransformer.decode(className).split("\\$")(0)) + ".class"
-    } else className
-
-    val uri = classPath.toUri.toString
-    //TODO: Can we use Path.getParent?
-    val parent = uri.substring(0, uri.length - new URI(className).toASCIIString.length)
-    val fileName = new URI(baseClassName).toASCIIString
-    val topLevelPath = Paths.get(parent, fileName)
-    f match {
-      case RawFile(_) => RawFile(topLevelPath)
-      case ArchiveFile(path, _) => ArchiveFile(path, topLevelPath.toString)
-    }
-  }
-
-  private def scanGrouped(f: EnsimeFile): Map[EnsimeFile, Set[EnsimeFile]] = {
-    val results = new mutable.HashMap[EnsimeFile, mutable.Set[EnsimeFile]] with mutable.MultiMap[EnsimeFile, EnsimeFile]
-    val path = f match {
-      //TODO: get rid of null
-      case ArchiveFile(path, entry) => FileSystems.newFileSystem(path, null).getPath(entry)
-      case RawFile(path) => path
-    }
-    val paths = Files.find(path, Integer.MAX_VALUE, (path, attrs) => path.toString().toLowerCase().endsWith(".class"))
-    paths.iterator().asScala.foreach(p => {
-      val file: EnsimeFile = f match {
-        case ArchiveFile(jar, entry) => ArchiveFile(jar, p.toString)
-        case raw: RawFile => raw
-      }
-      val key = getTopLevelClassFile(file)
-      if (key.exists) {
-        results.addBinding(key, file)
-      }
-    })
-    results
-  }
-
   /**
    * Indexes everything, making best endeavours to avoid scanning what
    * is unnecessary (e.g. we already know that a jar or classfile has
@@ -164,13 +120,12 @@ class SearchService(
           m.targets.filter(_.exists).toList :::
             m.libraryJars
       }.partition(_.isJar)
-      val grouped = dirs.map(d => scanGrouped(d)).fold(Map.empty[EnsimeFile, Set[EnsimeFile]])(_ merge _)
+      val grouped = dirs.map(d => d.scanGrouped).fold(Map.empty[EnsimeFile, Set[EnsimeFile]])(_ merge _)
       val jars: Set[EnsimeFile] =
-        (jarFiles ++ EnsimeConfigProtocol.javaRunTime(config).map(p => ArchiveFile(p, "/"))).toSet
+        (jarFiles ++ EnsimeConfigProtocol.javaRunTime(config).map(p => RawFile(p))).toSet
       (jars, grouped)
     }
 
-    // TODO: private?
     def indexBase(
       base: EnsimeFile,
       fileCheck: Option[FileCheck],
@@ -179,7 +134,7 @@ class SearchService(
       val outOfDate = fileCheck.forall(_.changed)
       if (!outOfDate || !base.exists) Future.successful(0)
       else {
-        val boost = isUserFile(base.path)
+        val boost = isUserFile(base)
         val indexed = extractSymbolsFromClassOrJar(base, grouped).flatMap(persist(_, commitIndex = false, boost = boost))
         indexed.onComplete { _ =>
           if (base.isJar) {
@@ -247,7 +202,6 @@ class SearchService(
 
     Future {
       blocking {
-        // TODO: Pattern match is not exhaustive.
         file match {
           case classfile: RawFile if classfile.isClass =>
             // too noisy to log
@@ -256,13 +210,15 @@ class SearchService(
             extractSymbols(classfile, files, classfile)
           //TODO: Add java.nio closing logic
           //finally { files.foreach(_.close()); classfile.close() }
-          case jar: ArchiveFile =>
+          case jar: RawFile =>
             log.debug(s"indexing ${jar.path}")
             //try {
-            (scanGrouped(jar).flatMap {
+            val res = (jar.scanGrouped.flatMap {
               case (root, files) => extractSymbols(jar, files, root)
             }).toList
+            res
           //} finally { vfs.nuke(vJar) }
+          case ArchiveFile(root, entry) => ???
         }
       }
     }(ec)
@@ -278,8 +234,10 @@ class SearchService(
   ): List[SourceSymbolInfo] = {
     def getInternalRefs(isUserFile: Boolean, s: RawSymbol): List[FullyQualifiedReference] = if (isUserFile && !noReverseLookups) s.internalRefs else List.empty
 
-    val depickler = new ClassfileDepickler(rootClassFile.path)
+    val (fs, path) = rootClassFile.pathWithOpenFs()
+    val depickler = new ClassfileDepickler(path)
     val scalapClasses = depickler.getClasses
+    fs.map(_.close())
 
     val res: List[SourceSymbolInfo] = files.flatMap {
       case f if f.pathWithinArchive.exists(
@@ -293,7 +251,7 @@ class SearchService(
         val indexer = new ClassfileIndexer(f)
         val clazz = indexer.indexClassfile()
 
-        val userFile = isUserFile(f.path)
+        val userFile = isUserFile(f)
         val source = resolver.resolve(clazz.name.pack, clazz.source)
 
         val sourceUri = source.map(_.uriString)
@@ -493,8 +451,8 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
   override def receive: Receive = {
     case IndexFile(f) =>
       val topLevelClassFile = f match {
-        case jar: ArchiveFile => jar
-        case classFile: RawFile => searchService.getTopLevelClassFile(classFile)
+        case jar if jar.isJar => jar
+        case classFile: RawFile => classFile.getTopLevelClassFile
       }
       todo.addBinding(topLevelClassFile, topLevelClassFile)
       processDebounce.call()
@@ -531,7 +489,7 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
               retry()
             case Success(_) => indexed.foreach {
               case (file, syms) =>
-                val boost = searchService.isUserFile(file.path)
+                val boost = searchService.isUserFile(file)
                 val persisting = searchService.persist(syms, commitIndex = true, boost = boost)
 
                 persisting.onComplete {

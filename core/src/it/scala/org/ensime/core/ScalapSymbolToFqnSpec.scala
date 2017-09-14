@@ -47,4 +47,6 @@ class ScalapSymbolToFqnSpec extends EnsimeSpec
       verify(field.javaName, field.scalaName, DeclaredAs.Field, cc)
     }
   }
+
+  fs.close()
 }

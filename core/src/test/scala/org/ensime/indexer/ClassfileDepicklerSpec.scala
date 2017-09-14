@@ -9,7 +9,6 @@ import org.ensime.util.EnsimeSpec
 import org.ensime.util.path._
 
 import scala.util.Properties.{ jdkHome, javaClassPath }
-import scala.util.Try
 
 class ClassfileDepicklerSpec extends EnsimeSpec with SharedEnsimeVFSFixture {
   val scalaLib = javaClassPath.split(java.io.File.pathSeparator)
@@ -23,6 +22,7 @@ class ClassfileDepicklerSpec extends EnsimeSpec with SharedEnsimeVFSFixture {
     val fs = FileSystems.newFileSystem(rtPath, null)
     val path = fs.getPath("/java/lang/String.class")
     new ClassfileDepickler(path).scalasig should ===(None)
+    fs.close()
   }
 
   it should "support typical Scala classes" in {

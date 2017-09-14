@@ -104,13 +104,13 @@ final case class UsageLocation(file: Option[String], line: Option[Int])
 final case class FileCheck(filename: String, timestamp: Timestamp) {
   def file: EnsimeFile = EnsimeFile(filename)
   def lastModified: Long = timestamp.getTime
-  def changed: Boolean = Files.getLastModifiedTime(file.path).toMillis != lastModified
+  def changed: Boolean = file.lastModified != lastModified
 }
 
 object FileCheck extends ((String, Timestamp) => FileCheck) {
   def apply(file: EnsimeFile): FileCheck = {
     val name = file.uriString
-    val ts = if (file.exists) new Timestamp(Files.getLastModifiedTime(file.path).toMillis)
+    val ts = if (file.exists) new Timestamp(file.lastModified)
     else new Timestamp(-1L)
     FileCheck(name, ts)
   }
@@ -206,7 +206,7 @@ class GraphService(dir: File) extends SLF4JLogging {
   }
 
   def outOfDate(f: EnsimeFile): Future[Boolean] = withGraphAsync { implicit g =>
-    RichGraph.readUniqueV[FileCheck, String](f.path.toUri.toString) match {
+    RichGraph.readUniqueV[FileCheck, String](f.uriString) match {
       case None => true
       case Some(v) => v.toDomain.changed
     }

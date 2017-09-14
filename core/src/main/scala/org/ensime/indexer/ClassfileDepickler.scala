@@ -2,6 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import java.nio.file.NoSuchFileException
 import scala.tools.scalap.scalax.rules.scalasig._
 
 import org.ensime.core.ScalapSymbolToFqn
@@ -15,17 +16,15 @@ class ClassfileDepickler(path: Path) extends ScalapSymbolToFqn {
 
   /** Uses scalap to produce a scala reflective view of the classfile */
   private def depickle: Option[ScalaSig] = {
-    // TODO: Use Files.readAllBytes instead of RichInputStream implicits?
-    val in = Files.newInputStream(path, StandardOpenOption.READ)
     try {
-      val bytes = in.toByteArray()
+      val bytes = Files.readAllBytes(path)
       val byteCode = ByteCode(bytes)
       val classFile = ClassFileParser.parse(byteCode)
       ScalaSigParser.parse(classFile)
     } catch {
       // ClassFileParser fails to parse some JDK class files
       case e: Exception => None
-    } finally in.close()
+    }
   }
 
   private val ignore = Set("<local child>", "<refinement>", "anon")

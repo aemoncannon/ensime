@@ -41,9 +41,9 @@ trait IsolatedSourceResolverFixture
 
 trait SharedSourceResolverFixture extends SourceResolverFixture
     with SharedEnsimeConfigFixture with SharedTestKitFixture {
-  this: SharedEnsimeVFSFixture =>
 
   private[fixture] var _resolver: SourceResolver = _
+
   override def beforeAll(): Unit = {
     super.beforeAll()
     implicit val system = _testkit.system

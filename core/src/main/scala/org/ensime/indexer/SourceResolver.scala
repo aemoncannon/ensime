@@ -2,7 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.nio.file.Files
+import java.nio.file.{ FileSystems, Files, Path }
 
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
@@ -67,16 +67,39 @@ class SourceResolver(config: EnsimeConfig)(implicit actorSystem: ActorSystem)
     all = recalculate
   }
 
-  private def scan(f: EnsimeFile) = Files.find(
-    f.path,
-    Integer.MAX_VALUE,
-    (path, attrs) => {
-      val name = path.getFileName.toString()
-      name.endsWith(".java") || name.endsWith(".scala")
-    }
-  ).iterator.asScala.toList.map(p => EnsimeFile(p.toFile))
+  private def scanDir(f: RawFile) = {
+    Files.find(
+      f.path,
+      Integer.MAX_VALUE,
+      (path, attrs) => {
+        val name = path.toString
+        name.endsWith(".java") || name.endsWith(".scala")
+      }
+    ).iterator.asScala.toList
+      .map(p => EnsimeFile(p.toFile))
+  }
 
-  private val depSources = {
+  //TODO: Use vector?
+  private def scanArchive(f: RawFile): Vector[(EnsimeFile, PackageName)] = {
+    val fs = FileSystems.newFileSystem(f.path, null)
+    val path = fs.getPath("/")
+    val all = Files.find(
+      path,
+      Integer.MAX_VALUE,
+      (path, attrs) => {
+        val name = path.toString
+        name.endsWith(".java") || name.endsWith(".scala")
+      }
+    ).iterator
+      .asScala
+      .map(p => (ArchiveFile(f.path, p.toString), inferArchive(p)))
+      .toVector
+
+    fs.close()
+    all
+  }
+
+  private val depSources: Map[PackageName, Set[EnsimeFile]] = {
     val srcJars = config.javaSources.toSet ++ config.projects.flatMap(_.librarySources) ++ {
       for {
         project <- config.projects
@@ -85,20 +108,19 @@ class SourceResolver(config: EnsimeConfig)(implicit actorSystem: ActorSystem)
     }
     for {
       srcJarFile <- srcJars.toList
-      srcEntry <- scan(srcJarFile)
-      inferred = infer(srcJarFile, srcEntry)
+      (archFile, inferred) <- scanArchive(srcJarFile)
       // continue to hold a reference to source jars
       // so that we can access their contents elsewhere.
       // this does mean we have a file handler, sorry.
       //_ = vfs.nuke(srcJar)
-    } yield (inferred, srcEntry)
+    } yield (inferred, archFile)
   }.toMultiMapSet
 
   private def userSources = {
     for {
       project <- config.projects
       root <- project.sources
-      file <- scan(root)
+      file <- scanDir(root)
     } yield (infer(root, file), file)
   }.toMultiMapSet
 
@@ -117,6 +139,10 @@ class SourceResolver(config: EnsimeConfig)(implicit actorSystem: ActorSystem)
     // relativize feels the wrong way round, but this is correct
     val relative = base.path.relativize(file.path)
     PackageName(relative.iterator.asScala.toList.init.map(_.toString))
+  }
+
+  private def inferArchive(p: Path): PackageName = {
+    PackageName(p.iterator.asScala.toList.init.map(_.toString))
   }
 
 }
