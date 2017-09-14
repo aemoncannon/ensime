@@ -11,6 +11,10 @@ import java.util.HashMap
 import org.ensime.api._
 import org.ensime.util.path._
 
+import scala.collection.{ mutable, Map, Set }
+import scala.collection.JavaConverters._
+import scala.util.Try
+
 /**
  * Adds functionality to the EnsimeFile sealed family, without
  * polluting the API with implementation detail.
@@ -21,16 +25,35 @@ package ensimefile {
     def isJava: Boolean
     def isJar: Boolean
     def isScala: Boolean
-    def exists(): Boolean
+    def isClass: Boolean
+    def exists: Boolean
     def lastModified(): Long
     def canon: EnsimeFile
+    def pathWithinArchive: Option[String]
 
     /** Direct access contents: not efficient for streaming. */
     def readStringDirect()(implicit cs: Charset): String
     def readAllLines: List[String]
 
-    def uri(): URI
-    def uriString(): String = uri.toASCIIString
+    def uri: URI
+    def uriString: String = uri.toASCIIString
+    def path: Path
+    def pathWithOpenFs(): (Option[FileSystem], Path)
+    def getTopLevelClassFile: EnsimeFile = {
+      import scala.reflect.NameTransformer
+      val classPath = path
+      val className = classPath.getFileName.toString
+      val baseClassName = if (className.contains("$")) {
+        NameTransformer.encode(NameTransformer.decode(className).split("\\$")(0)) + ".class"
+      } else className
+
+      val uri = classPath.toUri.toString
+      //TODO: Can we use Path.getParent?
+      val parent = uri.substring(0, uri.length - new URI(className).toASCIIString.length)
+      val fileName = new URI(baseClassName).toASCIIString
+      val topLevelPath = Paths.get(parent, fileName)
+      EnsimeFile(topLevelPath.toString)
+    }
   }
 
 }
@@ -47,7 +70,7 @@ package object ensimefile {
     case ArchiveRegex(file, entry) => ArchiveFile(Paths.get(cleanBadWindows(file)), entry)
     case FileRegex(file) => RawFile(Paths.get(cleanBadWindows(file)))
   }
-  def EnsimeFile(path: File): EnsimeFile = RawFile(path.toPath)
+  def EnsimeFile(file: File): EnsimeFile = RawFile(file.toPath)
   def EnsimeFile(url: URL): EnsimeFile = EnsimeFile(URLDecoder.decode(url.toExternalForm(), "UTF-8"))
 
   // URIs on Windows can look like /C:/path/to/file, which are malformed
@@ -59,15 +82,45 @@ package object ensimefile {
 
   implicit class RichRawFile(val raw: RawFile) extends RichEnsimeFile {
     // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247
-    override def isJava: Boolean = raw.file.toString.toLowerCase.endsWith(".java")
-    override def isJar: Boolean = raw.file.toString.toLowerCase.endsWith(".jar")
-    override def isScala: Boolean = raw.file.toString.toLowerCase.endsWith(".scala")
-    override def exists(): Boolean = raw.file.exists()
-    override def lastModified(): Long = raw.file.attrs.lastModifiedTime().toMillis
-    override def readStringDirect()(implicit cs: Charset): String = raw.file.readString()
-    override def readAllLines: List[String] = raw.file.readLines()
-    override def uri: URI = raw.file.toUri()
-    override def canon: RawFile = RawFile(raw.file.canon)
+    override def isJava: Boolean = raw.path.toString.toLowerCase.endsWith(".java")
+    override def isJar: Boolean = raw.path.toString.toLowerCase.endsWith(".jar")
+    override def isScala: Boolean = raw.path.toString.toLowerCase.endsWith(".scala")
+    override def isClass: Boolean = raw.path.toString.toLowerCase.endsWith(".class")
+    override def exists: Boolean = raw.path.exists
+    override def lastModified(): Long = raw.path.attrs.lastModifiedTime().toMillis
+    override def readStringDirect()(implicit cs: Charset): String = raw.path.readString()
+    override def readAllLines: List[String] = raw.path.readLines()
+    override def uri: URI = raw.path.toUri()
+    override def canon: RawFile = RawFile(raw.path.canon)
+    override val pathWithinArchive = None
+    override val path = raw.path
+    override val pathWithOpenFs = (None, path)
+
+    def scanGrouped: Map[EnsimeFile, Set[EnsimeFile]] = {
+      val results = new mutable.HashMap[EnsimeFile, mutable.Set[EnsimeFile]] with mutable.MultiMap[EnsimeFile, EnsimeFile]
+      val rootPath = raw.path
+      val fs = Try { FileSystems.newFileSystem(rootPath, null) }.toOption
+      val pathToScan = if (raw.isJar) {
+        fs.get.getPath("/")
+      } else rootPath
+
+      val paths = Files.find(pathToScan, Integer.MAX_VALUE, (path, attrs) => path.toString().toLowerCase().endsWith(".class"))
+      paths.iterator().asScala.foreach(p => {
+        val file =
+          if (raw.isJar) ArchiveFile(rootPath, p.toString)
+          else RawFile(p)
+        val key = file.getTopLevelClassFile
+        val keyExists = key match {
+          case RawFile(path) => path.exists
+          case ArchiveFile(root, entry) => root.exists && fs.get.getPath(entry).exists
+        }
+        if (keyExists) {
+          results.addBinding(key, file)
+        }
+      })
+      fs.map(_.close())
+      results
+    }
   }
 
   // most methods require obtaining the Path of the entry, within the
@@ -75,19 +128,35 @@ package object ensimefile {
   // resource afterwards (which is slow for random access)
   implicit class RichArchiveFile(val archive: ArchiveFile) extends RichEnsimeFile {
     override def isJava: Boolean = archive.entry.toLowerCase.endsWith(".java")
-    override def isJar: Boolean = archive.entry.toLowerCase.endsWith(".jar")
+    override def isJar: Boolean = archive.root.toString.toLowerCase.endsWith(".jar")
     override def isScala: Boolean = archive.entry.toLowerCase.endsWith(".scala")
-    override def exists(): Boolean = archive.jar.exists() && withEntry(_.exists())
-    override def lastModified(): Long = archive.jar.attrs.lastModifiedTime().toMillis
+    override def isClass: Boolean = archive.entry.toLowerCase.endsWith(".class")
+    override def exists: Boolean = archive.root.exists && withEntry(_.exists())
+    override def lastModified(): Long = archive.root.attrs.lastModifiedTime().toMillis
     override def readStringDirect()(implicit cs: Charset): String = withEntry(_.readString())
     override def readAllLines: List[String] = withEntry(_.readLines())
-    override def uri: URI = URI.create(s"jar:${archive.jar.toUri}!${archive.entry}") // path is null (opaque)
-    override def canon: ArchiveFile = ArchiveFile(archive.jar.canon, archive.entry)
+    override def uri: URI = URI.create(s"jar:${archive.root.toUri}!${archive.entry}") // path is null (opaque)
+    override def canon: ArchiveFile = ArchiveFile(archive.root.canon, archive.entry)
+    override val pathWithinArchive = if (uriString.startsWith("jar") || uriString.startsWith("zip")) {
+      Some(archive.entry)
+    } else {
+      None
+    }
+
+    override def path = {
+      withFs(fs => fs.getPath(archive.entry))
+    }
+
+    override def pathWithOpenFs() = {
+      val fs = fileSystem()
+      (Some(fs), fs.getPath("/"))
+    }
 
     def readBytes(): Array[Byte] = withEntry(_.readBytes())
 
+    //TODO: How do we work with src.zip from jdk?
     private def fileSystem(): FileSystem = FileSystems.newFileSystem(
-      URI.create(s"jar:${archive.jar.toUri}"),
+      URI.create(s"jar:${archive.root.toUri}"),
       new HashMap[String, String]
     )
     private def withFs[T](action: FileSystem => T): T = {
@@ -99,7 +168,7 @@ package object ensimefile {
       action(fs.getPath(archive.entry))
     }
 
-    def fullPath: String = s"${archive.jar}!${archive.entry}"
+    def fullPath: String = s"${archive.root}!${archive.entry}"
 
     /*
     import java.nio.file.attribute._
@@ -111,7 +180,6 @@ package object ensimefile {
     }
     Files.walkFileTree(fs.getPath("/"), printer)
    */
-
   }
 
   // boilerplate-tastic... Coproduct would be helpful here

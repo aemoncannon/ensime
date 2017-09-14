@@ -30,8 +30,8 @@ class ServerStartupSpec extends EnsimeSpec
         system.actorOf(ServerActor.props(protocol), "ensime-main")
 
         eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
-          PortUtil.port(config.cacheDir.file, "http").isDefined
-          PortUtil.port(config.cacheDir.file, "port").isDefined
+          PortUtil.port(config.cacheDir.path, "http").isDefined
+          PortUtil.port(config.cacheDir.path, "port").isDefined
         }
       }
     }
@@ -46,8 +46,8 @@ class ServerStartupSpec extends EnsimeSpec
         val preferredHttp = 10001
         val preferredTcp = 10002
 
-        (config.cacheDir.file / "http").write(preferredHttp.toString)
-        (config.cacheDir.file / "port").write(preferredTcp.toString)
+        (config.cacheDir.path / "http").write(preferredHttp.toString)
+        (config.cacheDir.path / "port").write(preferredTcp.toString)
 
         val protocol = new SwankProtocol
         system.actorOf(ServerActor.props(protocol), "ensime-main")
@@ -76,7 +76,7 @@ class ServerStartupSpec extends EnsimeSpec
         import tk._
 
         val preferredTcp = 10004
-        (config.cacheDir.file / "port").write(preferredTcp.toString)
+        (config.cacheDir.path / "port").write(preferredTcp.toString)
         val socket = new ServerSocket()
 
         try {
@@ -101,7 +101,7 @@ class ServerStartupSpec extends EnsimeSpec
         import tk._
 
         val preferredHttp = 10003
-        (config.cacheDir.file / "http").write(preferredHttp.toString)
+        (config.cacheDir.path / "http").write(preferredHttp.toString)
 
         val socket = new ServerSocket()
 

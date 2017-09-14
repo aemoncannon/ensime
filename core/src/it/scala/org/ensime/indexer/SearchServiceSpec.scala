@@ -45,7 +45,7 @@ class SearchServiceSpec extends EnsimeSpec
       val now = System.currentTimeMillis()
       for {
         p <- config.projects
-        r <- p.targets.map(_.file.toFile)
+        r <- p.targets.map(_.path.toFile)
         f <- r.tree
       } {
         // simulate a full recompile
@@ -61,7 +61,7 @@ class SearchServiceSpec extends EnsimeSpec
   it should "remove classfiles that have been deleted" in {
     withSearchService { (config, service) =>
       implicit val s = service
-      val classfile = (config.projects.head.targets.head.file / "org/example/Foo$.class").toFile
+      val classfile = (config.projects.head.targets.head.path / "org/example/Foo$.class").toFile
 
       classfile shouldBe 'exists
       service.findUnique("org.example.Foo$") shouldBe defined
@@ -372,7 +372,7 @@ class SearchServiceSpec extends EnsimeSpec
   "findClasses" should "recover classes by source" in withSearchService { (config, search) =>
     import org.ensime.util.ensimefile._
 
-    val jdksrc = config.javaSources.head.file
+    val jdksrc = config.javaSources.head.path
     val query = ArchiveFile(jdksrc, "/java/lang/String.java").canon
 
     val hits = search.findClasses(query)

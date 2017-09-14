@@ -2,7 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.server.tcp
 
-import java.io.File
+import java.nio.file.Path
 import java.net.InetSocketAddress
 
 import akka.actor.{ Actor, ActorLogging, ActorRef }
@@ -13,7 +13,8 @@ import org.ensime.server.PortUtil
 case object ClientConnectionClosed
 
 class TCPServer(
-    cacheDir: File,
+    //TODO: Path?
+    cacheDir: Path,
     protocol: Protocol,
     project: ActorRef,
     broadcaster: ActorRef,
@@ -34,7 +35,7 @@ class TCPServer(
     case b @ Bound(localAddress) =>
       val boundPort = localAddress.getPort
       log.info(s"Bound server on port $boundPort")
-      PortUtil.writePort(cacheDir.toPath, boundPort, "port")
+      PortUtil.writePort(cacheDir, boundPort, "port")
     case CommandFailed(_: Bind) =>
       context.parent ! ShutdownRequest(s"TCP protocol failed to bind ($preferredPort)", isError = true)
 

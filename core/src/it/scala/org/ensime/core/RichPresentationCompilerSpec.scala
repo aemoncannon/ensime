@@ -41,7 +41,7 @@ class RichPresentationCompilerThatNeedsJavaLibsSpec extends EnsimeSpec
           inside(sym.declPos) {
             case Some(LineSourcePosition(f, i)) =>
               f match {
-                case rf @ RawFile(_) => rf.file.toFile.parts should contain("File.java")
+                case rf @ RawFile(path) => path.toFile.parts should contain("File.java")
                 case af @ ArchiveFile(_, _) =>
               }
               i should be > 0
@@ -91,7 +91,7 @@ class RichPresentationCompilerSpec extends EnsimeSpec
           inside(sym.declPos) {
             case Some(OffsetSourcePosition(f, i)) =>
               f match {
-                case rf @ RawFile(_) => rf.file.toFile.parts should contain("Int.scala")
+                case rf @ RawFile(path) => path.toFile.parts should contain("Int.scala")
                 case af @ ArchiveFile(_, _) =>
               }
               i should be > 0
@@ -506,7 +506,7 @@ class RichPresentationCompilerSpec extends EnsimeSpec
 
     compileScala(
       List(defsFile.path),
-      config.projects.head.targets.head.file.toFile,
+      config.projects.head.targets.head.path.toFile,
       cc.settings.classpath.value
     )
 
@@ -558,7 +558,7 @@ trait RichPresentationCompilerTestUtils {
   }
 
   def srcFile(proj: EnsimeConfig, name: String, content: String, write: Boolean = false, encoding: String = "UTF-8"): BatchSourceFile = {
-    val src = proj.projects.head.sources.head.file.toFile / name
+    val src = proj.projects.head.sources.head.path.toFile / name
     if (write) {
       src.createWithParents()
       scala.tools.nsc.io.File(src)(encoding).writeAll(content)

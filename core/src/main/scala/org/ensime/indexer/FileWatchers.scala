@@ -6,18 +6,18 @@ import java.util.UUID
 
 import akka.actor.Actor
 import akka.event.slf4j.SLF4JLogging
-import org.apache.commons.vfs2._
+
 import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.util.file._
 import org.ensime.vfs._
 
 trait FileChangeListener {
-  def fileAdded(f: FileObject): Unit
-  def fileRemoved(f: FileObject): Unit
-  def fileChanged(f: FileObject): Unit
-  def baseReCreated(@deprecated("local", "") f: FileObject): Unit = {}
-  def baseRemoved(@deprecated("local", "") f: FileObject): Unit = {}
+  def fileAdded(f: RawFile): Unit
+  def fileRemoved(f: RawFile): Unit
+  def fileChanged(f: RawFile): Unit
+  def baseReCreated(@deprecated("local", "") f: RawFile): Unit = {}
+  def baseRemoved(@deprecated("local", "") f: RawFile): Unit = {}
   def baseRegistered(): Unit = {}
 }
 
@@ -38,7 +38,6 @@ class ClassfileWatcher(
     listeners: Seq[FileChangeListener]
 )(
     implicit
-    vfs: EnsimeVFS,
     config: EnsimeConfig,
     serverConfig: EnsimeServerConfig
 ) extends Actor with SLF4JLogging {
@@ -76,19 +75,15 @@ trait Java7WatcherBuilder extends SLF4JLogging {
   def build(
     watched: File,
     listeners: Seq[FileChangeListener]
-  )(
-    implicit
-    vfs: EnsimeVFS
   ): Watcher = {
     val watcherId = UUID.randomUUID()
     serviceBuilder.build(watcherId, watched,
-      listeners.map { l => toWatcherListener(l, watched, watcherId, vfs) })
+      listeners.map { l => toWatcherListener(l, watched, watcherId) })
   }
   def toWatcherListener(
     l: FileChangeListener,
     baseFile: File,
     uuid: UUID,
-    vfs: EnsimeVFS
   ): WatcherListener
 }
 
@@ -98,24 +93,24 @@ class JarJava7WatcherBuilder() extends Java7WatcherBuilder {
     l: FileChangeListener,
     baseFile: File,
     uuid: UUID,
-    vfs: EnsimeVFS
   ) = {
     new WatcherListener() {
       override val base = baseFile
       override val recursive = false
       override val extensions = JarSelector.include
       override val watcherId = uuid
+      //TODO: Can we meet the jars here, i.e. shall we use EnsimeFile?
       override def fileCreated(f: File) =
-        l.fileAdded(vfs.vfile(f))
+        l.fileAdded(RawFile(f.toPath))
       override def fileDeleted(f: File) = {}
       override def fileModified(f: File) =
-        l.fileChanged(vfs.vfile(f))
+        l.fileChanged(RawFile(f.toPath))
       override def baseRegistered(): Unit =
         l.baseRegistered()
       override def baseRemoved(): Unit =
-        l.fileRemoved(vfs.vfile(baseFile))
+        l.fileRemoved(RawFile(baseFile.toPath))
       override def missingBaseRegistered(): Unit =
-        l.fileAdded(vfs.vfile(baseFile))
+        l.fileAdded(RawFile(baseFile.toPath))
       override def baseSubdirRegistered(f: File): Unit = {}
       override def proxyRegistered(f: File): Unit = {}
       override def existingFile(f: File): Unit = {}
@@ -130,7 +125,6 @@ private class ClassJava7WatcherBuilder() extends Java7WatcherBuilder {
     l: FileChangeListener,
     baseFile: File,
     uuid: UUID,
-    vfs: EnsimeVFS
   ) = {
     new WatcherListener() {
       override val base = baseFile
@@ -140,25 +134,25 @@ private class ClassJava7WatcherBuilder() extends Java7WatcherBuilder {
       @volatile private var notifyExisting = false;
 
       override def fileCreated(f: File) =
-        l.fileAdded(vfs.vfile(f))
+        l.fileAdded(RawFile(f.toPath))
       override def fileDeleted(f: File) =
-        l.fileRemoved(vfs.vfile(f))
+        l.fileRemoved(RawFile(f.toPath))
       override def fileModified(f: File) =
-        l.fileChanged(vfs.vfile(f))
+        l.fileChanged(RawFile(f.toPath))
       override def baseRegistered(): Unit = {
         notifyExisting = true
         l.baseRegistered()
       }
       override def baseRemoved(): Unit =
-        l.baseRemoved(vfs.vfile(baseFile))
+        l.baseRemoved(RawFile(baseFile.toPath))
       override def missingBaseRegistered(): Unit =
-        l.baseReCreated(vfs.vfile(baseFile))
+        l.baseReCreated(RawFile(baseFile.toPath))
       override def baseSubdirRegistered(f: File): Unit = {}
       override def proxyRegistered(f: File): Unit =
         notifyExisting = true
       override def existingFile(f: File): Unit =
         if (notifyExisting)
-          l.fileAdded(vfs.vfile(f))
+          l.fileAdded(RawFile(f.toPath))
     }
   }
 }

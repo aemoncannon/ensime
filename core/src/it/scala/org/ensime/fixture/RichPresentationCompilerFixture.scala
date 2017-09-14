@@ -15,7 +15,6 @@ import org.ensime.core._
 import org.ensime.config.richconfig._
 import org.ensime.indexer._
 import org.ensime.util.{ PresentationReporter, ReportHandler }
-import org.ensime.vfs._
 import org.slf4j.LoggerFactory
 
 trait RichPresentationCompilerFixture {
@@ -48,8 +47,7 @@ object RichPresentationCompilerFixture {
     search: SearchService
   )(
     implicit
-    system: ActorSystem,
-    vfs: EnsimeVFS
+    system: ActorSystem
   ): RichPresentationCompiler = {
     import system.dispatcher
     val scalaLib = config.scalaLibrary.get

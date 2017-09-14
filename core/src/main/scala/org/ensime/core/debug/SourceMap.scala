@@ -4,8 +4,8 @@ package org.ensime.core.debug
 
 import java.io.File
 import org.ensime.api._
-import org.ensime.indexer.SearchService
 import org.ensime.util.ensimefile._
+import org.ensime.indexer.SearchService
 
 object SourceMap {
 
@@ -15,7 +15,7 @@ object SourceMap {
   // resolve a filePath e.g. the/package/File.scala (combined out of
   // the class package name and the source file from the debug)
   def fromJdi(jdi: String)(implicit s: SearchService): Option[EnsimeFile] = {
-    s.findClasses(jdi.replace('\\', '/')).flatMap(_.source).map(EnsimeFile).headOption
+    s.findClasses(jdi.replace('\\', '/')).flatMap(_.source).map(src => EnsimeFile(src)).headOption
   }
 
   // inverse of fromJdi, convert a user's file into the

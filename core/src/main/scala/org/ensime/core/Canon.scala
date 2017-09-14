@@ -28,7 +28,8 @@ object Canon extends Poly1 {
 
   private def extractor: Option[LegacyArchiveExtraction] =
     if ((serverConfig != null && !serverConfig.legacy.jarurls) || config == null) None
-    else Some(new LegacyArchiveExtraction(config.cacheDir.file))
+    else Some(new LegacyArchiveExtraction(config.cacheDir.path))
+
   implicit def caseEnsimeFile[EF <: EnsimeFile]: Case[EF] { type Result = EnsimeFile } = at[EF] { f =>
     extractor.flatMap { extractor => Try(extractor.write(f)).toOption }.getOrElse(f).canon
   }

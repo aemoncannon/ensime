@@ -49,15 +49,15 @@ trait EnsimeTestData {
   val file4 = canon("/foo/def")
   val file5 = canon("/foo/hij")
 
-  val refactorDiffEffect = new RefactorDiffEffect(9, RefactorType.AddImport, file2.file.toFile)
+  val refactorDiffEffect = new RefactorDiffEffect(9, RefactorType.AddImport, file2.path.toFile)
 
   val sourcePos1 = new LineSourcePosition(file1, 57)
   val sourcePos2 = new LineSourcePosition(file1, 59)
   val sourcePos3 = new EmptySourcePosition()
   val sourcePos4 = new OffsetSourcePosition(file1, 456)
 
-  val breakPoint1 = new Breakpoint(RawFile(file1.file), sourcePos1.line)
-  val breakPoint2 = new Breakpoint(RawFile(file1.file), sourcePos2.line)
+  val breakPoint1 = new Breakpoint(RawFile(file1.path), sourcePos1.line)
+  val breakPoint2 = new Breakpoint(RawFile(file1.path), sourcePos2.line)
 
   val breakpointList = BreakpointList(List(breakPoint1), List(breakPoint2))
 
@@ -113,7 +113,7 @@ trait EnsimeTestData {
 
   val completionInfoList = List(completionInfo, completionInfo2)
 
-  val sourceFileInfo = SourceFileInfo(file1, Some("{/* code here */}"), Some(file2.file.toFile))
+  val sourceFileInfo = SourceFileInfo(file1, Some("{/* code here */}"), Some(file2.path.toFile))
   val sourceFileInfo2 = SourceFileInfo(file1)
 
   val dtid = DebugThreadId(13)

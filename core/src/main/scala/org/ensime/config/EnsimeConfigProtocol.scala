@@ -2,7 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.config
 
-import java.nio.file.Paths
+import java.nio.file.{ Files, Path, Paths }
 
 import akka.event.slf4j.Logger
 import shapeless._
@@ -10,12 +10,12 @@ import shapeless._
 import org.ensime.sexp._
 import org.ensime.sexp.formats._
 import org.ensime.core.Canonised
-
-import org.ensime.util.file._
-import org.ensime.util.path._
 import org.ensime.util.ensimefile._
+import org.ensime.util.path._
 
 import org.ensime.api._
+
+import scala.collection.JavaConverters._
 
 object EnsimeConfigProtocol {
   object Protocol extends DefaultSexpProtocol
@@ -26,7 +26,7 @@ object EnsimeConfigProtocol {
   private def log = Logger(this.getClass.getName)
 
   implicit object EnsimeFileFormat extends SexpFormat[RawFile] {
-    def write(f: RawFile): Sexp = SexpString(f.file.toString)
+    def write(f: RawFile): Sexp = SexpString(f.path.toString)
     def read(sexp: Sexp): RawFile = sexp match {
       case SexpString(file) => RawFile(Paths.get(file))
       case got => deserializationError(got)
@@ -46,7 +46,7 @@ object EnsimeConfigProtocol {
     // cats.data.Validated would be a cleaner way to do this
     {
       import c._
-      val files = (rootDir :: javaHome :: javaSources).map { _.file.toFile }
+      val files = (rootDir :: javaHome :: javaSources).map(_.path)
       (files ::: javaRunTime(c)).foreach { f =>
         require(f.exists, "" + f + " is required but does not exist")
       }
@@ -57,8 +57,12 @@ object EnsimeConfigProtocol {
     )
   }
 
-  def javaRunTime(c: EnsimeConfig): List[File] = c.javaHome.file.toFile.tree.filter(_.getName == "rt.jar").toList
-
+  def javaRunTime(c: EnsimeConfig): List[Path] =
+    Files.walk(c.javaHome.path)
+      .iterator
+      .asScala
+      .filter(_.getFileName.toString == "rt.jar")
+      .toList
   /*
    We use the canonical form of files/directories to keep OS X happy
    when loading S-Expressions. But the canon may fail to resolve if
@@ -68,9 +72,9 @@ object EnsimeConfigProtocol {
    */
   private[config] def validated(p: EnsimeProject): EnsimeProject = {
     (p.targets ++ p.sources).foreach { dir =>
-      if (!dir.exists() && !dir.isJar) {
+      if (!dir.exists && !dir.isJar) {
         log.warn(s"$dir does not exist, creating")
-        dir.file.mkdirs()
+        dir.path.mkdirs()
       }
     }
     Canonised(p)

@@ -5,14 +5,14 @@ package org.ensime.core
 import java.io.File
 
 import org.slf4j.LoggerFactory
+import org.ensime.api._
+import org.ensime.util.ensimefile._
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.internal.util.RangePosition
 import scala.reflect.io.AbstractFile
 import scala.tools.nsc.symtab.Flags._
 import scala.tools.refactoring.common.{ CompilerAccess, EnrichedTrees }
-import org.ensime.api._
-import org.ensime.util.ensimefile._
 
 class SemanticHighlighting(val global: RichPresentationCompiler) extends CompilerAccess with EnrichedTrees {
 

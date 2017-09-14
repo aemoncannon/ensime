@@ -3,24 +3,26 @@
 package org.ensime.indexer
 
 import java.util
+import java.nio.file.{ Files, StandardOpenOption }
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Queue
 import scala.util._
 
 import akka.event.slf4j.SLF4JLogging
-import org.apache.commons.vfs2.FileObject
 import org.objectweb.asm._
 import org.objectweb.asm.Opcodes._
+import org.ensime.api.EnsimeFile
+import org.ensime.util.ensimefile._
 
-final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
+final class ClassfileIndexer(file: EnsimeFile) extends SLF4JLogging {
 
   def indexClassfile(): RawClassfile = {
-    val name = file.getName
-    require(file.exists(), s"$name does not exist")
-    require(name.getBaseName.endsWith(".class"), s"$name is not a class file")
+    val name = file.path
+    require(file.exists, s"$name does not exist")
+    require(file.isClass, s"$name is not a class file")
 
-    val in = file.getContent.getInputStream
+    val in = Files.newInputStream(name, StandardOpenOption.READ)
     val raw = try {
       val reader = new ClassReader(in)
       val receiver = new AsmCallback

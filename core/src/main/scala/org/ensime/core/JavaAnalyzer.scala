@@ -5,7 +5,6 @@ package org.ensime.core
 import akka.actor._
 import org.ensime.api._
 import org.ensime.core.javac._
-import org.ensime.vfs._
 import org.ensime.indexer.SearchService
 import org.ensime.util.ReportHandler
 import org.ensime.util.FileUtils
@@ -14,8 +13,7 @@ class JavaAnalyzer(
     broadcaster: ActorRef,
     indexer: ActorRef,
     search: SearchService,
-    implicit val config: EnsimeConfig,
-    implicit val vfs: EnsimeVFS
+    implicit val config: EnsimeConfig
 ) extends Actor with Stash with ActorLogging {
 
   protected var javaCompiler: JavaCompiler = _
@@ -37,8 +35,7 @@ class JavaAnalyzer(
         }
       },
       indexer,
-      search,
-      vfs
+      search
     )
 
     // JavaAnalyzer is always 'ready', but legacy clients expect to see
@@ -90,6 +87,5 @@ object JavaAnalyzer {
   )(
     implicit
     config: EnsimeConfig,
-    vfs: EnsimeVFS
-  ) = Props(new JavaAnalyzer(broadcaster, indexer, search, config, vfs))
+  ) = Props(new JavaAnalyzer(broadcaster, indexer, search, config))
 }

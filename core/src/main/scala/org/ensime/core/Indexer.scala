@@ -13,7 +13,6 @@ import org.ensime.indexer.SearchService
 import org.ensime.indexer.graph._
 import org.ensime.model._
 import org.ensime.util.ensimefile._
-import org.ensime.vfs._
 
 // only used for queries by other components
 final case class TypeCompletionsReq(prefix: String, maxResults: Int)
@@ -21,12 +20,11 @@ final case class TypeCompletionsReq(prefix: String, maxResults: Int)
 class Indexer(
     index: SearchService,
     implicit val config: EnsimeConfig,
-    implicit val vfs: EnsimeVFS
 ) extends Actor with ActorLogging {
 
   private def typeResult(hit: FqnSymbol) = TypeSearchResult(
     hit.fqn, hit.fqn.split("\\.").last, hit.declAs,
-    LineSourcePositionHelper.fromFqnSymbol(hit)(vfs)
+    LineSourcePositionHelper.fromFqnSymbol(hit)
   )
 
   def oldSearchTypes(query: String, max: Int): List[TypeSearchResult] = {
@@ -51,7 +49,7 @@ class Indexer(
       case hit if typeDecls.contains(hit.declAs) => Some(typeResult(hit))
       case hit if hit.declAs == DeclaredAs.Method => Some(MethodSearchResult(
         hit.fqn, hit.fqn.split("\\.").last, hit.declAs,
-        LineSourcePositionHelper.fromFqnSymbol(hit)(vfs),
+        LineSourcePositionHelper.fromFqnSymbol(hit),
         hit.fqn.split("\\.").init.mkString(".")
       ))
       case _ => None // were never supported
@@ -125,5 +123,5 @@ class Indexer(
   }
 }
 object Indexer {
-  def apply(index: SearchService)(implicit config: EnsimeConfig, vfs: EnsimeVFS): Props = Props(classOf[Indexer], index, config, vfs)
+  def apply(index: SearchService)(implicit config: EnsimeConfig): Props = Props(classOf[Indexer], index, config)
 }

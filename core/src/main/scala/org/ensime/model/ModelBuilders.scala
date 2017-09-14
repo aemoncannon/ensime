@@ -8,8 +8,6 @@ import org.ensime.core.{ FqnToSymbol, RichPresentationCompiler }
 import org.ensime.indexer.MethodName
 import org.ensime.indexer.graph._
 import org.ensime.util.ensimefile._
-import org.ensime.util.fileobject._
-import org.ensime.vfs._
 
 import scala.collection.mutable
 import scala.reflect.internal.util.{ NoPosition, Position }
@@ -42,7 +40,7 @@ trait ModelBuilders {
 
         val hit = search.findUnique(fqn)
         logger.debug(s"search: $fqn = $hit")
-        hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)(vfs)).flatMap { sourcePos =>
+        hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)).flatMap { sourcePos =>
           if (sourcePos.file.isScala)
             askLinkPos(sym, sourcePos.file).
               flatMap(pos => OffsetSourcePositionHelper.fromPosition(pos))
@@ -312,7 +310,7 @@ trait ModelBuilders {
 
 object LineSourcePositionHelper {
 
-  def fromFqnSymbol(sym: FqnSymbol)(implicit vfs: EnsimeVFS): Option[LineSourcePosition] =
+  def fromFqnSymbol(sym: FqnSymbol): Option[LineSourcePosition] =
     (sym.sourceFileObject, sym.line) match {
       case (None, _) => None
       case (Some(fo), lineOpt) =>

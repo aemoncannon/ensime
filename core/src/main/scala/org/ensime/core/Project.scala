@@ -9,15 +9,13 @@ import scala.util._
 
 import akka.actor._
 import akka.event.LoggingReceive.withLabel
-import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.core.debug.DebugActor
 import org.ensime.indexer._
-import org.ensime.util.{ Debouncer, Timing }
 import org.ensime.util.FileUtils._
+import org.ensime.util.{ Debouncer, Timing }
 import org.ensime.util.ensimefile._
-import org.ensime.vfs._
 
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
 
@@ -43,8 +41,7 @@ class Project(
   // LEGACY: holds messages until clients expect them
   var delayedBroadcaster: ActorRef = _
 
-  // vfs, resolver, search and watchers are considered "reliable" (hah!)
-  private implicit val vfs: EnsimeVFS = EnsimeVFS()
+  // resolver, search and watchers are considered "reliable" (hah!)
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
 
@@ -58,19 +55,23 @@ class Project(
         delay = (5 * Timing.dilation).seconds,
         maxDelay = (20 * Timing.dilation).seconds
       ))(collection.breakOut)
-    def fileChanged(f: FileObject): Unit = {
+
+    override def fileChanged(f: RawFile): Unit = {
       val projectId = config.findProject(f)
       projectId foreach { projectId =>
         (projectId :: dependentProjects.getOrElse(projectId, Nil)).foreach(askReTypeCheck.get(_).foreach(_.call()))
       }
     }
-    def fileAdded(f: FileObject): Unit = {
+
+    override def fileAdded(f: RawFile): Unit = {
       fileChanged(f)
     }
-    def fileRemoved(f: FileObject): Unit = {
+
+    override def fileRemoved(f: RawFile): Unit = {
       fileChanged(f)
     }
-    override def baseReCreated(f: FileObject): Unit = askReTypeCheck.values.foreach(_.call())
+
+    override def baseReCreated(f: RawFile): Unit = askReTypeCheck.values.foreach(_.call())
   }
   context.actorOf(Props(new ClassfileWatcher(searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
@@ -143,7 +144,6 @@ class Project(
   override def postStop(): Unit = {
     // make sure the "reliable" dependencies are cleaned up
     Try(Await.result(searchService.shutdown(), Duration.Inf))
-    Try(vfs.close())
   }
 
   // debounces compiler restarts

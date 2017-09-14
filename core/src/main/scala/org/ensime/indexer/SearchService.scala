@@ -2,25 +2,21 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import java.net.URI
 import org.ensime.util.Debouncer
+import scala.collection.{ mutable, Map, Set }
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util.{ Failure, Properties, Success }
-import scala.collection.{ mutable, Map, Set }
 
 import akka.actor._
 import akka.event.slf4j.SLF4JLogging
-import org.apache.commons.vfs2._
 import org.ensime.api._
 import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.config.richconfig._
 import org.ensime.indexer.graph._
-import org.ensime.util.file._
+import org.ensime.util.ensimefile._
 import org.ensime.util.path._
 import org.ensime.util.map._
-import org.ensime.util.fileobject._
-import org.ensime.vfs._
 
 /**
  * Provides methods to perform ENSIME-specific indexing tasks,
@@ -36,15 +32,20 @@ class SearchService(
 )(
     implicit
     actorSystem: ActorSystem,
-    serverConfig: EnsimeServerConfig,
-    val vfs: EnsimeVFS
+    serverConfig: EnsimeServerConfig
 ) extends FileChangeListener with SLF4JLogging {
   import SearchService._
   import ExecutionContext.Implicits.global // not used for heavy lifting (indexing, graph or lucene)
 
-  private[indexer] val allTargets = config.targets.map(vfs.vfile)
+  private[indexer] val allTargets = config.targets.map(_.toPath)
 
-  private[indexer] def isUserFile(file: FileName): Boolean = allTargets.exists(file isAncestor _.getName)
+  private[indexer] def isUserFile(file: EnsimeFile): Boolean = {
+    val rootPath = file match {
+      case RawFile(path) => path
+      case ArchiveFile(root, entry) => root
+    }
+    allTargets.exists(rootPath.startsWith)
+  }
 
   private val QUERY_TIMEOUT = 30 seconds
 
@@ -81,38 +82,9 @@ class SearchService(
    */
   private val version = "2.0.4"
 
-  private[indexer] val index = new IndexService(config.cacheDir.file / ("index-" + version))
-  private val db = new GraphService((config.cacheDir.file / ("graph-" + version)).toFile)
-
+  private[indexer] val index = new IndexService(config.cacheDir.path / ("index-" + version))
+  private val db = new GraphService((config.cacheDir.path / ("graph-" + version)).toFile)
   val noReverseLookups: Boolean = Properties.propOrFalse("ensime.index.no.reverse.lookups")
-
-  private[indexer] def getTopLevelClassFile(f: FileObject): FileObject = {
-    import scala.reflect.NameTransformer
-    val filename = f.getName
-    val className = filename.getBaseName
-    val baseClassName =
-      if (className.contains("$")) NameTransformer.encode(NameTransformer.decode(className).split("\\$")(0)) + ".class"
-      else className
-    val uri = filename.uriString
-    vfs.vfile(uri.substring(0, uri.length - new URI(className).toASCIIString.length) + new URI(baseClassName).toASCIIString)
-  }
-
-  private def scanGrouped(
-    f: FileObject
-  ): Map[FileName, Set[FileObject]] = {
-    val results = new mutable.HashMap[FileName, mutable.Set[FileObject]] with mutable.MultiMap[FileName, FileObject]
-    f.findFiles(ClassfileSelector) match {
-      case null => results
-      case res =>
-        for (fo <- res) {
-          val key = getTopLevelClassFile(fo)
-          if (key.exists()) {
-            results.addBinding(key.getName, fo)
-          }
-        }
-        results
-    }
-  }
 
   /**
    * Indexes everything, making best endeavours to avoid scanning what
@@ -141,29 +113,31 @@ class SearchService(
     }
 
     // a snapshot of everything that we want to index
-    def findBases(): (Set[FileObject], Map[FileName, Set[FileObject]]) = {
+    def findBases(): (Set[EnsimeFile], Map[EnsimeFile, Set[EnsimeFile]]) = {
+      //TODO: jarFiles is List[RawFile], why not ArchiveFile?
       val (jarFiles, dirs) = config.projects.flatMap {
         case m =>
-          m.targets.map(_.file.toFile).filter(_.exists()).toList ::: m.libraryJars.toList.map(_.file.toFile)
+          m.targets.filter(_.exists).toList :::
+            m.libraryJars
       }.partition(_.isJar)
-      val grouped = dirs.map(d => scanGrouped(vfs.vfile(d))).fold(Map.empty[FileName, Set[FileObject]])(_ merge _)
-      val jars: Set[FileObject] = (jarFiles ++ EnsimeConfigProtocol.javaRunTime(config)).map(vfs.vfile)(collection.breakOut)
+      val grouped = dirs.map(d => d.scanGrouped).fold(Map.empty[EnsimeFile, Set[EnsimeFile]])(_ merge _)
+      val jars: Set[EnsimeFile] =
+        (jarFiles ++ EnsimeConfigProtocol.javaRunTime(config).map(p => RawFile(p))).toSet
       (jars, grouped)
     }
 
     def indexBase(
-      baseName: FileName,
+      base: EnsimeFile,
       fileCheck: Option[FileCheck],
-      grouped: Map[FileName, Set[FileObject]]
+      grouped: Map[EnsimeFile, Set[EnsimeFile]]
     ): Future[Int] = {
-      val base = vfs.vfile(baseName.uriString)
       val outOfDate = fileCheck.forall(_.changed)
-      if (!outOfDate || !base.exists()) Future.successful(0)
+      if (!outOfDate || !base.exists) Future.successful(0)
       else {
-        val boost = isUserFile(baseName)
+        val boost = isUserFile(base)
         val indexed = extractSymbolsFromClassOrJar(base, grouped).flatMap(persist(_, commitIndex = false, boost = boost))
         indexed.onComplete { _ =>
-          if (base.getName.getExtension == "jar") {
+          if (base.isJar) {
             log.debug(s"finished indexing $base")
           }
         }
@@ -171,18 +145,16 @@ class SearchService(
       }
     }
 
+    // TODO: private?
     // index all the given bases and return number of rows written
-    def indexBases(files: (Set[FileObject], Map[FileName, Set[FileObject]]), checks: Seq[FileCheck]): Future[Int] = {
+    def indexBases(files: (Set[EnsimeFile], Map[EnsimeFile, Set[EnsimeFile]]), checks: Seq[FileCheck]): Future[Int] = {
       val (jars, classFiles) = files
       log.debug("Indexing bases...")
 
       val checksLookup: Map[String, FileCheck] = checks.map(check => (check.filename -> check)).toMap
-      val jarsWithChecks = jars.map { jar =>
-        val name = jar.getName
-        (name, checksLookup.get(jar.uriString))
-      }
+      val jarsWithChecks = jars.map(jar => (jar, checksLookup.get(jar.uriString)))
 
-      val basesWithChecks: Seq[(FileName, Option[FileCheck])] = classFiles.map {
+      val basesWithChecks: Seq[(EnsimeFile, Option[FileCheck])] = classFiles.map {
         case (outerClassFile, _) =>
           (outerClassFile, checksLookup.get(outerClassFile.uriString))
       }(collection.breakOut)
@@ -222,8 +194,8 @@ class SearchService(
   }
 
   def extractSymbolsFromClassOrJar(
-    file: FileObject,
-    grouped: Map[FileName, Set[FileObject]]
+    file: EnsimeFile,
+    grouped: Map[EnsimeFile, Set[EnsimeFile]]
   ): Future[List[SourceSymbolInfo]] = {
     def global: ExecutionContext = null // detach the global implicit
     val ec = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
@@ -231,16 +203,22 @@ class SearchService(
     Future {
       blocking {
         file match {
-          case classfile if classfile.getName.getExtension == "class" =>
+          case classfile: RawFile if classfile.isClass =>
             // too noisy to log
-            val files = grouped(classfile.getName)
-            try extractSymbols(classfile, files, classfile)
-            finally { files.foreach(_.close()); classfile.close() }
-          case jar =>
-            log.debug(s"indexing $jar")
-            val vJar = vfs.vjar(jar.asLocalFile)
-            try { (scanGrouped(vJar) flatMap { case (root, files) => extractSymbols(jar, files, vfs.vfile(root.uriString)) }).toList }
-            finally { vfs.nuke(vJar) }
+            val files = grouped(classfile)
+            //try
+            extractSymbols(classfile, files, classfile)
+          //TODO: Add java.nio closing logic
+          //finally { files.foreach(_.close()); classfile.close() }
+          case jar: RawFile =>
+            log.debug(s"indexing ${jar.path}")
+            //try {
+            val res = (jar.scanGrouped.flatMap {
+              case (root, files) => extractSymbols(jar, files, root)
+            }).toList
+            res
+          //} finally { vfs.nuke(vJar) }
+          case ArchiveFile(root, entry) => ???
         }
       }
     }(ec)
@@ -250,14 +228,16 @@ class SearchService(
   private val ignore = Set("$$", "$worker$")
 
   private def extractSymbols(
-    container: FileObject,
-    files: collection.Set[FileObject],
-    rootClassFile: FileObject
+    container: EnsimeFile,
+    files: collection.Set[EnsimeFile],
+    rootClassFile: EnsimeFile
   ): List[SourceSymbolInfo] = {
     def getInternalRefs(isUserFile: Boolean, s: RawSymbol): List[FullyQualifiedReference] = if (isUserFile && !noReverseLookups) s.internalRefs else List.empty
 
-    val depickler = new ClassfileDepickler(rootClassFile)
+    val (fs, path) = rootClassFile.pathWithOpenFs()
+    val depickler = new ClassfileDepickler(path)
     val scalapClasses = depickler.getClasses
+    fs.map(_.close())
 
     val res: List[SourceSymbolInfo] = files.flatMap {
       case f if f.pathWithinArchive.exists(
@@ -271,14 +251,14 @@ class SearchService(
         val indexer = new ClassfileIndexer(f)
         val clazz = indexer.indexClassfile()
 
-        val userFile = isUserFile(f.getName)
+        val userFile = isUserFile(f)
         val source = resolver.resolve(clazz.name.pack, clazz.source)
 
         val sourceUri = source.map(_.uriString)
 
         val jdi = source.map { src =>
           val pkg = clazz.name.pack.path.mkString("/")
-          s"$pkg/${src.getName.getBaseName}"
+          s"$pkg/${src.path.getFileName}"
         }
 
         val scalapClassInfo = scalapClasses.get(clazz.name.fqnString)
@@ -364,7 +344,7 @@ class SearchService(
 
   // deletion in both Lucene and H2 is really slow, batching helps
   def deleteInBatches(
-    files: List[FileObject],
+    files: List[EnsimeFile],
     batchSize: Int = 1000
   ): Future[Int] = {
     val removing = files.grouped(batchSize).map(delete)
@@ -372,7 +352,7 @@ class SearchService(
   }
 
   // returns number of rows removed
-  def delete(files: List[FileObject]): Future[Int] = {
+  def delete(files: List[EnsimeFile]): Future[Int] = {
     // this doesn't speed up Lucene deletes, but it means that we
     // don't wait for Lucene before starting the H2 deletions.
     val iwork = index.remove(files)
@@ -384,9 +364,9 @@ class SearchService(
     } yield removals
   }
 
-  def fileChanged(f: FileObject): Unit = backlogActor ! IndexFile(f)
-  def fileRemoved(f: FileObject): Unit = fileChanged(f)
-  def fileAdded(f: FileObject): Unit = fileChanged(f)
+  def fileChanged(f: RawFile): Unit = backlogActor ! IndexFile(f)
+  def fileRemoved(f: RawFile): Unit = fileChanged(f)
+  def fileAdded(f: RawFile): Unit = fileChanged(f)
 
   def shutdown(): Future[Unit] = Future.sequence {
     List(db.shutdown(), index.shutdown())
@@ -452,7 +432,7 @@ object SearchService {
   }
 }
 
-final case class IndexFile(f: FileObject)
+final case class IndexFile(f: EnsimeFile)
 
 class IndexingQueueActor(searchService: SearchService) extends Actor with ActorLogging {
   import scala.concurrent.duration._
@@ -462,7 +442,7 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
   // De-dupes files that have been updated since we were last told to
   // index them. No need to aggregate values: the latest wins. Key is
   // the URI because FileObject doesn't implement equals
-  private val todo = new mutable.HashMap[FileName, mutable.Set[FileObject]] with mutable.MultiMap[FileName, FileObject]
+  private val todo = new mutable.HashMap[EnsimeFile, mutable.Set[EnsimeFile]] with mutable.MultiMap[EnsimeFile, EnsimeFile]
 
   private val advice = "If the problem persists, you may need to restart ensime."
 
@@ -471,10 +451,10 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
   override def receive: Receive = {
     case IndexFile(f) =>
       val topLevelClassFile = f match {
-        case jar if jar.getName.getExtension == "jar" => jar
-        case classFile => searchService.getTopLevelClassFile(classFile)
+        case jar if jar.isJar => jar
+        case classFile: RawFile => classFile.getTopLevelClassFile
       }
-      todo.addBinding(topLevelClassFile.getName, topLevelClassFile)
+      todo.addBinding(topLevelClassFile, topLevelClassFile)
       processDebounce.call()
 
     case Process if todo.isEmpty => // nothing to do
@@ -495,11 +475,9 @@ class IndexingQueueActor(searchService: SearchService) extends Actor with ActorL
 
       batch.grouped(10).foreach(chunk => Future.sequence(chunk.map {
         case (outerClassFile, _) =>
-          val filename = outerClassFile.getPath
-          // I don't trust VFS's f.exists()
-          if (!File(filename).exists()) {
+          if (!outerClassFile.exists) {
             Future.successful(outerClassFile -> Nil)
-          } else searchService.extractSymbolsFromClassOrJar(searchService.vfs.vfile(outerClassFile.uriString), batch).map(outerClassFile -> )
+          } else searchService.extractSymbolsFromClassOrJar(outerClassFile, batch).map(outerClassFile -> )
       }).onComplete {
         case Failure(t) =>
           log.error(t, s"failed to index batch of ${batch.size} files. $advice")

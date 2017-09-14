@@ -61,7 +61,6 @@ import org.ensime.model._
 import org.ensime.util.ensimefile._
 import org.ensime.util.file._
 import org.ensime.util.sourcefile._
-import org.ensime.vfs._
 import org.slf4j.LoggerFactory
 
 trait RichCompilerControl extends CompilerControl with RefactoringControl with CompletionControl with DocFinding {
@@ -288,7 +287,6 @@ class RichPresentationCompiler(
   val search: SearchService
 )(
   implicit
-  val vfs: EnsimeVFS,
   val serverConfig: EnsimeServerConfig,
   val ec: ExecutionContext
 ) extends Global(settings, richReporter)

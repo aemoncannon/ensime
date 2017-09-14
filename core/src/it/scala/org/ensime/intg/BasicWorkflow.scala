@@ -77,7 +77,7 @@ class BasicWorkflow extends EnsimeSpec
           project ! SymbolDesignationsReq(Left(fooFile), -1, 299, SourceSymbol.allSymbols)
           val designations = expectMsgType[SymbolDesignations]
           designations.file match {
-            case rf: RawFile => rf.file.toFile shouldBe fooFile
+            case rf: RawFile => rf.path.toFile shouldBe fooFile
             case af: ArchiveFile => ???
           }
           designations.syms should contain(SymbolDesignation(12, 19, PackageSymbol))

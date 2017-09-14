@@ -22,7 +22,6 @@ import org.ensime.indexer.SearchService
 import org.ensime.util.{ PresentationReporter, ReportHandler }
 import org.ensime.util.file._
 import org.ensime.util.sourcefile._
-import org.ensime.vfs._
 import org.slf4j.LoggerFactory
 
 final case class CompilerFatalError(e: Throwable)
@@ -53,8 +52,7 @@ class Analyzer(
     search: SearchService,
     scoped: List[EnsimeProjectId],
     implicit val config: EnsimeConfig,
-    implicit val serverConfig: EnsimeServerConfig,
-    implicit val vfs: EnsimeVFS
+    implicit val serverConfig: EnsimeServerConfig
 ) extends Actor with Stash with ActorLogging with RefactoringHandler {
 
   import context.dispatcher
@@ -315,7 +313,6 @@ object Analyzer {
   )(
     implicit
     config: EnsimeConfig,
-    serverConfig: EnsimeServerConfig,
-    vfs: EnsimeVFS
-  ) = Props(new Analyzer(broadcaster, indexer, search, scoped, config, serverConfig, vfs))
+    serverConfig: EnsimeServerConfig
+  ) = Props(new Analyzer(broadcaster, indexer, search, scoped, config, serverConfig))
 }

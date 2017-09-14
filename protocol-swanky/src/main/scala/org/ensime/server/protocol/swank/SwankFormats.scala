@@ -5,9 +5,9 @@ package org.ensime.server.protocol.swank
 import scala.util._
 
 import org.ensime.api._
+import org.ensime.util.ensimefile._
 import org.ensime.sexp._
 import org.ensime.sexp.formats._
-import org.ensime.util.ensimefile._
 import shapeless.cachedImplicit
 
 /*

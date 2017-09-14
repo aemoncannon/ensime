@@ -43,7 +43,7 @@ class JerkyFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeT
     roundtrip(enveloped, s"""{"payload":$via}""")
   }
 
-  implicit def toFile(raw: RawFile): File = raw.file.toFile
+  implicit def toFile(raw: RawFile): File = raw.path.toFile
 
   it should "roundtrip startup messages" in {
     roundtrip(

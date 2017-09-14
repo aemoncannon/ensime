@@ -2,13 +2,13 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
+import org.ensime.api.{ ArchiveFile, RawFile }
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
+import org.ensime.util.ensimefile._
 import org.ensime.util.file._
-import org.ensime.util.fileobject._
 
 class SourceResolverSpec extends EnsimeSpec
-    with SharedEnsimeVFSFixture
     with SharedSourceResolverFixture
     with SourceResolverTestUtils {
 
@@ -53,9 +53,9 @@ trait SourceResolverTestUtils {
   def find(pkg: String, file: String)(implicit resolver: SourceResolver) = {
     resolver.resolve(
       PackageName(pkg.split('.').toList), RawSource(Some(file), None)
-    ).map(fo => fo.pathWithinArchive match {
-        case None => fo.asLocalFile.getAbsolutePath
-        case _ => fo.getName.getPath
-      })
+    ).map {
+        case ArchiveFile(root, entry) => entry
+        case RawFile(path) => path.toAbsolutePath.toString
+      }
   }
 }

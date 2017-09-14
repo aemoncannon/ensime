@@ -67,7 +67,7 @@ class CanonSpec extends EnsimeSpec {
   it should "canon an ArchiveFile" in withTempDir { dir =>
     val rawDir = RawFile(dir.toPath)
     val src = Paths.get(jdkHome) / "src.zip"
-
+    //  TODO: use archive file
     val entry = EnsimeFile(s"$src!/java/lang/String.java")
     val extracted = RawFile(dir.toPath / "dep-src/source-jars/java/lang/String.java")
 

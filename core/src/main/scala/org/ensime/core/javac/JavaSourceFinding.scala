@@ -9,7 +9,6 @@ import javax.lang.model.element.Element
 import org.ensime.api._
 import org.ensime.util.ensimefile._
 import org.ensime.model.LineSourcePositionHelper
-import org.ensime.vfs._
 import org.ensime.indexer.SearchService
 import org.ensime.indexer.FullyQualifiedName
 
@@ -17,7 +16,6 @@ trait JavaSourceFinding extends Helpers with SLF4JLogging {
 
   def askLinkPos(fqn: FullyQualifiedName, file: SourceFileInfo): Option[SourcePosition]
   def search: SearchService
-  def vfs: EnsimeVFS
   def config: EnsimeConfig
 
   protected def findInCompiledUnit(c: Compilation, fqn: FullyQualifiedName): Option[SourcePosition] = {
@@ -46,8 +44,8 @@ trait JavaSourceFinding extends Helpers with SLF4JLogging {
     val hit = search.findUnique(query)
     if (log.isTraceEnabled())
       log.trace(s"search: '$query' = $hit")
-    hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)(vfs)).flatMap { sourcePos =>
-      if (sourcePos.file.isJava && sourcePos.file.exists())
+    hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)).flatMap { sourcePos =>
+      if (sourcePos.file.isJava && sourcePos.file.exists)
         javaFqn.flatMap(askLinkPos(_, SourceFileInfo(sourcePos.file, None, None))).orElse(Some(sourcePos))
       else
         Some(sourcePos)

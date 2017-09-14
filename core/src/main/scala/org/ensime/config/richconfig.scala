@@ -9,12 +9,10 @@ import scala.collection.breakOut
 import scala.collection.JavaConverters._
 
 import com.typesafe.config._
-import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 import org.ensime.util.file._
-import org.ensime.util.path._
 import org.ensime.util.ensimefile._
-import org.ensime.vfs.`package`.EnsimeVFS
+import org.ensime.util.path._
 
 package object richconfig {
 
@@ -51,7 +49,7 @@ package object richconfig {
     def classpath: List[File] =
       (targetFiles(c) ::: libraryJarFiles(c)).distinct
     def targets: List[File] = targetFiles(c)
-
+    // TODO: Delete
     def referenceSourceJars: Set[File] = (javaSourceFiles(c) ++ librarySourceFiles(c))(breakOut)
 
     def lookup(id: EnsimeProjectId) = c.projects.find(_.id == id).get
@@ -64,20 +62,12 @@ package object richconfig {
         name.startsWith("scala-library") && name.endsWith(".jar")
       }
 
-    def findProject(f: FileObject)(implicit vfs: EnsimeVFS) = {
-      val filePath = f.getName.getPath
-      c.projects collectFirst {
-        case project if (project.sources ++ project.targets).map(rf =>
-          vfs.toFileObject(rf.file.toFile).getName.getPath).exists(filePath.startsWith) =>
-          project.id
-      }
-    }
-
     def findProject(path: Path): Option[EnsimeProjectId] = {
       c.projects collectFirst {
-        case project if (project.sources ++ project.targets).exists(f => path.startsWith(f.file)) => project.id
+        case project if (project.sources ++ project.targets).exists(f => path.startsWith(f.path)) => project.id
       }
     }
+    //TODO: Remove
     def findProject(file: EnsimeFile): Option[EnsimeProjectId] = file match {
       case RawFile(file) => findProject(file)
       case ArchiveFile(jar, _) => findProject(jar)
@@ -91,22 +81,22 @@ package object richconfig {
 
     def classpath(implicit config: EnsimeConfig): List[File] = {
       // may not agree with the build tool (e.g. could put all targets first)
-      val files = (p.targets.toList ::: p.libraryJars).map(_.file.toFile)
+      val files = (p.targets.toList ::: p.libraryJars).map(_.path.toFile)
       files ::: (dependencies.flatMap(_.classpath))
     }
 
     def scalaSourceFiles: Set[RawFile] = for {
       root <- p.sources
-      filePath <- root.file.tree
+      filePath <- root.path.tree
       rawFile = RawFile(filePath)
       if filePath.isFile && rawFile.isScala
     } yield rawFile
   }
 
-  private def targetFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.targets).map(_.file.toFile)
-  private def libraryJarFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.libraryJars).map(_.file.toFile)
-  private def librarySourceFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.librarySources).map(_.file.toFile)
-  private def libraryDocFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.libraryDocs).map(_.file.toFile)
-  private def javaSourceFiles(c: EnsimeConfig): List[File] = c.javaSources.map(_.file.toFile)
+  private def targetFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.targets).map(_.path.toFile)
+  private def libraryJarFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.libraryJars).map(_.path.toFile)
+  private def librarySourceFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.librarySources).map(_.path.toFile)
+  private def libraryDocFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.libraryDocs).map(_.path.toFile)
+  private def javaSourceFiles(c: EnsimeConfig): List[File] = c.javaSources.map(_.path.toFile)
 
 }
