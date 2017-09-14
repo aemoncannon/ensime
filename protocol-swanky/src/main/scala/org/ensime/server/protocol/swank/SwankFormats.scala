@@ -357,7 +357,7 @@ object SwankProtocolResponse {
   implicit object EnsimeEventFormat extends TraitFormat[EnsimeEvent] {
     def write(ee: EnsimeEvent): Sexp = ee match {
       case e: AnalyzerReadyEvent.type => wrap(e)
-      case e: AsyncConnectionInfo => wrap(e)
+      case e: GreetingInfo => wrap(e)
       case e: FullTypeCheckCompleteEvent.type => wrap(e)
       case e: IndexerReadyEvent.type => wrap(e)
       case e: CompilerRestartedEvent.type => wrap(e)

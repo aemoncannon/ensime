@@ -74,12 +74,7 @@ class Project(
   }
   context.actorOf(Props(new ClassfileWatcher(searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
-  def receive: Receive = {
-    if (serverConfig.legacy.connectionInfoReq)
-      awaitingConnectionInfoReq
-    else
-      handleRequests
-  }
+  def receive: Receive = awaitingConnectionInfoReq
 
   // The original ensime protocol won't send any messages to the
   // client until it has obliged a request for the connection info.
@@ -139,6 +134,10 @@ class Project(
     }
     debugger = context.actorOf(DebugActor.props(delayedBroadcaster, searchService), "debugging")
     docs = context.actorOf(DocResolver(), "docs")
+    if (serverConfig.legacy.connectionInfoReq)
+      context.become(awaitingConnectionInfoReq)
+    else
+      context.become(handleRequests)
   }
 
   override def postStop(): Unit = {
@@ -172,11 +171,7 @@ class Project(
     case m: DocSigPair => docs forward m
 
     // added here to prevent errors when client sends this repeatedly (e.g. as a keepalive
-    case ConnectionInfoReq =>
-      if (serverConfig.legacy.connectionInfoReq)
-        sender() ! ConnectionInfo()
-      else
-        sender() ! AsyncConnectionInfo()
+    case ConnectionInfoReq => sender() ! ConnectionInfo()
   }
 
 }
