@@ -40,10 +40,6 @@ class JavaAnalyzer(
       search,
       vfs
     )
-
-    // JavaAnalyzer is always 'ready', but legacy clients expect to see
-    // AnalyzerReady
-    broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
   }
 
   override def postStop(): Unit = {

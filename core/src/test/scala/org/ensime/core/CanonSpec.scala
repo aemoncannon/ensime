@@ -55,12 +55,6 @@ class CanonSpec extends EnsimeSpec {
     val ef = List(RawFile(file.toPath))
     val expected = List(RawFile(canon.toPath))
 
-    Canon.config = EnsimeConfig(
-      rawDir, rawDir, rawDir,
-      "config", "version",
-      Nil, Nil, Nil
-    )
-
     Canonised(ef) shouldBe expected
   }
 
@@ -69,18 +63,9 @@ class CanonSpec extends EnsimeSpec {
     val src = Paths.get(jdkHome) / "src.zip"
 
     val entry = EnsimeFile(s"$src!/java/lang/String.java")
-    val extracted = RawFile(dir.toPath / "dep-src/source-jars/java/lang/String.java")
+    val expected = ArchiveFile(src.canon, "/java/lang/String.java")
 
-    val ef = List(entry)
-    val expected = List(extracted.canon)
-
-    Canon.config = EnsimeConfig(
-      rawDir, rawDir, rawDir,
-      "config", "version",
-      Nil, Nil, Nil
-    )
-
-    Canonised(ef) shouldBe expected
+    Canonised(List(entry)) shouldBe List(expected)
   }
 
 }

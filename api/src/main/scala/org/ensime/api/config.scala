@@ -3,12 +3,11 @@
 package org.ensime.api
 
 final case class EnsimeConfig(
-  @deprecating("rootDir is no longer used except in testing") rootDir: RawFile,
+  rootDir: RawFile,
   cacheDir: RawFile,
   javaHome: RawFile,
   name: String,
   scalaVersion: String,
-  @deprecating("each project will have a compiler") compilerArgs: List[String],
   javaSources: List[RawFile],
   projects: List[EnsimeProject]
 )
@@ -38,12 +37,7 @@ final case class EnsimeServerConfig(
   protocol: String,
   exitAfterIndex: Boolean,
   disableClassMonitoring: Boolean,
-  legacy: LegacyConfig,
   indexBatchSize: Int
-)
-final case class LegacyConfig(
-  connectionInfoReq: Boolean,
-  jarurls: Boolean
 )
 final case class ImportsConfig(
   locals: Boolean,

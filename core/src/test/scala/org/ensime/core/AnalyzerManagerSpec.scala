@@ -28,7 +28,7 @@ class AnalyzerManagerSpec extends EnsimeSpec with SharedTestKitFixture {
       val module2 = dir / "module2"
       if (module1.mkdir() && module2.mkdir()) {
         var rawDir = RawFile(dir.toPath)
-        implicit val dummyConfig: EnsimeConfig = EnsimeConfig(rawDir, rawDir, rawDir, null, null, Nil, Nil, List(
+        implicit val dummyConfig: EnsimeConfig = EnsimeConfig(rawDir, rawDir, rawDir, null, null, Nil, List(
           EnsimeProject(EnsimeProjectId("module1", "compile"), Nil, Set(RawFile(module1.toPath)), Set.empty, Nil, Nil, Nil, Nil, Nil),
           EnsimeProject(EnsimeProjectId("module2", "compile"), Nil, Set(RawFile(module2.toPath)), Set.empty, Nil, Nil, Nil, Nil, Nil)
         ))

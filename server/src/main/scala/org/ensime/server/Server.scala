@@ -18,7 +18,6 @@ import org.ensime.api._
 import org.ensime.config._
 import org.ensime.config.richconfig._
 import org.ensime.core._
-import org.ensime.server.tcp.TCPServer
 import org.ensime.util.Slf4jSetup
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.path._
@@ -26,8 +25,7 @@ import org.slf4j._
 
 class ServerActor(
     config: EnsimeConfig,
-    serverConfig: EnsimeServerConfig,
-    protocol: Protocol
+    serverConfig: EnsimeServerConfig
 ) extends Actor with ActorLogging {
 
   var channel: Channel = _
@@ -46,14 +44,6 @@ class ServerActor(
 
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
     val project = context.actorOf(Project(broadcaster), "project")
-
-    val preferredTcpPort = PortUtil.port(config.cacheDir.file, "port")
-    context.actorOf(Props(
-      new TCPServer(
-        config.cacheDir.file.toFile, protocol, project,
-        broadcaster, serverConfig.shutDownOnDisconnect, preferredTcpPort
-      )
-    ), "tcp-server")
 
     // async start the HTTP Server
     val selfRef = self
@@ -113,9 +103,9 @@ class ServerActor(
 
 }
 object ServerActor {
-  def props(protocol: Protocol)(implicit
+  def props()(implicit
     ensimeConfig: EnsimeConfig,
-    serverConfig: EnsimeServerConfig): Props = Props(new ServerActor(ensimeConfig, serverConfig, protocol))
+    serverConfig: EnsimeServerConfig): Props = Props(new ServerActor(ensimeConfig, serverConfig))
 }
 
 object Server extends AkkaBackCompat {
@@ -147,16 +137,7 @@ object Server extends AkkaBackCompat {
     implicit val serverConfig: EnsimeServerConfig = parseServerConfig(config)
     implicit val ensimeConfig: EnsimeConfig = EnsimeConfigProtocol.parse(serverConfig.config.file.readString())
 
-    Canon.config = ensimeConfig
-    Canon.serverConfig = serverConfig
-
-    val protocol: Protocol = serverConfig.protocol match {
-      case "swanki" => new SwankiProtocol
-      case "swank" => new SwankProtocol
-      case other => throw new IllegalArgumentException(s"$other is not a valid ENSIME protocol")
-    }
-
-    ActorSystem.create("ENSIME", config).actorOf(ServerActor.props(protocol), "ensime-main")
+    ActorSystem.create("ENSIME", config).actorOf(ServerActor.props(), "ensime-main")
   }
 
   def shutdown(system: ActorSystem, channel: Channel, request: ShutdownRequest, exit: Boolean): Unit = {

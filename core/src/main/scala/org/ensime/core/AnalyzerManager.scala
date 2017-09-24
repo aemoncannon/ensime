@@ -34,12 +34,6 @@ class AnalyzerManager(
         sauron
     }
 
-  override def preStart(): Unit = {
-    // for legacy clients on startup
-    broadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
-    broadcaster ! Broadcaster.Persist(FullTypeCheckCompleteEvent)
-  }
-
   override def receive: Receive = ready
 
   private def ready: Receive = withLabel("ready") {

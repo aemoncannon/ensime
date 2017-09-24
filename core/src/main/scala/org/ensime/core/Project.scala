@@ -8,7 +8,6 @@ import scala.concurrent.duration._
 import scala.util._
 
 import akka.actor._
-import akka.event.LoggingReceive.withLabel
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 import org.ensime.config.richconfig._
@@ -74,24 +73,6 @@ class Project(
   }
   context.actorOf(Props(new ClassfileWatcher(searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
-  def receive: Receive = awaitingConnectionInfoReq
-
-  // The original ensime protocol won't send any messages to the
-  // client until it has obliged a request for the connection info.
-  // Although this is irrelevant now, it is expected by clients and
-  // must be maintained. Ideally we'd remove this request and make
-  // the response be an async message.
-  def awaitingConnectionInfoReq: Receive = withLabel("awaitingConnectionInfoReq") {
-    case ShutdownRequest => context.parent forward ShutdownRequest
-    case ConnectionInfoReq =>
-      sender() ! ConnectionInfo()
-      context.become(handleRequests)
-      unstashAll()
-      delayedBroadcaster ! FloodGate.Activate
-    case other =>
-      stash()
-  }
-
   override def preStart(): Unit = {
     delayedBroadcaster = system.actorOf(FloodGate(broadcaster), "delay")
     dependentProjects = config.projects.map(
@@ -99,8 +80,6 @@ class Project(
     )(collection.breakOut)
     searchService.refresh().onComplete {
       case Success((deletes, inserts)) =>
-        // legacy clients expect to see IndexerReady on connection.
-        // we could also just blindly send this on each connection.
         delayedBroadcaster ! Broadcaster.Persist(IndexerReadyEvent)
         log.debug(s"created $inserts and removed $deletes searchable rows")
         if (serverConfig.exitAfterIndex)
@@ -134,10 +113,8 @@ class Project(
     }
     debugger = context.actorOf(DebugActor.props(delayedBroadcaster, searchService), "debugging")
     docs = context.actorOf(DocResolver(), "docs")
-    if (!serverConfig.legacy.connectionInfoReq) {
-      broadcaster ! GreetingInfo()
-      context.become(handleRequests)
-    }
+
+    broadcaster ! GreetingInfo()
   }
 
   override def postStop(): Unit = {
@@ -149,7 +126,7 @@ class Project(
   // debounces compiler restarts
   private var rechecking: Cancellable = _
 
-  def handleRequests: Receive = withLabel("handleRequests") {
+  def receive: Receive = {
     case ShutdownRequest => context.parent forward ShutdownRequest
     case req @ RestartScalaCompilerReq(_, _) => scalac forward req
     case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m

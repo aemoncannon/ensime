@@ -8,9 +8,7 @@ import scala.collection.immutable.ListSet
 /**
  * An actor that will forward all received messages onto actors that
  * have registered to receive messages. Messages wrapped with
- * `Persist` will be held and sent to all new subscribers (to cater
- * for legacy EnsimeEvents that older clients expect to see on
- * startup).
+ * `Persist` will be held and sent to all new subscribers.
  *
  * To avoid memory leaks, non-restarting Actors should unregister when
  * they stop. Additional register requests for the same actor will

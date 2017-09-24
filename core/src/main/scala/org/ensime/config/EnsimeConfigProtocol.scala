@@ -20,7 +20,7 @@ import org.ensime.api._
 object EnsimeConfigProtocol {
   object Protocol extends DefaultSexpProtocol
     with OptionAltFormat
-    with CamelCaseToDashes
+    with FamilyFormats
   import org.ensime.config.EnsimeConfigProtocol.Protocol._
 
   private def log = Logger(this.getClass.getName)
@@ -33,8 +33,15 @@ object EnsimeConfigProtocol {
     }
   }
 
-  private implicit val projectIdFormat: SexpFormat[EnsimeProjectId] = cachedImplicit
-  private implicit val projectFormat: SexpFormat[EnsimeProject] = cachedImplicit
+  def camel(in: String): String = in.replaceAll("([A-Z])", "-$1").toLowerCase.replaceAll("^-", "")
+
+  implicit object EnsimeConfigHint extends BasicProductHint[EnsimeConfig] {
+    override def field[K <: Symbol](k: K): SexpSymbol = SexpSymbol(s":${camel(k.name)}")
+  }
+  implicit object EnsimeProjectHint extends BasicProductHint[EnsimeProject] {
+    override def field[K <: Symbol](k: K): SexpSymbol = SexpSymbol(s":${camel(k.name)}")
+  }
+
   private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit
 
   def parse(config: String): EnsimeConfig = {

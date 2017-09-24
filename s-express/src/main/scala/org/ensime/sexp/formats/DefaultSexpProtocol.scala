@@ -6,6 +6,5 @@ trait DefaultSexpProtocol
   extends BasicFormats
   with StandardFormats
   with CollectionFormats
-  with LegacyProductFormats
 
 object DefaultSexpProtocol extends DefaultSexpProtocol

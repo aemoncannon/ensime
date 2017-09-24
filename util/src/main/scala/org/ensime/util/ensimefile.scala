@@ -120,35 +120,3 @@ package object ensimefile {
     case archive: ArchiveFile => new RichArchiveFile(archive)
   }
 }
-
-/*
- * In the ENSIME 1.0 API, source files in jars/zips were extracted
- * into .ensime_cache/dep-src/source-jars/
- *
- * This is to support the legacy formats.
- *
- * Will be removed in ENSIME 3.0
- */
-@deprecating
-class LegacyArchiveExtraction(ensime_cache: Path) {
-  import ensimefile._
-  import path._
-
-  private val extract = ensime_cache / "dep-src/source-jars"
-
-  def write(file: EnsimeFile): EnsimeFile = file match {
-    case archive @ ArchiveFile(jar, path) =>
-      val target = extract / path.replaceAll("^[/]+", "")
-      val bytes = archive.readBytes()
-
-      val parent = target.getParent
-      Files.createDirectories(parent)
-
-      target.write(bytes)
-      RawFile(target)
-
-    case ok => ok
-  }
-
-  // no read equivalent, it would involve source resolution (not worth it)
-}

@@ -32,32 +32,29 @@ class EnsimeConfigSpec extends EnsimeSpec {
  :java-home "$javaHome"
  :root-dir "$dir"
  :cache-dir "$cache"
- :reference-source-roots ()
- :subprojects ((:name "module1"
-                :scala-version "2.10.4"
-                :depends-on-modules ()
-                :targets ("$abc")
-                :test-targets ("$abc")
-                :source-roots ()
-                :reference-source-roots ()
-                :compiler-args ()
-                :runtime-deps ()
-                :test-deps ()))
+ :java-sources ()
  :projects ((:id (:project "module1" :config "compile")
              :depends ()
              :sources ()
              :targets ("$abc")
-             :scalac-options ()
-             :javac-options ()
-             :library-jars ()
-             :library-sources ()
-             :library-docs ())))""", { implicit config =>
+             :scalac-options ("wibble" "wobble")
+             :javac-options ("flibble" "flobble")
+             :library-jars ("$javaHome/src.zip")
+             :library-sources ("$javaHome/src.zip")
+             :library-docs ("$javaHome/src.zip"))))""", { implicit config =>
       config.name shouldBe "project"
       config.scalaVersion shouldBe "2.10.4"
       val module1 = config.lookup(EnsimeProjectId("module1", "compile"))
       module1.id.project shouldBe "module1"
       module1.dependencies shouldBe empty
       config.projects.size shouldBe 1
+
+      val proj = config.projects.head
+      proj.scalacOptions should not be empty
+      proj.javacOptions should not be empty
+      proj.libraryJars should not be empty
+      proj.librarySources should not be empty
+      proj.libraryDocs should not be empty
     })
   }
 
