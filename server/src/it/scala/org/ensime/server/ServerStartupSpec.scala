@@ -42,7 +42,6 @@ class ServerStartupSpec extends EnsimeSpec
 
         // this can fail randomly. No general solution.
         val preferredHttp = 10001
-        val preferredTcp = 10002
 
         (config.cacheDir.file / "http").write(preferredHttp.toString)
 
@@ -50,16 +49,12 @@ class ServerStartupSpec extends EnsimeSpec
 
         eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
           val http = new Socket
-          val tcp = new Socket
 
           try {
             http.connect(new InetSocketAddress("127.0.0.1", preferredHttp))
-            tcp.connect(new InetSocketAddress("127.0.0.1", preferredTcp))
-
-            http.isConnected() && tcp.isConnected()
+            http.isConnected()
           } finally {
             Try(http.close())
-            Try(tcp.close())
           }
         }
       }
