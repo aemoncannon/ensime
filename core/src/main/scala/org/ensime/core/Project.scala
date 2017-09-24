@@ -2,7 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.core
 
-import scala.collection.immutable.ListSet
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util._
@@ -74,13 +73,12 @@ class Project(
   context.actorOf(Props(new ClassfileWatcher(searchService :: reTypecheck :: Nil)), "classFileWatcher")
 
   override def preStart(): Unit = {
-    delayedBroadcaster = system.actorOf(FloodGate(broadcaster), "delay")
     dependentProjects = config.projects.map(
       p => p.id -> config.projects.filter(_.depends.contains(p.id)).map(_.id)
     )(collection.breakOut)
     searchService.refresh().onComplete {
       case Success((deletes, inserts)) =>
-        delayedBroadcaster ! Broadcaster.Persist(IndexerReadyEvent)
+        broadcaster ! Broadcaster.Persist(IndexerReadyEvent)
         log.debug(s"created $inserts and removed $deletes searchable rows")
         if (serverConfig.exitAfterIndex)
           context.parent ! ShutdownRequest("Index only run", isError = false)
@@ -91,30 +89,17 @@ class Project(
 
     indexer = context.actorOf(Indexer(searchService), "indexer")
     if (config.scalaLibrary.isDefined || Set("scala", "dotty")(config.name)) {
-
-      // we merge scala and java AnalyzerReady messages into a single
-      // AnalyzerReady message, fired only after java *and* scala are ready
-      val merger = context.actorOf(Props(new Actor {
-        var senders = ListSet.empty[ActorRef]
-        def receive: Receive = {
-          case Broadcaster.Persist(AnalyzerReadyEvent) if senders.size == 1 =>
-            delayedBroadcaster ! Broadcaster.Persist(AnalyzerReadyEvent)
-          case Broadcaster.Persist(AnalyzerReadyEvent) => senders += sender()
-          case msg => delayedBroadcaster forward msg
-        }
-      }))
-
-      scalac = context.actorOf(AnalyzerManager(merger, Analyzer(merger, indexer, searchService, _)), "scalac")
-      javac = context.actorOf(JavaAnalyzer(merger, indexer, searchService), "javac")
+      scalac = context.actorOf(AnalyzerManager(broadcaster, Analyzer(broadcaster, indexer, searchService, _)), "scalac")
+      javac = context.actorOf(JavaAnalyzer(broadcaster, indexer, searchService), "javac")
     } else {
       log.warning("Detected a pure Java project. Scala queries are not available.")
       scalac = system.deadLetters
-      javac = context.actorOf(JavaAnalyzer(delayedBroadcaster, indexer, searchService), "javac")
+      javac = context.actorOf(JavaAnalyzer(broadcaster, indexer, searchService), "javac")
     }
-    debugger = context.actorOf(DebugActor.props(delayedBroadcaster, searchService), "debugging")
+    debugger = context.actorOf(DebugActor.props(broadcaster, searchService), "debugging")
     docs = context.actorOf(DocResolver(), "docs")
 
-    broadcaster ! GreetingInfo()
+    broadcaster ! Broadcaster.Persist(GreetingInfo())
   }
 
   override def postStop(): Unit = {

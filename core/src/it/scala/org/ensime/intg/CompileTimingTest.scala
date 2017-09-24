@@ -45,7 +45,6 @@ class CompileTimingTest extends EnsimeSpec
 
           project ! TypecheckFileReq(exampleDiskInfo)
           expectMsg(VoidResponse)
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
           // GUI usually responds to each typecheck by requesting symbols
           project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
@@ -55,15 +54,13 @@ class CompileTimingTest extends EnsimeSpec
           project ! TypecheckFileReq(exampleMemory)
           expectMsg(VoidResponse)
 
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
           project ! SymbolDesignationsReq(Right(exampleMemory), 0, 70, SourceSymbol.allSymbols)
           expectMsgType[SymbolDesignations]
 
           // simulate sbt clean https://github.com/sbt/sbt/issues/106
           target.tree.reverse.filter(_.isFile).foreach(_.delete())
 
-          asyncHelper.receiveN(2, 10.seconds) should contain theSameElementsAs (Seq(
-            FullTypeCheckCompleteEvent,
+          asyncHelper.receiveN(1, 10.seconds) should contain theSameElementsAs (Seq(
             CompilerRestartedEvent
           ))
 
@@ -83,8 +80,7 @@ class CompileTimingTest extends EnsimeSpec
             }
           }
 
-          asyncHelper.receiveN(2, 10.seconds) should contain theSameElementsAs (Seq(
-            FullTypeCheckCompleteEvent,
+          asyncHelper.receiveN(1, 10.seconds) should contain theSameElementsAs (Seq(
             CompilerRestartedEvent
           ))
 

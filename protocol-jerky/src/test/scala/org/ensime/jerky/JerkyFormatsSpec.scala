@@ -252,16 +252,6 @@ class JerkyFormatsSpec extends EnsimeSpec with SprayJsonTestSupport with EnsimeT
     )
 
     roundtrip(
-      AnalyzerReadyEvent: EnsimeServerMessage,
-      """{"typehint":"AnalyzerReadyEvent"}"""
-    )
-
-    roundtrip(
-      FullTypeCheckCompleteEvent: EnsimeServerMessage,
-      """{"typehint":"FullTypeCheckCompleteEvent"}"""
-    )
-
-    roundtrip(
       IndexerReadyEvent: EnsimeServerMessage,
       """{"typehint":"IndexerReadyEvent"}"""
     )

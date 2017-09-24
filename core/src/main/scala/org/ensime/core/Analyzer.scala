@@ -26,6 +26,7 @@ import org.ensime.vfs._
 import org.slf4j.LoggerFactory
 
 final case class CompilerFatalError(e: Throwable)
+private[core] case object FullTypeCheckCompleteEvent
 
 /**
  * Information necessary to create a javadoc or scaladoc URI for a
@@ -167,8 +168,6 @@ class Analyzer(
   }
 
   def ready: Receive = withLabel("ready") {
-    case FullTypeCheckCompleteEvent =>
-      broadcaster ! FullTypeCheckCompleteEvent
     case RestartScalaCompilerReq(id, strategy) =>
       restartCompiler(strategy)
     case SuspendAnalyzer =>

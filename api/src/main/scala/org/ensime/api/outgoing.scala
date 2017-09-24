@@ -47,7 +47,7 @@ sealed trait DebugEvent extends EnsimeEvent
 final case class GreetingInfo(
   pid: Option[Int] = None,
   implementation: EnsimeImplementation = EnsimeImplementation("ENSIME"),
-  version: String = "1.9.6"
+  version: String = "3.0.0"
 ) extends EnsimeEvent
 
 /**
@@ -60,13 +60,7 @@ final case class SendBackgroundMessageEvent(
   code: Int = 105
 ) extends GeneralSwankEvent
 
-@deprecating("https://github.com/ensime/ensime-server/issues/1789")
-case object AnalyzerReadyEvent extends GeneralSwankEvent
-
-@deprecating("https://github.com/ensime/ensime-server/issues/1789")
-case object FullTypeCheckCompleteEvent extends GeneralSwankEvent
-
-@deprecating("https://github.com/ensime/ensime-server/issues/1789")
+/** Initial indexing has completed */
 case object IndexerReadyEvent extends GeneralSwankEvent
 
 /** The presentation compiler was restarted. Existing `:type-id`s are invalid. */

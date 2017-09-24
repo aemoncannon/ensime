@@ -250,16 +250,6 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      AnalyzerReadyEvent: EnsimeEvent,
-      ":ensime-api-analyzer-ready-event"
-    )
-
-    roundtrip(
-      FullTypeCheckCompleteEvent: EnsimeEvent,
-      ":ensime-api-full-type-check-complete-event"
-    )
-
-    roundtrip(
       IndexerReadyEvent: EnsimeEvent,
       ":ensime-api-indexer-ready-event"
     )

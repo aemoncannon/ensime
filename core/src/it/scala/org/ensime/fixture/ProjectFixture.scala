@@ -7,7 +7,6 @@ import scala.concurrent.duration._
 import akka.actor.{ ActorRef, ActorSystem }
 import akka.testkit._
 import org.ensime.api._
-import org.ensime.config.richconfig._
 import org.ensime.core._
 import org.scalatest._
 
@@ -52,20 +51,11 @@ object ProjectFixture extends Matchers {
 
     val project = TestActorRef[Project](Project(probe.ref), "project")
 
-    project ! ConnectionInfoReq
-    expectMsg(ConnectionInfo())
+    probe.receiveN(2, 60.seconds) should contain only (
+      Broadcaster.Persist(GreetingInfo()),
+      Broadcaster.Persist(IndexerReadyEvent)
+    )
 
-    if (config.scalaLibrary.isEmpty)
-      probe.receiveN(2, 60.seconds) should contain only (
-        Broadcaster.Persist(AnalyzerReadyEvent),
-        Broadcaster.Persist(IndexerReadyEvent)
-      )
-    else
-      probe.receiveN(3, 120.seconds) should contain only (
-        Broadcaster.Persist(AnalyzerReadyEvent),
-        Broadcaster.Persist(FullTypeCheckCompleteEvent),
-        Broadcaster.Persist(IndexerReadyEvent)
-      )
     (project, probe)
   }
 }

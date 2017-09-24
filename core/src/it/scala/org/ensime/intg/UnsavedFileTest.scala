@@ -35,7 +35,6 @@ class UnsavedFileTest extends EnsimeSpec
 
           project ! TypecheckFileReq(inMemory)
           expectMsg(VoidResponse)
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
           project ! SymbolDesignationsReq(Right(inMemory), 0, 50, SourceSymbol.allSymbols)
           expectMsgPF() {
