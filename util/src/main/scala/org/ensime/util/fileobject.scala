@@ -25,7 +25,7 @@ package object fileobject {
     }
 
     def asLocalFile: File = fo.getName.asLocalFile
-    def uri: URI = fo.getName.uri
+    def uri: URI          = fo.getName.uri
     def uriString: String = fo.getName.uriString
   }
 
@@ -33,7 +33,7 @@ package object fileobject {
   implicit class RichFileName(val fn: FileName) extends AnyVal {
     // assumes it is a local file
     def asLocalFile: File = new File(uri)
-    def uri: URI = EnsimeFile(fn.getURI).uri
+    def uri: URI          = EnsimeFile(fn.getURI).uri
     def uriString: String = uri.toASCIIString
   }
 

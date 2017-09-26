@@ -3,8 +3,8 @@
 package org.ensime.sexp.formats
 
 trait DefaultSexpProtocol
-  extends BasicFormats
-  with StandardFormats
-  with CollectionFormats
+    extends BasicFormats
+    with StandardFormats
+    with CollectionFormats
 
 object DefaultSexpProtocol extends DefaultSexpProtocol

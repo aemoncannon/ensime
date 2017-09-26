@@ -14,7 +14,7 @@ package object io {
       val baos = new ByteArrayOutputStream()
       val data = Array.ofDim[Byte](16384)
 
-      var len: Int = 0
+      var len: Int    = 0
       def read(): Int = { len = is.read(data, 0, data.length); len }
 
       while (read != -1) {
@@ -26,6 +26,7 @@ package object io {
   }
 
   implicit class RichOutputStream(val os: OutputStream) extends AnyVal {
+
     /**
      * Copy the input stream to the output stream, making best
      * endeavours to close everything afterward (even on failure).
@@ -34,7 +35,7 @@ package object io {
       try {
         val data = Array.ofDim[Byte](16384) // size does affect perfomance
 
-        var len: Int = 0
+        var len: Int    = 0
         def read(): Int = { len = in.read(data, 0, data.length); len }
 
         while (read != -1) {
@@ -47,4 +48,3 @@ package object io {
   }
 
 }
-

@@ -11,20 +11,21 @@ import org.ensime.model.BasicTypeInfo
 
 trait JavaTypeAtPoint { requires: JavaCompiler =>
 
-  def askTypeAtPoint(file: SourceFileInfo, offset: Int): Option[TypeInfo] = {
+  def askTypeAtPoint(file: SourceFileInfo, offset: Int): Option[TypeInfo] =
     pathToPoint(file, offset) flatMap {
       case (c: Compilation, path: TreePath) =>
         Option(c.trees.getTypeMirror(path)).map(typeMirrorToTypeInfo)
     }
-  }
 
   private def typeMirrorToTypeInfo(t: TypeMirror): TypeInfo = t match {
     case t: ExecutableType => executableTypeToTypeInfo(t)
-    case t => BasicTypeInfo(t.toString, DeclaredAs.Class, t.toString)
+    case t                 => BasicTypeInfo(t.toString, DeclaredAs.Class, t.toString)
 
   }
 
-  private def name(t: ExecutableType)(formatType: TypeMirror => String): String = {
+  private def name(
+    t: ExecutableType
+  )(formatType: TypeMirror => String): String = {
 
     val params = t.getParameterTypes.asScala
       .map(formatType)
@@ -36,11 +37,13 @@ trait JavaTypeAtPoint { requires: JavaCompiler =>
   }
 
   private def fullName(t: ExecutableType): String = name(t)(_.toString())
-  private def shortName(t: ExecutableType): String = name(t)(_.toString.split("\\.").last)
+  private def shortName(t: ExecutableType): String =
+    name(t)(_.toString.split("\\.").last)
 
-  private def executableTypeToTypeInfo(t: ExecutableType): TypeInfo = {
+  private def executableTypeToTypeInfo(t: ExecutableType): TypeInfo =
     ArrowTypeInfo(
-      shortName(t), fullName(t),
+      shortName(t),
+      fullName(t),
       typeMirrorToTypeInfo(t.getReturnType),
       ParamSectionInfo(
         t.getParameterTypes.asScala.zipWithIndex.map {
@@ -48,7 +51,7 @@ trait JavaTypeAtPoint { requires: JavaCompiler =>
             s"arg$index" -> typeMirrorToTypeInfo(param)
         },
         isImplicit = false
-      ) :: Nil, Nil
+      ) :: Nil,
+      Nil
     )
-  }
 }

@@ -24,28 +24,32 @@ import scala.io.Source
 trait DocUsecaseHandling { self: DocResolver =>
 
   val PrefixRegexp = """^([A-Za-z:_\+-]+).*""".r
-  protected def maybeReplaceWithUsecase(jar: File, sig: DocSig): DocSig = {
+  protected def maybeReplaceWithUsecase(jar: File, sig: DocSig): DocSig =
     if (sig.fqn.scalaStdLib) {
       sig.member match {
         case Some(PrefixRegexp(prefix)) if UseCasePrefixes.contains(prefix) =>
           try {
             val jarFile = new JarFile(jar)
             try {
-              val is = jarFile.getInputStream(jarFile.getEntry(scalaFqnToPath(sig.fqn)))
+              val is = jarFile.getInputStream(
+                jarFile.getEntry(scalaFqnToPath(sig.fqn))
+              )
               val html = Source.fromInputStream(is).mkString
               //              val re = s"""<a id="(${Pattern.quote(prefix)}.+?)"""".r
-              val re = s"""<a id="(${Pattern.quote(prefix)}[^a-zA-Z\\d].*?)"""".r
-              re.findFirstMatchIn(html).map { m =>
-                {
-                  sig.copy(member = HtmlUtil.unescapeHtml(m.group(1)))
+              val re =
+                s"""<a id="(${Pattern.quote(prefix)}[^a-zA-Z\\d].*?)"""".r
+              re.findFirstMatchIn(html)
+                .map { m =>
+                  {
+                    sig.copy(member = HtmlUtil.unescapeHtml(m.group(1)))
+                  }
                 }
-              }.getOrElse(sig)
+                .getOrElse(sig)
             } finally jarFile.close()
           } catch { case e: IOException => sig }
         case _ => sig
       }
     } else sig
-  }
 
   private val UseCasePrefixes = Set(
     "+",

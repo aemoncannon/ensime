@@ -11,19 +11,19 @@ import annotation.tailrec
 trait PrettyPrinter extends JsonPrinter {
   val Indent = 2
 
-  def print(x: JsValue, sb: StringBuilder): Unit = {
+  def print(x: JsValue, sb: StringBuilder): Unit =
     print(x, sb, 0)
-  }
 
-  protected def print(x: JsValue, sb: StringBuilder, indent: Int): Unit = {
+  protected def print(x: JsValue, sb: StringBuilder, indent: Int): Unit =
     x match {
       case JsObject(x) => printObject(x, sb, indent)
-      case JsArray(x) => printArray(x, sb, indent)
-      case _ => printLeaf(x, sb)
+      case JsArray(x)  => printArray(x, sb, indent)
+      case _           => printLeaf(x, sb)
     }
-  }
 
-  protected def printObject(members: Map[String, JsValue], sb: StringBuilder, indent: Int): Unit = {
+  protected def printObject(members: Map[String, JsValue],
+                            sb: StringBuilder,
+                            indent: Int): Unit = {
     sb.append("{\n")
     printSeq(members, sb.append(",\n")) { m =>
       printIndent(sb, indent + Indent)
@@ -36,7 +36,9 @@ trait PrettyPrinter extends JsonPrinter {
     sb.append("}")
   }
 
-  protected def printArray(elements: Seq[JsValue], sb: StringBuilder, indent: Int): Unit = {
+  protected def printArray(elements: Seq[JsValue],
+                           sb: StringBuilder,
+                           indent: Int): Unit = {
     sb.append('[')
     printSeq(elements, sb.append(", "))(print(_, sb, indent))
     sb.append(']')

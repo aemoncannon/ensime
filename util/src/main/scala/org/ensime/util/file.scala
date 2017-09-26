@@ -52,15 +52,18 @@ package object file {
 
     def /(sub: String): File = new File(file, sub)
 
-    def isScala: Boolean = file.getName.toLowerCase.endsWith(".scala")
-    def isJava: Boolean = file.getName.toLowerCase.endsWith(".java")
+    def isScala: Boolean     = file.getName.toLowerCase.endsWith(".scala")
+    def isJava: Boolean      = file.getName.toLowerCase.endsWith(".java")
     def isClassfile: Boolean = file.getName.toLowerCase.endsWith(".class")
-    def isJar: Boolean = file.getName.toLowerCase.endsWith(".jar")
+    def isJar: Boolean       = file.getName.toLowerCase.endsWith(".jar")
 
     def parts: List[String] =
-      file.getPath.split(
-        Pattern.quote(JFile.separator)
-      ).toList.filterNot(Set("", "."))
+      file.getPath
+        .split(
+          Pattern.quote(JFile.separator)
+        )
+        .toList
+        .filterNot(Set("", "."))
 
     def outputStream(): OutputStream = new FileOutputStream(file)
 
@@ -69,17 +72,14 @@ package object file {
       file.createNewFile()
     }
 
-    def readLines(): List[String] = {
+    def readLines(): List[String] =
       file.toPath().readLines()
-    }
 
-    def writeLines(lines: List[String])(implicit cs: Charset): Unit = {
+    def writeLines(lines: List[String])(implicit cs: Charset): Unit =
       Files.write(file.toPath(), lines.mkString("", "\n", "\n").getBytes(cs))
-    }
 
-    def writeString(contents: String)(implicit cs: Charset): Unit = {
+    def writeString(contents: String)(implicit cs: Charset): Unit =
       Files.write(file.toPath(), contents.getBytes(cs))
-    }
 
     @deprecating("prefer path")
     def readString()(implicit cs: Charset): String = {
@@ -91,9 +91,8 @@ package object file {
      * @return the file and its descendent family tree (if it is a directory).
      */
     @deprecating("prefer path approaches")
-    def tree: Stream[File] = {
+    def tree: Stream[File] =
       Files.walk(file.toPath).iterator().asScala.toStream.map(_.toFile)
-    }
 
     /**
      * Non-recursive children of the file.

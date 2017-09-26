@@ -12,17 +12,18 @@ import org.ensime.model.BasicTypeInfo
 
 trait JavaSymbolAtPoint { requires: JavaCompiler =>
 
-  def askSymbolAtPoint(file: SourceFileInfo, offset: Int): Option[SymbolInfo] = {
+  def askSymbolAtPoint(file: SourceFileInfo, offset: Int): Option[SymbolInfo] =
     pathToPoint(file, offset) flatMap {
       case (c: Compilation, path: TreePath) =>
         for {
           identifierName <- path.getLeaf match {
-            case t: IdentifierTree => Some(t.getName.toString)
-            case t: MemberSelectTree => Some(t.getIdentifier.toString)
-            case _ => None
-          }
+                             case t: IdentifierTree => Some(t.getName.toString)
+                             case t: MemberSelectTree =>
+                               Some(t.getIdentifier.toString)
+                             case _ => None
+                           }
           typeInfo <- Option(c.trees.getTypeMirror(path))
-            .map(typeMirrorToTypeInfo(identifierName, _))
+                       .map(typeMirrorToTypeInfo(identifierName, _))
         } yield {
 
           SymbolInfo(
@@ -35,17 +36,19 @@ trait JavaSymbolAtPoint { requires: JavaCompiler =>
           )
         }
     }
-  }
 
-  private def typeMirrorToTypeInfo(identifierName: String, t: TypeMirror): TypeInfo = t match {
+  private def typeMirrorToTypeInfo(identifierName: String,
+                                   t: TypeMirror): TypeInfo = t match {
     case t: ExecutableType => executableTypeToTypeInfo(identifierName, t)
-    case t => BasicTypeInfo(t.toString, DeclaredAs.Class, t.toString)
+    case t                 => BasicTypeInfo(t.toString, DeclaredAs.Class, t.toString)
   }
 
   private def typeMirrorToTypeInfo(t: TypeMirror): TypeInfo =
     BasicTypeInfo(t.toString, DeclaredAs.Class, t.toString)
 
-  private def name(identifierName: String, t: ExecutableType)(formatType: TypeMirror => String): String = {
+  private def name(identifierName: String, t: ExecutableType)(
+    formatType: TypeMirror => String
+  ): String = {
 
     val params = t.getParameterTypes.asScala.zipWithIndex.map {
       case (p, i) =>
@@ -58,12 +61,16 @@ trait JavaSymbolAtPoint { requires: JavaCompiler =>
     s"$returns $identifierName$params"
   }
 
-  private def fullName(identifierName: String, t: ExecutableType): String = name(identifierName, t)(_.toString())
-  private def shortName(identifierName: String, t: ExecutableType): String = name(identifierName, t)(_.toString.split("\\.").last)
+  private def fullName(identifierName: String, t: ExecutableType): String =
+    name(identifierName, t)(_.toString())
+  private def shortName(identifierName: String, t: ExecutableType): String =
+    name(identifierName, t)(_.toString.split("\\.").last)
 
-  private def executableTypeToTypeInfo(identifierName: String, t: ExecutableType): TypeInfo = {
+  private def executableTypeToTypeInfo(identifierName: String,
+                                       t: ExecutableType): TypeInfo =
     ArrowTypeInfo(
-      shortName(identifierName, t), fullName(identifierName, t),
+      shortName(identifierName, t),
+      fullName(identifierName, t),
       typeMirrorToTypeInfo(t.getReturnType),
       ParamSectionInfo(
         t.getParameterTypes.asScala.zipWithIndex.map {
@@ -71,7 +78,7 @@ trait JavaSymbolAtPoint { requires: JavaCompiler =>
             s"arg$index" -> typeMirrorToTypeInfo(param)
         },
         isImplicit = false
-      ) :: Nil, Nil
+      ) :: Nil,
+      Nil
     )
-  }
 }

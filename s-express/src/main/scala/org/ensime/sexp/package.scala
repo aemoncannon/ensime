@@ -5,7 +5,8 @@ package org.ensime
 import scala.collection.immutable.ListMap
 
 package sexp {
-  class DeserializationException(msg: String, cause: Throwable = null) extends RuntimeException(msg, cause)
+  class DeserializationException(msg: String, cause: Throwable = null)
+      extends RuntimeException(msg, cause)
   class SerializationException(msg: String) extends RuntimeException(msg)
 
 }

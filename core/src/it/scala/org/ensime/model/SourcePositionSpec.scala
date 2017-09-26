@@ -10,7 +10,8 @@ import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
 import org.ensime.vfs._
 
-class SourcePositionSpec extends EnsimeSpec
+class SourcePositionSpec
+    extends EnsimeSpec
     with SharedEnsimeConfigFixture
     with SharedEnsimeVFSFixture {
 
@@ -54,16 +55,20 @@ class SourcePositionSpec extends EnsimeSpec
   }
 
   def knownJarEntry(implicit config: EnsimeConfig): String = {
-    val scalatest = config.projects.flatMap(_.librarySources).find(
-      _.file.toString.contains("scalatest_")
-    ).get.file.toAbsolutePath
+    val scalatest = config.projects
+      .flatMap(_.librarySources)
+      .find(
+        _.file.toString.contains("scalatest_")
+      )
+      .get
+      .file
+      .toAbsolutePath
     "jar:" + scalatest + "!/org/scalatest/FunSpec.scala"
   }
 
-  def lookup(uri: String, line: Option[Int] = None) = {
+  def lookup(uri: String, line: Option[Int] = None) =
     withVFS { implicit vfs: EnsimeVFS =>
       val sym = ClassDef("", "", "", Some(uri), line, Default, None, None, None)
       LineSourcePositionHelper.fromFqnSymbol(sym)
     }
-  }
 }

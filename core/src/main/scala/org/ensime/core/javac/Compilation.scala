@@ -6,7 +6,9 @@ import com.sun.source.util.Trees;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.util.JavacTask;
 
-class Compilation(val javacTask: JavacTask, val trees: Trees, val compilationUnit: CompilationUnitTree) {
+class Compilation(val javacTask: JavacTask,
+                  val trees: Trees,
+                  val compilationUnit: CompilationUnitTree) {
 
   def types = javacTask.getTypes
 
@@ -15,7 +17,7 @@ class Compilation(val javacTask: JavacTask, val trees: Trees, val compilationUni
 
 object Compilation {
 
-  def apply(javacTask: JavacTask, compilationUnit: CompilationUnitTree): Compilation = {
+  def apply(javacTask: JavacTask,
+            compilationUnit: CompilationUnitTree): Compilation =
     new Compilation(javacTask, Trees.instance(javacTask), compilationUnit)
-  }
 }

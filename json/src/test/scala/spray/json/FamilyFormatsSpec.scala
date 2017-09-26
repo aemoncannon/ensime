@@ -10,23 +10,23 @@ import java.util.UUID
 // and formatters are defined in sibling packages.
 package examples {
   sealed trait SimpleTrait
-  case class Foo(s: String) extends SimpleTrait
-  case class Bar() extends SimpleTrait
-  case object Baz extends SimpleTrait
+  case class Foo(s: String)         extends SimpleTrait
+  case class Bar()                  extends SimpleTrait
+  case object Baz                   extends SimpleTrait
   case class Faz(o: Option[String]) extends SimpleTrait
 
   sealed trait SubTrait extends SimpleTrait
-  case object Fuzz extends SubTrait
+  case object Fuzz      extends SubTrait
 
   sealed trait Spiel
   case object Buzz extends Spiel
 
   case class Schpugel(v: String) // I asked my wife to make up a word
-  case class Smim(v: String) // I should stop asking my wife to make up words
+  case class Smim(v: String)     // I should stop asking my wife to make up words
 
   sealed trait Smash
   case class Flooma(label: String) extends Smash
-  case class Blam(label: String) extends Smash
+  case class Blam(label: String)   extends Smash
 
   sealed trait Cloda
   case class Plooba(thing: String) extends Cloda // *sigh*
@@ -38,10 +38,13 @@ package examples {
   case class Bluey(duck: Quack.type, witch: Option[Quack.type])
 
   case class Mickey(mouse: String, num: Int = 3)
-  case class Billy(thing: Int, label: String, other: Int = 5, mickey: Mickey = Mickey("mouse", 3))
+  case class Billy(thing: Int,
+                   label: String,
+                   other: Int = 5,
+                   mickey: Mickey = Mickey("mouse", 3))
 
   sealed trait Paff
-  case class Piff(s: String) extends Paff
+  case class Piff(s: String)                                      extends Paff
   case class Mozz(n: String, m: Int = 4, lal: Lal = Paf("hello")) extends Paff
 
   sealed trait Lal
@@ -49,22 +52,22 @@ package examples {
 
   // I love monkeys, you got a problem with that?
   sealed trait Primates
-  sealed trait Strepsirrhini extends Primates
-  sealed trait Haplorhini extends Primates
-  sealed trait Tarsiiformes extends Haplorhini
-  case object Tarsiidae extends Tarsiiformes
-  sealed trait Simiiformes extends Haplorhini
-  sealed trait Platyrrhini extends Simiiformes
-  case object Callitrichidae extends Platyrrhini
-  case object Cebidae extends Platyrrhini
-  case object Aotidae extends Platyrrhini
-  case object Pitheciidae extends Platyrrhini
-  case object Atelidae extends Platyrrhini
-  sealed trait Catarrhini extends Simiiformes
-  sealed trait Cercopithecoidea extends Catarrhini
-  case object Cercopithecidae extends Cercopithecoidea
-  sealed trait Hominoidea extends Catarrhini
-  case object Hylobatidae extends Hominoidea
+  sealed trait Strepsirrhini     extends Primates
+  sealed trait Haplorhini        extends Primates
+  sealed trait Tarsiiformes      extends Haplorhini
+  case object Tarsiidae          extends Tarsiiformes
+  sealed trait Simiiformes       extends Haplorhini
+  sealed trait Platyrrhini       extends Simiiformes
+  case object Callitrichidae     extends Platyrrhini
+  case object Cebidae            extends Platyrrhini
+  case object Aotidae            extends Platyrrhini
+  case object Pitheciidae        extends Platyrrhini
+  case object Atelidae           extends Platyrrhini
+  sealed trait Catarrhini        extends Simiiformes
+  sealed trait Cercopithecoidea  extends Catarrhini
+  case object Cercopithecidae    extends Cercopithecoidea
+  sealed trait Hominoidea        extends Catarrhini
+  case object Hylobatidae        extends Hominoidea
   case class Hominidae(id: UUID) extends Hominoidea
 
   // recursive cat
@@ -87,26 +90,31 @@ trait LowPriorityUserFormats {
   // special about this being JsonFormat.
   implicit val SmashFormat: JsonFormat[Smash] = new JsonFormat[Smash] {
     def read(json: JsValue): Smash = json match {
-      case obj: JsObject => obj.fields.head match {
-        case ("flooma", JsString(label)) => Flooma(label)
-        case ("blam", JsString(label)) => Blam(label)
-        case _ => deserializationError("expected (kind,JsString), got " + json)
-      }
+      case obj: JsObject =>
+        obj.fields.head match {
+          case ("flooma", JsString(label)) => Flooma(label)
+          case ("blam", JsString(label))   => Blam(label)
+          case _ =>
+            deserializationError("expected (kind,JsString), got " + json)
+        }
       case _ => deserializationError("expected JsString, got " + json)
     }
     def write(obj: Smash): JsValue = obj match {
       case Flooma(label) => JsObject("flooma" -> JsString(label))
-      case Blam(label) => JsObject("blam" -> JsString(label))
+      case Blam(label)   => JsObject("blam"   -> JsString(label))
     }
   }
 }
 
-object ExamplesFormats extends DefaultJsonProtocol with FamilyFormats with LowPriorityUserFormats {
+object ExamplesFormats
+    extends DefaultJsonProtocol
+    with FamilyFormats
+    with LowPriorityUserFormats {
   import examples._
 
   // WORKAROUND caveat 2 (interestingly, adding type signatures breaks everything)
   implicit val highPrioritySymbolFormat = SymbolJsonFormat
-  implicit val highPrioritySmashFormat = SmashFormat
+  implicit val highPrioritySmashFormat  = SmashFormat
 
   ///////////////////////////////////////////////
   // Example of "explicit implicit" for performance
@@ -115,7 +123,7 @@ object ExamplesFormats extends DefaultJsonProtocol with FamilyFormats with LowPr
   ///////////////////////////////////////////////
   // user-defined hinting
   implicit object SubTraitHint extends FlatCoproductHint[SubTrait]("hint")
-  implicit object SpielHint extends NestedCoproductHint[Spiel]
+  implicit object SpielHint    extends NestedCoproductHint[Spiel]
 
   ///////////////////////////////////////////////
   // user-defined field naming rules
@@ -143,7 +151,7 @@ object ExamplesFormats extends DefaultJsonProtocol with FamilyFormats with LowPr
     // needed something that would serialise to JsNull for testing
     def read(j: JsValue): Quack.type = j match {
       case JsNull => Quack
-      case other => deserializationError(s"unexpected $other")
+      case other  => deserializationError(s"unexpected $other")
     }
     def write(q: Quack.type): JsValue = JsNull
   }
@@ -161,7 +169,7 @@ object ExamplesFormats extends DefaultJsonProtocol with FamilyFormats with LowPr
   implicit object SchpugelFormat extends JsonFormat[Schpugel] {
     def read(j: JsValue): Schpugel = j match {
       case JsString(v) => Schpugel(v)
-      case other => deserializationError(s"unexpected $other")
+      case other       => deserializationError(s"unexpected $other")
     }
     def write(s: Schpugel): JsValue = JsString(s.v)
   }
@@ -173,7 +181,7 @@ object ExamplesFormats extends DefaultJsonProtocol with FamilyFormats with LowPr
       case JsObject(els) if els.contains("smim") =>
         els("smim") match {
           case JsString(v) => Smim(v)
-          case other => deserializationError(s"unexpected $other")
+          case other       => deserializationError(s"unexpected $other")
         }
       case other => deserializationError(s"unexpected $other")
     }
@@ -181,7 +189,9 @@ object ExamplesFormats extends DefaultJsonProtocol with FamilyFormats with LowPr
   }
 }
 
-class FamilyFormatsSpec extends FlatSpec with Matchers
+class FamilyFormatsSpec
+    extends FlatSpec
+    with Matchers
     with SprayJsonTestSupport {
   import examples._
   import ExamplesFormats._
@@ -204,10 +214,12 @@ class FamilyFormatsSpec extends FlatSpec with Matchers
     roundtrip(
       Cat(
         "foo",
-        Some(Cat(
-          "bar",
-          Some(Cat("baz"))
-        ))
+        Some(
+          Cat(
+            "bar",
+            Some(Cat("baz"))
+          )
+        )
       ),
       """{"nick":"foo","tail":{"nick":"bar","tail":{"nick":"baz"}}}"""
     )
@@ -215,7 +227,7 @@ class FamilyFormatsSpec extends FlatSpec with Matchers
 
   it should "support optional parameters on case classes" in {
     roundtrip(Faz(Some("meh")), """{"o":"meh"}""") // note uses optionFormat, not familyFormat
-    roundtrip(Faz(None), "{}") // should be omitted, not "null"
+    roundtrip(Faz(None), "{}")                     // should be omitted, not "null"
   }
 
   it should "fail when missing required fields" in {
@@ -251,11 +263,13 @@ class FamilyFormatsSpec extends FlatSpec with Matchers
   }
 
   it should "support default value for product" in {
-    """{"thing": 1, "label": "test"}""".parseJson.convertTo[Billy] shouldBe Billy(1, "test", 5, Mickey("mouse", 3))
+    """{"thing": 1, "label": "test"}""".parseJson
+      .convertTo[Billy] shouldBe Billy(1, "test", 5, Mickey("mouse", 3))
   }
 
   it should "support default parameters on coproducts" in {
-    """{"type":"Mozz","n":"wow"}""".parseJson.convertTo[Paff] shouldBe Mozz("wow", 4, Paf("hello"))
+    """{"type":"Mozz","n":"wow"}""".parseJson
+      .convertTo[Paff] shouldBe Mozz("wow", 4, Paf("hello"))
   }
 
   it should "support custom missing value rules" in {
@@ -292,7 +306,7 @@ class FamilyFormatsSpec extends FlatSpec with Matchers
   }
 
   it should "fail when missing required (null) values" in {
-    val noduck = """{"witch":null}""".parseJson
+    val noduck  = """{"witch":null}""".parseJson
     val nowitch = """{"duck":null}""".parseJson
 
     intercept[DeserializationException] {
@@ -355,9 +369,15 @@ class FamilyFormatsSpec extends FlatSpec with Matchers
     roundtrip(SpecialToken: TokenTree, """{"type":"SpecialToken"}""")
 
     val fieldTerm = FieldTerm("thing is ten", DatabaseField("THING"), "10")
-    roundtrip(fieldTerm: TokenTree, """{"type":"FieldTerm","text":"thing is ten","field":{"column":"THING"},"value":"10"}""")
+    roundtrip(
+      fieldTerm: TokenTree,
+      """{"type":"FieldTerm","text":"thing is ten","field":{"column":"THING"},"value":"10"}"""
+    )
 
     val and = AndCondition(fieldTerm, fieldTerm, "wibble")
-    roundtrip(and: TokenTree, """{"type":"AndCondition","left":{"type":"FieldTerm","text":"thing is ten","field":{"column":"THING"},"value":"10"},"right":{"type":"FieldTerm","text":"thing is ten","field":{"column":"THING"},"value":"10"},"text":"wibble"}""")
+    roundtrip(
+      and: TokenTree,
+      """{"type":"AndCondition","left":{"type":"FieldTerm","text":"thing is ten","field":{"column":"THING"},"value":"10"},"right":{"type":"FieldTerm","text":"thing is ten","field":{"column":"THING"},"value":"10"},"text":"wibble"}"""
+    )
   }
 }

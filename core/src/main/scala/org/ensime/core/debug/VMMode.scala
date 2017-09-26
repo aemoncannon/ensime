@@ -3,13 +3,15 @@
 package org.ensime.core.debug
 
 sealed abstract class VmMode {
+
   /**
    * @return True if the vm should be existed for this mode
    */
   def shouldExit: Boolean
 }
 
-private final case class VmAttach(hostname: String, port: String) extends VmMode {
+private final case class VmAttach(hostname: String, port: String)
+    extends VmMode {
   override def shouldExit: Boolean = false
 }
 private final case class VmStart(commandLine: String) extends VmMode {

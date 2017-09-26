@@ -17,7 +17,8 @@ import org.ensime.util.path._
  *
  * (which also tests the file watchers).
  */
-class CompileTimingTest extends EnsimeSpec
+class CompileTimingTest
+    extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
     with IsolatedProjectFixture {
@@ -34,11 +35,13 @@ class CompileTimingTest extends EnsimeSpec
 
           val example = sourceRoot / "p1/Example.scala"
 
-          val target = (mainTarget / "..").canon
+          val target    = (mainTarget / "..").canon
           val targetBak = (target / "../scala-classes.bak").canon
 
-          val exampleDiskInfo = SourceFileInfo(RawFile(example.toPath), None, None)
-          val exampleMemory = SourceFileInfo(RawFile(example.toPath), None, Some(example))
+          val exampleDiskInfo =
+            SourceFileInfo(RawFile(example.toPath), None, None)
+          val exampleMemory =
+            SourceFileInfo(RawFile(example.toPath), None, Some(example))
 
           targetBak.mkdir()
           target.toPath().copyDirTo(targetBak.toPath())
@@ -47,14 +50,20 @@ class CompileTimingTest extends EnsimeSpec
           expectMsg(VoidResponse)
 
           // GUI usually responds to each typecheck by requesting symbols
-          project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
+          project ! SymbolDesignationsReq(Right(exampleDiskInfo),
+                                          0,
+                                          70,
+                                          SourceSymbol.allSymbols)
           expectMsgType[SymbolDesignations]
 
           // typecheck an in-memory version of the file
           project ! TypecheckFileReq(exampleMemory)
           expectMsg(VoidResponse)
 
-          project ! SymbolDesignationsReq(Right(exampleMemory), 0, 70, SourceSymbol.allSymbols)
+          project ! SymbolDesignationsReq(Right(exampleMemory),
+                                          0,
+                                          70,
+                                          SourceSymbol.allSymbols)
           expectMsgType[SymbolDesignations]
 
           // simulate sbt clean https://github.com/sbt/sbt/issues/106
@@ -64,15 +73,18 @@ class CompileTimingTest extends EnsimeSpec
             CompilerRestartedEvent
           ))
 
-          project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
+          project ! SymbolDesignationsReq(Right(exampleDiskInfo),
+                                          0,
+                                          70,
+                                          SourceSymbol.allSymbols)
           expectMsgType[SymbolDesignations]
 
           // simulate sbt compile
           targetBak.tree.toList.foreach { file =>
             // something better (using file walker) should go into Path utils...
-            val from = file.toPath
+            val from     = file.toPath
             val relative = targetBak.toPath.relativize(from)
-            val to = target.toPath.resolve(relative)
+            val to       = target.toPath.resolve(relative)
             if (Files.isRegularFile(from)) {
               // WORKAROUND: https://bugs.openjdk.java.net/browse/JDK-8029608
               // this throws AccessDeniedException if we deleted the folders
@@ -84,7 +96,10 @@ class CompileTimingTest extends EnsimeSpec
             CompilerRestartedEvent
           ))
 
-          project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
+          project ! SymbolDesignationsReq(Right(exampleDiskInfo),
+                                          0,
+                                          70,
+                                          SourceSymbol.allSymbols)
           expectMsgType[SymbolDesignations]
         }
       }

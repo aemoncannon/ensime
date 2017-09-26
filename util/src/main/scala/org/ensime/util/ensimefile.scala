@@ -42,47 +42,59 @@ package object ensimefile {
   }
 
   private val ArchiveRegex = "(?:(?:jar:)?file:)?([^!]++)!(.++)".r
-  private val FileRegex = "(?:(?:jar:)?file:)?(.++)".r
+  private val FileRegex    = "(?:(?:jar:)?file:)?(.++)".r
   def EnsimeFile(path: String): EnsimeFile = path match {
-    case ArchiveRegex(file, entry) => ArchiveFile(Paths.get(cleanBadWindows(file)), entry)
+    case ArchiveRegex(file, entry) =>
+      ArchiveFile(Paths.get(cleanBadWindows(file)), entry)
     case FileRegex(file) => RawFile(Paths.get(cleanBadWindows(file)))
   }
   def EnsimeFile(path: File): EnsimeFile = RawFile(path.toPath)
-  def EnsimeFile(url: URL): EnsimeFile = EnsimeFile(URLDecoder.decode(url.toExternalForm(), "UTF-8"))
+  def EnsimeFile(url: URL): EnsimeFile =
+    EnsimeFile(URLDecoder.decode(url.toExternalForm(), "UTF-8"))
 
   // URIs on Windows can look like /C:/path/to/file, which are malformed
   private val BadWindowsRegex = "/+([^:]+:[^:]+)".r
   private def cleanBadWindows(file: String): String = file match {
     case BadWindowsRegex(clean) => clean
-    case other => other
+    case other                  => other
   }
 
   implicit class RichRawFile(val raw: RawFile) extends RichEnsimeFile {
     // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247
-    override def isJava: Boolean = raw.file.toString.toLowerCase.endsWith(".java")
+    override def isJava: Boolean =
+      raw.file.toString.toLowerCase.endsWith(".java")
     override def isJar: Boolean = raw.file.toString.toLowerCase.endsWith(".jar")
-    override def isScala: Boolean = raw.file.toString.toLowerCase.endsWith(".scala")
+    override def isScala: Boolean =
+      raw.file.toString.toLowerCase.endsWith(".scala")
     override def exists(): Boolean = raw.file.exists()
-    override def lastModified(): Long = raw.file.attrs.lastModifiedTime().toMillis
-    override def readStringDirect()(implicit cs: Charset): String = raw.file.readString()
+    override def lastModified(): Long =
+      raw.file.attrs.lastModifiedTime().toMillis
+    override def readStringDirect()(implicit cs: Charset): String =
+      raw.file.readString()
     override def readAllLines: List[String] = raw.file.readLines()
-    override def uri: URI = raw.file.toUri()
-    override def canon: RawFile = RawFile(raw.file.canon)
+    override def uri: URI                   = raw.file.toUri()
+    override def canon: RawFile             = RawFile(raw.file.canon)
   }
 
   // most methods require obtaining the Path of the entry, within the
   // context of the archive file, and ensuring that we close the
   // resource afterwards (which is slow for random access)
-  implicit class RichArchiveFile(val archive: ArchiveFile) extends RichEnsimeFile {
-    override def isJava: Boolean = archive.entry.toLowerCase.endsWith(".java")
-    override def isJar: Boolean = archive.entry.toLowerCase.endsWith(".jar")
+  implicit class RichArchiveFile(val archive: ArchiveFile)
+      extends RichEnsimeFile {
+    override def isJava: Boolean  = archive.entry.toLowerCase.endsWith(".java")
+    override def isJar: Boolean   = archive.entry.toLowerCase.endsWith(".jar")
     override def isScala: Boolean = archive.entry.toLowerCase.endsWith(".scala")
-    override def exists(): Boolean = archive.jar.exists() && withEntry(_.exists())
-    override def lastModified(): Long = archive.jar.attrs.lastModifiedTime().toMillis
-    override def readStringDirect()(implicit cs: Charset): String = withEntry(_.readString())
+    override def exists(): Boolean =
+      archive.jar.exists() && withEntry(_.exists())
+    override def lastModified(): Long =
+      archive.jar.attrs.lastModifiedTime().toMillis
+    override def readStringDirect()(implicit cs: Charset): String =
+      withEntry(_.readString())
     override def readAllLines: List[String] = withEntry(_.readLines())
-    override def uri: URI = URI.create(s"jar:${archive.jar.toUri}!${archive.entry}") // path is null (opaque)
-    override def canon: ArchiveFile = ArchiveFile(archive.jar.canon, archive.entry)
+    override def uri: URI =
+      URI.create(s"jar:${archive.jar.toUri}!${archive.entry}") // path is null (opaque)
+    override def canon: ArchiveFile =
+      ArchiveFile(archive.jar.canon, archive.entry)
 
     def readBytes(): Array[Byte] = withEntry(_.readBytes())
 
@@ -115,8 +127,9 @@ package object ensimefile {
   }
 
   // boilerplate-tastic... Coproduct would be helpful here
-  implicit def richEnsimeFile(ensime: EnsimeFile): RichEnsimeFile = ensime match {
-    case raw: RawFile => new RichRawFile(raw)
-    case archive: ArchiveFile => new RichArchiveFile(archive)
-  }
+  implicit def richEnsimeFile(ensime: EnsimeFile): RichEnsimeFile =
+    ensime match {
+      case raw: RawFile         => new RichRawFile(raw)
+      case archive: ArchiveFile => new RichArchiveFile(archive)
+    }
 }

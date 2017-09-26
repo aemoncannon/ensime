@@ -20,12 +20,14 @@ object DocJarReading {
 
   def forConfig(config: EnsimeConfig) = new DocJarReading {
 
-    override def docJarContent(filename: String, entry: String): Option[Array[Byte]] = for {
-      file <- config.allDocJars.find(_.getName == filename)
-      jar = new JarFile(file)
-      entry <- Option(jar.getJarEntry(entry))
-      stream = jar.getInputStream(entry)
-    } yield stream.toByteArray
+    override def docJarContent(filename: String,
+                               entry: String): Option[Array[Byte]] =
+      for {
+        file   <- config.allDocJars.find(_.getName == filename)
+        jar    = new JarFile(file)
+        entry  <- Option(jar.getJarEntry(entry))
+        stream = jar.getInputStream(entry)
+      } yield stream.toByteArray
 
     override def docJars(): Set[File] = config.allDocJars
   }

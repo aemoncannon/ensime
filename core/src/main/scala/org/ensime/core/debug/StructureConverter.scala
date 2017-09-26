@@ -17,22 +17,22 @@ import org.scaladebugger.api.profiles.traits.info._
  *                  constructing various Ensime messages
  */
 object StructureConverter {
+
   /**
    * Converts a debugger API value into an Ensime message.
    *
    * @param valueInfo The debugger API value
    * @return The equivalent Ensime message
    */
-  def convertValue(valueInfo: ValueInfo): DebugValue = {
+  def convertValue(valueInfo: ValueInfo): DebugValue =
     valueInfo.cache() match {
-      case v if v.isNull => newDebugNull()
-      case v if v.isVoid => convertVoid(v)
-      case v if v.isArray => convertArray(v.toArrayInfo)
-      case v if v.isString => convertString(v.toStringInfo)
-      case v if v.isObject => convertObject(v.toObjectInfo.cache())
+      case v if v.isNull      => newDebugNull()
+      case v if v.isVoid      => convertVoid(v)
+      case v if v.isArray     => convertArray(v.toArrayInfo)
+      case v if v.isString    => convertString(v.toStringInfo)
+      case v if v.isObject    => convertObject(v.toObjectInfo.cache())
       case v if v.isPrimitive => convertPrimitive(v.toPrimitiveInfo)
     }
-  }
 
   /**
    * Converts a remote object value to an equivalent Ensime message.
@@ -40,14 +40,13 @@ object StructureConverter {
    * @param objInfo The object value to convert
    * @return The new Ensime message
    */
-  private def convertObject(objInfo: ObjectInfo): DebugObjectInstance = {
+  private def convertObject(objInfo: ObjectInfo): DebugObjectInstance =
     DebugObjectInstance(
       objInfo.toPrettyString,
       extractFields(objInfo.referenceType, objInfo),
       objInfo.referenceType.name,
       DebugObjectId(objInfo.uniqueId)
     )
-  }
 
   /**
    * Converts a remote string value to an equivalent Ensime message.
@@ -55,14 +54,13 @@ object StructureConverter {
    * @param strInfo The string value to convert
    * @return The new Ensime message
    */
-  private def convertString(strInfo: StringInfo): DebugStringInstance = {
+  private def convertString(strInfo: StringInfo): DebugStringInstance =
     DebugStringInstance(
       strInfo.toPrettyString,
       extractFields(strInfo.referenceType, strInfo),
       strInfo.referenceType.name,
       DebugObjectId(strInfo.uniqueId)
     )
-  }
 
   /**
    * Converts a remote array to an equivalent Ensime message.
@@ -70,14 +68,13 @@ object StructureConverter {
    * @param arrayInfo The array to convert
    * @return The new Ensime message
    */
-  private def convertArray(arrayInfo: ArrayInfo): DebugArrayInstance = {
+  private def convertArray(arrayInfo: ArrayInfo): DebugArrayInstance =
     DebugArrayInstance(
       arrayInfo.length,
       arrayInfo.referenceType.name,
       arrayInfo.referenceType.toArrayType.elementTypeName,
       DebugObjectId(arrayInfo.uniqueId)
     )
-  }
 
   /**
    * Converts a remote primitive value to an equivalent Ensime message.
@@ -87,12 +84,11 @@ object StructureConverter {
    */
   private def convertPrimitive(
     primitiveInfo: PrimitiveInfo
-  ): DebugPrimitiveValue = {
+  ): DebugPrimitiveValue =
     DebugPrimitiveValue(
       primitiveInfo.toPrettyString,
       primitiveInfo.typeInfo.name
     )
-  }
 
   /**
    * Converts a remote void value to an equivalent Ensime message.
@@ -100,21 +96,19 @@ object StructureConverter {
    * @param void The void value to convert
    * @return The new Ensime message
    */
-  private def convertVoid(void: ValueInfo): DebugPrimitiveValue = {
+  private def convertVoid(void: ValueInfo): DebugPrimitiveValue =
     DebugPrimitiveValue(
       void.toPrettyString,
       void.typeInfo.name
     )
-  }
 
   /**
    * Creates a new Ensime message representing a null value.
    *
    * @return The new Ensime message
    */
-  private def newDebugNull(): DebugNullValue = {
+  private def newDebugNull(): DebugNullValue =
     DebugNullValue("Null")
-  }
 
   /**
    * Extracts fields and their values from an object and its reference type.
@@ -130,21 +124,33 @@ object StructureConverter {
   ): List[DebugClassField] = {
     if (!tpeIn.isClassType) return List.empty
 
-    var fields = List[DebugClassField]()
+    var fields                     = List[DebugClassField]()
     var tpe: Option[ClassTypeInfo] = Some(tpeIn.toClassType)
     while (tpe.nonEmpty) {
-      fields = tpe.map(_.indexedVisibleFields)
-        .map(s => s.map(f => DebugClassField(
-          f.offsetIndex,
-          f.name,
-          f.typeName,
-
-          // NOTE: Try to get static fields (from reference type) and instance
-          //       fields (from object instance)
-          f.tryToValueInfo.orElse(
-            obj.tryField(f.name).flatMap(_.tryToValueInfo)
-          ).map(_.cache()).map(_.toPrettyString).getOrElse("???")
-        ))).getOrElse(Nil).toList ++ fields
+      fields = tpe
+        .map(_.indexedVisibleFields)
+        .map(
+          s =>
+            s.map(
+              f =>
+                DebugClassField(
+                  f.offsetIndex,
+                  f.name,
+                  f.typeName,
+                  // NOTE: Try to get static fields (from reference type) and instance
+                  //       fields (from object instance)
+                  f.tryToValueInfo
+                    .orElse(
+                      obj.tryField(f.name).flatMap(_.tryToValueInfo)
+                    )
+                    .map(_.cache())
+                    .map(_.toPrettyString)
+                    .getOrElse("???")
+              )
+          )
+        )
+        .getOrElse(Nil)
+        .toList ++ fields
 
       tpe = tpe.flatMap(_.superclassOption)
     }
@@ -157,20 +163,28 @@ object StructureConverter {
    * @param frame The stack frame to convert
    * @return The resulting Ensime message
    */
-  def convertStackFrame(frame: FrameInfo)(implicit s: SearchService): DebugStackFrame = {
+  def convertStackFrame(
+    frame: FrameInfo
+  )(implicit s: SearchService): DebugStackFrame = {
     val locals = ignoreErr(
       frame.indexedLocalVariables.map(_.cache()).map(convertStackLocal).toList,
       List.empty
     )
 
-    val numArgs = ignoreErr(frame.argumentValues.length, 0)
+    val numArgs    = ignoreErr(frame.argumentValues.length, 0)
     val methodName = ignoreErr(frame.location.method.name, "Method")
-    val className = ignoreErr(frame.location.declaringType.name, "Class")
+    val className  = ignoreErr(frame.location.declaringType.name, "Class")
 
-    val file = SourceMap.fromJdi(frame.location.sourcePath).get
-    val location = LineSourcePosition(file, frame.location.lineNumber)
+    val file      = SourceMap.fromJdi(frame.location.sourcePath).get
+    val location  = LineSourcePosition(file, frame.location.lineNumber)
     val thisObjId = ignoreErr(frame.thisObject.cache().uniqueId, -1L)
-    DebugStackFrame(frame.index, locals, numArgs, className, methodName, location, DebugObjectId(thisObjId))
+    DebugStackFrame(frame.index,
+                    locals,
+                    numArgs,
+                    className,
+                    methodName,
+                    location,
+                    DebugObjectId(thisObjId))
   }
 
   /**
@@ -200,7 +214,6 @@ object StructureConverter {
    * @tparam T The return type of both actions
    * @return The result from executing the first or second action
    */
-  private def ignoreErr[T](action: => T, orElse: => T): T = {
+  private def ignoreErr[T](action: => T, orElse: => T): T =
     try { action } catch { case e: Exception => orElse }
-  }
 }

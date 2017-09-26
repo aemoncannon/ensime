@@ -13,7 +13,8 @@ class AdditionalFormatsSpec extends WordSpec {
     implicit def containerReader[T: JsonFormat] = lift {
       new JsonReader[Container[T]] {
         def read(value: JsValue) = value match {
-          case JsObject(fields) if fields.contains("content") => Container(Some(JsonReader[T].read(fields("content"))))
+          case JsObject(fields) if fields.contains("content") =>
+            Container(Some(JsonReader[T].read(fields("content"))))
           case _ => deserializationError("Unexpected format: " + value.toString)
         }
       }
@@ -38,7 +39,8 @@ class AdditionalFormatsSpec extends WordSpec {
 
     "properly read a Container[Container[List[Int]]] from JSON" in {
       import ReaderProtocol._
-      """{"content":{"content":[1,2,3]}}""".parseJson.convertTo[Container[Container[List[Int]]]] shouldEqual obj
+      """{"content":{"content":[1,2,3]}}""".parseJson
+        .convertTo[Container[Container[List[Int]]]] shouldEqual obj
     }
   }
 

@@ -16,8 +16,8 @@ trait ScalapSymbolToFqn {
   import ScalaSigApi._
 
   private def withScalaSigPrinter(code: ScalaSigPrinter => Any): String = {
-    val baos = new ByteArrayOutputStream()
-    val ps = new PrintStream(baos)
+    val baos    = new ByteArrayOutputStream()
+    val ps      = new PrintStream(baos)
     val printer = new ScalaSigPrinter(ps, true)
     try {
       code(printer)
@@ -33,11 +33,14 @@ trait ScalapSymbolToFqn {
     else Public
 
   def rawType(s: AliasSymbol, parentPrefix: String): RawType = {
-    val parentName = className(s.symbolInfo.owner)
+    val parentName     = className(s.symbolInfo.owner)
     val isParentModule = parentName.fqnString.endsWith("$")
-    val javaName = ClassName(parentName.pack, parentName.name + (if (isParentModule) "" else "$") + s.name)
+    val javaName = ClassName(
+      parentName.pack,
+      parentName.name + (if (isParentModule) "" else "$") + s.name
+    )
     val scalaName = parentPrefix + (if (isParentModule) "." else "#") + s.name
-    val access = getAccess(s)
+    val access    = getAccess(s)
     val typeSignature = withScalaSigPrinter { printer =>
       printer.printType(s.infoType, " = ")(printer.TypeFlags(true))
     }
@@ -45,11 +48,13 @@ trait ScalapSymbolToFqn {
   }
 
   def rawScalaClass(sym: ClassSymbol): RawScalapClass = {
-    val javaName = className(sym)
-    val aPackage = sym.enclosingPackage
+    val javaName   = className(sym)
+    val aPackage   = sym.enclosingPackage
     val ownerChain = sym.ownerChain
     val name =
-      ownerChain.init.map(s => s.name + (if (s.isModule) "." else "#")).mkString + ownerChain.last.name
+      ownerChain.init
+        .map(s => s.name + (if (s.isModule) "." else "#"))
+        .mkString + ownerChain.last.name
 
     val access = getAccess(sym)
 
@@ -62,7 +67,7 @@ trait ScalapSymbolToFqn {
       printer.printType(sym.infoType)(printer.TypeFlags(true))
     }
 
-    val scalaName = aPackage + "." + name
+    val scalaName    = aPackage + "." + name
     val parentPrefix = if (sym.isModule) scalaName + "." else scalaName + "#"
     val fields: Map[String, RawScalapField] = sym.children.collect {
       case ms: MethodSymbol if !ms.isMethod && ms.isLocal =>
@@ -70,10 +75,11 @@ trait ScalapSymbolToFqn {
         field.javaName.fqnString -> field
     }(breakOut)
 
-    val methods: Map[String, IndexedSeq[RawScalapMethod]] = sym.children.collect {
-      case ms: MethodSymbol if ms.isMethod =>
-        rawScalaMethod(ms, parentPrefix)
-    }(collection.breakOut).groupBy(_.simpleName)
+    val methods: Map[String, IndexedSeq[RawScalapMethod]] =
+      sym.children.collect {
+        case ms: MethodSymbol if ms.isMethod =>
+          rawScalaMethod(ms, parentPrefix)
+      }(collection.breakOut).groupBy(_.simpleName)
 
     val aliases: Map[String, RawType] = sym.children.collect {
       case as: AliasSymbol =>
@@ -94,20 +100,21 @@ trait ScalapSymbolToFqn {
   }
 
   private def className(sym: Symbol): ClassName = {
-    val nested = sym.ownerChain
-    val pkg = PackageName(sym.enclosingPackage.split("\\.").toList)
-    val name = nested.map(_.name).mkString("$")
+    val nested  = sym.ownerChain
+    val pkg     = PackageName(sym.enclosingPackage.split("\\.").toList)
+    val name    = nested.map(_.name).mkString("$")
     val postfix = if (nested.last.isModule) "$" else ""
 
     ClassName(pkg, name + postfix)
   }
 
-  private def rawScalaField(ms: MethodSymbol, parentPrefix: String): RawScalapField = {
-    val aClass = className(ms.symbolInfo.owner)
-    val name = ms.name.trim
-    val javaName = FieldName(aClass, name)
+  private def rawScalaField(ms: MethodSymbol,
+                            parentPrefix: String): RawScalapField = {
+    val aClass    = className(ms.symbolInfo.owner)
+    val name      = ms.name.trim
+    val javaName  = FieldName(aClass, name)
     val scalaName = parentPrefix + name
-    val access = getAccess(ms)
+    val access    = getAccess(ms)
 
     val typeInfo = withScalaSigPrinter { printer =>
       printer.printType(ms.infoType)(printer.TypeFlags(true))
@@ -116,11 +123,14 @@ trait ScalapSymbolToFqn {
     RawScalapField(javaName, scalaName, typeInfo, access)
   }
 
-  private def rawScalaMethod(ms: MethodSymbol, parentPrefix: String): RawScalapMethod = {
+  private def rawScalaMethod(ms: MethodSymbol,
+                             parentPrefix: String): RawScalapMethod = {
     val scalaName = parentPrefix + ms.name
-    val access = getAccess(ms)
+    val access    = getAccess(ms)
     val signature = withScalaSigPrinter { printer =>
-      printer.printMethodType(ms.infoType, printResult = true)(printer.TypeFlags(true))
+      printer.printMethodType(ms.infoType, printResult = true)(
+        printer.TypeFlags(true)
+      )
     }
 
     RawScalapMethod(ms.name, scalaName, signature, access)

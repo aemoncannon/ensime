@@ -23,8 +23,7 @@ trait FamilyFormats extends LowPriorityFamilyFormats {
   this: StandardFormats =>
 }
 
-private[formats] trait LowPriorityFamilyFormats
-    extends SexpFormatHints {
+private[formats] trait LowPriorityFamilyFormats extends SexpFormatHints {
   this: StandardFormats with FamilyFormats =>
 
   private[formats] def log = LoggerFactory.getLogger(getClass)
@@ -41,25 +40,26 @@ private[formats] trait LowPriorityFamilyFormats
    */
   abstract class WrappedSexpFormat[Wrapped, SubRepr] {
     final def read(s: Sexp): SubRepr = s match {
-      case SexpNil => readData(ListMap.empty)
+      case SexpNil         => readData(ListMap.empty)
       case key: SexpSymbol => readData(ListMap(key -> SexpNil))
-      case SexpData(data) => readData(data)
-      case other => deserializationError(other)
+      case SexpData(data)  => readData(data)
+      case other           => deserializationError(other)
     }
     def readData(j: SexpData): SubRepr
 
     final def write(r: SubRepr): Sexp = writeData(r).toSeq match {
       case Seq((key, SexpNil)) => key
-      case data => squash(data)
+      case data                => squash(data)
     }
 
     def writeData(r: SubRepr): SexpData
   }
 
-  implicit def hNilFormat[Wrapped]: WrappedSexpFormat[Wrapped, HNil] = new WrappedSexpFormat[Wrapped, HNil] {
-    override def readData(s: SexpData) = HNil
-    override def writeData(n: HNil) = ListMap.empty
-  }
+  implicit def hNilFormat[Wrapped]: WrappedSexpFormat[Wrapped, HNil] =
+    new WrappedSexpFormat[Wrapped, HNil] {
+      override def readData(s: SexpData) = HNil
+      override def writeData(n: HNil)    = ListMap.empty
+    }
 
   implicit def hListFormat[Wrapped, Key <: Symbol, Value, Remaining <: HList](
     implicit
@@ -75,7 +75,9 @@ private[formats] trait LowPriorityFamilyFormats
         val resolved: Value = s.get(fieldName) match {
           case None if ph.nulls == AlwaysSexpNil =>
             val found = s.map(_._1.value)
-            throw new DeserializationException(s"missing ${fieldName.value}, found ${found.mkString(",")}")
+            throw new DeserializationException(
+              s"missing ${fieldName.value}, found ${found.mkString(",")}"
+            )
 
           case value => sfh.value.read(value.getOrElse(SexpNil))
         }
@@ -83,20 +85,29 @@ private[formats] trait LowPriorityFamilyFormats
         field[Key](resolved) :: remaining
       }
 
-      override def writeData(ft: FieldType[Key, Value] :: Remaining) = sfh.value.write(ft.head) match {
-        case SexpNil if ph.nulls == NeverSexpNil => sft.writeData(ft.tail)
-        case value => ListMap(fieldName -> value) ++: sft.writeData(ft.tail)
-      }
+      override def writeData(ft: FieldType[Key, Value] :: Remaining) =
+        sfh.value.write(ft.head) match {
+          case SexpNil if ph.nulls == NeverSexpNil => sft.writeData(ft.tail)
+          case value                               => ListMap(fieldName -> value) ++: sft.writeData(ft.tail)
+        }
     }
 
-  implicit def cNilFormat[Wrapped]: WrappedSexpFormat[Wrapped, CNil] = new WrappedSexpFormat[Wrapped, CNil] {
-    override def readData(s: SexpData) =
-      throw new DeserializationException(s"read should never be called for CNil, $s")
-    override def writeData(c: CNil) =
-      throw new DeserializationException("write should never be called for CNil")
-  }
+  implicit def cNilFormat[Wrapped]: WrappedSexpFormat[Wrapped, CNil] =
+    new WrappedSexpFormat[Wrapped, CNil] {
+      override def readData(s: SexpData) =
+        throw new DeserializationException(
+          s"read should never be called for CNil, $s"
+        )
+      override def writeData(c: CNil) =
+        throw new DeserializationException(
+          "write should never be called for CNil"
+        )
+    }
 
-  implicit def coproductFormat[Wrapped, Name <: Symbol, Instance, Remaining <: Coproduct](
+  implicit def coproductFormat[Wrapped,
+                               Name <: Symbol,
+                               Instance,
+                               Remaining <: Coproduct](
     implicit
     th: CoproductHint[Wrapped],
     key: Witness.Aux[Name],
@@ -114,15 +125,17 @@ private[formats] trait LowPriorityFamilyFormats
           Inr(sft.readData(s))
       }
 
-      override def writeData(lr: FieldType[Name, Instance] :+: Remaining) = lr match {
-        case Inl(l) => sfh.value.write(l) match {
-          case SexpNil => th.write(ListMap.empty, key.value)
-          case SexpData(data) => th.write(data, key.value)
-          case other => serializationError(s"expected SexpData, got $other")
-        }
+      override def writeData(lr: FieldType[Name, Instance] :+: Remaining) =
+        lr match {
+          case Inl(l) =>
+            sfh.value.write(l) match {
+              case SexpNil        => th.write(ListMap.empty, key.value)
+              case SexpData(data) => th.write(data, key.value)
+              case other          => serializationError(s"expected SexpData, got $other")
+            }
 
-        case Inr(r) => sft.writeData(r)
-      }
+          case Inr(r) => sft.writeData(r)
+        }
 
     }
 
@@ -144,7 +157,7 @@ private[formats] trait LowPriorityFamilyFormats
     if (log.isTraceEnabled)
       log.trace(s"creating ${tpe.describe}")
 
-    def read(s: Sexp): T = gen.from(sg.value.value.read(s))
+    def read(s: Sexp): T  = gen.from(sg.value.value.read(s))
     def write(t: T): Sexp = sg.value.value.write(gen.to(t))
   }
 }
@@ -158,6 +171,7 @@ trait SexpFormatHints {
   private[formats] def squash(d: SexpData): Sexp = squash(d.toSeq)
 
   trait CoproductHint[T] {
+
     /**
      * Given the `SexpData` for the sealed family, disambiguate and
      * extract the `SexpData` associated to the `Name` implementation
@@ -185,16 +199,15 @@ trait SexpFormatHints {
    * a keyword in Scala so unlikely to collide with too many case
    * classes.
    */
-  class FlatCoproductHint[T: Typeable](key: SexpSymbol = SexpSymbol(":type")) extends CoproductHint[T] {
+  class FlatCoproductHint[T: Typeable](key: SexpSymbol = SexpSymbol(":type"))
+      extends CoproductHint[T] {
     override def field(orig: String): SexpSymbol = SexpSymbol(orig)
 
-    def read[Name <: Symbol](d: SexpData, n: Name): Option[SexpData] = {
+    def read[Name <: Symbol](d: SexpData, n: Name): Option[SexpData] =
       if (d.get(key) == Some(field(n.name))) Some(d)
       else None
-    }
-    def write[Name <: Symbol](d: SexpData, n: Name): SexpData = {
+    def write[Name <: Symbol](d: SexpData, n: Name): SexpData =
       ListMap(key -> field(n.name)) ++: d
-    }
   }
 
   /**
@@ -205,18 +218,17 @@ trait SexpFormatHints {
   class NestedCoproductHint[T: Typeable] extends CoproductHint[T] {
     override def field(orig: String): SexpSymbol = SexpSymbol(s":${orig}")
 
-    def read[Name <: Symbol](d: SexpData, n: Name): Option[SexpData] = {
+    def read[Name <: Symbol](d: SexpData, n: Name): Option[SexpData] =
       d.get(field(n.name)).collect {
-        case SexpNil => ListMap.empty
+        case SexpNil        => ListMap.empty
         case SexpData(data) => data
       }
-    }
-    def write[Name <: Symbol](d: SexpData, n: Name): SexpData = {
+    def write[Name <: Symbol](d: SexpData, n: Name): SexpData =
       ListMap(field(n.name) -> squash(d))
-    }
   }
 
-  implicit def coproductHint[T: Typeable]: CoproductHint[T] = new NestedCoproductHint[T]
+  implicit def coproductHint[T: Typeable]: CoproductHint[T] =
+    new NestedCoproductHint[T]
 
   /**
    * Sometimes the wire format needs to match an existing format and
@@ -225,8 +237,10 @@ trait SexpFormatHints {
    * is only possible with a user-defined `SexpFormat`.
    */
   sealed trait SexpNilBehaviour
+
   /** All values serialising to `SexpNil` will be included in the wire format. */
   case object AlwaysSexpNil extends SexpNilBehaviour
+
   /** No values serialising to `SexpNil` will be included in the wire format. */
   case object NeverSexpNil extends SexpNilBehaviour
 
@@ -236,7 +250,8 @@ trait SexpFormatHints {
   }
   class BasicProductHint[T] extends ProductHint[T] {
     override def nulls: SexpNilBehaviour = NeverSexpNil
-    override def field[Key <: Symbol](key: Key): SexpSymbol = SexpSymbol(s":${key.name}")
+    override def field[Key <: Symbol](key: Key): SexpSymbol =
+      SexpSymbol(s":${key.name}")
   }
 
   implicit def productHint[T]: ProductHint[T] = new BasicProductHint

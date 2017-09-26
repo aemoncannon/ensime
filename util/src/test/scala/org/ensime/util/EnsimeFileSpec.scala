@@ -28,9 +28,9 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
   }
 
   it should "construct instances from entries in jars" in {
-    val jar = "/foo/bar/baz.jar"
+    val jar   = "/foo/bar/baz.jar"
     val entry = "/faz/gaz.scala"
-    val full = s"$jar!$entry"
+    val full  = s"$jar!$entry"
     EnsimeFile(full) shouldBe ArchiveFile(Paths.get(jar), entry)
   }
 
@@ -47,7 +47,7 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
 
   it should "create instances from Windows URLs" in {
     val file = """C:\Program Files\Java\jdk1.7.0\src.zip"""
-    val url = s"jar:file:/$file"
+    val url  = s"jar:file:/$file"
 
     EnsimeFile(url) shouldBe RawFile(Paths.get(file))
   }
@@ -79,7 +79,9 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
   }
 
   it should "load entry contents with readStringDirect()" in {
-    EnsimeFile(s"$src!/java/lang/String.java").readStringDirect().contains("-6849794470754667710L") shouldBe true
+    EnsimeFile(s"$src!/java/lang/String.java")
+      .readStringDirect()
+      .contains("-6849794470754667710L") shouldBe true
   }
 
 }

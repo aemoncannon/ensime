@@ -15,18 +15,21 @@ trait IsolatedSourceResolverFixture
     extends SourceResolverFixture
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture {
-  override def withSourceResolver(testCode: SourceResolver => Any): Any = withEnsimeConfig { config =>
-    withTestKit { testKit ⇒
-      import testKit.system
-      implicit val vfs = EnsimeVFS()
-      try {
-        testCode(new SourceResolver(config))
-      } finally {
-        vfs.close()
+  override def withSourceResolver(testCode: SourceResolver => Any): Any =
+    withEnsimeConfig { config =>
+      withTestKit { testKit ⇒
+        import testKit.system
+        implicit val vfs = EnsimeVFS()
+        try {
+          testCode(new SourceResolver(config))
+        } finally {
+          vfs.close()
+        }
       }
     }
-  }
-  override def withSourceResolver(testCode: (EnsimeConfig, SourceResolver) => Any): Any = withEnsimeConfig { config =>
+  override def withSourceResolver(
+    testCode: (EnsimeConfig, SourceResolver) => Any
+  ): Any = withEnsimeConfig { config =>
     withTestKit { testKit ⇒
       import testKit.system
       implicit val vfs = EnsimeVFS()
@@ -39,8 +42,10 @@ trait IsolatedSourceResolverFixture
   }
 }
 
-trait SharedSourceResolverFixture extends SourceResolverFixture
-    with SharedEnsimeConfigFixture with SharedTestKitFixture {
+trait SharedSourceResolverFixture
+    extends SourceResolverFixture
+    with SharedEnsimeConfigFixture
+    with SharedTestKitFixture {
   this: SharedEnsimeVFSFixture =>
 
   private[fixture] var _resolver: SourceResolver = _
@@ -50,9 +55,11 @@ trait SharedSourceResolverFixture extends SourceResolverFixture
     _resolver = new SourceResolver(_config)
   }
 
-  override def withSourceResolver(testCode: SourceResolver => Any): Any = testCode(_resolver)
-  override def withSourceResolver(testCode: (EnsimeConfig, SourceResolver) => Any): Any = {
+  override def withSourceResolver(testCode: SourceResolver => Any): Any =
+    testCode(_resolver)
+  override def withSourceResolver(
+    testCode: (EnsimeConfig, SourceResolver) => Any
+  ): Any =
     testCode(_config, _resolver)
-  }
 
 }

@@ -14,7 +14,8 @@ import org.ensime.util.EnsimeSpec
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.path._
 
-class ServerStartupSpec extends EnsimeSpec
+class ServerStartupSpec
+    extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
     with AkkaBackCompat {
@@ -72,7 +73,8 @@ class ServerStartupSpec extends EnsimeSpec
         val socket = new ServerSocket()
 
         try {
-          val httpHog = socket.bind(new InetSocketAddress("127.0.0.1", preferredHttp))
+          val httpHog =
+            socket.bind(new InetSocketAddress("127.0.0.1", preferredHttp))
 
           eventually { assert(socket.isBound()) }
 

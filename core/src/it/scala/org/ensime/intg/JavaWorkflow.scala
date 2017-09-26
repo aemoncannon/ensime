@@ -9,7 +9,8 @@ import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
 
 // a pure java project, checking that how things behave without scala
-class JavaWorkflow extends EnsimeSpec
+class JavaWorkflow
+    extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
     with IsolatedProjectFixture {
@@ -22,15 +23,19 @@ class JavaWorkflow extends EnsimeSpec
         withProject { (project, asyncHelper) =>
           import testkit._
 
-          val sourceRoot = javaMain(config)
-          val fooFile = sourceRoot / "pure/NoScalaHere.java"
+          val sourceRoot  = javaMain(config)
+          val fooFile     = sourceRoot / "pure/NoScalaHere.java"
           val fooFilePath = fooFile.getAbsolutePath
 
           project ! TypecheckFilesReq(List(Left(fooFile)))
           expectMsg(VoidResponse)
 
           project ! TypeAtPointReq(Left(fooFile), OffsetRange(30))
-          expectMsg(BasicTypeInfo("pure.NoScalaHere", DeclaredAs.Class, "pure.NoScalaHere"))
+          expectMsg(
+            BasicTypeInfo("pure.NoScalaHere",
+                          DeclaredAs.Class,
+                          "pure.NoScalaHere")
+          )
         }
       }
     }

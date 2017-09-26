@@ -11,7 +11,8 @@ import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.file._
 import org.ensime.util.ensimefile._
 
-class ReverseLookupsSpec extends EnsimeSpec
+class ReverseLookupsSpec
+    extends EnsimeSpec
     with IsolatedProjectFixture
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
@@ -24,19 +25,24 @@ class ReverseLookupsSpec extends EnsimeSpec
       withTestKit { implicit testKit =>
         withProject { (project, asyncHelper) =>
           import testKit._
-          val sourceRoot = scalaMain(config)
-          val fooFile = sourceRoot / "org/example/Foo.scala"
+          val sourceRoot  = scalaMain(config)
+          val fooFile     = sourceRoot / "org/example/Foo.scala"
           val packageFile = sourceRoot / "org/example/package.scala"
 
           // uses of `testMethod`
-          project ! FqnOfSymbolAtPointReq(SourceFileInfo(EnsimeFile(fooFile), None, None), 119)
+          project ! FqnOfSymbolAtPointReq(SourceFileInfo(EnsimeFile(fooFile),
+                                                         None,
+                                                         None),
+                                          119)
           var fqn = expectMsgType[FullyQualifiedName].fqnString
 
           project ! FindUsages(fqn)
           val sourcePositions = expectMsgType[SourcePositions]
           sourcePositions.positions should contain theSameElementsAs List(
-            PositionHint(LineSourcePosition(EnsimeFile(fooFile), 17), Some("println(foo.testMethod(7, \"seven\"))")),
-            PositionHint(LineSourcePosition(EnsimeFile(packageFile), 7), Some("new Foo.Foo().testMethod(1, \"\")"))
+            PositionHint(LineSourcePosition(EnsimeFile(fooFile), 17),
+                         Some("println(foo.testMethod(7, \"seven\"))")),
+            PositionHint(LineSourcePosition(EnsimeFile(packageFile), 7),
+                         Some("new Foo.Foo().testMethod(1, \"\")"))
           )
         }
       }
@@ -47,13 +53,20 @@ class ReverseLookupsSpec extends EnsimeSpec
       withTestKit { implicit testKit =>
         withProject { (project, asyncHelper) =>
           import testKit._
-          val sourceRoot = scalaMain(config)
-          val fooFile = sourceRoot / "org/example/Foo.scala"
+          val sourceRoot  = scalaMain(config)
+          val fooFile     = sourceRoot / "org/example/Foo.scala"
           val packageFile = sourceRoot / "org/example/package.scala"
 
-          project ! RefactorReq(1234, RenameRefactorDesc("notATestMethod", fooFile, 119, 119), interactive = false)
+          project ! RefactorReq(1234,
+                                RenameRefactorDesc("notATestMethod",
+                                                   fooFile,
+                                                   119,
+                                                   119),
+                                interactive = false)
           expectMsgPF() {
-            case response @ RefactorDiffEffect(1234, RefactorType.Rename, diff) =>
+            case response @ RefactorDiffEffect(1234,
+                                               RefactorType.Rename,
+                                               diff) =>
               val relevantExpectedPartFoo =
                 s"""|@@ -9,3 +9,3 @@
                     |   class Foo extends Bar {
@@ -76,11 +89,18 @@ class ReverseLookupsSpec extends EnsimeSpec
                     |""".stripMargin
 
               val diffContents = diff.canon.readString()
-              val expectedContentsFoo = expectedDiffContent(fooFile.getPath, relevantExpectedPartFoo)
-              val expectedContentsPackage = expectedDiffContent(packageFile.getPath, relevantExpectedPartPackage)
-              val expectedContents = s"$expectedContentsFoo\n$expectedContentsPackage"
+              val expectedContentsFoo =
+                expectedDiffContent(fooFile.getPath, relevantExpectedPartFoo)
+              val expectedContentsPackage =
+                expectedDiffContent(packageFile.getPath,
+                                    relevantExpectedPartPackage)
+              val expectedContents =
+                s"$expectedContentsFoo\n$expectedContentsPackage"
               if (diffContents == expectedContents) true
-              else fail(s"Different diff content than expected. \n Actual content: '$diffContents' \n ExpectedRelevantContent: '$expectedContents'")
+              else
+                fail(
+                  s"Different diff content than expected. \n Actual content: '$diffContents' \n ExpectedRelevantContent: '$expectedContents'"
+                )
           }
         }
       }

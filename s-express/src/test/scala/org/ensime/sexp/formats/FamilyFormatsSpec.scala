@@ -11,19 +11,19 @@ import shapeless._
 // and formatters are defined in sibling packages.
 package examples {
   sealed trait SimpleTrait
-  case class Foo(s: String) extends SimpleTrait
-  case class Bar() extends SimpleTrait
-  case object Baz extends SimpleTrait
+  case class Foo(s: String)         extends SimpleTrait
+  case class Bar()                  extends SimpleTrait
+  case object Baz                   extends SimpleTrait
   case class Faz(o: Option[String]) extends SimpleTrait
 
   sealed trait SubTrait extends SimpleTrait
-  case object Fuzz extends SubTrait
+  case object Fuzz      extends SubTrait
 
   sealed trait Spiel
   case object Buzz extends Spiel
 
   case class Schpugel(v: String) // I asked my wife to make up a word
-  case class Smim(v: String) // I should stop asking my wife to make up words
+  case class Smim(v: String)     // I should stop asking my wife to make up words
 
   sealed trait Cloda
   case class Plooba(thing: String) extends Cloda // *sigh*
@@ -34,22 +34,22 @@ package examples {
 
   // I love monkeys, you got a problem with that?
   sealed trait Primates
-  sealed trait Strepsirrhini extends Primates
-  sealed trait Haplorhini extends Primates
-  sealed trait Tarsiiformes extends Haplorhini
-  case object Tarsiidae extends Tarsiiformes
-  sealed trait Simiiformes extends Haplorhini
-  sealed trait Platyrrhini extends Simiiformes
-  case object Callitrichidae extends Platyrrhini
-  case object Cebidae extends Platyrrhini
-  case object Aotidae extends Platyrrhini
-  case object Pitheciidae extends Platyrrhini
-  case object Atelidae extends Platyrrhini
-  sealed trait Catarrhini extends Simiiformes
-  sealed trait Cercopithecoidea extends Catarrhini
-  case object Cercopithecidae extends Cercopithecoidea
-  sealed trait Hominoidea extends Catarrhini
-  case object Hylobatidae extends Hominoidea
+  sealed trait Strepsirrhini     extends Primates
+  sealed trait Haplorhini        extends Primates
+  sealed trait Tarsiiformes      extends Haplorhini
+  case object Tarsiidae          extends Tarsiiformes
+  sealed trait Simiiformes       extends Haplorhini
+  sealed trait Platyrrhini       extends Simiiformes
+  case object Callitrichidae     extends Platyrrhini
+  case object Cebidae            extends Platyrrhini
+  case object Aotidae            extends Platyrrhini
+  case object Pitheciidae        extends Platyrrhini
+  case object Atelidae           extends Platyrrhini
+  sealed trait Catarrhini        extends Simiiformes
+  sealed trait Cercopithecoidea  extends Catarrhini
+  case object Cercopithecidae    extends Cercopithecoidea
+  sealed trait Hominoidea        extends Catarrhini
+  case object Hylobatidae        extends Hominoidea
   case class Hominidae(id: UUID) extends Hominoidea
 
   // recursive cat
@@ -57,7 +57,8 @@ package examples {
 }
 
 package formats {
-  object ExamplesFormats extends BasicFormats
+  object ExamplesFormats
+      extends BasicFormats
       with StandardFormats
       with CollectionFormats
       with SymbolAltFormat
@@ -72,15 +73,19 @@ package formats {
     ///////////////////////////////////////////////
     // user-defined hinting
     implicit object SubTraitHint extends FlatCoproductHint[SubTrait]
-    implicit object SpielHint extends FlatCoproductHint[Spiel](SexpSymbol(":hint"))
+    implicit object SpielHint
+        extends FlatCoproductHint[Spiel](SexpSymbol(":hint"))
 
     ///////////////////////////////////////////////
     // user-defined field naming rules
-    implicit object ClodaHint extends FlatCoproductHint[Cloda](SexpSymbol(":TYPE")) {
-      override def field(orig: String): SexpSymbol = SexpSymbol(orig.toUpperCase)
+    implicit object ClodaHint
+        extends FlatCoproductHint[Cloda](SexpSymbol(":TYPE")) {
+      override def field(orig: String): SexpSymbol =
+        SexpSymbol(orig.toUpperCase)
     }
     implicit object PloobaHint extends BasicProductHint[Plooba] {
-      override def field[K <: Symbol](k: K): SexpSymbol = SexpSymbol(s":${k.name.toUpperCase}")
+      override def field[K <: Symbol](k: K): SexpSymbol =
+        SexpSymbol(s":${k.name.toUpperCase}")
     }
 
     ///////////////////////////////////////////////
@@ -92,7 +97,7 @@ package formats {
       // needed something that would serialise to nil for testing
       def read(j: Sexp): Quack.type = j match {
         case SexpNil => Quack
-        case other => deserializationError(other)
+        case other   => deserializationError(other)
       }
       def write(q: Quack.type): Sexp = SexpNil
     }
@@ -102,7 +107,7 @@ package formats {
     implicit object SchpugelFormat extends SexpFormat[Schpugel] {
       def read(j: Sexp): Schpugel = j match {
         case SexpString(v) => Schpugel(v)
-        case other => deserializationError(other)
+        case other         => deserializationError(other)
       }
       def write(s: Schpugel): Sexp = SexpString(s.v)
     }
@@ -135,10 +140,12 @@ package test {
       roundtrip(
         Cat(
           "foo",
-          Some(Cat(
-            "bar",
-            Some(Cat("baz"))
-          ))
+          Some(
+            Cat(
+              "bar",
+              Some(Cat("baz"))
+            )
+          )
         ),
         """(:nick "foo" :tail (:nick "bar" :tail (:nick "baz")))"""
       )
@@ -203,7 +210,7 @@ package test {
     }
 
     it should "fail when missing required (null) values" in {
-      val noduck = """(:witch nil)""".parseSexp
+      val noduck  = """(:witch nil)""".parseSexp
       val nowitch = """(:duck nil)""".parseSexp
 
       noduck.convertTo[Huey]

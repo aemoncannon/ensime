@@ -11,33 +11,40 @@ object FileEditHelper {
 
   import scala.tools.refactoring.common.{ Change, TextChange }
 
-  def fromChange(ch: Change): Seq[FileEdit] = {
+  def fromChange(ch: Change): Seq[FileEdit] =
     ch match {
-      case ch: TextChange => Seq(TextEdit(new File(ch.file.path), ch.from, ch.to, ch.text))
+      case ch: TextChange =>
+        Seq(TextEdit(new File(ch.file.path), ch.from, ch.to, ch.text))
       case nf: NewFileChange => Seq(NewFile(File(nf.fullName), nf.text))
       case rf: RenameSourceFileChange =>
         val sourceFile = rf.sourceFile
-        val newFile = sourceFile.path.replace(sourceFile.name, rf.to)
+        val newFile    = sourceFile.path.replace(sourceFile.name, rf.to)
         Seq(
           NewFile(File(newFile), ""),
           DeleteFile(sourceFile.file, "")
         )
       case _ => throw new UnsupportedOperationException(ch.toString)
     }
-  }
 
-  def applyEdits(ch: List[TextEdit], source: String): String = {
+  def applyEdits(ch: List[TextEdit], source: String): String =
     (source /: ch.sortBy(-_.to)) { (src, change) =>
       src.substring(0, change.from) + change.text + src.substring(change.to)
     }
-  }
 
-  def diffFromTextEdits(ch: List[TextEdit], source: String, originalFile: File, revisedFile: File): String = {
+  def diffFromTextEdits(ch: List[TextEdit],
+                        source: String,
+                        originalFile: File,
+                        revisedFile: File): String = {
     val newContents = applyEdits(ch, source)
-    DiffUtil.compareContents(source.lines.toSeq, newContents.lines.toSeq, originalFile, revisedFile)
+    DiffUtil.compareContents(source.lines.toSeq,
+                             newContents.lines.toSeq,
+                             originalFile,
+                             revisedFile)
   }
 
-  def diffFromNewFile(newFile: NewFile, sourceChanges: List[TextEdit] = Nil, source: String = ""): String = {
+  def diffFromNewFile(newFile: NewFile,
+                      sourceChanges: List[TextEdit] = Nil,
+                      source: String = ""): String = {
     val newContents = applyEdits(sourceChanges, source)
     DiffUtil.newFileDiff(newContents.lines.toSeq, newFile.file)
   }

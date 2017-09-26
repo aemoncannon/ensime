@@ -19,7 +19,7 @@ import org.ensime.vfs.`package`.EnsimeVFS
 package object richconfig {
 
   // avoids a pureconfig / ficus dependency...
-  def parseServerConfig(c: Config): EnsimeServerConfig = {
+  def parseServerConfig(c: Config): EnsimeServerConfig =
     EnsimeServerConfig(
       RawFile(Paths.get(c.getString("ensime.config")).canon),
       parseServerImportsConfig(c.getConfig("ensime.imports")),
@@ -30,8 +30,7 @@ package object richconfig {
       c.getBoolean("ensime.disableClassMonitoring"),
       c.getInt("ensime.index.batchSize")
     )
-  }
-  private def parseServerImportsConfig(c: Config): ImportsConfig = {
+  private def parseServerImportsConfig(c: Config): ImportsConfig =
     ImportsConfig(
       c.getBoolean("locals"),
       c.getString("strategy"),
@@ -40,7 +39,6 @@ package object richconfig {
       c.getInt("maxIndividualImports"),
       c.getStringList("collapseExclude").asScala.toSet
     )
-  }
 
   implicit class RichEnsimeConfig(val c: EnsimeConfig) extends AnyVal {
     // doesn't do the transitive lookups
@@ -48,7 +46,8 @@ package object richconfig {
       (targetFiles(c) ::: libraryJarFiles(c)).distinct
     def targets: List[File] = targetFiles(c)
 
-    def referenceSourceJars: Set[File] = (javaSourceFiles(c) ++ librarySourceFiles(c))(breakOut)
+    def referenceSourceJars: Set[File] =
+      (javaSourceFiles(c) ++ librarySourceFiles(c))(breakOut)
 
     def lookup(id: EnsimeProjectId) = c.projects.find(_.id == id).get
 
@@ -63,22 +62,28 @@ package object richconfig {
     def findProject(f: FileObject)(implicit vfs: EnsimeVFS) = {
       val filePath = f.getName.getPath
       c.projects collectFirst {
-        case project if (project.sources ++ project.targets).map(rf =>
-          vfs.toFileObject(rf.file.toFile).getName.getPath).exists(filePath.startsWith) =>
+        case project
+            if (project.sources ++ project.targets)
+              .map(rf => vfs.toFileObject(rf.file.toFile).getName.getPath)
+              .exists(filePath.startsWith) =>
           project.id
       }
     }
 
-    def findProject(path: Path): Option[EnsimeProjectId] = {
+    def findProject(path: Path): Option[EnsimeProjectId] =
       c.projects collectFirst {
-        case project if (project.sources ++ project.targets).exists(f => path.startsWith(f.file)) => project.id
+        case project
+            if (project.sources ++ project.targets).exists(
+              f => path.startsWith(f.file)
+            ) =>
+          project.id
       }
-    }
     def findProject(file: EnsimeFile): Option[EnsimeProjectId] = file match {
-      case RawFile(file) => findProject(file)
+      case RawFile(file)       => findProject(file)
       case ArchiveFile(jar, _) => findProject(jar)
     }
-    def findProject(file: SourceFileInfo): Option[EnsimeProjectId] = findProject(file.file)
+    def findProject(file: SourceFileInfo): Option[EnsimeProjectId] =
+      findProject(file.file)
   }
 
   implicit class RichEnsimeProject(val p: EnsimeProject) extends AnyVal {
@@ -91,18 +96,24 @@ package object richconfig {
       files ::: (dependencies.flatMap(_.classpath))
     }
 
-    def scalaSourceFiles: Set[RawFile] = for {
-      root <- p.sources
-      filePath <- root.file.tree
-      rawFile = RawFile(filePath)
-      if filePath.isFile && rawFile.isScala
-    } yield rawFile
+    def scalaSourceFiles: Set[RawFile] =
+      for {
+        root     <- p.sources
+        filePath <- root.file.tree
+        rawFile  = RawFile(filePath)
+        if filePath.isFile && rawFile.isScala
+      } yield rawFile
   }
 
-  private def targetFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.targets).map(_.file.toFile)
-  private def libraryJarFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.libraryJars).map(_.file.toFile)
-  private def librarySourceFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.librarySources).map(_.file.toFile)
-  private def libraryDocFiles(c: EnsimeConfig): List[File] = c.projects.flatMap(_.libraryDocs).map(_.file.toFile)
-  private def javaSourceFiles(c: EnsimeConfig): List[File] = c.javaSources.map(_.file.toFile)
+  private def targetFiles(c: EnsimeConfig): List[File] =
+    c.projects.flatMap(_.targets).map(_.file.toFile)
+  private def libraryJarFiles(c: EnsimeConfig): List[File] =
+    c.projects.flatMap(_.libraryJars).map(_.file.toFile)
+  private def librarySourceFiles(c: EnsimeConfig): List[File] =
+    c.projects.flatMap(_.librarySources).map(_.file.toFile)
+  private def libraryDocFiles(c: EnsimeConfig): List[File] =
+    c.projects.flatMap(_.libraryDocs).map(_.file.toFile)
+  private def javaSourceFiles(c: EnsimeConfig): List[File] =
+    c.javaSources.map(_.file.toFile)
 
 }

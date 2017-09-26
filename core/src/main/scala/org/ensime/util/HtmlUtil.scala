@@ -6,7 +6,7 @@ import scala.util.Try
 
 object HtmlUtil {
 
-  def unescapeHtml(escaped: String): Option[String] = {
+  def unescapeHtml(escaped: String): Option[String] =
     Try {
       val result = escaped.foldLeft[(String, Option[String])](("", None)) {
         case ((acc, escapedElemAcc), c) =>
@@ -16,7 +16,9 @@ object HtmlUtil {
             case (_, None) =>
               (acc + c, None)
             case ('&', Some(_)) =>
-              throw new IllegalArgumentException("nested escape sequences not supported")
+              throw new IllegalArgumentException(
+                "nested escape sequences not supported"
+              )
             case (';', Some(escapedElem)) =>
               (acc + unescapeMap(escapedElem), None)
             case (_, Some(incompleteEscapedElem)) =>
@@ -27,16 +29,17 @@ object HtmlUtil {
         case (escaped, None) =>
           escaped
         case _ =>
-          throw new IllegalArgumentException("unfinished escape sequence not supported")
+          throw new IllegalArgumentException(
+            "unfinished escape sequence not supported"
+          )
       }
     }.toOption
-  }
 
   //Minimal unescape map based on scala.xml.Utility.unescape() should be enough for most HTML
   private val unescapeMap = Map(
-    "lt" -> '<',
-    "gt" -> '>',
-    "amp" -> '&',
+    "lt"   -> '<',
+    "gt"   -> '>',
+    "amp"  -> '&',
     "quot" -> '"',
     "apos" -> '\''
   )

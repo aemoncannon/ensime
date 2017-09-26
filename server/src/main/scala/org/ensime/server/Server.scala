@@ -24,66 +24,82 @@ import org.ensime.util.path._
 import org.slf4j._
 
 class ServerActor(
-    config: EnsimeConfig,
-    serverConfig: EnsimeServerConfig
-) extends Actor with ActorLogging {
+  config: EnsimeConfig,
+  serverConfig: EnsimeServerConfig
+) extends Actor
+    with ActorLogging {
 
   var channel: Channel = _
 
   override val supervisorStrategy = OneForOneStrategy() {
     case ex: Exception =>
       log.error(ex, s"Error with monitor actor ${ex.getMessage}")
-      self ! ShutdownRequest(s"Monitor actor failed with ${ex.getClass} - ${ex.toString}", isError = true)
+      self ! ShutdownRequest(
+        s"Monitor actor failed with ${ex.getClass} - ${ex.toString}",
+        isError = true
+      )
       Stop
   }
 
   def initialiseChildren(): Unit = {
 
-    implicit val config: EnsimeConfig = this.config
+    implicit val config: EnsimeConfig             = this.config
     implicit val serverConfig: EnsimeServerConfig = this.serverConfig
 
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
-    val project = context.actorOf(Project(broadcaster), "project")
+    val project     = context.actorOf(Project(broadcaster), "project")
 
     // async start the HTTP Server
-    val selfRef = self
+    val selfRef           = self
     val preferredHttpPort = PortUtil.port(config.cacheDir.file, "http")
 
-    val hookHandlers: WebServer.HookHandlers = {
-      outHandler =>
-        val delegate = context.actorOf(Props(new Actor {
-          def receive: Receive = {
-            case res: RpcResponseEnvelope => outHandler(res)
-          }
-        }))
-        val inHandler = context.actorOf(ConnectionHandler(project, broadcaster, delegate))
+    val hookHandlers: WebServer.HookHandlers = { outHandler =>
+      val delegate = context.actorOf(Props(new Actor {
+        def receive: Receive = {
+          case res: RpcResponseEnvelope => outHandler(res)
+        }
+      }))
+      val inHandler =
+        context.actorOf(ConnectionHandler(project, broadcaster, delegate))
 
-        { req => inHandler ! req }
+      { req =>
+        inHandler ! req
+      }
     }
 
     val docs = DocJarReading.forConfig(config)
-    WebServer.start(docs, preferredHttpPort.getOrElse(0), hookHandlers).onComplete {
-      case Failure(ex) =>
-        log.error(ex, s"Error binding http endpoint ${ex.getMessage}")
-        selfRef ! ShutdownRequest(s"http endpoint failed to bind ($preferredHttpPort)", isError = true)
+    WebServer
+      .start(docs, preferredHttpPort.getOrElse(0), hookHandlers)
+      .onComplete {
+        case Failure(ex) =>
+          log.error(ex, s"Error binding http endpoint ${ex.getMessage}")
+          selfRef ! ShutdownRequest(
+            s"http endpoint failed to bind ($preferredHttpPort)",
+            isError = true
+          )
 
-      case Success(ch) =>
-        this.channel = ch
-        log.info(s"ENSIME HTTP on ${ch.localAddress()}")
-        try {
-          val port = ch.localAddress().asInstanceOf[InetSocketAddress].getPort()
-          PortUtil.writePort(config.cacheDir.file, port, "http")
-        } catch {
-          case ex: Throwable =>
-            log.error(ex, s"Error initializing http endpoint ${ex.getMessage}")
-            selfRef ! ShutdownRequest(s"http endpoint failed to initialise: ${ex.getMessage}", isError = true)
-        }
-    }(context.system.dispatcher)
+        case Success(ch) =>
+          this.channel = ch
+          log.info(s"ENSIME HTTP on ${ch.localAddress()}")
+          try {
+            val port =
+              ch.localAddress().asInstanceOf[InetSocketAddress].getPort()
+            PortUtil.writePort(config.cacheDir.file, port, "http")
+          } catch {
+            case ex: Throwable =>
+              log.error(ex,
+                        s"Error initializing http endpoint ${ex.getMessage}")
+              selfRef ! ShutdownRequest(
+                s"http endpoint failed to initialise: ${ex.getMessage}",
+                isError = true
+              )
+          }
+      }(context.system.dispatcher)
 
     Environment.info foreach log.info
   }
 
-  override def preStart(): Unit = {
+  override def preStart(): Unit =
     try {
       initialiseChildren()
     } catch {
@@ -91,21 +107,20 @@ class ServerActor(
         log.error(t, s"Error during startup - ${t.getMessage}")
         self ! ShutdownRequest(t.toString, isError = true)
     }
-  }
   override def receive: Receive = {
     case req: ShutdownRequest =>
       triggerShutdown(req)
   }
 
-  def triggerShutdown(request: ShutdownRequest): Unit = {
+  def triggerShutdown(request: ShutdownRequest): Unit =
     Server.shutdown(context.system, channel, request, serverConfig.exit)
-  }
 
 }
 object ServerActor {
   def props()(implicit
-    ensimeConfig: EnsimeConfig,
-    serverConfig: EnsimeServerConfig): Props = Props(new ServerActor(ensimeConfig, serverConfig))
+              ensimeConfig: EnsimeConfig,
+              serverConfig: EnsimeServerConfig): Props =
+    Props(new ServerActor(ensimeConfig, serverConfig))
 }
 
 object Server extends AkkaBackCompat {
@@ -123,28 +138,40 @@ object Server extends AkkaBackCompat {
     val fallback = ConfigFactory.load()
     val user = List(
       parseServerConfig(fallback).config.file.getParent,
-      Paths.get(sys.env.get("XDG_CONFIG_HOME").getOrElse(sys.props("user.home")))
+      Paths.get(
+        sys.env.get("XDG_CONFIG_HOME").getOrElse(sys.props("user.home"))
+      )
     ).map(_ / ".ensime-server.conf")
       .filter(_.exists())
       .map(p => ConfigFactory.parseFile(p.toFile))
 
-    (ConfigFactory.systemProperties() :: user ::: fallback :: Nil)
-      .reduce { (higher, lower) => higher.withFallback(lower) }
+    (ConfigFactory.systemProperties() :: user ::: fallback :: Nil).reduce {
+      (higher, lower) =>
+        higher.withFallback(lower)
+    }
   }
 
   def main(args: Array[String]): Unit = {
-    val config = loadConfig()
+    val config                                    = loadConfig()
     implicit val serverConfig: EnsimeServerConfig = parseServerConfig(config)
-    implicit val ensimeConfig: EnsimeConfig = EnsimeConfigProtocol.parse(serverConfig.config.file.readString())
+    implicit val ensimeConfig: EnsimeConfig =
+      EnsimeConfigProtocol.parse(serverConfig.config.file.readString())
 
-    ActorSystem.create("ENSIME", config).actorOf(ServerActor.props(), "ensime-main")
+    ActorSystem
+      .create("ENSIME", config)
+      .actorOf(ServerActor.props(), "ensime-main")
   }
 
-  def shutdown(system: ActorSystem, channel: Channel, request: ShutdownRequest, exit: Boolean): Unit = {
+  def shutdown(system: ActorSystem,
+               channel: Channel,
+               request: ShutdownRequest,
+               exit: Boolean): Unit = {
     val t = new Thread(new Runnable {
       def run(): Unit = {
         if (request.isError)
-          log.error(s"Shutdown requested due to internal error: ${request.reason}")
+          log.error(
+            s"Shutdown requested due to internal error: ${request.reason}"
+          )
         else
           log.info(s"Shutdown requested: ${request.reason}")
 

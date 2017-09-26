@@ -12,22 +12,23 @@ object JsValueGenerators {
   import Gen._
   import Arbitrary.arbitrary
 
-  val parseableString: Gen[String] = Gen.someOf(('\u0020' to '\u007E').toVector).map(_.mkString)
-  val genString: Gen[JsString] = parseableString.map(JsString(_))
-  val genBoolean: Gen[JsBoolean] = oneOf(JsFalse, JsTrue)
-  val genLongNumber: Gen[JsNumber] = arbitrary[Long].map(JsNumber(_))
-  val genIntNumber: Gen[JsNumber] = arbitrary[Long].map(JsNumber(_))
+  val parseableString: Gen[String] =
+    Gen.someOf(('\u0020' to '\u007E').toVector).map(_.mkString)
+  val genString: Gen[JsString]       = parseableString.map(JsString(_))
+  val genBoolean: Gen[JsBoolean]     = oneOf(JsFalse, JsTrue)
+  val genLongNumber: Gen[JsNumber]   = arbitrary[Long].map(JsNumber(_))
+  val genIntNumber: Gen[JsNumber]    = arbitrary[Long].map(JsNumber(_))
   val genDoubleNumber: Gen[JsNumber] = arbitrary[Long].map(JsNumber(_))
   def genArray(depth: Int): Gen[JsArray] =
     if (depth == 0) JsArray()
     else
       for {
-        n <- choose(0, 15)
+        n   <- choose(0, 15)
         els <- Gen.containerOfN[List, JsValue](n, genValue(depth - 1))
       } yield JsArray(els.toVector)
   def genField(depth: Int): Gen[(String, JsValue)] =
     for {
-      key <- parseableString
+      key   <- parseableString
       value <- genValue(depth)
     } yield key -> value
   def genObject(depth: Int): Gen[JsObject] =
@@ -35,7 +36,8 @@ object JsValueGenerators {
     else
       for {
         n <- choose(0, 15)
-        fields <- Gen.containerOfN[List, (String, JsValue)](n, genField(depth - 1))
+        fields <- Gen.containerOfN[List, (String, JsValue)](n,
+                                                            genField(depth - 1))
       } yield JsObject(fields: _*)
 
   def genValue(depth: Int): Gen[JsValue] =

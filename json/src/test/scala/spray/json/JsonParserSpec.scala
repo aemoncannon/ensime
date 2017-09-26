@@ -40,18 +40,20 @@ class JsonParserSpec extends WordSpec {
     }
     "parse a simple JsObject" in (
       JsonParser(""" { "key" :42, "key2": "value" }""") ===
-      JsObject("key" -> JsNumber(42), "key2" -> JsString("value"))
+        JsObject("key" -> JsNumber(42), "key2" -> JsString("value"))
     )
     "parse a simple JsArray" in (
       JsonParser("""[null, 1.23 ,{"key":true } ] """) ===
-      JsArray(JsNull, JsNumber(1.23), JsObject("key" -> JsTrue))
+        JsArray(JsNull, JsNumber(1.23), JsObject("key" -> JsTrue))
     )
     "parse directly from UTF-8 encoded bytes" in {
       val json = JsObject(
-        "7-bit" -> JsString("This is regular 7-bit ASCII text."),
+        "7-bit"   -> JsString("This is regular 7-bit ASCII text."),
         "2-bytes" -> JsString("2-byte UTF-8 chars like £, æ or Ö"),
         "3-bytes" -> JsString("3-byte UTF-8 chars like ﾖ, ᄅ or ᐁ."),
-        "4-bytes" -> JsString("4-byte UTF-8 chars like \uD801\uDC37, \uD852\uDF62 or \uD83D\uDE01.")
+        "4-bytes" -> JsString(
+          "4-byte UTF-8 chars like \uD801\uDC37, \uD852\uDF62 or \uD83D\uDE01."
+        )
       )
       JsonParser(json.prettyPrint.getBytes("UTF-8")) === json
     }
@@ -60,16 +62,23 @@ class JsonParserSpec extends WordSpec {
       JsonParser(json.prettyPrint.getBytes("UTF-8")) === json
     }
     "be reentrant" in {
-      val largeJsonSource = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/test.json")).mkString
+      val largeJsonSource = scala.io.Source
+        .fromInputStream(getClass.getResourceAsStream("/test.json"))
+        .mkString
       import scala.collection.parallel.immutable.ParSeq
       ParSeq.fill(20)(largeJsonSource).map(JsonParser(_)).toList.map {
-        _.asInstanceOf[JsObject].fields("questions").asInstanceOf[JsArray].elements.size
+        _.asInstanceOf[JsObject]
+          .fields("questions")
+          .asInstanceOf[JsArray]
+          .elements
+          .size
       } === List.fill(20)(100)
     }
 
     "produce proper error messages" in {
       def errorMessage(input: String) =
-        try JsonParser(input) catch { case e: JsonParser.ParsingException => e.getMessage }
+        try JsonParser(input)
+        catch { case e: JsonParser.ParsingException => e.getMessage }
 
       errorMessage("""[null, 1.23 {"key":true } ]""") ===
         """Unexpected character '{' at input index 12 (line 1, position 13), expected ']':

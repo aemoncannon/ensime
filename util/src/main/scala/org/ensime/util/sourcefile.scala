@@ -12,10 +12,10 @@ package object sourcefile {
 
   implicit class RichSourceFileInfo(val v: SourceFileInfo) extends AnyVal {
     def exists() = v match {
-      case SourceFileInfo(f, _, _, _) if f.exists() => true
-      case SourceFileInfo(_, Some(c), _, _) => true
+      case SourceFileInfo(f, _, _, _) if f.exists()       => true
+      case SourceFileInfo(_, Some(c), _, _)               => true
       case SourceFileInfo(_, _, Some(f), _) if f.exists() => true
-      case _ => false
+      case _                                              => false
     }
   }
 

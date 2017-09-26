@@ -8,7 +8,7 @@ trait SprayJsonTestSupport {
   this: Matchers =>
 
   def roundtrip[T: JsonFormat](value: T, via: Option[String] = None): Unit = {
-    val json = value.toJson
+    val json   = value.toJson
     val string = json.compactPrint
 
     via match {
@@ -20,6 +20,7 @@ trait SprayJsonTestSupport {
     val recovered = json.convertTo[T]
     recovered shouldBe value
   }
-  def roundtrip[T: JsonFormat](value: T, via: String): Unit = roundtrip(value, Some(via))
+  def roundtrip[T: JsonFormat](value: T, via: String): Unit =
+    roundtrip(value, Some(via))
 
 }

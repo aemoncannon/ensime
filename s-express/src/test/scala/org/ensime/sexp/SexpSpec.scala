@@ -10,7 +10,8 @@ import org.slf4j.bridge.SLF4JBridgeHandler
 /**
  * Boilerplate remover and preferred testing style in S-Express.
  */
-abstract class SexpSpec extends FlatSpec
+abstract class SexpSpec
+    extends FlatSpec
     with Matchers
     with Inside
     with TryValues

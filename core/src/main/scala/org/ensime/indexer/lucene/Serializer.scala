@@ -11,9 +11,13 @@ import shapeless.Typeable
 
 // in hindsight, this would have been more cleanly designed as TypeClass
 abstract class Serializer[T](tpe: Typeable[T])
-    extends DocumentProvider[T] with DocumentRecovery[T] with QueryProvider[T] {
+    extends DocumentProvider[T]
+    with DocumentRecovery[T]
+    with QueryProvider[T] {
   private val TypeField = new StringField("TYPE", tpe.describe, Store.YES)
-  private val TypeTerm = new TermQuery(new Term(TypeField.name, TypeField.stringValue))
+  private val TypeTerm = new TermQuery(
+    new Term(TypeField.name, TypeField.stringValue)
+  )
 
   def id(t: T): String
 
@@ -26,12 +30,11 @@ abstract class Serializer[T](tpe: Typeable[T])
   }
   def addFields(doc: Document, t: T): Unit
 
-  final def createQuery(e: T): Query = {
-    new BooleanQuery.Builder().
-      add(TypeTerm, MUST).
-      add(new TermQuery(new Term("ID", id(e))), MUST).
-      build()
-  }
+  final def createQuery(e: T): Query =
+    new BooleanQuery.Builder()
+      .add(TypeTerm, MUST)
+      .add(new TermQuery(new Term("ID", id(e))), MUST)
+      .build()
 }
 
 abstract class EntityS[T <: Entity](tpe: Typeable[T]) extends Serializer(tpe) {

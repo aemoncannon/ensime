@@ -17,8 +17,8 @@ object ScalaSigApi {
      */
     def isTopLevel: Boolean = sym.parent match {
       case Some(ext: ExternalSymbol) => true
-      case Some(_) => false
-      case None => ???
+      case Some(_)                   => false
+      case None                      => ???
     }
 
     /**
@@ -26,8 +26,8 @@ object ScalaSigApi {
      */
     def topLevelParent: Symbol = sym.parent match {
       case Some(ext: ExternalSymbol) => sym
-      case Some(p) => p.topLevelParent
-      case _ => throw new AssertionError("Empty parent on non External Symbol")
+      case Some(p)                   => p.topLevelParent
+      case _                         => throw new AssertionError("Empty parent on non External Symbol")
     }
 
     def ownerChain: List[Symbol] = {
@@ -35,8 +35,9 @@ object ScalaSigApi {
       def loop(sym: Symbol, acc: List[Symbol] = Nil): List[Symbol] =
         sym.parent match {
           case Some(ext: ExternalSymbol) => sym :: acc
-          case Some(s) => loop(s, sym :: acc)
-          case None => throw new AssertionError("Empty parent on non External Symbol")
+          case Some(s)                   => loop(s, sym :: acc)
+          case None =>
+            throw new AssertionError("Empty parent on non External Symbol")
         }
       loop(sym)
     }

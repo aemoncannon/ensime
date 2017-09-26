@@ -16,8 +16,8 @@ class ClassfileDepickler(file: FileObject) extends ScalapSymbolToFqn {
   private def depickle: Option[ScalaSig] = {
     val in = file.getContent.getInputStream
     try {
-      val bytes = in.toByteArray()
-      val byteCode = ByteCode(bytes)
+      val bytes     = in.toByteArray()
+      val byteCode  = ByteCode(bytes)
       val classFile = ClassFileParser.parse(byteCode)
       ScalaSigParser.parse(classFile)
     } catch {
@@ -27,11 +27,13 @@ class ClassfileDepickler(file: FileObject) extends ScalapSymbolToFqn {
   }
 
   private val ignore = Set("<local child>", "<refinement>", "anon")
-  def getClasses: Map[String, RawScalapClass] = scalasig.fold(Map.empty[String, RawScalapClass]) { sig =>
-    sig.symbols.collect {
-      case s: ClassSymbol if !(ignore.exists(s.name.contains) || s.isSynthetic) =>
-        val aClass = rawScalaClass(s)
-        aClass.javaName.fqnString -> aClass
-    }.toMap
-  }
+  def getClasses: Map[String, RawScalapClass] =
+    scalasig.fold(Map.empty[String, RawScalapClass]) { sig =>
+      sig.symbols.collect {
+        case s: ClassSymbol
+            if !(ignore.exists(s.name.contains) || s.isSynthetic) =>
+          val aClass = rawScalaClass(s)
+          aClass.javaName.fqnString -> aClass
+      }.toMap
+    }
 }

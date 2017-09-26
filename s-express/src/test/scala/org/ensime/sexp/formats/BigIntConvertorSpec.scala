@@ -11,10 +11,10 @@ import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
 class BigIntConvertorSpec extends SexpSpec {
   private val examples = List(
-    BitSet() -> BigInt(0),
-    BitSet(0) -> BigInt(1),
-    BitSet(1) -> BigInt(2),
-    BitSet(64) -> BigInt("18446744073709551616"),
+    BitSet()      -> BigInt(0),
+    BitSet(0)     -> BigInt(1),
+    BitSet(1)     -> BigInt(2),
+    BitSet(64)    -> BigInt("18446744073709551616"),
     BitSet(0, 64) -> BigInt("18446744073709551617"),
     BitSet(1, 64) -> BigInt("18446744073709551618")
   )

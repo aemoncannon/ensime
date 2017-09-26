@@ -50,9 +50,8 @@ object `package` {
   implicit class RichDocument(d: Document) {
     def toEntity[T](implicit p: DocumentRecovery[T]) = p.toEntity(d)
 
-    def boostText(f: String, boost: Float) = {
+    def boostText(f: String, boost: Float) =
       d.getField(f).asInstanceOf[TextField].setBoost(boost)
-    }
 
     def boost(f: String): Float =
       d.getField(f).asInstanceOf[TextField].boost()

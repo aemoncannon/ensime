@@ -11,10 +11,13 @@ import org.ensime.util.path._
 import org.ensime.indexer._
 import org.scalatest.{ Inside, OptionValues }
 
-class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
+class JavaCompilerSpec
+    extends EnsimeSpec
+    with Inside
+    with OptionValues
     with IsolatedJavaCompilerFixture {
 
-  val original = EnsimeConfigFixture.SimpleTestProject.copy(javaSources = Nil)
+  val original                   = EnsimeConfigFixture.SimpleTestProject.copy(javaSources = Nil)
   override def usePreWarmedIndex = false
 
   // NOTE: we're intentionally removing the pre-indexing support so
@@ -23,11 +26,12 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
 
   "JavaCompiler" should "generate compilation notes" in {
     withJavaCompiler { (_, config, cc, store, search) =>
-      runForPositionInCompiledSource(config, cc,
-        "import java.io.File;",
-        "class Test1 {",
-        "  ksjdfkdjsf @1@",
-        "}") { (sf, p, label, cc) =>
+      runForPositionInCompiledSource(config,
+                                     cc,
+                                     "import java.io.File;",
+                                     "class Test1 {",
+                                     "  ksjdfkdjsf @1@",
+                                     "}") { (sf, p, label, cc) =>
         }
       store.notes should not be empty
     }
@@ -35,20 +39,23 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
 
   it should "find type at point" in {
     withJavaCompiler { (_, config, cc, store, search) =>
-      runForPositionInCompiledSource(config, cc,
-        "import java.io.File;",
-        "class Tes@0@t1 {",
-        "  private void main() {",
-        "    int fo@1@o = 1;",
-        "    System.out.pri@2@ntln(fo@3@o);",
-        "  }",
-        "}") { (sf, offset, label, cc) =>
-          val info = cc.askTypeAtPoint(sf, offset).get
-          label match {
-            case "0" => info.name shouldBe "Test1"
-            case "1" => info.name shouldBe "int"
-            case "2" => info shouldBe ArrowTypeInfo(
-              "void (int)", "void (int)",
+      runForPositionInCompiledSource(config,
+                                     cc,
+                                     "import java.io.File;",
+                                     "class Tes@0@t1 {",
+                                     "  private void main() {",
+                                     "    int fo@1@o = 1;",
+                                     "    System.out.pri@2@ntln(fo@3@o);",
+                                     "  }",
+                                     "}") { (sf, offset, label, cc) =>
+        val info = cc.askTypeAtPoint(sf, offset).get
+        label match {
+          case "0" => info.name shouldBe "Test1"
+          case "1" => info.name shouldBe "int"
+          case "2" =>
+            info shouldBe ArrowTypeInfo(
+              "void (int)",
+              "void (int)",
               BasicTypeInfo("void", DeclaredAs.Class, "void"),
               ParamSectionInfo(
                 ("arg0" -> BasicTypeInfo(
@@ -57,57 +64,77 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   "int"
                 )) :: Nil,
                 isImplicit = false
-              ) :: Nil, Nil
+              ) :: Nil,
+              Nil
             )
-            case "3" => info.name shouldBe "int"
-          }
+          case "3" => info.name shouldBe "int"
         }
+      }
     }
   }
 
   it should "link symbols to their source positions" in {
     withJavaCompiler { (_, config, cc, store, _) =>
-      val test1 = SourceFileInfo(RawFile(config.rootDir.file / "testing/simple/src/main/java/org/example/Test1.java"))
-      val test2 = SourceFileInfo(RawFile(config.rootDir.file / "testing/simple/src/main/java/org/example/Test2.java"))
+      val test1 = SourceFileInfo(
+        RawFile(
+          config.rootDir.file / "testing/simple/src/main/java/org/example/Test1.java"
+        )
+      )
+      val test2 = SourceFileInfo(
+        RawFile(
+          config.rootDir.file / "testing/simple/src/main/java/org/example/Test2.java"
+        )
+      )
 
-      cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Test2"), test2) should matchPattern { case Some(OffsetSourcePosition(f, 22)) => }
-      cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Foo"), test2) should matchPattern { case None => }
-      cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Test2.Bar"), test2) should matchPattern { case Some(OffsetSourcePosition(f, 260)) => }
-      //    cc.askLinkPos(JavaFqn("org.example", "Test2", Some("compute()")), test2) should matchPattern { case Some(OffsetSourcePosition(f, 58)) => }
+      cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Test2"),
+                    test2) should matchPattern {
+        case Some(OffsetSourcePosition(f, 22)) =>
+      }
+      cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Foo"),
+                    test2) should matchPattern { case None => }
+      cc.askLinkPos(ClassName(PackageName(List("org", "example")), "Test2.Bar"),
+                    test2) should matchPattern {
+        case Some(OffsetSourcePosition(f, 260)) =>
+      }
+    //    cc.askLinkPos(JavaFqn("org.example", "Test2", Some("compute()")), test2) should matchPattern { case Some(OffsetSourcePosition(f, 58)) => }
 
     }
   }
 
-  it should "find symbol at point" in withJavaCompiler { (_, config, cc, store, search) =>
-    refresh()(search)
+  it should "find symbol at point" in withJavaCompiler {
+    (_, config, cc, store, search) =>
+      refresh()(search)
 
-    runForPositionInCompiledSource(config, cc,
-      "package org.example;",
-      "import java.io.File;",
-      "class Test1 {",
-      "  private class Foo { public Foo() {} }",
-      "  public static final int CONST = 2;",
-      "  private void main(String[] args) {",
-      "    int foo = 1;",
-      "    System.out.println(ar@1@gs);",
-      "    System.out.pr@3@intln(new Fo@2@o());",
-      "    System.out.println(new Fi@4@le(\".\"));",
-      "    System.out.println(Tes@5@t2.com@6@pute());",
-      "    System.out.println(comp@7@ute(2, 3));",
-      "    System.out.println(CO@8@NST);",
-      "    System.out.println(@11@fo@0@o@12@);",
-      "    int k = 2;",
-      "    System.out.println( @13@k@14@ );",
-      "  }",
-      "  private static int compute(int a, int b) {",
-      "    return a + b;",
-      "  }",
-      "  private static String hello(D@9@ay day) {",
-      "    if (day == Day.MO@10@N) return \"monday\";",
-      "    return \"tues\";",
-      "  }",
-      "  public enum Day { MON, TUES }",
-      "}") { (sf, offset, label, cc) =>
+      runForPositionInCompiledSource(
+        config,
+        cc,
+        "package org.example;",
+        "import java.io.File;",
+        "class Test1 {",
+        "  private class Foo { public Foo() {} }",
+        "  public static final int CONST = 2;",
+        "  private void main(String[] args) {",
+        "    int foo = 1;",
+        "    System.out.println(ar@1@gs);",
+        "    System.out.pr@3@intln(new Fo@2@o());",
+        "    System.out.println(new Fi@4@le(\".\"));",
+        "    System.out.println(Tes@5@t2.com@6@pute());",
+        "    System.out.println(comp@7@ute(2, 3));",
+        "    System.out.println(CO@8@NST);",
+        "    System.out.println(@11@fo@0@o@12@);",
+        "    int k = 2;",
+        "    System.out.println( @13@k@14@ );",
+        "  }",
+        "  private static int compute(int a, int b) {",
+        "    return a + b;",
+        "  }",
+        "  private static String hello(D@9@ay day) {",
+        "    if (day == Day.MO@10@N) return \"monday\";",
+        "    return \"tues\";",
+        "  }",
+        "  public enum Day { MON, TUES }",
+        "}"
+      ) { (sf, offset, label, cc) =>
         val info = cc.askSymbolAtPoint(sf, offset).get
         label match {
           case "0" | "11" | "12" =>
@@ -116,7 +143,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
             info.`type`.name shouldBe "int"
             info.`type` shouldBe a[api.BasicTypeInfo]
             info.declPos should matchPattern {
-              case Some(OffsetSourcePosition(RawFile(f), 174)) if f.endsWith("Test1.java") =>
+              case Some(OffsetSourcePosition(RawFile(f), 174))
+                  if f.endsWith("Test1.java") =>
             }
           case "1" =>
             info.name shouldBe "args"
@@ -124,7 +152,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
             info.`type`.name shouldBe "java.lang.String[]"
             info.`type` shouldBe a[api.BasicTypeInfo]
             info.declPos should matchPattern {
-              case Some(OffsetSourcePosition(RawFile(f), 153)) if f.endsWith("Test1.java") =>
+              case Some(OffsetSourcePosition(RawFile(f), 153))
+                  if f.endsWith("Test1.java") =>
             }
           case "2" =>
             info.name shouldBe "org.example.Test1.Foo"
@@ -132,13 +161,15 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
             info.`type`.name shouldBe "org.example.Test1.Foo"
             info.`type` shouldBe a[api.BasicTypeInfo]
             info.declPos should matchPattern {
-              case Some(OffsetSourcePosition(RawFile(f), 58)) if f.endsWith("Test1.java") =>
+              case Some(OffsetSourcePosition(RawFile(f), 58))
+                  if f.endsWith("Test1.java") =>
             }
           case "3" =>
             info.name shouldBe "java.io.PrintStream.println(java.lang.Object)"
             info.localName shouldBe "println"
             info.`type` shouldBe ArrowTypeInfo(
-              "void println(Object arg0)", "void println(java.lang.Object arg0)",
+              "void println(Object arg0)",
+              "void println(java.lang.Object arg0)",
               BasicTypeInfo("void", DeclaredAs.Class, "void"),
               ParamSectionInfo(
                 ("arg0" -> BasicTypeInfo(
@@ -147,7 +178,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   "java.lang.Object"
                 )) :: Nil,
                 isImplicit = false
-              ) :: Nil, Nil
+              ) :: Nil,
+              Nil
             )
           case "4" =>
             info.name shouldBe "java.io.File"
@@ -160,55 +192,63 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
             info.`type`.name shouldBe "org.example.Test2"
             info.`type` shouldBe a[api.BasicTypeInfo]
             info.declPos should matchPattern {
-              case Some(OffsetSourcePosition(RawFile(f), 22)) if f.endsWith("Test2.java") =>
+              case Some(OffsetSourcePosition(RawFile(f), 22))
+                  if f.endsWith("Test2.java") =>
             }
           case "6" =>
             info.name shouldBe "org.example.Test2.compute()"
             info.localName shouldBe "compute"
             info.`type` shouldBe ArrowTypeInfo(
-              "int compute()", "int compute()",
+              "int compute()",
+              "int compute()",
               BasicTypeInfo("int", DeclaredAs.Class, "int"),
               ParamSectionInfo(
                 Nil,
                 isImplicit = false
-              ) :: Nil, Nil
+              ) :: Nil,
+              Nil
             )
             info.declPos should matchPattern {
-              case Some(LineSourcePosition(RawFile(f), 8)) if f.endsWith("Test2.java") =>
-              case Some(OffsetSourcePosition(RawFile(f), 48)) if f.endsWith("Test2.java") =>
+              case Some(LineSourcePosition(RawFile(f), 8))
+                  if f.endsWith("Test2.java") =>
+              case Some(OffsetSourcePosition(RawFile(f), 48))
+                  if f.endsWith("Test2.java") =>
             }
-          case "7" =>
-            {}
-            info.name shouldBe "org.example.Test1.compute(int,int)"
-            info.localName shouldBe "compute"
-            info.`type` shouldBe ArrowTypeInfo(
-              "int compute(int arg0, int arg1)", "int compute(int arg0, int arg1)",
-              BasicTypeInfo("int", DeclaredAs.Class, "int"),
-              ParamSectionInfo(
-                ("arg0" -> BasicTypeInfo(
-                  "int",
-                  DeclaredAs.Class,
-                  "int"
-                )) ::
-                  ("arg1" -> BasicTypeInfo(
-                    "int",
-                    DeclaredAs.Class,
-                    "int"
-                  )) :: Nil,
-                isImplicit = false
-              ) :: Nil, Nil
-            )
-            // "private static int compute(int a, int b)"
-            info.declPos should matchPattern {
-              case Some(OffsetSourcePosition(RawFile(f), 481)) if f.endsWith("Test1.java") =>
-            }
-          case "8" =>
+          case "7" => {}
+          info.name shouldBe "org.example.Test1.compute(int,int)"
+          info.localName shouldBe "compute"
+          info.`type` shouldBe ArrowTypeInfo(
+            "int compute(int arg0, int arg1)",
+            "int compute(int arg0, int arg1)",
+            BasicTypeInfo("int", DeclaredAs.Class, "int"),
+            ParamSectionInfo(
+              ("arg0" -> BasicTypeInfo(
+                "int",
+                DeclaredAs.Class,
+                "int"
+              )) ::
+                ("arg1" -> BasicTypeInfo(
+                "int",
+                DeclaredAs.Class,
+                "int"
+              )) :: Nil,
+              isImplicit = false
+            ) :: Nil,
+            Nil
+          )
+          // "private static int compute(int a, int b)"
+          info.declPos should matchPattern {
+            case Some(OffsetSourcePosition(RawFile(f), 481))
+                if f.endsWith("Test1.java") =>
+          }
+        case "8" =>
             info.name shouldBe "org.example.Test1.CONST"
             info.localName shouldBe "CONST"
             info.`type`.name shouldBe "int"
             info.`type` shouldBe a[api.BasicTypeInfo]
             info.declPos should matchPattern {
-              case Some(OffsetSourcePosition(RawFile(f), 98)) if f.endsWith("Test1.java") =>
+              case Some(OffsetSourcePosition(RawFile(f), 98))
+                  if f.endsWith("Test1.java") =>
             }
           case "9" =>
             info.name shouldBe "org.example.Test1.Day"
@@ -216,7 +256,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
             info.`type`.name shouldBe "org.example.Test1.Day"
             info.`type` shouldBe a[api.BasicTypeInfo]
             info.declPos should matchPattern {
-              case Some(OffsetSourcePosition(RawFile(f), 653)) if f.endsWith("Test1.java") =>
+              case Some(OffsetSourcePosition(RawFile(f), 653))
+                  if f.endsWith("Test1.java") =>
             }
           case "10" =>
             info.name shouldBe "org.example.Test1.Day.MON"
@@ -225,7 +266,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
             info.`type` shouldBe a[api.BasicTypeInfo]
             // Don't specify offset pos here as Java 6 seems to have a problem locating enums
             info.declPos should matchPattern {
-              case Some(OffsetSourcePosition(RawFile(f), i: Int)) if f.endsWith("Test1.java") =>
+              case Some(OffsetSourcePosition(RawFile(f), i: Int))
+                  if f.endsWith("Test1.java") =>
             }
           case "13" | "14" =>
             info.name shouldBe "k"
@@ -237,7 +279,9 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
 
   it should "find completions at point" in {
     withJavaCompiler { (_, config, cc, store, search) =>
-      runForPositionInCompiledSource(config, cc,
+      runForPositionInCompiledSource(
+        config,
+        cc,
         "import java.io.File;",
         "import java.util.Map;",
         "import java.lang.Str@5@;",
@@ -281,46 +325,58 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
         "      System.out.println(nestedParam@23@);",
         "    }",
         "  }",
-        "}") { (sf, offset, label, cc) =>
-          val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
-          label match {
-            case "0" => forAtLeast(1, info.completions)(_.name shouldBe "toString")
-            case "1" => forAtLeast(1, info.completions)(_.name shouldBe "toString")
-            case "2" => forAtLeast(1, info.completions)(_.name shouldBe "toString")
-            case "3" => forAtLeast(1, info.completions)(_.name shouldBe "substring")
-            case "4" =>
-              forAtLeast(1, info.completions)(_.name shouldBe "createTempFile")
-              forAtLeast(1, info.completions)(_.name shouldBe "wait")
-            case "5" => forAtLeast(1, info.completions)(_.name shouldBe "String")
-            case "6" => forAtLeast(1, info.completions)(_.name shouldBe "Entry")
-            case "7" => forAtLeast(1, info.completions)(_.name shouldBe "Entry")
-            case "8" => forAtLeast(1, info.completions)(_.name shouldBe "File")
-            case "9" => forAtLeast(1, info.completions) { c =>
+        "}"
+      ) { (sf, offset, label, cc) =>
+        val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
+        label match {
+          case "0" =>
+            forAtLeast(1, info.completions)(_.name shouldBe "toString")
+          case "1" =>
+            forAtLeast(1, info.completions)(_.name shouldBe "toString")
+          case "2" =>
+            forAtLeast(1, info.completions)(_.name shouldBe "toString")
+          case "3" =>
+            forAtLeast(1, info.completions)(_.name shouldBe "substring")
+          case "4" =>
+            forAtLeast(1, info.completions)(_.name shouldBe "createTempFile")
+            forAtLeast(1, info.completions)(_.name shouldBe "wait")
+          case "5" => forAtLeast(1, info.completions)(_.name shouldBe "String")
+          case "6" => forAtLeast(1, info.completions)(_.name shouldBe "Entry")
+          case "7" => forAtLeast(1, info.completions)(_.name shouldBe "Entry")
+          case "8" => forAtLeast(1, info.completions)(_.name shouldBe "File")
+          case "9" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "foo"
               c.typeInfo.value.name shouldBe "String"
             }
-            case "10" => forAtLeast(1, info.completions) { c =>
+          case "10" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "maxValue"
               c.typeInfo.value.name shouldBe "int"
             }
-            case "11" => forAtLeast(1, info.completions) { c =>
+          case "11" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "MAX_VALUE"
               c.typeInfo.value.name shouldBe "int"
             }
-            case "12" => forAtLeast(1, info.completions)(_.name shouldBe "Integer")
+          case "12" =>
+            forAtLeast(1, info.completions)(_.name shouldBe "Integer")
 
-            case "13" =>
-              // exact matches should be preferred
-              info.completions(0).name shouldBe "TestInner"
-              info.completions(1).name shouldBe "testinner"
+          case "13" =>
+            // exact matches should be preferred
+            info.completions(0).name shouldBe "TestInner"
+            info.completions(1).name shouldBe "testinner"
 
-            case "14" => forAtLeast(1, info.completions)(_.name shouldBe "println")
-            case "15" => forAtLeast(1, info.completions) { c =>
+          case "14" =>
+            forAtLeast(1, info.completions)(_.name shouldBe "println")
+          case "15" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "privateValue"
               c.typeInfo.value.name shouldBe "int"
             }
-            case "16" => forAll(info.completions)(_.name shouldNot be("hash"))
-            case "17" => forAtLeast(1, info.completions) { c =>
+          case "16" => forAll(info.completions)(_.name shouldNot be("hash"))
+          case "17" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "arrayValue"
               inside(c.typeInfo.value) {
                 case BasicTypeInfo(name, _, fullName) =>
@@ -328,7 +384,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   fullName shouldBe "java.lang.String[]"
               }
             }
-            case "18" => forAtLeast(1, info.completions) { c =>
+          case "18" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "parameterizedValue"
               inside(c.typeInfo.value) {
                 case BasicTypeInfo(name, _, fullName) =>
@@ -336,7 +393,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   fullName shouldBe "java.lang.Iterable<java.lang.String>"
               }
             }
-            case "19" => forAtLeast(1, info.completions) { c =>
+          case "19" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "doubleParameterizedValue"
               inside(c.typeInfo.value) {
                 case BasicTypeInfo(name, _, fullName) =>
@@ -344,7 +402,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   fullName shouldBe "java.util.Map<java.lang.String,java.lang.Integer>"
               }
             }
-            case "20" => forAtLeast(1, info.completions) { c =>
+          case "20" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "arrayOfParameterizedValue"
               inside(c.typeInfo.value) {
                 case BasicTypeInfo(name, _, fullName) =>
@@ -352,7 +411,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   fullName shouldBe "java.lang.Iterable<java.lang.String>[]"
               }
             }
-            case "21" => forAtLeast(1, info.completions) { c =>
+          case "21" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "arrayOfDoubleParameterizedValue"
               inside(c.typeInfo.value) {
                 case BasicTypeInfo(name, _, fullName) =>
@@ -360,7 +420,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   fullName shouldBe "java.util.Map<java.lang.String,java.lang.Integer>[]"
               }
             }
-            case "22" => forAtLeast(1, info.completions) { c =>
+          case "22" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "parameterizedWithArrayValue"
               inside(c.typeInfo.value) {
                 case BasicTypeInfo(name, _, fullName) =>
@@ -368,7 +429,8 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   fullName shouldBe "java.lang.Iterable<java.lang.String[]>"
               }
             }
-            case "23" => forAtLeast(1, info.completions) { c =>
+          case "23" =>
+            forAtLeast(1, info.completions) { c =>
               c.name shouldBe "nestedParameterizedValue"
               inside(c.typeInfo.value) {
                 case BasicTypeInfo(name, _, fullName) =>
@@ -376,81 +438,109 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
                   fullName shouldBe "java.lang.Iterable<java.lang.Iterable<java.lang.String>>"
               }
             }
-          }
-        }
-    }
-  }
-
-  it should "find completion at beginning of file" in {
-    withJavaCompiler { (_, config, cc, store, search) =>
-      runForPositionInCompiledSource(config, cc, "Sys@0@") { (sf, offset, label, cc) =>
-        val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
-        label match {
-          case "0" => forAtLeast(1, info.completions)(_.name shouldBe "System")
         }
       }
     }
   }
 
-  it should "find doc sig at point" in withJavaCompiler { (_, config, cc, store, search) =>
-    runForPositionInCompiledSource(config, cc,
-      "import java.io.Fi@5@le;",
-      "class Test1 {",
-      "  private void main() {",
-      "    File f = new F@1@ile(\".\")",
-      "    System.out.println(f.toStr@2@ing());",
-      "    File.create@3@TempFile(\"bla\", \"foo\");",
-      "    File.create@4@TempFile(\"bla\", \"foo\", f);",
-      "    System.out.println(\"bla\".ind@6@exOf(\"b\"));",
-      "    System.out.println(\"bla\".index@7@Of(\"b\", 1));",
-      "    System.out.println(\"bla\".index@8@Of(1));",
-      "  }",
-      "}") { (sf, offset, label, cc) =>
+  it should "find completion at beginning of file" in {
+    withJavaCompiler { (_, config, cc, store, search) =>
+      runForPositionInCompiledSource(config, cc, "Sys@0@") {
+        (sf, offset, label, cc) =>
+          val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
+          label match {
+            case "0" =>
+              forAtLeast(1, info.completions)(_.name shouldBe "System")
+          }
+      }
+    }
+  }
+
+  it should "find doc sig at point" in withJavaCompiler {
+    (_, config, cc, store, search) =>
+      runForPositionInCompiledSource(
+        config,
+        cc,
+        "import java.io.Fi@5@le;",
+        "class Test1 {",
+        "  private void main() {",
+        "    File f = new F@1@ile(\".\")",
+        "    System.out.println(f.toStr@2@ing());",
+        "    File.create@3@TempFile(\"bla\", \"foo\");",
+        "    File.create@4@TempFile(\"bla\", \"foo\", f);",
+        "    System.out.println(\"bla\".ind@6@exOf(\"b\"));",
+        "    System.out.println(\"bla\".index@7@Of(\"b\", 1));",
+        "    System.out.println(\"bla\".index@8@Of(1));",
+        "  }",
+        "}"
+      ) { (sf, offset, label, cc) =>
         val sig = cc.askDocSignatureAtPoint(sf, offset).get.java
         label match {
           case "0" => sig.fqn shouldBe DocFqn("", "Test1")
           case "1" => sig.fqn shouldBe DocFqn("java.io", "File")
-          case "2" => sig shouldBe DocSig(DocFqn("java.io", "File"), Some("toString()"));
-          case "3" => sig shouldBe DocSig(DocFqn("java.io", "File"), Some("createTempFile(java.lang.String,java.lang.String)"));
-          case "4" => sig shouldBe DocSig(DocFqn("java.io", "File"), Some("createTempFile(java.lang.String,java.lang.String,java.io.File)"));
+          case "2" =>
+            sig shouldBe DocSig(DocFqn("java.io", "File"), Some("toString()"));
+          case "3" =>
+            sig shouldBe DocSig(
+              DocFqn("java.io", "File"),
+              Some("createTempFile(java.lang.String,java.lang.String)")
+            );
+          case "4" =>
+            sig shouldBe DocSig(
+              DocFqn("java.io", "File"),
+              Some(
+                "createTempFile(java.lang.String,java.lang.String,java.io.File)"
+              )
+            );
           case "5" => sig.fqn shouldBe DocFqn("java.io", "File")
-          case "6" => sig shouldBe DocSig(DocFqn("java.lang", "String"), Some("indexOf(java.lang.String)"));
-          case "7" => sig shouldBe DocSig(DocFqn("java.lang", "String"), Some("indexOf(java.lang.String,int)"));
-          case "8" => sig shouldBe DocSig(DocFqn("java.lang", "String"), Some("indexOf(int)"));
+          case "6" =>
+            sig shouldBe DocSig(DocFqn("java.lang", "String"),
+                                Some("indexOf(java.lang.String)"));
+          case "7" =>
+            sig shouldBe DocSig(DocFqn("java.lang", "String"),
+                                Some("indexOf(java.lang.String,int)"));
+          case "8" =>
+            sig shouldBe DocSig(DocFqn("java.lang", "String"),
+                                Some("indexOf(int)"));
         }
       }
   }
 
   it should "support Java 7 syntax features" in {
     withJavaCompiler { (_, config, cc, store, search) =>
-      runForPositionInCompiledSource(config, cc, """
-        | import java.io.File;
-        | import java.util.HashMap;
-        | import java.util.Map;
-        | import java.io.FileInputStream;
-        | import java.io.DataOutputStream;
-        | import java.io.IOException;
-        | import java.lang.ArrayIndexOutOfBoundsException;
-        | class Java7Test {
-        |   private void main() {
-        |     Map<Long, String> aMap = new HashMap<>(); // diamond operator
-        |     aM@0@ap.put(1L, "ONE");
-        |     String one = aMap.get(1L);
-        |     switch(o@1@ne) { // switch over strings
-        |       case "O@2@NE":
-        |         break;
-        |       default:
-        |        break
-        |     }
-        |     int m@3@illion = 1_000_000; //numeric literals with underscores
-        |     try(FileOutputStream f@4@os = new FileOutputStream("movies.txt"); //resource mamagement
-        |       DataOutputStream dos = new DataOutputStream(fos)) {
-        |     } catch(ArrayIndexOutOfBoundsException | IOException e@5@x) { } //multi catch block
-        |   }
-        |}""".stripMargin) { (sf, offset, label, cc) =>
+      runForPositionInCompiledSource(
+        config,
+        cc,
+        """
+          | import java.io.File;
+          | import java.util.HashMap;
+          | import java.util.Map;
+          | import java.io.FileInputStream;
+          | import java.io.DataOutputStream;
+          | import java.io.IOException;
+          | import java.lang.ArrayIndexOutOfBoundsException;
+          | class Java7Test {
+          |   private void main() {
+          |     Map<Long, String> aMap = new HashMap<>(); // diamond operator
+          |     aM@0@ap.put(1L, "ONE");
+          |     String one = aMap.get(1L);
+          |     switch(o@1@ne) { // switch over strings
+          |       case "O@2@NE":
+          |         break;
+          |       default:
+          |        break
+          |     }
+          |     int m@3@illion = 1_000_000; //numeric literals with underscores
+          |     try(FileOutputStream f@4@os = new FileOutputStream("movies.txt"); //resource mamagement
+          |       DataOutputStream dos = new DataOutputStream(fos)) {
+          |     } catch(ArrayIndexOutOfBoundsException | IOException e@5@x) { } //multi catch block
+          |   }
+          |}""".stripMargin
+      ) { (sf, offset, label, cc) =>
         val info = cc.askTypeAtPoint(sf, offset).get
         label match {
-          case "0" => info.name shouldBe "java.util.Map<java.lang.Long,java.lang.String>"
+          case "0" =>
+            info.name shouldBe "java.util.Map<java.lang.Long,java.lang.String>"
           case "1" => info.name shouldBe "java.lang.String"
           case "2" => info.name shouldBe "java.lang.String"
           case "3" => info.name shouldBe "int"
@@ -466,34 +556,39 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
   it should "support Java 8 generic type completion in a lambda CANARY" in {
     intercept[Throwable] {
       withJavaCompiler { (_, config, cc, store, search) =>
-        runForPositionInCompiledSource(config, cc, """
-        | import java.lang.Boolean;
-        | import javafx.application.Application;
-        | import javafx.beans.value.ObservableValue;
-        | import javafx.scene.Scene;
-        | import javafx.scene.control.CheckBox;
-        | import javafx.scene.layout.VBox;
-        | import javafx.stage.Stage;
-        |
-        | public class JavaFxAddListenerTest extends Application {
-        |     @Override
-        |     public void start(Stage primaryStage) {
-        |         VBox root = new VBox();
-        |         CheckBox cb = new CheckBox();
-        |         cb.selectedProperty().addListener((ObservableValue<? extends Bool@0@> ov, Boolean oldValue, Boolean newValue) -> {});
-        |         Scene scene = new Scene(root);
-        |         primaryStage.setScene(scene);
-        |         primaryStage.show();
-        |     }
-        |
-        |     public static void main(String[] args) {
-        |         launch(args);
-        |     }
-        | }
-        """.stripMargin) { (sf, offset, label, cc) =>
+        runForPositionInCompiledSource(
+          config,
+          cc,
+          """
+            | import java.lang.Boolean;
+            | import javafx.application.Application;
+            | import javafx.beans.value.ObservableValue;
+            | import javafx.scene.Scene;
+            | import javafx.scene.control.CheckBox;
+            | import javafx.scene.layout.VBox;
+            | import javafx.stage.Stage;
+            |
+            | public class JavaFxAddListenerTest extends Application {
+            |     @Override
+            |     public void start(Stage primaryStage) {
+            |         VBox root = new VBox();
+            |         CheckBox cb = new CheckBox();
+            |         cb.selectedProperty().addListener((ObservableValue<? extends Bool@0@> ov, Boolean oldValue, Boolean newValue) -> {});
+            |         Scene scene = new Scene(root);
+            |         primaryStage.setScene(scene);
+            |         primaryStage.show();
+            |     }
+            |
+            |     public static void main(String[] args) {
+            |         launch(args);
+            |     }
+            | }
+        """.stripMargin
+        ) { (sf, offset, label, cc) =>
           val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
           label match {
-            case "0" => forAtLeast(1, info.completions)(_.name shouldBe "Boolean")
+            case "0" =>
+              forAtLeast(1, info.completions)(_.name shouldBe "Boolean")
           }
         }
       }
@@ -503,34 +598,39 @@ class JavaCompilerSpec extends EnsimeSpec with Inside with OptionValues
   it should "support Java 8 generic type completion not in a lambda CANARY" taggedAs (IgnoreOnAppVeyor, IgnoreOnTravis) in {
     intercept[NullPointerException] {
       withJavaCompiler { (_, config, cc, store, search) =>
-        runForPositionInCompiledSource(config, cc, """
-        | import java.lang.Boolean;
-        | import javafx.application.Application;
-        | import javafx.beans.value.ObservableValue;
-        | import javafx.scene.Scene;
-        | import javafx.scene.control.CheckBox;
-        | import javafx.scene.layout.VBox;
-        | import javafx.stage.Stage;
-        |
-        | public class JavaFxAddListenerTest extends Application {
-        |     @Override
-        |     public void start(Stage primaryStage) {
-        |         VBox root = new VBox();
-        |         CheckBox cb = new CheckBox();
-        |         ObservableValue<? extends Bool@0@>
-        |         Scene scene = new Scene(root);
-        |         primaryStage.setScene(scene);
-        |         primaryStage.show();
-        |     }
-        |
-        |     public static void main(String[] args) {
-        |         launch(args);
-        |     }
-        | }
-        """.stripMargin) { (sf, offset, label, cc) =>
+        runForPositionInCompiledSource(
+          config,
+          cc,
+          """
+            | import java.lang.Boolean;
+            | import javafx.application.Application;
+            | import javafx.beans.value.ObservableValue;
+            | import javafx.scene.Scene;
+            | import javafx.scene.control.CheckBox;
+            | import javafx.scene.layout.VBox;
+            | import javafx.stage.Stage;
+            |
+            | public class JavaFxAddListenerTest extends Application {
+            |     @Override
+            |     public void start(Stage primaryStage) {
+            |         VBox root = new VBox();
+            |         CheckBox cb = new CheckBox();
+            |         ObservableValue<? extends Bool@0@>
+            |         Scene scene = new Scene(root);
+            |         primaryStage.setScene(scene);
+            |         primaryStage.show();
+            |     }
+            |
+            |     public static void main(String[] args) {
+            |         launch(args);
+            |     }
+            | }
+        """.stripMargin
+        ) { (sf, offset, label, cc) =>
           val info = cc.askCompletionsAtPoint(sf, offset, 0, false)
           label match {
-            case "0" => forAtLeast(1, info.completions)(_.name shouldBe "Boolean")
+            case "0" =>
+              forAtLeast(1, info.completions)(_.name shouldBe "Boolean")
           }
         }
       }

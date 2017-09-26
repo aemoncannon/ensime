@@ -12,7 +12,7 @@ class ImplicitAnalyzer(val global: RichPresentationCompiler) {
   import global._
 
   class ImplicitsTraverser(p: Position) extends Traverser {
-    val log = LoggerFactory.getLogger(getClass)
+    val log       = LoggerFactory.getLogger(getClass)
     val implicits = new ListBuffer[ImplicitInfo]
 
     override def traverse(t: Tree): Unit = {
@@ -21,23 +21,29 @@ class ImplicitAnalyzer(val global: RichPresentationCompiler) {
         try {
           t match {
             case t: ApplyImplicitView =>
-              implicits.append(ImplicitConversionInfo(
-                treeP.startOrCursor,
-                treeP.endOrCursor,
-                SymbolInfo(t.fun.symbol)
-              ))
+              implicits.append(
+                ImplicitConversionInfo(
+                  treeP.startOrCursor,
+                  treeP.endOrCursor,
+                  SymbolInfo(t.fun.symbol)
+                )
+              )
             case t: ApplyToImplicitArgs =>
               val funIsImplicit = t.fun match {
                 case tt: ApplyImplicitView => true
-                case _ => false
+                case _                     => false
               }
-              implicits.append(ImplicitParamInfo(
-                treeP.startOrCursor,
-                treeP.endOrCursor,
-                SymbolInfo(t.fun.symbol),
-                t.args.map { a => SymbolInfo(a.symbol) },
-                funIsImplicit
-              ))
+              implicits.append(
+                ImplicitParamInfo(
+                  treeP.startOrCursor,
+                  treeP.endOrCursor,
+                  SymbolInfo(t.fun.symbol),
+                  t.args.map { a =>
+                    SymbolInfo(a.symbol)
+                  },
+                  funIsImplicit
+                )
+              )
             case _ =>
           }
         } catch {

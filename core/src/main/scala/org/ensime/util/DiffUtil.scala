@@ -10,12 +10,25 @@ import scala.collection.JavaConverters._
 
 object DiffUtil {
 
-  def compareContents(original: Seq[String], revised: Seq[String], originalFile: File = new File("a"), revisedFile: File = new File("b")): String = {
+  def compareContents(original: Seq[String],
+                      revised: Seq[String],
+                      originalFile: File = new File("a"),
+                      revisedFile: File = new File("b")): String = {
     val diff = difflib.DiffUtils.diff(original.asJava, revised.asJava)
-    val originalInfo = originalFile.getAbsolutePath() + "\t" + fileModificationTimeOrEpoch(originalFile)
-    val revisedInfo = revisedFile.getAbsolutePath() + "\t" + fileModificationTimeOrEpoch(revisedFile)
+    val originalInfo = originalFile
+      .getAbsolutePath() + "\t" + fileModificationTimeOrEpoch(originalFile)
+    val revisedInfo = revisedFile
+      .getAbsolutePath() + "\t" + fileModificationTimeOrEpoch(revisedFile)
     if (diff.getDeltas.isEmpty) ""
-    else difflib.DiffUtils.generateUnifiedDiff(originalInfo, revisedInfo, original.asJava, diff, 1).asScala.mkString("", "\n", "\n")
+    else
+      difflib.DiffUtils
+        .generateUnifiedDiff(originalInfo,
+                             revisedInfo,
+                             original.asJava,
+                             diff,
+                             1)
+        .asScala
+        .mkString("", "\n", "\n")
   }
 
   def fileModificationTimeOrEpoch(file: File): String = {
@@ -30,9 +43,10 @@ object DiffUtil {
   private val epoch: String = "1970-01-01 12:00:00 +0000"
 
   def newFileDiff(text: Seq[String], file: File): String = {
-    val diff = StringBuilder.newBuilder
+    val diff         = StringBuilder.newBuilder
     val originalInfo = s"${file.getAbsolutePath}\t$epoch"
-    val revisedInfo = s"${file.getAbsolutePath}\t${fileModificationTimeOrEpoch(file)}"
+    val revisedInfo =
+      s"${file.getAbsolutePath}\t${fileModificationTimeOrEpoch(file)}"
 
     diff ++= s"--- $originalInfo\n"
     diff ++= s"+++ $revisedInfo\n"
@@ -44,7 +58,8 @@ object DiffUtil {
 
   def deleteFileDiff(text: Seq[String], file: File): String = {
     val diff = StringBuilder.newBuilder
-    val originalInfo = s"${file.getAbsolutePath}\t${fileModificationTimeOrEpoch(file)}"
+    val originalInfo =
+      s"${file.getAbsolutePath}\t${fileModificationTimeOrEpoch(file)}"
     val revisedInfo = s"${file.getAbsolutePath}\t$epoch"
 
     diff ++= s"--- $originalInfo\n"

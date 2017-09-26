@@ -18,9 +18,10 @@ import org.ensime.util.ensimefile._
 import org.ensime.api._
 
 object EnsimeConfigProtocol {
-  object Protocol extends DefaultSexpProtocol
-    with OptionAltFormat
-    with FamilyFormats
+  object Protocol
+      extends DefaultSexpProtocol
+      with OptionAltFormat
+      with FamilyFormats
   import org.ensime.config.EnsimeConfigProtocol.Protocol._
 
   private def log = Logger(this.getClass.getName)
@@ -29,17 +30,20 @@ object EnsimeConfigProtocol {
     def write(f: RawFile): Sexp = SexpString(f.file.toString)
     def read(sexp: Sexp): RawFile = sexp match {
       case SexpString(file) => RawFile(Paths.get(file))
-      case got => deserializationError(got)
+      case got              => deserializationError(got)
     }
   }
 
-  def camel(in: String): String = in.replaceAll("([A-Z])", "-$1").toLowerCase.replaceAll("^-", "")
+  def camel(in: String): String =
+    in.replaceAll("([A-Z])", "-$1").toLowerCase.replaceAll("^-", "")
 
   implicit object EnsimeConfigHint extends BasicProductHint[EnsimeConfig] {
-    override def field[K <: Symbol](k: K): SexpSymbol = SexpSymbol(s":${camel(k.name)}")
+    override def field[K <: Symbol](k: K): SexpSymbol =
+      SexpSymbol(s":${camel(k.name)}")
   }
   implicit object EnsimeProjectHint extends BasicProductHint[EnsimeProject] {
-    override def field[K <: Symbol](k: K): SexpSymbol = SexpSymbol(s":${camel(k.name)}")
+    override def field[K <: Symbol](k: K): SexpSymbol =
+      SexpSymbol(s":${camel(k.name)}")
   }
 
   private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit
@@ -64,7 +68,8 @@ object EnsimeConfigProtocol {
     )
   }
 
-  def javaRunTime(c: EnsimeConfig): List[File] = c.javaHome.file.toFile.tree.filter(_.getName == "rt.jar").toList
+  def javaRunTime(c: EnsimeConfig): List[File] =
+    c.javaHome.file.toFile.tree.filter(_.getName == "rt.jar").toList
 
   /*
    We use the canonical form of files/directories to keep OS X happy

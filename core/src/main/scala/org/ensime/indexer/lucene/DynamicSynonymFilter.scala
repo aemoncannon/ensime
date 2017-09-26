@@ -5,7 +5,10 @@ package org.ensime.indexer.lucene
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents
 import org.apache.lucene.analysis.{ Analyzer, TokenFilter, TokenStream }
 import org.apache.lucene.analysis.core.KeywordTokenizer
-import org.apache.lucene.analysis.tokenattributes.{ CharTermAttribute, PositionIncrementAttribute }
+import org.apache.lucene.analysis.tokenattributes.{
+  CharTermAttribute,
+  PositionIncrementAttribute
+}
 import org.apache.lucene.util.AttributeSource.State
 import org.ensime.indexer.lucene.DynamicSynonymFilter._
 
@@ -14,7 +17,9 @@ import org.ensime.indexer.lucene.DynamicSynonymFilter._
  * the term itself and its synonyms.
  */
 trait DynamicSynonymAnalyzer extends Analyzer with SynonymEngine {
-  override final def createComponents(fieldName: String): TokenStreamComponents = {
+  override final def createComponents(
+    fieldName: String
+  ): TokenStreamComponents = {
     val source = new KeywordTokenizer()
     val result = new DynamicSynonymFilter(source, this)
     new TokenStreamComponents(source, result)
@@ -23,6 +28,7 @@ trait DynamicSynonymAnalyzer extends Analyzer with SynonymEngine {
 
 object DynamicSynonymFilter {
   trait SynonymEngine {
+
     /** @return the synonyms of `term` (`term` should not be in the list) */
     def synonyms(term: String): Set[String]
   }
@@ -41,12 +47,13 @@ object DynamicSynonymFilter {
  * Apologies for all the mutable state: we're interacting with a
  * mutable Java API.
  */
-class DynamicSynonymFilter(input: TokenStream, engine: SynonymEngine) extends TokenFilter(input) {
-  private val termAtt = addAttribute(classOf[CharTermAttribute])
+class DynamicSynonymFilter(input: TokenStream, engine: SynonymEngine)
+    extends TokenFilter(input) {
+  private val termAtt    = addAttribute(classOf[CharTermAttribute])
   private val posIncrAtt = addAttribute(classOf[PositionIncrementAttribute])
 
   private var stack: List[String] = Nil
-  private var current: State = _
+  private var current: State      = _
 
   // return false when EOL
   override def incrementToken(): Boolean = {
@@ -63,7 +70,7 @@ class DynamicSynonymFilter(input: TokenStream, engine: SynonymEngine) extends To
     if (!input.incrementToken())
       return false
 
-    val term = termAtt.toString
+    val term     = termAtt.toString
     val synonyms = engine.synonyms(term)
     if (synonyms.nonEmpty) {
       synonyms foreach { synonym =>
@@ -78,6 +85,6 @@ class DynamicSynonymFilter(input: TokenStream, engine: SynonymEngine) extends To
   // Lucene being stupid higher up the hierarchy
   override def equals(other: Any): Boolean = other match {
     case that: DynamicSynonymFilter => this eq that
-    case _ => false
+    case _                          => false
   }
 }

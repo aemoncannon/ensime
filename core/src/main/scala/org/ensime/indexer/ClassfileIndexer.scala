@@ -22,7 +22,7 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
 
     val in = file.getContent.getInputStream
     val raw = try {
-      val reader = new ClassReader(in)
+      val reader   = new ClassReader(in)
       val receiver = new AsmCallback
       reader.accept(receiver, ClassReader.SKIP_FRAMES)
       receiver
@@ -34,41 +34,56 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
   // extracts all the classnames from a descriptor
   private def classesInDescriptor(desc: String): List[ClassName] =
     DescriptorParser.parse(desc) match {
-      case Descriptor(params, ret) => (ret :: params).map {
-        case c: ClassName => c
-        case a: ArrayDescriptor => a.reifier
-      }
+      case Descriptor(params, ret) =>
+        (ret :: params).map {
+          case c: ClassName       => c
+          case a: ArrayDescriptor => a.reifier
+        }
     }
 
-  private class AsmCallback extends ClassVisitor(ASM5) with ReferenceInClassHunter {
+  private class AsmCallback
+      extends ClassVisitor(ASM5)
+      with ReferenceInClassHunter {
     // updated every time we get more info
     @volatile var clazz: RawClassfile = _
 
     override def visit(
-      version: Int, access: Int, name: String, signature: String,
-      superName: String, interfaces: Array[String]
+      version: Int,
+      access: Int,
+      name: String,
+      signature: String,
+      superName: String,
+      interfaces: Array[String]
     ): Unit = {
 
       val signatureClass = if (signature != null && signature.nonEmpty) {
         Try(SignatureParser.parseGeneric(signature)) match {
           case Success(sig) => Some(sig)
-          case Failure(t) =>
+          case Failure(t)   =>
             // WORKAROUND bad scalac plugins that produce dodgy classfiles
             // https://github.com/ensime/ensime-server/issues/1614
-            log.warn(s"""Failed to parse '$file' signature for '$name'.
-                        |Consider removing or fixing the offending binary.
-                        |'$signature'""".stripMargin, t)
+            log.warn(
+              s"""Failed to parse '$file' signature for '$name'.
+                 |Consider removing or fixing the offending binary.
+                 |'$signature'""".stripMargin,
+              t
+            )
             None
         }
       } else {
         None
       }
 
-      val interfaceNames: List[ClassName] = interfaces.map(ClassName.fromInternal)(collection.breakOut)
+      val interfaceNames: List[ClassName] =
+        interfaces.map(ClassName.fromInternal)(collection.breakOut)
       val superClass = Option(superName).map(ClassName.fromInternal)
 
-      internalRefs.addAll(interfaceNames.map(FullyQualifiedReference(_, None)).asJava)
-      internalRefs.addAll(superClass.toList.map(FullyQualifiedReference(_, None)).asJava)
+      internalRefs.addAll(
+        interfaceNames.map(FullyQualifiedReference(_, None)).asJava
+      )
+      internalRefs.addAll(
+        superClass.toList.map(FullyQualifiedReference(_, None)).asJava
+      )
 
       clazz = RawClassfile(
         ClassName.fromInternal(name),
@@ -78,35 +93,50 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
         interfaceNames,
         Access(access),
         (ACC_DEPRECATED & access) > 0,
-        Nil, Queue.empty, RawSource(None, None),
+        Nil,
+        Queue.empty,
+        RawSource(None, None),
         isScala = false,
         internalRefs.asScala.toList.distinct
       )
     }
 
-    override def visitInnerClass(name: String, outerName: String, innerName: String, access: Int): Unit = {
+    override def visitInnerClass(name: String,
+                                 outerName: String,
+                                 innerName: String,
+                                 access: Int): Unit =
       if (outerName != null) {
         val outerClassName = ClassName.fromInternal(outerName)
         if (outerClassName == clazz.name) {
-          clazz = clazz.copy(innerClasses = clazz.innerClasses + ClassName.fromInternal(name))
+          clazz = clazz.copy(
+            innerClasses = clazz.innerClasses + ClassName.fromInternal(name)
+          )
         }
       }
-    }
 
     override def visitSource(filename: String, debug: String): Unit = {
       val isScala = filename != null && filename.endsWith(".scala")
-      clazz = clazz.copy(source = RawSource(Option(filename), None), isScala = isScala)
+      clazz = clazz.copy(source = RawSource(Option(filename), None),
+                         isScala = isScala)
     }
 
-    override def visitField(access: Int, name: String, desc: String, signature: String, value: AnyRef): FieldVisitor = {
+    override def visitField(access: Int,
+                            name: String,
+                            desc: String,
+                            signature: String,
+                            value: AnyRef): FieldVisitor = {
       super.visitField(access, name, desc, signature, value)
       new FieldVisitor(ASM5) with ReferenceInFieldHunter {
         override def visitEnd(): Unit = {
-          internalRefs.add(FullyQualifiedReference(ClassName.fromDescriptor(desc), clazz.source.line))
+          internalRefs.add(
+            FullyQualifiedReference(ClassName.fromDescriptor(desc),
+                                    clazz.source.line)
+          )
           val field = RawField(
             FieldName(clazz.name, name),
             DescriptorParser.parseType(desc),
-            Option(signature), Access(access),
+            Option(signature),
+            Access(access),
             internalRefs.asScala.toList.distinct
           )
           clazz = clazz.copy(fields = field :: clazz.fields)
@@ -114,12 +144,17 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
       }
     }
 
-    override def visitMethod(access: Int, region: String, desc: String, signature: String, exceptions: Array[String]): MethodVisitor = {
+    override def visitMethod(access: Int,
+                             region: String,
+                             desc: String,
+                             signature: String,
+                             exceptions: Array[String]): MethodVisitor = {
       super.visitMethod(access, region, desc, signature, exceptions)
       new MethodVisitor(ASM5) with ReferenceInMethodHunter {
         var firstLine: Option[Int] = None
 
-        override def addRef(ref: FullyQualifiedName): Unit = internalRefs.add(FullyQualifiedReference(ref, Some(currentLine)))
+        override def addRef(ref: FullyQualifiedName): Unit =
+          internalRefs.add(FullyQualifiedReference(ref, Some(currentLine)))
 
         override def visitLineNumber(line: Int, start: Label): Unit = {
           val isEarliestLineSeen = firstLine.forall(_ < line)
@@ -131,7 +166,7 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
         override def visitEnd(): Unit = {
           if (region == "<init>" || region == "<clinit>") {
             (clazz.source.line, firstLine) match {
-              case (_, None) =>
+              case (_, None)                                            =>
               case (Some(existing), Some(latest)) if existing <= latest =>
               case _ =>
                 clazz = clazz.copy(source = clazz.source.copy(line = firstLine))
@@ -166,17 +201,28 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
     private val annVisitor: AnnotationVisitor = new AnnotationVisitor(ASM5) {
       override def visitAnnotation(name: String, desc: String) = handleAnn(desc)
       override def visitEnum(
-        name: String, desc: String, value: String
+        name: String,
+        desc: String,
+        value: String
       ): Unit = handleAnn(desc)
     }
 
     private def handleAnn(desc: String): AnnotationVisitor = {
-      clazz = clazz.copy(internalRefs = FullyQualifiedReference(ClassName.fromDescriptor(desc), clazz.source.line) :: clazz.internalRefs)
+      clazz = clazz.copy(
+        internalRefs = FullyQualifiedReference(
+          ClassName.fromDescriptor(desc),
+          clazz.source.line
+        ) :: clazz.internalRefs
+      )
       annVisitor
     }
-    override def visitAnnotation(desc: String, visible: Boolean) = handleAnn(desc)
+    override def visitAnnotation(desc: String, visible: Boolean) =
+      handleAnn(desc)
     override def visitTypeAnnotation(
-      typeRef: Int, typePath: TypePath, desc: String, visible: Boolean
+      typeRef: Int,
+      typePath: TypePath,
+      desc: String,
+      visible: Boolean
     ) = handleAnn(desc)
   }
 
@@ -186,58 +232,80 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
     protected var internalRefs = new util.LinkedList[FullyQualifiedReference]()
 
     private val annVisitor = new AnnotationVisitor(ASM5) {
-      override def visitAnnotation(name: String, desc: String): AnnotationVisitor = handleAnn(desc)
+      override def visitAnnotation(name: String,
+                                   desc: String): AnnotationVisitor =
+        handleAnn(desc)
     }
     private def handleAnn(desc: String): AnnotationVisitor = {
-      internalRefs.add(FullyQualifiedReference(ClassName.fromDescriptor(desc), None))
+      internalRefs.add(
+        FullyQualifiedReference(ClassName.fromDescriptor(desc), None)
+      )
       annVisitor
     }
-    override def visitTypeAnnotation(typeRef: Int, typePath: TypePath, desc: String, visible: Boolean): AnnotationVisitor = handleAnn(desc)
-    override def visitAnnotation(desc: String, visible: Boolean): AnnotationVisitor = handleAnn(desc)
+    override def visitTypeAnnotation(typeRef: Int,
+                                     typePath: TypePath,
+                                     desc: String,
+                                     visible: Boolean): AnnotationVisitor =
+      handleAnn(desc)
+    override def visitAnnotation(desc: String,
+                                 visible: Boolean): AnnotationVisitor =
+      handleAnn(desc)
   }
 
   private trait ReferenceInMethodHunter {
     this: MethodVisitor =>
 
-    protected var internalRefs = new util.LinkedList[FullyQualifiedReference]()
+    protected var internalRefs     = new util.LinkedList[FullyQualifiedReference]()
     protected var currentLine: Int = _
     // doesn't disambiguate FQNs of methods, so storing as FieldName references
     private def memberOrInit(owner: String, name: String): FullyQualifiedName =
       name match {
         case "<init>" | "<clinit>" => ClassName.fromInternal(owner)
-        case member => FieldName(ClassName.fromInternal(owner), member)
+        case member                => FieldName(ClassName.fromInternal(owner), member)
       }
 
-    protected def addRefs(refs: Seq[FullyQualifiedName]): Unit = refs.foreach(addRef)
+    protected def addRefs(refs: Seq[FullyQualifiedName]): Unit =
+      refs.foreach(addRef)
 
-    protected def addRef(ref: FullyQualifiedName): Unit = internalRefs.add(FullyQualifiedReference(ref, Some(currentLine)))
+    protected def addRef(ref: FullyQualifiedName): Unit =
+      internalRefs.add(FullyQualifiedReference(ref, Some(currentLine)))
 
     override def visitLocalVariable(
-      name: String, desc: String, signature: String,
-      start: Label, end: Label, index: Int
-    ): Unit = {
+      name: String,
+      desc: String,
+      signature: String,
+      start: Label,
+      end: Label,
+      index: Int
+    ): Unit =
       addRef(ClassName.fromDescriptor(desc))
-    }
 
     override def visitMultiANewArrayInsn(desc: String, dims: Int): Unit =
       addRef(ClassName.fromDescriptor(desc))
 
-    override def visitTypeInsn(opcode: Int, desc: String): Unit = {
+    override def visitTypeInsn(opcode: Int, desc: String): Unit =
       addRef(ClassName.fromInternal(desc))
-    }
 
     override def visitFieldInsn(
-      opcode: Int, owner: String, name: String, desc: String
-    ): Unit = {
+      opcode: Int,
+      owner: String,
+      name: String,
+      desc: String
+    ): Unit =
       addRef(memberOrInit(owner, name))
-    }
 
-    override def visitTryCatchBlock(start: Label, end: Label, handler: Label, `type`: String): Unit = {
+    override def visitTryCatchBlock(start: Label,
+                                    end: Label,
+                                    handler: Label,
+                                    `type`: String): Unit =
       Option(`type`).foreach(desc => addRef(ClassName.fromInternal(desc)))
-    }
 
     override def visitMethodInsn(
-      opcode: Int, owner: String, name: String, desc: String, itf: Boolean
+      opcode: Int,
+      owner: String,
+      name: String,
+      desc: String,
+      itf: Boolean
     ): Unit = {
       val ownerName = ClassName.fromInternal(owner)
       addRef(ownerName)
@@ -245,36 +313,57 @@ final class ClassfileIndexer(file: FileObject) extends SLF4JLogging {
       addRefs(classesInDescriptor(desc))
     }
 
-    override def visitInvokeDynamicInsn(name: String, desc: String, bsm: Handle, bsmArgs: AnyRef*): Unit = {
+    override def visitInvokeDynamicInsn(name: String,
+                                        desc: String,
+                                        bsm: Handle,
+                                        bsmArgs: AnyRef*): Unit = {
       addRef(memberOrInit(bsm.getOwner, bsm.getName))
       addRefs(classesInDescriptor(bsm.getDesc))
     }
 
     private val annVisitor: AnnotationVisitor = new AnnotationVisitor(ASM5) {
       override def visitAnnotation(name: String, desc: String) = handleAnn(desc)
-      override def visitEnum(name: String, desc: String, value: String): Unit = handleAnn(desc)
+      override def visitEnum(name: String, desc: String, value: String): Unit =
+        handleAnn(desc)
     }
     private def handleAnn(desc: String): AnnotationVisitor = {
       addRef(ClassName.fromDescriptor(desc))
       annVisitor
     }
-    override def visitAnnotation(desc: String, visible: Boolean) = handleAnn(desc)
+    override def visitAnnotation(desc: String, visible: Boolean) =
+      handleAnn(desc)
     override def visitAnnotationDefault() = annVisitor
     override def visitInsnAnnotation(
-      typeRef: Int, typePath: TypePath, desc: String, visible: Boolean
+      typeRef: Int,
+      typePath: TypePath,
+      desc: String,
+      visible: Boolean
     ) = handleAnn(desc)
     override def visitLocalVariableAnnotation(
-      typeRef: Int, typePath: TypePath, start: Array[Label], end: Array[Label],
-      index: Array[Int], desc: String, visible: Boolean
+      typeRef: Int,
+      typePath: TypePath,
+      start: Array[Label],
+      end: Array[Label],
+      index: Array[Int],
+      desc: String,
+      visible: Boolean
     ) = handleAnn(desc)
     override def visitParameterAnnotation(
-      parameter: Int, desc: String, visible: Boolean
+      parameter: Int,
+      desc: String,
+      visible: Boolean
     ) = handleAnn(desc)
     override def visitTryCatchAnnotation(
-      typeRef: Int, typePath: TypePath, desc: String, visible: Boolean
+      typeRef: Int,
+      typePath: TypePath,
+      desc: String,
+      visible: Boolean
     ) = handleAnn(desc)
     override def visitTypeAnnotation(
-      typeRef: Int, typePath: TypePath, desc: String, visible: Boolean
+      typeRef: Int,
+      typePath: TypePath,
+      desc: String,
+      visible: Boolean
     ) = handleAnn(desc)
   }
 }

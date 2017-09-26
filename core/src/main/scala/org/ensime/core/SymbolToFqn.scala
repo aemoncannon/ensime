@@ -28,34 +28,38 @@ trait SymbolToFqn { self: Global with PresentationCompilerBackCompat =>
   val ScalaPackageName: PackageName = PackageName(List("scala"))
   val normaliseClass: ClassName => ClassName = Map(
     ClassName(PackageName(List("scala", "runtime")), "BoxedUnit") -> PrimitiveVoid,
-    ClassName(ScalaPackageName, "<byname>") -> ClassName(ScalaPackageName, "Function0"),
+    ClassName(ScalaPackageName, "<byname>") -> ClassName(ScalaPackageName,
+                                                         "Function0"),
     ClassName(ScalaPackageName, "Boolean") -> PrimitiveBoolean,
-    ClassName(ScalaPackageName, "Byte") -> PrimitiveByte,
-    ClassName(ScalaPackageName, "Char") -> PrimitiveChar,
-    ClassName(ScalaPackageName, "Short") -> PrimitiveShort,
-    ClassName(ScalaPackageName, "Int") -> PrimitiveInt,
-    ClassName(ScalaPackageName, "Long") -> PrimitiveLong,
-    ClassName(ScalaPackageName, "Float") -> PrimitiveFloat,
-    ClassName(ScalaPackageName, "Double") -> PrimitiveDouble,
-    ClassName(ScalaPackageName, "Void") -> PrimitiveVoid
+    ClassName(ScalaPackageName, "Byte")    -> PrimitiveByte,
+    ClassName(ScalaPackageName, "Char")    -> PrimitiveChar,
+    ClassName(ScalaPackageName, "Short")   -> PrimitiveShort,
+    ClassName(ScalaPackageName, "Int")     -> PrimitiveInt,
+    ClassName(ScalaPackageName, "Long")    -> PrimitiveLong,
+    ClassName(ScalaPackageName, "Float")   -> PrimitiveFloat,
+    ClassName(ScalaPackageName, "Double")  -> PrimitiveDouble,
+    ClassName(ScalaPackageName, "Void")    -> PrimitiveVoid
   ).withDefault(identity)
 
-  private def packageName(sym: Symbol): PackageName = {
-    PackageName(sym.ownerChain.takeWhile(!_.isRootSymbol).reverse.map(_.encodedName))
-  }
+  private def packageName(sym: Symbol): PackageName =
+    PackageName(
+      sym.ownerChain.takeWhile(!_.isRootSymbol).reverse.map(_.encodedName)
+    )
 
-  private def className(sym: Symbol): ClassName = try {
-    val (packages, nested) = sym.ownerChain.takeWhile(!_.isRootSymbol).reverse.span(_.hasPackageFlag)
-    val pkg = PackageName(packages.map(_.encodedName))
-    val name = nested.map(_.encodedName).mkString("$")
-    val postfix = if (nested.last.isModuleOrModuleClass) "$" else ""
+  private def className(sym: Symbol): ClassName =
+    try {
+      val (packages, nested) =
+        sym.ownerChain.takeWhile(!_.isRootSymbol).reverse.span(_.hasPackageFlag)
+      val pkg     = PackageName(packages.map(_.encodedName))
+      val name    = nested.map(_.encodedName).mkString("$")
+      val postfix = if (nested.last.isModuleOrModuleClass) "$" else ""
 
-    ClassName(pkg, name + postfix)
-  } catch {
-    case n: NoSuchElementException =>
-      logger.error(s"sym = $sym ${sym.getClass}")
-      throw n
-  }
+      ClassName(pkg, name + postfix)
+    } catch {
+      case n: NoSuchElementException =>
+        logger.error(s"sym = $sym ${sym.getClass}")
+        throw n
+    }
 
   private def descriptorType(t: Type): DescriptorType = {
     val c = normaliseClass(className(t.dealias.erasure.typeSymbol))
@@ -67,11 +71,11 @@ trait SymbolToFqn { self: Global with PresentationCompilerBackCompat =>
   private def methodName(sym: MethodSymbol): MethodName = {
     val owner = sym.enclClass
     val clazz = className(owner)
-    val name = sym.encodedName
+    val name  = sym.encodedName
 
     val descriptor: Descriptor = {
-      val params = sym.paramLists.flatten.map {
-        p => descriptorType(p.tpe)
+      val params = sym.paramLists.flatten.map { p =>
+        descriptorType(p.tpe)
       }
       val ret = descriptorType(sym.returnType)
       Descriptor(params, ret)
@@ -82,16 +86,16 @@ trait SymbolToFqn { self: Global with PresentationCompilerBackCompat =>
 
   private def fieldName(sym: Symbol): FieldName = {
     val clazz = className(sym.owner)
-    val name = sym.encodedName
+    val name  = sym.encodedName
     FieldName(clazz, name)
   }
 
   def toFqn(sym: Symbol): FullyQualifiedName = sym match {
     case p if sym.hasPackageFlag => packageName(sym)
-    case ts: TypeSymbol => normaliseClass(className(ts))
-    case ms: ModuleSymbol => className(ms)
-    case ms: MethodSymbol => methodName(ms)
-    case ts: TermSymbol => fieldName(ts)
+    case ts: TypeSymbol          => normaliseClass(className(ts))
+    case ms: ModuleSymbol        => className(ms)
+    case ms: MethodSymbol        => methodName(ms)
+    case ts: TermSymbol          => fieldName(ts)
   }
 
 }

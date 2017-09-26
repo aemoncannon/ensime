@@ -21,15 +21,18 @@ import org.slf4j.bridge.SLF4JBridgeHandler
 
 /** Don't run this test on the AppVeyor CI (Windows) */
 object IgnoreOnAppVeyor extends Tag("tags.IgnoreOnAppVeyor")
+
 /** Don't run this test on the Drone CI (GNU/Linux) */
 object IgnoreOnDrone extends Tag("tags.IgnoreOnDrone")
+
 /** Don't run this test on the Travis CI (OS X) */
 object IgnoreOnTravis extends Tag("tags.IgnoreOnTravis")
 
 /**
  * Boilerplate remover and preferred testing style in ENSIME.
  */
-trait EnsimeSpec extends FlatSpec
+trait EnsimeSpec
+    extends FlatSpec
     with Matchers
     with OptionValues
     with Inside
@@ -51,12 +54,13 @@ trait EnsimeSpec extends FlatSpec
       override def run(): Unit = {
         println(s"${self.getClass} is still running!")
         Thread.getAllStackTraces.asScala.foreach {
-          case (thread, stacks) if stacks == null || stacks.isEmpty || thread == Thread.currentThread =>
+          case (thread, stacks)
+              if stacks == null || stacks.isEmpty || thread == Thread.currentThread =>
           case (thread, stacks) =>
             val current = stacks(0).toString
             if (thread.isAlive()
-              && !current.startsWith("sun.misc.Unsafe.park")
-              && !current.startsWith("java.lang.Object.wait")) {
+                && !current.startsWith("sun.misc.Unsafe.park")
+                && !current.startsWith("java.lang.Object.wait")) {
               println(thread)
               stacks.foreach { stack =>
                 println(s"    at $stack")
@@ -68,8 +72,12 @@ trait EnsimeSpec extends FlatSpec
     300000L // 5 mins
   )
 
-  private val akkaTimeout: Duration = ConfigFactory.load().getDuration("akka.test.default-timeout", TimeUnit.MILLISECONDS).milliseconds
-  override val spanScaleFactor: Double = ConfigFactory.load().getDouble("akka.test.timefactor")
+  private val akkaTimeout: Duration = ConfigFactory
+    .load()
+    .getDuration("akka.test.default-timeout", TimeUnit.MILLISECONDS)
+    .milliseconds
+  override val spanScaleFactor: Double =
+    ConfigFactory.load().getDouble("akka.test.timefactor")
   implicit override val patienceConfig: PatienceConfig = PatienceConfig(
     timeout = scaled(akkaTimeout),
     interval = scaled(Span(5, Millis))
@@ -77,10 +85,9 @@ trait EnsimeSpec extends FlatSpec
 
   // taggedAs(org.scalatest.tagobject.Retryable)
   // will be retried (don't abuse it)
-  override def withFixture(test: NoArgTest) = {
-    if (isRetryable(test)) withRetry { super.withFixture(test) }
-    else super.withFixture(test)
-  }
+  override def withFixture(test: NoArgTest) =
+    if (isRetryable(test)) withRetry { super.withFixture(test) } else
+      super.withFixture(test)
 
   override def afterAll(): Unit = {
     timer.cancel()

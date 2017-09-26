@@ -18,12 +18,12 @@ import org.scalatest.tagobjects.Retryable
 import org.scalatest.time._
 
 sealed trait FileWatcherMessage
-final case class Added(f: FileObject) extends FileWatcherMessage
-final case class Removed(f: FileObject) extends FileWatcherMessage
-final case class Changed(f: FileObject) extends FileWatcherMessage
-final case class BaseAdded(f: FileObject) extends FileWatcherMessage
+final case class Added(f: FileObject)       extends FileWatcherMessage
+final case class Removed(f: FileObject)     extends FileWatcherMessage
+final case class Changed(f: FileObject)     extends FileWatcherMessage
+final case class BaseAdded(f: FileObject)   extends FileWatcherMessage
 final case class BaseRemoved(f: FileObject) extends FileWatcherMessage
-final case class BaseRegistered() extends FileWatcherMessage
+final case class BaseRegistered()           extends FileWatcherMessage
 
 /**
  * These tests are insanely flakey so everything is retryable. The
@@ -37,8 +37,11 @@ final case class BaseRegistered() extends FileWatcherMessage
  *       reduce the load on the pathetic CI machines.
  */
 @tags.IgnoreOnTravis
-class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
-    with IsolatedTestKitFixture with IsolatedEnsimeVFSFixture {
+class FileWatcherSpec
+    extends EnsimeSpec
+    with TimeLimitedTests
+    with IsolatedTestKitFixture
+    with IsolatedEnsimeVFSFixture {
 
   // some of these tests hang sporadically on Windows, so fail fast.
   // not retried: https://github.com/scalatest/scalatest/issues/1087
@@ -47,11 +50,13 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
   implicit val DefaultCharset: Charset = Charset.defaultCharset()
 
   // variant that watches a jar file
-  def createJarWatcher(jar: File)(implicit vfs: EnsimeVFS, tk: TestKit): Watcher =
+  def createJarWatcher(jar: File)(implicit vfs: EnsimeVFS,
+                                  tk: TestKit): Watcher =
     (new JarJava7WatcherBuilder()).build(jar, listeners)
 
   // variant that recursively watches a directory of classes
-  def createClassWatcher(base: File)(implicit vfs: EnsimeVFS, tk: TestKit): Watcher =
+  def createClassWatcher(base: File)(implicit vfs: EnsimeVFS,
+                                     tk: TestKit): Watcher =
     (new ClassJava7WatcherBuilder()).build(base, listeners)
 
   /**
@@ -60,9 +65,8 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
    * file has been modified, or deleted and re-added, if it happens
    * sub-second (without looking at the contents).
    */
-  def waitForLinus(): Unit = {
+  def waitForLinus(): Unit =
     Thread.sleep(1000)
-  }
 
   val maxWait = 20 seconds
 
@@ -82,7 +86,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
             val fishForFooBar: Fish = {
               case Added(f) => {
                 f.asLocalFile.getAbsolutePath == foo.getAbsolutePath ||
-                  f.asLocalFile.getAbsolutePath == bar.getAbsolutePath
+                f.asLocalFile.getAbsolutePath == bar.getAbsolutePath
               }
               case _ => false
             }
@@ -163,8 +167,8 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
             val createOrDelete: Fish = {
               case r: BaseRemoved => true
-              case a: BaseAdded => true
-              case _ => false
+              case a: BaseAdded   => true
+              case _              => false
             }
 
             tk.fishForMessage()(createOrDelete)
@@ -179,7 +183,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       withTestKit { implicit tk =>
         withTempDirPath { tmpDir =>
           val parent = tmpDir.toFile.canon
-          val dir = parent / "base"
+          val dir    = parent / "base"
           dir.mkdirs()
           try {
             withClassWatcher(dir) { watcher =>
@@ -189,8 +193,8 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
               parent.toPath().deleteDirRecursively()
               val createOrDelete: Fish = {
                 case r: BaseRemoved => true
-                case a: BaseAdded => true
-                case _ => false
+                case a: BaseAdded   => true
+                case _              => false
               }
               tk.fishForMessage()(createOrDelete)
               tk.fishForMessage()(createOrDelete)
@@ -221,9 +225,10 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
             val createOrDelete: Fish = {
               case r: BaseRemoved => true
-              case a: BaseAdded => true
-              case r: Removed => false
-              case r: Added => false // java7 watcher can detect it twice as existing and created
+              case a: BaseAdded   => true
+              case r: Removed     => false
+              case r: Added =>
+                false // java7 watcher can detect it twice as existing and created
               case r: Changed => false // ignore on Windows
             }
 
@@ -233,11 +238,11 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
             foo.createWithParents() shouldBe true
             bar.createWithParents() shouldBe true
             val nonDeterministicAdd: Fish = {
-              case a: Added => true
-              case c: Changed => true
-              case r: Removed => false
+              case a: Added       => true
+              case c: Changed     => true
+              case r: Removed     => false
               case r: BaseRemoved => false
-              case r: BaseAdded => false
+              case r: BaseAdded   => false
             }
             tk.fishForMessage()(nonDeterministicAdd)
             tk.fishForMessage()(nonDeterministicAdd)
@@ -267,7 +272,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
               val fishForFooBar: Fish = {
                 case Added(f) => {
                   f.asLocalFile.getAbsolutePath == foo.getAbsolutePath ||
-                    f.asLocalFile.getAbsolutePath == bar.getAbsolutePath
+                  f.asLocalFile.getAbsolutePath == bar.getAbsolutePath
                 }
                 case _ => false
               }
@@ -285,7 +290,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
       withTestKit { implicit tk =>
         withTempDirPath { tmpDir =>
           val parent = tmpDir.toFile.canon
-          val dir = parent / "base"
+          val dir    = parent / "base"
           dir.mkdirs()
           try {
             withClassWatcher(dir) { watcher =>
@@ -306,10 +311,10 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
               val createOrDelete: Fish = {
                 case r: BaseRemoved => true
-                case a: BaseAdded => true
-                case r: Removed => false
-                case a: Added => false
-                case r: Changed => false // ignore on Windows
+                case a: BaseAdded   => true
+                case r: Removed     => false
+                case a: Added       => false
+                case r: Changed     => false // ignore on Windows
               }
               tk.fishForMessage()(createOrDelete)
               tk.fishForMessage()(createOrDelete)
@@ -320,11 +325,11 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
               // non-deterministically receive zero, one or two more Removed
               // and either Added or Changed for foo / bar.
               val nonDeterministicAdd: Fish = {
-                case a: Added => true
-                case c: Changed => true
-                case r: Removed => false
+                case a: Added       => true
+                case c: Changed     => true
+                case r: Removed     => false
                 case r: BaseRemoved => false //ignore on Windows
-                case r: BaseAdded => false // ignore on Windows
+                case r: BaseAdded   => false // ignore on Windows
               }
               tk.fishForMessage()(nonDeterministicAdd)
               tk.fishForMessage()(nonDeterministicAdd)
@@ -339,7 +344,6 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
     withVFS { implicit vfs =>
       withTestKit { implicit tk =>
         withTempDir { dir =>
-
           val jar = (dir / "jar.jar")
           jar.createWithParents() shouldBe true
 
@@ -422,7 +426,7 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
   //////////////////////////////////////////////////////////////////////////////
   type -->[A, B] = PartialFunction[A, B]
-  type Fish = PartialFunction[Any, Boolean]
+  type Fish      = PartialFunction[Any, Boolean]
 
   def waitForBaseRegistered(tk: TestKit) = {
     val baseCreated: Fish = {
@@ -433,27 +437,29 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
     tk.fishForMessage(5 seconds)(baseCreated)
   }
 
-  def ignoreAdded(tk: TestKit) = {
+  def ignoreAdded(tk: TestKit) =
     // Ignore extra Added message because
     // java7 watcher can detect a file in a directory as existing
     // or/and as created.
     try {
       val baseCreated: Fish = {
         case Added(f) => true
-        case e => false
+        case e        => false
       }
       tk.fishForMessage(1 second)(baseCreated)
     } catch {
       case e: Throwable => true
     }
-  }
-  def withClassWatcher[T](base: File)(code: Watcher => T)(implicit vfs: EnsimeVFS, tk: TestKit) = {
+  def withClassWatcher[T](
+    base: File
+  )(code: Watcher => T)(implicit vfs: EnsimeVFS, tk: TestKit) = {
     val w = createClassWatcher(base)
     try code(w)
     finally w.shutdown()
   }
 
-  def withJarWatcher[T](jar: File)(code: Watcher => T)(implicit vfs: EnsimeVFS, tk: TestKit) = {
+  def withJarWatcher[T](jar: File)(code: Watcher => T)(implicit vfs: EnsimeVFS,
+                                                       tk: TestKit) = {
     val w = createJarWatcher(jar)
     try code(w)
     finally w.shutdown()
@@ -461,12 +467,14 @@ class FileWatcherSpec extends EnsimeSpec with TimeLimitedTests
 
   def listeners(implicit tk: TestKit) = List(
     new FileChangeListener {
-      def fileAdded(f: FileObject): Unit = { tk.testActor ! Added(f) }
-      def fileRemoved(f: FileObject): Unit = { tk.testActor ! Removed(f) }
-      def fileChanged(f: FileObject): Unit = { tk.testActor ! Changed(f) }
-      override def baseReCreated(f: FileObject): Unit = { tk.testActor ! BaseAdded(f) }
-      override def baseRemoved(f: FileObject): Unit = { tk.testActor ! BaseRemoved(f) }
-      override def baseRegistered(): Unit = { tk.testActor ! BaseRegistered() }
+      def fileAdded(f: FileObject): Unit   = tk.testActor ! Added(f)
+      def fileRemoved(f: FileObject): Unit = tk.testActor ! Removed(f)
+      def fileChanged(f: FileObject): Unit = tk.testActor ! Changed(f)
+      override def baseReCreated(f: FileObject): Unit =
+        tk.testActor ! BaseAdded(f)
+      override def baseRemoved(f: FileObject): Unit =
+        tk.testActor ! BaseRemoved(f)
+      override def baseRegistered(): Unit = tk.testActor ! BaseRegistered()
     }
   )
 }

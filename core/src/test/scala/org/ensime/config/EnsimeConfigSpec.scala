@@ -14,19 +14,19 @@ class EnsimeConfigSpec extends EnsimeSpec {
 
   import EscapingStringInterpolation._
 
-  def test(contents: String, testFn: (EnsimeConfig) => Unit): Unit = {
+  def test(contents: String, testFn: (EnsimeConfig) => Unit): Unit =
     testFn(EnsimeConfigProtocol.parse(contents))
-  }
 
   "EnsimeConfig" should "parse a simple config" in withTempDir { dir =>
-    val abc = dir / "abc"
-    val cache = dir / ".ensime_cache"
+    val abc      = dir / "abc"
+    val cache    = dir / ".ensime_cache"
     val javaHome = File(Properties.javaHome)
 
     abc.mkdirs()
     cache.mkdirs()
 
-    test(s"""
+    test(
+      s"""
 (:name "project"
  :scala-version "2.10.4"
  :java-home "$javaHome"
@@ -42,31 +42,34 @@ class EnsimeConfigSpec extends EnsimeSpec {
              :library-jars ("$javaHome/src.zip")
              :library-sources ("$javaHome/src.zip")
              :library-docs ("$javaHome/src.zip"))))""", { implicit config =>
-      config.name shouldBe "project"
-      config.scalaVersion shouldBe "2.10.4"
-      val module1 = config.lookup(EnsimeProjectId("module1", "compile"))
-      module1.id.project shouldBe "module1"
-      module1.dependencies shouldBe empty
-      config.projects.size shouldBe 1
+        config.name shouldBe "project"
+        config.scalaVersion shouldBe "2.10.4"
+        val module1 = config.lookup(EnsimeProjectId("module1", "compile"))
+        module1.id.project shouldBe "module1"
+        module1.dependencies shouldBe empty
+        config.projects.size shouldBe 1
 
-      val proj = config.projects.head
-      proj.scalacOptions should not be empty
-      proj.javacOptions should not be empty
-      proj.libraryJars should not be empty
-      proj.librarySources should not be empty
-      proj.libraryDocs should not be empty
-    })
+        val proj = config.projects.head
+        proj.scalacOptions should not be empty
+        proj.javacOptions should not be empty
+        proj.libraryJars should not be empty
+        proj.librarySources should not be empty
+        proj.libraryDocs should not be empty
+      }
+    )
   }
 
-  it should "parse a minimal config for a binary only project" in withTempDir { dir =>
-    val abc = dir / "abc"
-    val cache = dir / ".ensime_cache"
-    val javaHome = File(Properties.javaHome)
+  it should "parse a minimal config for a binary only project" in withTempDir {
+    dir =>
+      val abc      = dir / "abc"
+      val cache    = dir / ".ensime_cache"
+      val javaHome = File(Properties.javaHome)
 
-    abc.mkdirs()
-    cache.mkdirs()
+      abc.mkdirs()
+      cache.mkdirs()
 
-    test(s"""
+      test(
+        s"""
 (:name "project"
  :scala-version "2.10.4"
  :java-home "$javaHome"
@@ -75,13 +78,13 @@ class EnsimeConfigSpec extends EnsimeSpec {
  :projects ((:id (:project "module1" :config "compile")
              :depends ()
              :targets ("$abc"))))""", { implicit config =>
-
-      config.name shouldBe "project"
-      config.scalaVersion shouldBe "2.10.4"
-      val module1 = config.lookup(EnsimeProjectId("module1", "compile"))
-      module1.id.project shouldBe "module1"
-      module1.dependencies shouldBe empty
-      module1.targets should have size 1
-    })
+          config.name shouldBe "project"
+          config.scalaVersion shouldBe "2.10.4"
+          val module1 = config.lookup(EnsimeProjectId("module1", "compile"))
+          module1.id.project shouldBe "module1"
+          module1.dependencies shouldBe empty
+          module1.targets should have size 1
+        }
+      )
   }
 }

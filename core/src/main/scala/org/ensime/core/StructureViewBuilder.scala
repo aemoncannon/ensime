@@ -12,10 +12,10 @@ trait StructureViewBuilder {
   self: RichPresentationCompiler =>
 
   case class DefsBuilder(
-      keyword: String,
-      name: String,
-      pos: SourcePosition,
-      members: ListBuffer[DefsBuilder]
+    keyword: String,
+    name: String,
+    pos: SourcePosition,
+    members: ListBuffer[DefsBuilder]
   ) {
     def build: StructureViewMember =
       StructureViewMember(keyword, name, pos, members.map(_.build).toList)
@@ -39,21 +39,33 @@ trait StructureViewBuilder {
       locateSymbolPos(x, PosNeededYes)
         .getOrElse(EmptySourcePosition())
 
-    private def traverse(tree: Tree, parent: DefsBuilder): Unit = {
+    private def traverse(tree: Tree, parent: DefsBuilder): Unit =
       tree match {
         case x: DefTree if x.symbol.isSynthetic =>
         case x: ImplDef if !x.symbol.isAnonymousClass =>
-          val df = DefsBuilder(x.keyword, x.name.toString, pos(x.symbol), new ListBuffer())
+          val df = DefsBuilder(x.keyword,
+                               x.name.toString,
+                               pos(x.symbol),
+                               new ListBuffer())
           parent.members.append(df)
           x.impl.body.foreach(traverse(_, df))
         case x: DefDef if shouldShow(x) =>
-          parent.members.append(DefsBuilder(x.keyword, x.name.toString, pos(x.symbol), new ListBuffer()))
+          parent.members.append(
+            DefsBuilder(x.keyword,
+                        x.name.toString,
+                        pos(x.symbol),
+                        new ListBuffer())
+          )
         case x: TypeDef =>
-          parent.members.append(DefsBuilder(x.keyword, x.name.toString, pos(x.symbol), new ListBuffer()))
+          parent.members.append(
+            DefsBuilder(x.keyword,
+                        x.name.toString,
+                        pos(x.symbol),
+                        new ListBuffer())
+          )
         case _ =>
           tree.children.foreach(traverse(_, parent))
       }
-    }
   }
 
   def structureView(fileInfo: SourceFile): List[StructureViewMember] = {
@@ -65,7 +77,7 @@ trait StructureViewBuilder {
 
     val positionDefined: SourcePosition => Boolean = {
       case x: EmptySourcePosition => false
-      case _ => true
+      case _                      => true
     }
 
     getStructureTree(fileInfo) match {

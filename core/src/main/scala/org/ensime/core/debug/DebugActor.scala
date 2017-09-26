@@ -13,7 +13,10 @@ import org.scaladebugger.api.lowlevel.events.EventType
 import org.scaladebugger.api.lowlevel.events.misc.NoResume
 import org.scaladebugger.api.lowlevel.requests.properties.SuspendPolicyProperty
 import org.scaladebugger.api.profiles.traits.info._
-import org.scaladebugger.api.virtualmachines.{ ObjectCache, ScalaVirtualMachine }
+import org.scaladebugger.api.virtualmachines.{
+  ObjectCache,
+  ScalaVirtualMachine
+}
 import SourceMap._
 import StructureConverter._
 
@@ -23,6 +26,7 @@ import scala.util.{ Failure, Success, Try }
  * Contains helper methods to initialize the DebugActor class.
  */
 object DebugActor {
+
   /**
    * Creates a new instance of the Akka props for the DebugActor class.
    *
@@ -32,7 +36,8 @@ object DebugActor {
    * @param config The Ensime configuration used for source file lookup
    * @return The new Akka props instance
    */
-  def props(broadcaster: ActorRef, search: SearchService)(implicit config: EnsimeConfig): Props =
+  def props(broadcaster: ActorRef,
+            search: SearchService)(implicit config: EnsimeConfig): Props =
     Props(new DebugActor(broadcaster, search, config))
 }
 
@@ -45,10 +50,11 @@ object DebugActor {
  *               debugger
  */
 class DebugActor private (
-    private val broadcaster: ActorRef,
-    private implicit val search: SearchService,
-    private implicit val config: EnsimeConfig
-) extends Actor with ActorLogging {
+  private val broadcaster: ActorRef,
+  private implicit val search: SearchService,
+  private implicit val config: EnsimeConfig
+) extends Actor
+    with ActorLogging {
   private val vmm: VirtualMachineManager = new VirtualMachineManager(
     // Signal to the user that the JVM has disconnected
     globalStopFunc = s => broadcaster ! DebugVmDisconnectEvent
@@ -117,7 +123,7 @@ class DebugActor private (
     case DebugSetBreakReq(file, line: Int) =>
       sender ! withVM { s =>
         val fileName = toJdi(file).getOrThrow(s"could not resolve $file")
-        val options = Seq(SuspendPolicyProperty.AllThreads, NoResume)
+        val options  = Seq(SuspendPolicyProperty.AllThreads, NoResume)
 
         s.tryGetOrCreateBreakpointRequest(fileName, line, options: _*) match {
           case Success(bp) =>
@@ -126,7 +132,9 @@ class DebugActor private (
             if (!isPending) {
               bgMessage(s"Resolved breakpoint at: $fileName : $line")
             } else {
-              bgMessage(s"Location not loaded ($fileName,$line). Request is pending...")
+              bgMessage(
+                s"Location not loaded ($fileName,$line). Request is pending..."
+              )
             }
 
             TrueResponse
@@ -153,20 +161,23 @@ class DebugActor private (
 
     // ========================================================================
     case DebugListBreakpointsReq =>
-      val (activeBreakpoints, pendingBreakpoints) = vmm.withVM(s => {
-        val bps = s.breakpointRequests
+      val (activeBreakpoints, pendingBreakpoints) = vmm
+        .withVM(s => {
+          val bps = s.breakpointRequests
 
-        (bps.filterNot(_.isPending), bps.filter(_.isPending))
-      }).map {
-        case (a, p) =>
-          def convert(b: Seq[BreakpointRequestInfo]): Seq[Breakpoint] = {
-            // note: silently dropping breakpoints that we fail to resolve
-            b.map(b2 => (fromJdi(b2.fileName), b2.lineNumber))
-              .collect { case (Some(jdiFile), line) => Breakpoint(jdiFile, line) }
-          }
+          (bps.filterNot(_.isPending), bps.filter(_.isPending))
+        })
+        .map {
+          case (a, p) =>
+            def convert(b: Seq[BreakpointRequestInfo]): Seq[Breakpoint] =
+              // note: silently dropping breakpoints that we fail to resolve
+              b.map(b2 => (fromJdi(b2.fileName), b2.lineNumber)).collect {
+                case (Some(jdiFile), line) => Breakpoint(jdiFile, line)
+              }
 
-          (convert(a).toList, convert(p).toList)
-      }.getOrElse((Nil, Nil))
+            (convert(a).toList, convert(p).toList)
+        }
+        .getOrElse((Nil, Nil))
 
       sender ! BreakpointList(activeBreakpoints, pendingBreakpoints)
 
@@ -196,102 +207,136 @@ class DebugActor private (
 
     // ========================================================================
     case DebugLocateNameReq(threadId: DebugThreadId, name: String) =>
-      sender ! withThread(threadId.id, {
-        case (s, t) =>
-          if (name == "this") {
-            t.tryTopFrame.flatMap(_.tryThisObject).map(_.cache()).map {
-              case objRef => DebugObjectReference(objRef.uniqueId)
-            }.getOrElse(FalseResponse)
-          } else {
-            val result = t.findVariableByName(name).map(_.cache())
-            result.flatMap {
-              case v: IndexedVariableInfo =>
-                Some(DebugStackSlot(DebugThreadId(t.uniqueId), v.frameIndex, v.offsetIndex))
-              case f: FieldVariableInfo => f.parent match {
-                case Left(o) =>
-                  o.cache()
-                  Some(DebugObjectField(DebugObjectId(o.uniqueId), f.name))
-                case Right(r) =>
-                  log.error(s"Field $name is unable to be located because it is static!")
+      sender ! withThread(
+        threadId.id, {
+          case (s, t) =>
+            if (name == "this") {
+              t.tryTopFrame
+                .flatMap(_.tryThisObject)
+                .map(_.cache())
+                .map {
+                  case objRef => DebugObjectReference(objRef.uniqueId)
+                }
+                .getOrElse(FalseResponse)
+            } else {
+              val result = t.findVariableByName(name).map(_.cache())
+              result.flatMap {
+                case v: IndexedVariableInfo =>
+                  Some(
+                    DebugStackSlot(DebugThreadId(t.uniqueId),
+                                   v.frameIndex,
+                                   v.offsetIndex)
+                  )
+                case f: FieldVariableInfo =>
+                  f.parent match {
+                    case Left(o) =>
+                      o.cache()
+                      Some(DebugObjectField(DebugObjectId(o.uniqueId), f.name))
+                    case Right(r) =>
+                      log.error(
+                        s"Field $name is unable to be located because it is static!"
+                      )
+                      None
+                  }
+                case x =>
+                  log.error(s"Unknown value: $x")
                   None
-              }
-              case x =>
-                log.error(s"Unknown value: $x")
-                None
-            }.getOrElse(FalseResponse)
-          }
-      })
+              }.getOrElse(FalseResponse)
+            }
+        }
+      )
 
     // ========================================================================
     case DebugBacktraceReq(threadId: DebugThreadId, index: Int, count: Int) =>
-      sender ! withThread(threadId.id, {
-        case (s, t) =>
-          val frames = t.frames(index, count)
+      sender ! withThread(
+        threadId.id, {
+          case (s, t) =>
+            val frames = t.frames(index, count)
 
-          // Cache each stack frame's "this" reference
-          frames.foreach(_.thisObjectOption.foreach(_.cache()))
+            // Cache each stack frame's "this" reference
+            frames.foreach(_.thisObjectOption.foreach(_.cache()))
 
-          val ensimeFrames = frames.map(convertStackFrame)
+            val ensimeFrames = frames.map(convertStackFrame)
 
-          DebugBacktrace(ensimeFrames.toList, DebugThreadId(t.uniqueId), t.name)
-      })
+            DebugBacktrace(ensimeFrames.toList,
+                           DebugThreadId(t.uniqueId),
+                           t.name)
+        }
+      )
 
     // ========================================================================
     case DebugValueReq(location) =>
-      sender ! withVM(s =>
-        lookupValue(s, s.cache, location)
-          .map(_.cache())
-          .map(convertValue)
-          .getOrElse(FalseResponse))
+      sender ! withVM(
+        s =>
+          lookupValue(s, s.cache, location)
+            .map(_.cache())
+            .map(convertValue)
+            .getOrElse(FalseResponse)
+      )
 
     // ========================================================================
     case DebugToStringReq(threadId, location) =>
-      sender ! withVM(s =>
-        lookupValue(s, s.cache, location)
-          .map(_.cache())
-          .map(_.toPrettyString)
-          .map(StringResponse(_))
-          .getOrElse(FalseResponse))
+      sender ! withVM(
+        s =>
+          lookupValue(s, s.cache, location)
+            .map(_.cache())
+            .map(_.toPrettyString)
+            .map(StringResponse(_))
+            .getOrElse(FalseResponse)
+      )
 
     // ========================================================================
     case DebugSetValueReq(location, newValue) =>
       sender ! withVM(s => {
         location match {
-          case DebugStackSlot(threadId, frame, offset) => s.tryThread(threadId.id) match {
-            case Success(t) =>
-              val response = suspendAndExecute(t, {
-                // Find the variable and set its value
-                val variable = t.findVariableByIndex(frame, offset)
-                val result = variable match {
-                  case Some(v) =>
-                    // NOTE: Casting only converts to AnyVal or String, so we can
-                    //       assume that a successful cast yielded one or the other,
-                    //       but this might not be the case in the future
-                    val actualNewValue = v.typeInfo.castLocal(newValue) match {
-                      case st: String => s.createRemotely(st)
-                      case av => s.createRemotely(av.asInstanceOf[AnyVal])
+          case DebugStackSlot(threadId, frame, offset) =>
+            s.tryThread(threadId.id) match {
+              case Success(t) =>
+                val response = suspendAndExecute(
+                  t, {
+                    // Find the variable and set its value
+                    val variable = t.findVariableByIndex(frame, offset)
+                    val result = variable match {
+                      case Some(v) =>
+                        // NOTE: Casting only converts to AnyVal or String, so we can
+                        //       assume that a successful cast yielded one or the other,
+                        //       but this might not be the case in the future
+                        val actualNewValue =
+                          v.typeInfo.castLocal(newValue) match {
+                            case st: String => s.createRemotely(st)
+                            case av         => s.createRemotely(av.asInstanceOf[AnyVal])
+                          }
+
+                        v.trySetValueFromInfo(actualNewValue)
+                      case None =>
+                        Failure(
+                          new Throwable(
+                            s"Unable to find variable at frame $frame and offset $offset"
+                          )
+                        )
                     }
 
-                    v.trySetValueFromInfo(actualNewValue)
-                  case None =>
-                    Failure(new Throwable(s"Unable to find variable at frame $frame and offset $offset"))
-                }
+                    result.map(_ => TrueResponse).getOrElse(FalseResponse)
+                  }
+                )
 
-                result.map(_ => TrueResponse).getOrElse(FalseResponse)
-              })
+                response.failed.foreach(
+                  log.error(
+                    _,
+                    s"Failed to set variable at $location to $newValue!"
+                  )
+                )
 
-              response.failed.foreach(
-                log.error(_, s"Failed to set variable at $location to $newValue!")
-              )
+                response.getOrElse(FalseResponse)
 
-              response.getOrElse(FalseResponse)
-
-            case Failure(_) =>
-              log.error(s"Unknown thread $threadId for debug-set-value")
-              FalseResponse
-          }
+              case Failure(_) =>
+                log.error(s"Unknown thread $threadId for debug-set-value")
+                FalseResponse
+            }
           case unknown =>
-            log.error(s"Unsupported location type for debug-set-value.: $unknown")
+            log.error(
+              s"Unsupported location type for debug-set-value.: $unknown"
+            )
             FalseResponse
         }
       })
@@ -304,9 +349,8 @@ class DebugActor private (
    *
    * @param msg The message content to send as a background message
    */
-  private def bgMessage(msg: String): Unit = {
+  private def bgMessage(msg: String): Unit =
     broadcaster ! SendBackgroundMessageEvent(msg)
-  }
 
   /**
    * Attempts to invoke the provided action against the active VM. If no active
@@ -341,16 +385,20 @@ class DebugActor private (
   private def withThread[T <: RpcResponse](
     threadId: Long,
     action: (ScalaVirtualMachine, ThreadInfo) => T
-  ): RpcResponse = withVM(s => {
-    val result = s.tryThread(threadId)
-      .map(_.cache())
-      .flatMap(t => suspendAndExecute(t, action(s, t)))
+  ): RpcResponse =
+    withVM(s => {
+      val result = s
+        .tryThread(threadId)
+        .map(_.cache())
+        .flatMap(t => suspendAndExecute(t, action(s, t)))
 
-    // Report error information
-    result.failed.foreach(log.warning(s"Unable to retrieve thread with id: $threadId - {}", _))
+      // Report error information
+      result.failed.foreach(
+        log.warning(s"Unable to retrieve thread with id: $threadId - {}", _)
+      )
 
-    result.getOrElse(FalseResponse)
-  })
+      result.getOrElse(FalseResponse)
+    })
 
   /**
    * Suspends the given thread, performs the action, and resumes the thread.
@@ -360,7 +408,8 @@ class DebugActor private (
    * @tparam T The return type of the action
    * @return Success containing the result of the action, otherwise a failure
    */
-  private def suspendAndExecute[T](threadInfo: ThreadInfo, action: => T): Try[T] = {
+  private def suspendAndExecute[T](threadInfo: ThreadInfo,
+                                   action: => T): Try[T] = {
     Try(threadInfo.suspend())
     val result = Try(action)
     Try(threadInfo.resume())
@@ -390,28 +439,43 @@ class DebugActor private (
     // Uses cached object with id to find associated field
     // Caches retrieved field object
     case DebugObjectField(objectId, fieldName) =>
-      log.debug(s"Looking up object field from reference $objectId and field $fieldName")
-      objectCache.load(objectId.id)
+      log.debug(
+        s"Looking up object field from reference $objectId and field $fieldName"
+      )
+      objectCache
+        .load(objectId.id)
         .map(_.field(fieldName))
         .map(_.toValueInfo.cache())
 
     // Uses cached object with id as array to find element
     // Caches retrieved element object
     case DebugArrayElement(objectId, index) =>
-      log.debug(s"Looking up array element from reference $objectId and index $index")
-      objectCache.load(objectId.id).flatMap {
-        case a if a.isArray => Some(a.toArrayInfo)
-        case _ => None
-      }.map(_.value(index).cache())
+      log.debug(
+        s"Looking up array element from reference $objectId and index $index"
+      )
+      objectCache
+        .load(objectId.id)
+        .flatMap {
+          case a if a.isArray => Some(a.toArrayInfo)
+          case _              => None
+        }
+        .map(_.value(index).cache())
 
     // Caches retrieved slot object
     case DebugStackSlot(threadId, frame, offset) =>
-      log.debug(s"Looking up object from thread $threadId, frame $frame, and offset $offset")
+      log.debug(
+        s"Looking up object from thread $threadId, frame $frame, and offset $offset"
+      )
       val s = scalaVirtualMachine
-      objectCache.load(threadId.id).orElse(s.tryThread(threadId.id).toOption).flatMap {
-        case t if t.isThread => Some(t.toThreadInfo)
-        case _ => None
-      }.flatMap(_.findVariableByIndex(frame, offset)).map(_.toValueInfo.cache())
+      objectCache
+        .load(threadId.id)
+        .orElse(s.tryThread(threadId.id).toOption)
+        .flatMap {
+          case t if t.isThread => Some(t.toThreadInfo)
+          case _               => None
+        }
+        .flatMap(_.findVariableByIndex(frame, offset))
+        .map(_.toValueInfo.cache())
 
     // Unrecognized location request, so return nothing
     case _ =>
@@ -425,102 +489,117 @@ class DebugActor private (
    *
    * @param scalaVirtualMachine The JVM whose events to listen to
    */
-  private def bindEventHandlers(scalaVirtualMachine: ScalaVirtualMachine): Unit = {
+  private def bindEventHandlers(
+    scalaVirtualMachine: ScalaVirtualMachine
+  ): Unit = {
     // Send start event to client when received
-    scalaVirtualMachine.onUnsafeVMStart().foreach(_ =>
-      broadcaster ! DebugVmStartEvent)
+    scalaVirtualMachine
+      .onUnsafeVMStart()
+      .foreach(_ => broadcaster ! DebugVmStartEvent)
 
     // Breakpoint Event - capture and broadcast breakpoint information
-    scalaVirtualMachine.createEventListener(EventType.BreakpointEventType).foreach { e =>
-      val be = e.toBreakpointEvent
-      val l: LocationInfo = be.location
+    scalaVirtualMachine
+      .createEventListener(EventType.BreakpointEventType)
+      .foreach { e =>
+        val be              = e.toBreakpointEvent
+        val l: LocationInfo = be.location
 
-      fromJdi(l.sourcePath) match {
-        case Some(resolved) =>
-          val t: ThreadInfo = be.thread
-          broadcaster ! DebugBreakEvent(
-            DebugThreadId(t.uniqueId),
-            t.name,
-            resolved,
-            l.lineNumber
-          )
-        case None =>
-          val sn = l.sourceName
-          val ln = l.lineNumber
-          log.warning(s"Breakpoint position not found: $sn : $ln")
+        fromJdi(l.sourcePath) match {
+          case Some(resolved) =>
+            val t: ThreadInfo = be.thread
+            broadcaster ! DebugBreakEvent(
+              DebugThreadId(t.uniqueId),
+              t.name,
+              resolved,
+              l.lineNumber
+            )
+          case None =>
+            val sn = l.sourceName
+            val ln = l.lineNumber
+            log.warning(s"Breakpoint position not found: $sn : $ln")
+        }
       }
-    }
 
     // Step Event - capture and broadcast step information
-    scalaVirtualMachine.createEventListener(EventType.StepEventType).foreach(e => {
-      val se = e.toStepEvent
-      val l: LocationInfo = se.location
+    scalaVirtualMachine
+      .createEventListener(EventType.StepEventType)
+      .foreach(e => {
+        val se              = e.toStepEvent
+        val l: LocationInfo = se.location
 
-      fromJdi(l.sourcePath) match {
-        case Some(resolved) =>
-          val t: ThreadInfo = se.thread
-          broadcaster ! DebugStepEvent(
-            DebugThreadId(t.uniqueId),
-            t.name,
-            resolved,
-            l.lineNumber
-          )
-        case None =>
-          val sn = l.sourceName
-          val ln = l.lineNumber
-          log.warning(s"Step position not found: $sn : $ln")
+        fromJdi(l.sourcePath) match {
+          case Some(resolved) =>
+            val t: ThreadInfo = se.thread
+            broadcaster ! DebugStepEvent(
+              DebugThreadId(t.uniqueId),
+              t.name,
+              resolved,
+              l.lineNumber
+            )
+          case None =>
+            val sn = l.sourceName
+            val ln = l.lineNumber
+            log.warning(s"Step position not found: $sn : $ln")
+        }
+      })
+
+    scalaVirtualMachine
+      .createEventListener(EventType.ExceptionEventType)
+      .foreach { e =>
+        val ee                       = e.toExceptionEvent
+        val t                        = ee.thread
+        val ex                       = ee.exception
+        val ce: Option[LocationInfo] = Option(ee.catchLocation).flatten // can be null
+        val resolved                 = ce.flatMap(loc => fromJdi(loc.sourcePath))
+
+        broadcaster ! DebugExceptionEvent(
+          ex.uniqueId,
+          DebugThreadId(t.uniqueId),
+          t.name,
+          resolved,
+          ce.map(_.lineNumber)
+        )
       }
-    })
-
-    scalaVirtualMachine.createEventListener(EventType.ExceptionEventType).foreach { e =>
-      val ee = e.toExceptionEvent
-      val t = ee.thread
-      val ex = ee.exception
-      val ce: Option[LocationInfo] = Option(ee.catchLocation).flatten // can be null
-      val resolved = ce.flatMap(loc => fromJdi(loc.sourcePath))
-
-      broadcaster ! DebugExceptionEvent(
-        ex.uniqueId,
-        DebugThreadId(t.uniqueId),
-        t.name,
-        resolved,
-        ce.map(_.lineNumber)
-      )
-    }
 
     // Exception Event - capture and broadcast exception information
     // Listen for all uncaught exceptions, suspending the entire JVM when we
     // encounter an uncaught exception event, and cache the exception
-    scalaVirtualMachine.getOrCreateAllExceptionsRequest(
-      notifyCaught = false,
-      notifyUncaught = true,
-      SuspendPolicyProperty.AllThreads
-    ).foreach { e =>
-      // Cache the exception object
-      e.exception.cache()
-
-      val t = e.thread
-      val ex = e.exception
-      val location = Option(e.catchLocation).flatten
-      val resolved = location.flatMap(l => fromJdi(l.sourcePath))
-
-      broadcaster ! DebugExceptionEvent(
-        ex.uniqueId,
-        DebugThreadId(t.uniqueId),
-        t.name,
-        resolved,
-        location.map(_.lineNumber)
+    scalaVirtualMachine
+      .getOrCreateAllExceptionsRequest(
+        notifyCaught = false,
+        notifyUncaught = true,
+        SuspendPolicyProperty.AllThreads
       )
-    }
+      .foreach { e =>
+        // Cache the exception object
+        e.exception.cache()
+
+        val t        = e.thread
+        val ex       = e.exception
+        val location = Option(e.catchLocation).flatten
+        val resolved = location.flatMap(l => fromJdi(l.sourcePath))
+
+        broadcaster ! DebugExceptionEvent(
+          ex.uniqueId,
+          DebugThreadId(t.uniqueId),
+          t.name,
+          resolved,
+          location.map(_.lineNumber)
+        )
+      }
 
     // Thread Start Event - capture and broadcast associated thread
-    scalaVirtualMachine.onUnsafeThreadStart(SuspendPolicyProperty.NoThread).foreach(t => {
-      broadcaster ! DebugThreadStartEvent(DebugThreadId(t.thread.uniqueId))
-    })
+    scalaVirtualMachine
+      .onUnsafeThreadStart(SuspendPolicyProperty.NoThread)
+      .foreach(t => {
+        broadcaster ! DebugThreadStartEvent(DebugThreadId(t.thread.uniqueId))
+      })
 
     // Thread Death Event - capture and broadcast associated thread
-    scalaVirtualMachine.onUnsafeThreadDeath(SuspendPolicyProperty.NoThread).foreach(t => {
-      broadcaster ! DebugThreadDeathEvent(DebugThreadId(t.thread.uniqueId))
-    })
+    scalaVirtualMachine
+      .onUnsafeThreadDeath(SuspendPolicyProperty.NoThread)
+      .foreach(t => {
+        broadcaster ! DebugThreadDeathEvent(DebugThreadId(t.thread.uniqueId))
+      })
   }
 }

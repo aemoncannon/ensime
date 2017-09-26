@@ -13,20 +13,22 @@ trait Helpers { self: Global =>
   import rootMirror.EmptyPackage
 
   def applySynonyms(sym: Symbol): List[Symbol] = {
-    val members = if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
-      sym.tpe.members
-    } else if (sym.isClass || sym.isPackageClass || sym.isPackageObjectClass) {
-      sym.companionModule.tpe.members
-    } else { List.empty }
+    val members =
+      if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
+        sym.tpe.members
+      } else if (sym.isClass || sym.isPackageClass || sym.isPackageObjectClass) {
+        sym.companionModule.tpe.members
+      } else { List.empty }
     members.toList.filter { _.name.toString == "apply" }
   }
 
   def constructorSynonyms(sym: Symbol): List[Symbol] = {
-    val members = if (sym.isClass || sym.isPackageClass || sym.isPackageObjectClass) {
-      sym.tpe.members
-    } else if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
-      sym.companionClass.tpe.members
-    } else { List.empty }
+    val members =
+      if (sym.isClass || sym.isPackageClass || sym.isPackageObjectClass) {
+        sym.tpe.members
+      } else if (sym.isModule || sym.isModuleClass || sym.isPackageObject) {
+        sym.companionClass.tpe.members
+      } else { List.empty }
     members.toList.filter { _.isConstructor }
   }
 
@@ -34,35 +36,34 @@ trait Helpers { self: Global =>
     val typeSym = if (shouldDealias) tpe.typeSymbol else tpe.typeSymbolDirect
 
     tpe match {
-      case args: ArgsTypeRef if typeSym.fullName.startsWith("scala.Function") => true
+      case args: ArgsTypeRef if typeSym.fullName.startsWith("scala.Function") =>
+        true
       case TypeRef(_, definitions.ByNameParamClass, _) => true
-      case _: MethodType => true
-      case _: PolyType => true
-      case _ =>
+      case _: MethodType                               => true
+      case _: PolyType                                 => true
+      case _                                           =>
         // this still doesn't catch functions defined as val, e.g.
         // Int => String class scala.reflect.internal.Types$ClassArgsTypeRef
         false
     }
   }
 
-  def isNoParamArrowType(tpe: Type): Boolean = {
+  def isNoParamArrowType(tpe: Type): Boolean =
     tpe match {
       case t: MethodType => t.paramss.flatten.isEmpty
-      case t: PolyType => t.paramss.flatten.isEmpty
-      case t: Type => false
+      case t: PolyType   => t.paramss.flatten.isEmpty
+      case t: Type       => false
     }
-  }
 
-  def typeOrArrowTypeResult(tpe: Type): Type = {
+  def typeOrArrowTypeResult(tpe: Type): Type =
     tpe match {
       case t: MethodType => t.finalResultType
-      case t: PolyType => t.finalResultType
-      case t: Type => t
+      case t: PolyType   => t.finalResultType
+      case t: Type       => t
     }
-  }
 
   /* Give the outerClass of a symbol representing a nested type */
-  def outerClass(typeSym: Symbol): Option[Symbol] = {
+  def outerClass(typeSym: Symbol): Option[Symbol] =
     try {
       if (typeSym.isNestedClass) {
         Some(typeSym.outerClass)
@@ -70,7 +71,6 @@ trait Helpers { self: Global =>
     } catch {
       case e: java.lang.Error => None
     }
-  }
 
   def companionTypeOf(tpe: Type): Option[Type] = {
     val sym = tpe.typeSymbol
@@ -99,12 +99,13 @@ trait Helpers { self: Global =>
     def filterAndSort(symbols: Iterable[Symbol]) = {
       val validSyms = symbols.filter { s =>
         s != EmptyPackage && !isRoot(s) &&
-          // This check is necessary to prevent infinite looping..
-          ((isRoot(s.owner) && isRoot(parent)) || (s.owner.fullName == parent.fullName))
+        // This check is necessary to prevent infinite looping..
+        ((isRoot(s.owner) && isRoot(parent)) || (s.owner.fullName == parent.fullName))
       }
 
       // the nameString operation is depressingly expensive - mapping to tuples first reduces the overhead.
-      val vsPairsAsList: List[(String, Symbol)] = validSyms.map(vs => (vs.nameString, vs))(scala.collection.breakOut)
+      val vsPairsAsList: List[(String, Symbol)] =
+        validSyms.map(vs => (vs.nameString, vs))(scala.collection.breakOut)
       vsPairsAsList.sortBy(_._1).map(_._2)
     }
 
@@ -117,7 +118,7 @@ trait Helpers { self: Global =>
 
   import scala.tools.nsc.symtab.Flags._
 
-  def declaredAs(sym: Symbol): DeclaredAs = {
+  def declaredAs(sym: Symbol): DeclaredAs =
     if (sym.isMethod)
       DeclaredAs.Method
     else if (sym.isTrait && sym.hasFlag(JAVA))
@@ -141,5 +142,4 @@ trait Helpers { self: Global =>
       DeclaredAs.Field
     else
       DeclaredAs.Nil
-  }
 }

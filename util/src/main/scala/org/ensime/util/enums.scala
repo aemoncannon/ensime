@@ -12,7 +12,9 @@ package enums {
   }
   object SingletonByName {
     implicit def CNilSingleton[A]: SingletonByName[A, CNil] =
-      new SingletonByName[A, CNil] { override def lookup: Map[String, A] = Map.empty }
+      new SingletonByName[A, CNil] {
+        override def lookup: Map[String, A] = Map.empty
+      }
 
     implicit def coproductSingletons[A, H <: A, T <: Coproduct](
       implicit
