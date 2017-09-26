@@ -3,7 +3,7 @@ ivyLoggingLevel := UpdateLogging.Quiet
 libraryDependencies += "org.scala-sbt" % "scripted-plugin" % sbtVersion.value
 
 addSbtPlugin("com.fommil" % "sbt-sensible" % "1.2.0")
-addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.6.0") // 1.7 has formatting regressions, prefer scalafmt if upgrading
+addSbtPlugin("com.lucidchart" % "sbt-scalafmt-coursier" % "1.12")
 
 // sbt-ensime is needed for the integration tests
 addSbtPlugin("org.ensime" % "sbt-ensime" % "1.12.13")

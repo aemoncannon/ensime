@@ -1,10 +1,7 @@
 import java.io._
 import scala.util.{ Properties, Try }
 
-import com.typesafe.sbt.SbtScalariform.autoImport._
-import com.typesafe.sbt.SbtScalariform
-import scalariform.formatter.preferences._
-
+import com.lucidchart.sbt.scalafmt.ScalafmtCorePlugin.autoImport._
 import de.heikoseeberger.sbtheader.{ HeaderKey, HeaderPlugin }
 import sbt.Keys._
 import sbt.{ IntegrationTest => It, _ }
@@ -32,12 +29,15 @@ object ProjectPlugin extends AutoPlugin {
     ensimeIgnoreMissingDirectories := true,
     ensimeJavaFlags += "-Xmx4g",
 
+    scalafmtConfig in ThisBuild := file("project/scalafmt.conf"),
+    scalafmtVersion in ThisBuild := "1.3.0",
+
     sonatypeGithub := ("ensime", "ensime-server"),
     licenses := Seq(GPL3),
     startYear := Some(2010)
   ) ++ addCommandAlias(
     "fmt",
-    ";testutil/createHeaders ;createHeaders ;test:createHeaders ;it:createHeaders ;testutil/scalariformFormat ;scalariformFormat ;test:scalariformFormat ;it:scalariformFormat"
+    ";testutil/createHeaders ;createHeaders ;test:createHeaders ;it:createHeaders ;testutil/scalafmt ;testutil/test:scalafmt ;scalafmt ;test:scalafmt ;it:scalafmt ;sbt:scalafmt"
   )
 
   override def projectSettings = Seq(
@@ -51,7 +51,7 @@ object ProjectPlugin extends AutoPlugin {
 
     scalacOptions -= "-Ywarn-value-discard",
     scalacOptions ++= Seq("-language:postfixOps", "-language:implicitConversions"),
-    scalariformPreferences := SbtScalariform.defaultPreferences
+    scalafmtOnCompile := true
   )
 }
 
@@ -88,11 +88,11 @@ object EnsimeBuild {
   )
 
   lazy val commonItSettings = inConfig(It)(
-    Defaults.testSettings ++ sensibleTestSettings ++ Seq(
+    Defaults.testSettings ++ sensibleTestSettings ++ scalafmtSettings ++ Seq(
       // speeds up the tests a bit without breaking appveyor / travis limits
       javaOptions ++= Seq("-Xms1400m", "-Xmx1400m")
     )
-  ) ++ SbtScalariform.scalariformSettingsWithIt ++ HeaderPlugin.settingsFor(It)
+  ) ++ HeaderPlugin.settingsFor(It)
 
   lazy val JavaTools: File = JdkDir / "lib/tools.jar"
 
@@ -291,7 +291,8 @@ object EnsimeTestingBuild {
   private def testingProject(dir: String) = Project(dir.replace("/", "_"), file(dir)).settings(
     scalacOptions in (Compile, compile) := Nil,
     scalacOptions in (Test, compile) := Nil,
-    libraryDependencies := Seq("org.scala-lang" % "scala-library" % scalaVersion.value)
+    libraryDependencies := Seq("org.scala-lang" % "scala-library" % scalaVersion.value),
+    scalafmtOnCompile := false
   )
 
   lazy val testingEmpty = testingProject("testing/empty")
