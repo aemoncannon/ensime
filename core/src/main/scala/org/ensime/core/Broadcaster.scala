@@ -31,16 +31,17 @@ import scala.collection.immutable.ListSet
  * 3. neither Akka solution has the concept of the "Persist" message.
  */
 class Broadcaster extends Actor with ActorLogging {
-  import Broadcaster.{ Register, Unregister, Persist }
+  import Broadcaster.{ Persist, Register, Unregister }
 
   var subscribers = Set.empty[ActorRef]
-  var persistant = ListSet.empty[(ActorRef, Any)] // preserves order
+  var persistant  = ListSet.empty[(ActorRef, Any)] // preserves order
 
   def receive = {
     case Register =>
       subscribers += sender()
       persistant.foreach {
-        case (originalSender, message) => sender() tell (message, originalSender)
+        case (originalSender, message) =>
+          sender() tell (message, originalSender)
       }
 
     case Unregister => subscribers -= sender()
@@ -51,11 +52,12 @@ class Broadcaster extends Actor with ActorLogging {
       send(message)
   }
 
-  private def send(message: Any): Unit = for {
-    subscriber <- subscribers
-  } {
-    subscriber forward message
-  }
+  private def send(message: Any): Unit =
+    for {
+      subscriber <- subscribers
+    } {
+      subscriber forward message
+    }
 }
 
 object Broadcaster {

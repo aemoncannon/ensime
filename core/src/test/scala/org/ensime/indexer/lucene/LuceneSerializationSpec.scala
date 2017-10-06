@@ -9,14 +9,16 @@ import shapeless.Typeable
 
 class LuceneSerializationSpec extends EnsimeSpec {
 
-  def thereAndBackAgain[T](t: T)(implicit p: DocumentProvider[T], r: DocumentRecovery[T]): Unit = {
-    val doc = p.toDocument(t)
+  def thereAndBackAgain[T](t: T)(implicit p: DocumentProvider[T],
+                                 r: DocumentRecovery[T]): Unit = {
+    val doc  = p.toDocument(t)
     val back = r.toEntity(doc)
     t should ===(back)
   }
 
   case class SimpleThing(id: String, b: String) extends Entity
-  implicit object SimpleThingS extends EntityS[SimpleThing](Typeable[SimpleThing]) {
+  implicit object SimpleThingS
+      extends EntityS[SimpleThing](Typeable[SimpleThing]) {
     def addFields(doc: Document, t: SimpleThing): Unit =
       doc.add(new TextField("b", t.b, Store.YES))
     def toEntity(doc: Document): SimpleThing =

@@ -18,9 +18,10 @@ import org.ensime.util.ensimefile._
 import org.ensime.api._
 
 object EnsimeConfigProtocol {
-  object Protocol extends DefaultSexpProtocol
-    with OptionAltFormat
-    with CamelCaseToDashes
+  object Protocol
+      extends DefaultSexpProtocol
+      with OptionAltFormat
+      with CamelCaseToDashes
   import org.ensime.config.EnsimeConfigProtocol.Protocol._
 
   private def log = Logger(this.getClass.getName)
@@ -29,13 +30,14 @@ object EnsimeConfigProtocol {
     def write(f: RawFile): Sexp = SexpString(f.file.toString)
     def read(sexp: Sexp): RawFile = sexp match {
       case SexpString(file) => RawFile(Paths.get(file))
-      case got => deserializationError(got)
+      case got              => deserializationError(got)
     }
   }
 
-  private implicit val projectIdFormat: SexpFormat[EnsimeProjectId] = cachedImplicit
+  private implicit val projectIdFormat: SexpFormat[EnsimeProjectId] =
+    cachedImplicit
   private implicit val projectFormat: SexpFormat[EnsimeProject] = cachedImplicit
-  private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit
+  private implicit val configFormat: SexpFormat[EnsimeConfig]   = cachedImplicit
 
   def parse(config: String): EnsimeConfig = {
     val raw = config.parseSexp.convertTo[EnsimeConfig]
@@ -57,7 +59,8 @@ object EnsimeConfigProtocol {
     )
   }
 
-  def javaRunTime(c: EnsimeConfig): List[File] = c.javaHome.file.toFile.tree.filter(_.getName == "rt.jar").toList
+  def javaRunTime(c: EnsimeConfig): List[File] =
+    c.javaHome.file.toFile.tree.filter(_.getName == "rt.jar").toList
 
   /*
    We use the canonical form of files/directories to keep OS X happy

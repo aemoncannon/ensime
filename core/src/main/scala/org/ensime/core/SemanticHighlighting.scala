@@ -14,13 +14,16 @@ import scala.tools.refactoring.common.{ CompilerAccess, EnrichedTrees }
 import org.ensime.api._
 import org.ensime.util.ensimefile._
 
-class SemanticHighlighting(val global: RichPresentationCompiler) extends CompilerAccess with EnrichedTrees {
+class SemanticHighlighting(val global: RichPresentationCompiler)
+    extends CompilerAccess
+    with EnrichedTrees {
 
   import global._
 
-  class SymDesigsTraverser(p: RangePosition, tpeSet: Set[SourceSymbol]) extends Traverser {
+  class SymDesigsTraverser(p: RangePosition, tpeSet: Set[SourceSymbol])
+      extends Traverser {
 
-    val log = LoggerFactory.getLogger(getClass)
+    val log  = LoggerFactory.getLogger(getClass)
     val syms = ListBuffer[SymbolDesignation]()
 
     override def traverse(t: Tree): Unit = {
@@ -39,13 +42,13 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
         addAt(pos.startOrCursor, pos.endOrCursor, designation)
       }
 
-      def qualifySymbol(sym: Symbol): Boolean = {
+      def qualifySymbol(sym: Symbol): Boolean =
         if (sym == NoSymbol) {
           false
         } else if (sym.isCaseApplyOrUnapply) {
           val owner = sym.owner
           val start = treeP.startOrCursor
-          val end = start + owner.name.length
+          val end   = start + owner.name.length
           addAt(start, end, ObjectSymbol)
         } else if (sym.isConstructor) {
           addAt(treeP.startOrCursor, treeP.endOrCursor, ConstructorSymbol)
@@ -59,7 +62,9 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
             add(DeprecatedSymbol)
           }
 
-          if (sym.ownerChain.exists(_.annotations.exists(_.atp.toString().endsWith("deprecating")))) {
+          if (sym.ownerChain.exists(
+                _.annotations.exists(_.atp.toString().endsWith("deprecating"))
+              )) {
             add(DeprecatedSymbol)
           }
 
@@ -79,8 +84,9 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
           } else if (sym.hasFlag(PARAMACCESSOR)) {
             add(ValFieldSymbol)
           } else if (sym.isMethod) {
-            if (sym.nameString == "apply" || sym.nameString == "update") { true }
-            else if (sym.name.isOperatorName) {
+            if (sym.nameString == "apply" || sym.nameString == "update") {
+              true
+            } else if (sym.name.isOperatorName) {
               add(OperatorFieldSymbol)
             } else {
               add(FunctionCallSymbol)
@@ -101,7 +107,6 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
             false
           }
         }
-      }
 
       if (!treeP.isTransparent && p.overlaps(treeP)) {
         try {
@@ -110,7 +115,7 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
             case Import(expr, selectors) =>
               for (impSel <- selectors) {
                 val start = impSel.namePos
-                val end = start + impSel.name.decode.length()
+                val end   = start + impSel.name.decode.length()
                 addAt(start, end, ImportedNameSymbol)
               }
             case Ident(_) =>
@@ -142,14 +147,14 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
                 }
               }
 
-            case t: ApplyImplicitView => add(ImplicitConversionSymbol)
+            case t: ApplyImplicitView   => add(ImplicitConversionSymbol)
             case t: ApplyToImplicitArgs => add(ImplicitParamsSymbol)
 
             case TypeTree() =>
               if (!qualifySymbol(sym)) {
                 if (t.tpe != null) {
                   val start = treeP.startOrCursor
-                  val end = treeP.endOrCursor
+                  val end   = treeP.endOrCursor
                   addAt(start, end, ObjectSymbol)
                 }
               }
@@ -177,12 +182,14 @@ class SemanticHighlighting(val global: RichPresentationCompiler) extends Compile
         val traverser = new SymDesigsTraverser(p, requestedTypes.toSet)
         traverser.traverse(tree)
         logger.info(s"RANGE POSITION  === $p ${p.source.file.getClass}")
-        SymbolDesignations(EnsimeFile(p.source.file.path), traverser.syms.toList)
+        SymbolDesignations(EnsimeFile(p.source.file.path),
+                           traverser.syms.toList)
       case None =>
         SymbolDesignations(EnsimeFile(new File(".")), List.empty)
     }
   }
 
-  def compilationUnitOfFile(f: AbstractFile): Option[CompilationUnit] = unitOfFile.get(f)
+  def compilationUnitOfFile(f: AbstractFile): Option[CompilationUnit] =
+    unitOfFile.get(f)
 
 }

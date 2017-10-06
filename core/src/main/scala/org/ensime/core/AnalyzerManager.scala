@@ -10,12 +10,15 @@ import org.ensime.util.FileUtils.toSourceFileInfo
 import org.ensime.util.file._
 
 class AnalyzerManager(
-    broadcaster: ActorRef,
-    analyzerCreator: List[EnsimeProjectId] => Props,
-    implicit val config: EnsimeConfig
-) extends Actor with ActorLogging with Stash {
+  broadcaster: ActorRef,
+  analyzerCreator: List[EnsimeProjectId] => Props,
+  implicit val config: EnsimeConfig
+) extends Actor
+    with ActorLogging
+    with Stash {
 
-  private val sauron = context.actorOf(analyzerCreator(config.projects.map(_.id)))
+  private val sauron =
+    context.actorOf(analyzerCreator(config.projects.map(_.id)))
   // maps the active modules to their analyzers
   private var analyzers: Map[EnsimeProjectId, ActorRef] = Map.empty
   private def getOrSpawnNew(optionalId: Option[EnsimeProjectId]): ActorRef =
@@ -25,7 +28,7 @@ class AnalyzerManager(
           case Some(analyzer) =>
             analyzer
           case None =>
-            val name = s"${id.project}_${id.config}"
+            val name        = s"${id.project}_${id.config}"
             val newAnalyzer = context.actorOf(analyzerCreator(id :: Nil), name)
             analyzers += (id -> newAnalyzer)
             newAnalyzer
@@ -65,11 +68,11 @@ class AnalyzerManager(
     case req @ TypecheckFileReq(fileInfo) =>
       getOrSpawnNew(config.findProject(fileInfo)) forward req
     case req @ TypecheckFilesReq(files) =>
-      val original = sender
+      val original        = sender
       val filesPerProject = files.groupBy(config.findProject(_))
 
       context.actorOf(Props(new Actor {
-        private var remaining = filesPerProject.size
+        private var remaining               = filesPerProject.size
         private var aggregate: List[String] = List.empty
 
         override def preStart: Unit =
@@ -103,9 +106,8 @@ class AnalyzerManager(
     case req @ RefactorReq(_, _, _) =>
       val original = sender
       context.actorOf(Props(new Actor {
-        override def preStart(): Unit = {
+        override def preStart(): Unit =
           context.actorOf(analyzerCreator(config.projects.map(_.id))) ! req
-        }
         override def receive = {
           case res: RpcResponse =>
             original ! res

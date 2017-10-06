@@ -13,18 +13,24 @@ class CustomFormatSpec extends WordSpec with DefaultJsonProtocol {
     def read(json: JsValue) = json match {
       case JsObject(fields) =>
         (fields.get("name"), fields.get("value")) match {
-          case (Some(JsString(name)), Some(JsNumber(value))) => MyType(name, value.toInt)
-          case _ => deserializationError("Expected fields: 'name' (JSON string) and 'value' (JSON number)")
+          case (Some(JsString(name)), Some(JsNumber(value))) =>
+            MyType(name, value.toInt)
+          case _ =>
+            deserializationError(
+              "Expected fields: 'name' (JSON string) and 'value' (JSON number)"
+            )
         }
       case _ => deserError[MyType]("expected JsObject")
     }
-    def write(obj: MyType) = JsObject("name" -> JsString(obj.name), "value" -> JsNumber(obj.value))
+    def write(obj: MyType) =
+      JsObject("name" -> JsString(obj.name), "value" -> JsNumber(obj.value))
   }
 
   "A custom JsonFormat built with 'asJsonObject'" should {
     val value = MyType("bob", 42)
     "correctly deserialize valid JSON content" in {
-      """{ "name": "bob", "value": 42 }""".parseJson.convertTo[MyType] shouldEqual value
+      """{ "name": "bob", "value": 42 }""".parseJson
+        .convertTo[MyType] shouldEqual value
     }
     "support full round-trip (de)serialization" in {
       value.toJson.convertTo[MyType] shouldEqual value

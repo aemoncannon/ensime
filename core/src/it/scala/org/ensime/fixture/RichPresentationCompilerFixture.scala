@@ -29,17 +29,14 @@ final class TestReporter(
 ) extends PresentationReporter(handler)
 final class TestReportHandler extends ReportHandler {
   var messages = Queue.empty[String]
-  override def messageUser(str: String): Unit = {
+  override def messageUser(str: String): Unit =
     messages = messages enqueue str
-  }
   var clears = 0
-  override def clearAllScalaNotes(): Unit = {
+  override def clearAllScalaNotes(): Unit =
     clears += 1
-  }
   @volatile var notes = Queue.empty[Note]
-  override def reportScalaNotes(list: List[Note]): Unit = {
+  override def reportScalaNotes(list: List[Note]): Unit =
     notes = notes enqueue list
-  }
 }
 
 object RichPresentationCompilerFixture {
@@ -55,7 +52,7 @@ object RichPresentationCompilerFixture {
     val scalaLib = config.scalaLibrary.get
 
     val presCompLog = LoggerFactory.getLogger(classOf[Global])
-    val settings = new Settings(presCompLog.error)
+    val settings    = new Settings(presCompLog.error)
     settings.YpresentationDebug.value = presCompLog.isTraceEnabled
     settings.YpresentationVerbose.value = presCompLog.isDebugEnabled
     settings.verbose.value = presCompLog.isDebugEnabled
@@ -64,13 +61,18 @@ object RichPresentationCompilerFixture {
     settings.classpath.value = config.classpath.mkString(File.pathSeparator)
 
     val reporter = new TestReporter
-    val indexer = TestProbe()
-    val parent = TestProbe()
+    val indexer  = TestProbe()
+    val parent   = TestProbe()
 
     import EnsimeConfigFixture.serverConfig
 
     new RichPresentationCompiler(
-      config, settings, reporter, parent.ref, indexer.ref, search
+      config,
+      settings,
+      reporter,
+      parent.ref,
+      indexer.ref,
+      search
     )
   }
 }
@@ -83,7 +85,7 @@ trait IsolatedRichPresentationCompilerFixture
 
   override def withRichPresentationCompiler(
     testCode: (TestKitFix, EnsimeConfig, RichPresentationCompiler) => Any
-  ): Any = {
+  ): Any =
     withVFS { implicit vfs =>
       withTestKit { testkit =>
         import testkit._
@@ -98,7 +100,6 @@ trait IsolatedRichPresentationCompilerFixture
         }
       }
     }
-  }
 
 }
 

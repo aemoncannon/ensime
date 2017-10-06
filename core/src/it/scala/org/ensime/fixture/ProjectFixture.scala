@@ -18,7 +18,7 @@ object LoggingTestProbe {
     probe.setAutoPilot(new TestActor.AutoPilot {
       def run(sender: ActorRef, msg: Any) = {
         val other = sender.path
-        val me = probe.ref.path
+        val me    = probe.ref.path
         system.log.debug(s"AsyncHelper $me received $msg from $other")
         this
       }
@@ -41,13 +41,13 @@ object ProjectFixture extends Matchers {
     probe.ignoreMsg {
       // these are too noisy for tests
       case e: SendBackgroundMessageEvent => true
-      case e: DebugOutputEvent => true
-      case e: DebugThreadStartEvent => true
-      case e: DebugThreadDeathEvent => true
-      case e: DebugVmError => true
-      case DebugVmDisconnectEvent => true
-      case ClearAllScalaNotesEvent => true
-      case ClearAllJavaNotesEvent => true
+      case e: DebugOutputEvent           => true
+      case e: DebugThreadStartEvent      => true
+      case e: DebugThreadDeathEvent      => true
+      case e: DebugVmError               => true
+      case DebugVmDisconnectEvent        => true
+      case ClearAllScalaNotesEvent       => true
+      case ClearAllJavaNotesEvent        => true
     }
 
     val project = TestActorRef[Project](Project(probe.ref), "project")
@@ -71,6 +71,7 @@ object ProjectFixture extends Matchers {
 }
 
 trait ProjectFixture {
+
   /**
    * the project actor and a probe that receives async messages.
    */
@@ -84,28 +85,33 @@ trait ProjectFixture {
 }
 
 trait IsolatedProjectFixture extends ProjectFixture {
-  override def withProject(testCode: (TestActorRef[Project], TestProbe) => Any)(implicit testkit: TestKitFix, config: EnsimeConfig): Any = {
+  override def withProject(
+    testCode: (TestActorRef[Project], TestProbe) => Any
+  )(implicit testkit: TestKitFix, config: EnsimeConfig): Any = {
     val (project, probe) = ProjectFixture.startup
     testCode(project, probe)
   }
 }
 
-trait SharedProjectFixture extends ProjectFixture
+trait SharedProjectFixture
+    extends ProjectFixture
     with SharedEnsimeConfigFixture
     with SharedTestKitFixture {
 
   private var _project: TestActorRef[Project] = _
-  private var _probe: TestProbe = _
+  private var _probe: TestProbe               = _
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     implicit val testkit = _testkit
-    implicit val config = _config
+    implicit val config  = _config
     val (project, probe) = ProjectFixture.startup
     _project = project
     _probe = probe
   }
 
-  override def withProject(testCode: (TestActorRef[Project], TestProbe) => Any)(implicit testkit: TestKitFix, config: EnsimeConfig): Any =
+  override def withProject(
+    testCode: (TestActorRef[Project], TestProbe) => Any
+  )(implicit testkit: TestKitFix, config: EnsimeConfig): Any =
     testCode(_project, _probe)
 }

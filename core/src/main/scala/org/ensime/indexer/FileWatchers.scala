@@ -17,8 +17,8 @@ trait FileChangeListener {
   def fileRemoved(f: FileObject): Unit
   def fileChanged(f: FileObject): Unit
   def baseReCreated(@deprecated("local", "") f: FileObject): Unit = {}
-  def baseRemoved(@deprecated("local", "") f: FileObject): Unit = {}
-  def baseRegistered(): Unit = {}
+  def baseRemoved(@deprecated("local", "") f: FileObject): Unit   = {}
+  def baseRegistered(): Unit                                      = {}
 }
 
 trait Watcher {
@@ -35,18 +35,19 @@ trait Watcher {
  * http://docs.oracle.com/javase/7/docs/api/java/nio/file/WatchService.html
  */
 class ClassfileWatcher(
-    listeners: Seq[FileChangeListener]
+  listeners: Seq[FileChangeListener]
 )(
-    implicit
-    vfs: EnsimeVFS,
-    config: EnsimeConfig,
-    serverConfig: EnsimeServerConfig
-) extends Actor with SLF4JLogging {
+  implicit
+  vfs: EnsimeVFS,
+  config: EnsimeConfig,
+  serverConfig: EnsimeServerConfig
+) extends Actor
+    with SLF4JLogging {
 
   private val impls =
     if (serverConfig.disableClassMonitoring) Nil
     else {
-      val jarJava7WatcherBuilder = new JarJava7WatcherBuilder()
+      val jarJava7WatcherBuilder   = new JarJava7WatcherBuilder()
       val classJava7WatcherBuilder = new ClassJava7WatcherBuilder()
       config.targets.map { target =>
         if (target.isJar) {
@@ -65,9 +66,8 @@ class ClassfileWatcher(
     case _ =>
   }
 
-  override def postStop(): Unit = {
+  override def postStop(): Unit =
     impls.foreach(_.shutdown())
-  }
 }
 
 trait Java7WatcherBuilder extends SLF4JLogging {
@@ -81,8 +81,9 @@ trait Java7WatcherBuilder extends SLF4JLogging {
     vfs: EnsimeVFS
   ): Watcher = {
     val watcherId = UUID.randomUUID()
-    serviceBuilder.build(watcherId, watched,
-      listeners.map { l => toWatcherListener(l, watched, watcherId, vfs) })
+    serviceBuilder.build(watcherId, watched, listeners.map { l =>
+      toWatcherListener(l, watched, watcherId, vfs)
+    })
   }
   def toWatcherListener(
     l: FileChangeListener,
@@ -99,12 +100,12 @@ class JarJava7WatcherBuilder() extends Java7WatcherBuilder {
     baseFile: File,
     uuid: UUID,
     vfs: EnsimeVFS
-  ) = {
+  ) =
     new WatcherListener() {
-      override val base = baseFile
-      override val recursive = false
+      override val base       = baseFile
+      override val recursive  = false
       override val extensions = JarSelector.include
-      override val watcherId = uuid
+      override val watcherId  = uuid
       override def fileCreated(f: File) =
         l.fileAdded(vfs.vfile(f))
       override def fileDeleted(f: File) = {}
@@ -117,10 +118,9 @@ class JarJava7WatcherBuilder() extends Java7WatcherBuilder {
       override def missingBaseRegistered(): Unit =
         l.fileAdded(vfs.vfile(baseFile))
       override def baseSubdirRegistered(f: File): Unit = {}
-      override def proxyRegistered(f: File): Unit = {}
-      override def existingFile(f: File): Unit = {}
+      override def proxyRegistered(f: File): Unit      = {}
+      override def existingFile(f: File): Unit         = {}
     }
-  }
 
 }
 
@@ -131,12 +131,12 @@ private class ClassJava7WatcherBuilder() extends Java7WatcherBuilder {
     baseFile: File,
     uuid: UUID,
     vfs: EnsimeVFS
-  ) = {
+  ) =
     new WatcherListener() {
-      override val base = baseFile
-      override val recursive = true
-      override val extensions = ClassfileSelector.include
-      override val watcherId = uuid
+      override val base                    = baseFile
+      override val recursive               = true
+      override val extensions              = ClassfileSelector.include
+      override val watcherId               = uuid
       @volatile private var notifyExisting = false;
 
       override def fileCreated(f: File) =
@@ -160,7 +160,6 @@ private class ClassJava7WatcherBuilder() extends Java7WatcherBuilder {
         if (notifyExisting)
           l.fileAdded(vfs.vfile(f))
     }
-  }
 }
 
 class Java7WatchServiceBuilder extends SLF4JLogging {

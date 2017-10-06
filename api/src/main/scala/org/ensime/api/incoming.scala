@@ -55,13 +55,15 @@ final case class RemoveFileReq(file: File) extends RpcAnalyserRequest
  * Responds with a `VoidResponse`.
  */
 @deprecating("redundant query, use TypecheckFilesReq")
-final case class TypecheckFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+final case class TypecheckFileReq(fileInfo: SourceFileInfo)
+    extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`
  */
 @deprecating("prefer UnloadFilesReq")
-final case class UnloadFileReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+final case class UnloadFileReq(fileInfo: SourceFileInfo)
+    extends RpcAnalyserRequest
 
 /**
  * Unload the given files from the compiler. The additional `remove`
@@ -79,7 +81,8 @@ final case class UnloadFilesReq(
  * Response with a `VoidResponse`.
  */
 @deprecating("replaced by RestartAnalyzerReq")
-final case class TypecheckModule(moduleId: EnsimeProjectId) extends RpcAnalyserRequest
+final case class TypecheckModule(moduleId: EnsimeProjectId)
+    extends RpcAnalyserRequest
 
 /**
  * Responds with a `VoidResponse`.
@@ -89,13 +92,16 @@ case object UnloadAllReq extends RpcAnalyserRequest
 
 sealed trait ReloadStrategy
 object ReloadStrategy {
+
   /** a clean slate, client should reload all open files */
   case object UnloadAll extends ReloadStrategy
+
   /**
    * compiles all project sources, e.g. project is not batch compiled.
    * Client should reload all third party files.
    */
   case object LoadProject extends ReloadStrategy
+
   /** reload all the files that were previously loaded */
   case object KeepLoaded extends ReloadStrategy
 }
@@ -115,7 +121,8 @@ case class RestartScalaCompilerReq(
  * Responds with a `VoidResponse`.
  */
 @deprecating("should only support SourceFileInfo")
-final case class TypecheckFilesReq(files: List[Either[File, SourceFileInfo]]) extends RpcAnalyserRequest
+final case class TypecheckFilesReq(files: List[Either[File, SourceFileInfo]])
+    extends RpcAnalyserRequest
 
 // related to searching the indexer
 sealed trait RpcSearchRequest extends RpcRequest
@@ -141,12 +148,14 @@ final case class ImportSuggestionsReq(
 /**
  * Responds with `FullyQualifiedName`
  */
-final case class FqnOfSymbolAtPointReq(file: SourceFileInfo, point: Int) extends RpcAnalyserRequest
+final case class FqnOfSymbolAtPointReq(file: SourceFileInfo, point: Int)
+    extends RpcAnalyserRequest
 
 /**
  * Responds with `FullyQualifiedName`
  */
-final case class FqnOfTypeAtPointReq(file: SourceFileInfo, point: Int) extends RpcAnalyserRequest
+final case class FqnOfTypeAtPointReq(file: SourceFileInfo, point: Int)
+    extends RpcAnalyserRequest
 
 /**
  * Responds with `SourcePositions`.
@@ -198,13 +207,16 @@ final case class CompletionsReq(
  * Responds with `TypeInfo` if valid, or `FalseResponse`.
  */
 final case class TypeAtPointReq(
-  file: Either[File, SourceFileInfo], range: OffsetRange
+  file: Either[File, SourceFileInfo],
+  range: OffsetRange
 ) extends RpcAnalyserRequest
 
 /**
  * Responds with a `SymbolInfo` if valid, or `FalseResponse`.
  */
-final case class SymbolAtPointReq(file: Either[File, SourceFileInfo], point: Int) extends RpcAnalyserRequest
+final case class SymbolAtPointReq(file: Either[File, SourceFileInfo],
+                                  point: Int)
+    extends RpcAnalyserRequest
 
 /**
  * Responds with a `RefactorFailure` or a `RefactorDiffEffect`.
@@ -236,12 +248,14 @@ final case class SymbolDesignationsReq(
 /**
  * Responds with a `FileRange`.
  */
-final case class ExpandSelectionReq(file: File, start: Int, end: Int) extends RpcAnalyserRequest
+final case class ExpandSelectionReq(file: File, start: Int, end: Int)
+    extends RpcAnalyserRequest
 
 /**
  * Responds with a `StructureView`.
  */
-final case class StructureViewReq(fileInfo: SourceFileInfo) extends RpcAnalyserRequest
+final case class StructureViewReq(fileInfo: SourceFileInfo)
+    extends RpcAnalyserRequest
 
 sealed trait RpcDebuggerRequest extends RpcRequest
 
@@ -254,7 +268,8 @@ case object DebugActiveVmReq extends RpcDebuggerRequest
 /**
  * Responds with `DebugVmStatus`.
  */
-final case class DebugAttachReq(hostname: String, port: String) extends RpcDebuggerRequest
+final case class DebugAttachReq(hostname: String, port: String)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
@@ -264,12 +279,14 @@ case object DebugStopReq extends RpcDebuggerRequest
 /**
  * Responds with a `VoidResponse`.
  */
-final case class DebugSetBreakReq(file: EnsimeFile, line: Int) extends RpcDebuggerRequest
+final case class DebugSetBreakReq(file: EnsimeFile, line: Int)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `VoidResponse`.
  */
-final case class DebugClearBreakReq(file: EnsimeFile, line: Int) extends RpcDebuggerRequest
+final case class DebugClearBreakReq(file: EnsimeFile, line: Int)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `VoidResponse`.
@@ -291,27 +308,32 @@ case object DebugRunReq extends RpcDebuggerRequest
  * Responds with a `FalseResponse` or a `TrueResponse`.
  * @param threadId the target debugged VM thread
  */
-final case class DebugContinueReq(threadId: DebugThreadId) extends RpcDebuggerRequest
+final case class DebugContinueReq(threadId: DebugThreadId)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
  */
-final case class DebugStepReq(threadId: DebugThreadId) extends RpcDebuggerRequest
+final case class DebugStepReq(threadId: DebugThreadId)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
  */
-final case class DebugNextReq(threadId: DebugThreadId) extends RpcDebuggerRequest
+final case class DebugNextReq(threadId: DebugThreadId)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `FalseResponse` or a `TrueResponse`.
  */
-final case class DebugStepOutReq(threadId: DebugThreadId) extends RpcDebuggerRequest
+final case class DebugStepOutReq(threadId: DebugThreadId)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `DebugLocation` if successful, or `FalseResponse`.
  */
-final case class DebugLocateNameReq(threadId: DebugThreadId, name: String) extends RpcDebuggerRequest
+final case class DebugLocateNameReq(threadId: DebugThreadId, name: String)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `DebugValue` if successful, or `FalseResponse`.
@@ -321,7 +343,8 @@ final case class DebugValueReq(loc: DebugLocation) extends RpcDebuggerRequest
 /**
  * Responds with a `StringResponse` if successful, or `FalseResponse`.
  */
-final case class DebugToStringReq(threadId: DebugThreadId, loc: DebugLocation) extends RpcDebuggerRequest
+final case class DebugToStringReq(threadId: DebugThreadId, loc: DebugLocation)
+    extends RpcDebuggerRequest
 
 /**
  * Request to update a field value within the debugged VM.
@@ -329,7 +352,8 @@ final case class DebugToStringReq(threadId: DebugThreadId, loc: DebugLocation) e
  * @param loc The variable to update.
  * @param newValue The value to set, encoded as a String
  */
-final case class DebugSetValueReq(loc: DebugLocation, newValue: String) extends RpcDebuggerRequest
+final case class DebugSetValueReq(loc: DebugLocation, newValue: String)
+    extends RpcDebuggerRequest
 
 /**
  * Responds with a `DebugBacktrace`.
@@ -337,4 +361,7 @@ final case class DebugSetValueReq(loc: DebugLocation, newValue: String) extends 
  * @param index The index of the first frame where 0 is the lowest frame
  * @param count The number of frames to return
  */
-final case class DebugBacktraceReq(threadId: DebugThreadId, index: Int, count: Int) extends RpcDebuggerRequest
+final case class DebugBacktraceReq(threadId: DebugThreadId,
+                                   index: Int,
+                                   count: Int)
+    extends RpcDebuggerRequest

@@ -15,8 +15,8 @@ class BroadcasterSpec extends EnsimeSpec with SharedTestKitFixture {
   "Broadcaster" should "send messages to subscribers" in withTestKit { fix =>
     import fix._
     val broadcaster = TestActorRef[Broadcaster]
-    val sub1 = TestProbe()
-    val sub2 = TestProbe()
+    val sub1        = TestProbe()
+    val sub2        = TestProbe()
 
     sub1.send(broadcaster, Register)
     sub2.send(broadcaster, Register)
@@ -32,8 +32,8 @@ class BroadcasterSpec extends EnsimeSpec with SharedTestKitFixture {
   it should "not send messages after unregister" in withTestKit { fix =>
     import fix._
     val broadcaster = TestActorRef[Broadcaster]
-    val sub1 = TestProbe()
-    val sub2 = TestProbe()
+    val sub1        = TestProbe()
+    val sub2        = TestProbe()
 
     sub1.send(broadcaster, Register)
     sub1.send(broadcaster, Unregister)
@@ -46,7 +46,7 @@ class BroadcasterSpec extends EnsimeSpec with SharedTestKitFixture {
   it should "send persistent messages on registration" in withTestKit { fix =>
     import fix._
     val broadcaster = TestActorRef[Broadcaster]
-    val sub1 = TestProbe()
+    val sub1        = TestProbe()
 
     broadcaster ! Persist(ping)
 

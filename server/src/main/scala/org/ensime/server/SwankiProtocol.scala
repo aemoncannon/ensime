@@ -11,7 +11,9 @@ import org.ensime.swanky._
 class SwankiProtocol extends FramedStringProtocol {
   import SwankyFormats._
 
-  override def decode(bytes: ByteString): (Option[RpcRequestEnvelope], ByteString) = {
+  override def decode(
+    bytes: ByteString
+  ): (Option[RpcRequestEnvelope], ByteString) =
     tryReadString(bytes) match {
       case (Some(message), remainder) =>
         val parsedMessage = message.parseSexp.convertTo[RpcRequestEnvelope]
@@ -19,8 +21,8 @@ class SwankiProtocol extends FramedStringProtocol {
       case (None, remainder) =>
         (None, remainder)
     }
-  }
 
-  override def encode(resp: RpcResponseEnvelope): ByteString = writeString(resp.toSexp.prettyPrint)
+  override def encode(resp: RpcResponseEnvelope): ByteString =
+    writeString(resp.toSexp.prettyPrint)
 
 }

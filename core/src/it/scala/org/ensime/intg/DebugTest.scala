@@ -2,7 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.intg
 
-import java.io.{ InputStream, File }
+import java.io.{ File, InputStream }
 import java.util.Scanner
 
 import scala.collection.JavaConverters._
@@ -21,7 +21,8 @@ import org.ensime.util.file._
 import org.scalatest.Matchers
 
 // must be refreshing as the tests don't clean up after themselves properly
-class DebugTest extends EnsimeSpec
+class DebugTest
+    extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
     with IsolatedProjectFixture
@@ -29,17 +30,18 @@ class DebugTest extends EnsimeSpec
 
   val original = EnsimeConfigFixture.DebugTestProject
 
-  "Debug - stepping" should "be able to step over/in/out" in withEnsimeConfig { implicit config =>
-    withTestKit { implicit testkit =>
-      withProject { (project, asyncHelper) =>
-        implicit val p = (project, asyncHelper)
+  "Debug - stepping" should "be able to step over/in/out" in withEnsimeConfig {
+    implicit config =>
+      withTestKit { implicit testkit =>
+        withProject { (project, asyncHelper) =>
+          implicit val p = (project, asyncHelper)
 
-        // Start on line 8, which is first line in main method
-        withDebugSession(
-          "stepping.BasicStepping",
-          "stepping/BasicStepping.scala",
-          8
-        ) { (threadId, breakpointsFile) =>
+          // Start on line 8, which is first line in main method
+          withDebugSession(
+            "stepping.BasicStepping",
+            "stepping/BasicStepping.scala",
+            8
+          ) { (threadId, breakpointsFile) =>
             import testkit._
 
             within(10.seconds) {
@@ -49,42 +51,75 @@ class DebugTest extends EnsimeSpec
 
               // Should be able to step into a method call
               project ! DebugStepReq(threadId)
-              expectMsg(remaining, "Failed to step into method call!", TrueResponse)
+              expectMsg(remaining,
+                        "Failed to step into method call!",
+                        TrueResponse)
 
               // Should be able to step out of a method call
               project ! DebugStepOutReq(threadId)
-              expectMsg(remaining, "Failed to step out of method call!", TrueResponse)
+              expectMsg(remaining,
+                        "Failed to step out of method call!",
+                        TrueResponse)
             }
           }
+        }
       }
-    }
   }
 
-  "Breakpoints" should "trigger/continue" in withEnsimeConfig { implicit config =>
-    withTestKit { implicit testkit =>
-      withProject { (project, asyncHelper) =>
-        implicit val p = (project, asyncHelper)
-        withDebugSession(
-          "breakpoints.Breakpoints",
-          "breakpoints/Breakpoints.scala",
-          32
-        ) { (threadId, breakpointsFile) =>
+  "Breakpoints" should "trigger/continue" in withEnsimeConfig {
+    implicit config =>
+      withTestKit { implicit testkit =>
+        withProject { (project, asyncHelper) =>
+          implicit val p = (project, asyncHelper)
+          withDebugSession(
+            "breakpoints.Breakpoints",
+            "breakpoints/Breakpoints.scala",
+            32
+          ) { (threadId, breakpointsFile) =>
             import testkit._
             val ensimeBreakpointsFile = RawFile(breakpointsFile.toPath)
             // NOTE: Can encounter scala/Predef.scala if picking stack trace
             //       at arbitrary point
             project ! DebugBacktraceReq(threadId, 0, 3)
             expectMsgType[DebugBacktrace] should matchPattern {
-              case DebugBacktrace(List(
-                DebugStackFrame(0, Nil, 0, "breakpoints.Breakpoints", "mainTest",
-                  LineSourcePosition(`ensimeBreakpointsFile`, 32), _),
-                DebugStackFrame(1, List(
-                  DebugStackLocal(0, "args", "Array(length = 0)[<EMPTY>]", "java.lang.String[]")
-                  ), 1, "breakpoints.Breakpoints$", "main",
-                  LineSourcePosition(`ensimeBreakpointsFile`, 42), _),
-                DebugStackFrame(2, Nil, 1, "breakpoints.Breakpoints", "main",
-                  LineSourcePosition(`ensimeBreakpointsFile`, _), _)
-                ), `threadId`, "main") =>
+              case DebugBacktrace(
+                  List(
+                    DebugStackFrame(
+                      0,
+                      Nil,
+                      0,
+                      "breakpoints.Breakpoints",
+                      "mainTest",
+                      LineSourcePosition(`ensimeBreakpointsFile`, 32),
+                      _
+                    ),
+                    DebugStackFrame(1,
+                                    List(
+                                      DebugStackLocal(
+                                        0,
+                                        "args",
+                                        "Array(length = 0)[<EMPTY>]",
+                                        "java.lang.String[]"
+                                      )
+                                    ),
+                                    1,
+                                    "breakpoints.Breakpoints$",
+                                    "main",
+                                    LineSourcePosition(`ensimeBreakpointsFile`,
+                                                       42),
+                                    _),
+                    DebugStackFrame(2,
+                                    Nil,
+                                    1,
+                                    "breakpoints.Breakpoints",
+                                    "main",
+                                    LineSourcePosition(`ensimeBreakpointsFile`,
+                                                       _),
+                                    _)
+                  ),
+                  `threadId`,
+                  "main"
+                  ) =>
             }
 
             project ! DebugSetBreakReq(ensimeBreakpointsFile, 11)
@@ -96,12 +131,19 @@ class DebugTest extends EnsimeSpec
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11))
+            asyncHelper.expectMsg(
+              DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11)
+            )
 
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", RawFile(breakpointsFile.toPath), 13))
+            asyncHelper.expectMsg(
+              DebugBreakEvent(threadId,
+                              "main",
+                              RawFile(breakpointsFile.toPath),
+                              13)
+            )
 
             project ! DebugClearBreakReq(ensimeBreakpointsFile, 11)
             expectMsg(TrueResponse)
@@ -109,7 +151,12 @@ class DebugTest extends EnsimeSpec
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", RawFile(breakpointsFile.toPath), 13))
+            asyncHelper.expectMsg(
+              DebugBreakEvent(threadId,
+                              "main",
+                              RawFile(breakpointsFile.toPath),
+                              13)
+            )
 
             project ! DebugSetBreakReq(ensimeBreakpointsFile, 11)
             expectMsg(TrueResponse)
@@ -120,18 +167,22 @@ class DebugTest extends EnsimeSpec
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11))
+            asyncHelper.expectMsg(
+              DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11)
+            )
 
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
 
-            asyncHelper.expectMsg(DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11))
+            asyncHelper.expectMsg(
+              DebugBreakEvent(threadId, "main", ensimeBreakpointsFile, 11)
+            )
 
             project ! DebugContinueReq(threadId)
             expectMsg(TrueResponse)
           }
+        }
       }
-    }
   }
 
   it should "list/clear" in withEnsimeConfig { implicit config =>
@@ -143,53 +194,55 @@ class DebugTest extends EnsimeSpec
           "breakpoints/Breakpoints.scala",
           32
         ) {
-            case (threadId, breakpointsFile) =>
-              import testkit._
+          case (threadId, breakpointsFile) =>
+            import testkit._
 
-              val ensimeBreakpointsFile = RawFile(breakpointsFile.toPath)
+            val ensimeBreakpointsFile = RawFile(breakpointsFile.toPath)
 
-              project ! DebugListBreakpointsReq
-              expectMsgType[BreakpointList] should matchPattern {
-                case BreakpointList(Nil, Nil) =>
-              }
+            project ! DebugListBreakpointsReq
+            expectMsgType[BreakpointList] should matchPattern {
+              case BreakpointList(Nil, Nil) =>
+            }
 
-              // break in main
-              project ! DebugSetBreakReq(ensimeBreakpointsFile, 11)
-              expectMsg(TrueResponse)
-              project ! DebugSetBreakReq(ensimeBreakpointsFile, 13)
-              expectMsg(TrueResponse)
+            // break in main
+            project ! DebugSetBreakReq(ensimeBreakpointsFile, 11)
+            expectMsg(TrueResponse)
+            project ! DebugSetBreakReq(ensimeBreakpointsFile, 13)
+            expectMsg(TrueResponse)
 
-              // breakpoints should now be active
-              project ! DebugListBreakpointsReq
-              inside(expectMsgType[BreakpointList]) {
-                case BreakpointList(activeBreakpoints, pendingBreakpoints) =>
-                  activeBreakpoints should contain theSameElementsAs Set(
-                    Breakpoint(ensimeBreakpointsFile, 11), Breakpoint(ensimeBreakpointsFile, 13)
-                  )
-                  pendingBreakpoints shouldBe empty
-              }
+            // breakpoints should now be active
+            project ! DebugListBreakpointsReq
+            inside(expectMsgType[BreakpointList]) {
+              case BreakpointList(activeBreakpoints, pendingBreakpoints) =>
+                activeBreakpoints should contain theSameElementsAs Set(
+                  Breakpoint(ensimeBreakpointsFile, 11),
+                  Breakpoint(ensimeBreakpointsFile, 13)
+                )
+                pendingBreakpoints shouldBe empty
+            }
 
-              // check clear works again
-              project ! DebugClearAllBreaksReq
-              expectMsg(TrueResponse)
-              project ! DebugListBreakpointsReq
-              expectMsgType[BreakpointList] should matchPattern {
-                case BreakpointList(Nil, Nil) =>
-              }
-          }
+            // check clear works again
+            project ! DebugClearAllBreaksReq
+            expectMsg(TrueResponse)
+            project ! DebugListBreakpointsReq
+            expectMsgType[BreakpointList] should matchPattern {
+              case BreakpointList(Nil, Nil) =>
+            }
+        }
       }
     }
   }
 
-  "Debug variables" should "inspect variables" in withEnsimeConfig { implicit config =>
-    withTestKit { implicit testkit =>
-      withProject { (project, asyncHelper) =>
-        implicit val p = (project, asyncHelper)
-        withDebugSession(
-          "variables.ReadVariables",
-          "variables/ReadVariables.scala",
-          22
-        ) { (threadId, variablesFile) =>
+  "Debug variables" should "inspect variables" in withEnsimeConfig {
+    implicit config =>
+      withTestKit { implicit testkit =>
+        withProject { (project, asyncHelper) =>
+          implicit val p = (project, asyncHelper)
+          withDebugSession(
+            "variables.ReadVariables",
+            "variables/ReadVariables.scala",
+            22
+          ) { (threadId, variablesFile) =>
             // boolean local
             getVariableValue(threadId, "a") should matchPattern {
               case DebugPrimitiveValue("true", "boolean") =>
@@ -227,9 +280,15 @@ class DebugTest extends EnsimeSpec
 
             // String local
             inside(getVariableValue(threadId, "h")) {
-              case DebugStringInstance("\"test\"", debugFields, "java.lang.String", _) =>
+              case DebugStringInstance("\"test\"",
+                                       debugFields,
+                                       "java.lang.String",
+                                       _) =>
                 exactly(1, debugFields) should matchPattern {
-                  case DebugClassField(_, "value", "char[]", "Array(length = 4)['t','e','s',...]") =>
+                  case DebugClassField(_,
+                                       "value",
+                                       "char[]",
+                                       "Array(length = 4)['t','e','s',...]") =>
                 }
             }
 
@@ -240,31 +299,48 @@ class DebugTest extends EnsimeSpec
 
             // type local
             inside(getVariableValue(threadId, "m")) {
-              case DebugObjectInstance(summary, debugFields, "variables.ReadVariables$SimpleTestClass", _) =>
-                summary should startWith("Instance of variables.ReadVariables$SimpleTestClass")
+              case DebugObjectInstance(
+                  summary,
+                  debugFields,
+                  "variables.ReadVariables$SimpleTestClass",
+                  _
+                  ) =>
+                summary should startWith(
+                  "Instance of variables.ReadVariables$SimpleTestClass"
+                )
                 exactly(1, debugFields) should matchPattern {
-                  case DebugClassField(_, "xs", "scala.collection.immutable.List", summary) if summary.startsWith("Instance of scala.collection.immutable.$colon$colon") =>
+                  case DebugClassField(_,
+                                       "xs",
+                                       "scala.collection.immutable.List",
+                                       summary)
+                      if summary.startsWith(
+                        "Instance of scala.collection.immutable.$colon$colon"
+                      ) =>
                 }
             }
 
             // object array local
             getVariableValue(threadId, "k") should matchPattern {
-              case DebugArrayInstance(3, "java.lang.Object[]", "java.lang.Object", _) =>
+              case DebugArrayInstance(3,
+                                      "java.lang.Object[]",
+                                      "java.lang.Object",
+                                      _) =>
             }
           }
+        }
       }
-    }
   }
 
-  they should "be able to convert variables to string representations" in withEnsimeConfig { implicit config =>
-    withTestKit { implicit testkit =>
-      withProject { (project, asyncHelper) =>
-        implicit val p = (project, asyncHelper)
-        withDebugSession(
-          "variables.ReadVariables",
-          "variables/ReadVariables.scala",
-          22
-        ) { (threadId, variablesFile) =>
+  they should "be able to convert variables to string representations" in withEnsimeConfig {
+    implicit config =>
+      withTestKit { implicit testkit =>
+        withProject { (project, asyncHelper) =>
+          implicit val p = (project, asyncHelper)
+          withDebugSession(
+            "variables.ReadVariables",
+            "variables/ReadVariables.scala",
+            22
+          ) { (threadId, variablesFile) =>
             // boolean local
             getVariableAsString(threadId, "a").text should be("true")
 
@@ -290,7 +366,9 @@ class DebugTest extends EnsimeSpec
             getVariableAsString(threadId, "h").text should be("\"test\"")
 
             // primitive array local
-            getVariableAsString(threadId, "i").text should be("Array(length = 3)[1,2,3]")
+            getVariableAsString(threadId, "i").text should be(
+              "Array(length = 3)[1,2,3]"
+            )
 
             // type local
             getVariableAsString(threadId, "j").text should
@@ -303,26 +381,29 @@ class DebugTest extends EnsimeSpec
             objArrayText should include("Instance of java.lang.Boolean")
             objArrayText should include("Instance of java.lang.Integer")
           }
+        }
       }
-    }
   }
 
-  they should "be retrievable for the BugFromGitter scenario" in withEnsimeConfig { implicit config =>
-    withTestKit { implicit testkit =>
-      withProject { (project, asyncHelper) =>
-        implicit val p = (project, asyncHelper)
-        withDebugSession(
-          "variables.BugFromGitter",
-          "variables/BugFromGitter.scala",
-          31
-        ) { (threadId, variablesFile) =>
+  they should "be retrievable for the BugFromGitter scenario" in withEnsimeConfig {
+    implicit config =>
+      withTestKit { implicit testkit =>
+        withProject { (project, asyncHelper) =>
+          implicit val p = (project, asyncHelper)
+          withDebugSession(
+            "variables.BugFromGitter",
+            "variables/BugFromGitter.scala",
+            31
+          ) { (threadId, variablesFile) =>
             getVariableAsString(threadId, "actualTimes").text should be("10")
 
             getVariableAsString(threadId, "name").text should be("\"Rory\"")
 
             getVariableAsString(threadId, "times").text should be("5")
 
-            getVariableAsString(threadId, "arrayTest").text should be("Array(length = 4)[1,2,3,...]")
+            getVariableAsString(threadId, "arrayTest").text should be(
+              "Array(length = 4)[1,2,3,...]"
+            )
 
             getVariableAsString(threadId, "listTest").text should
               startWith("Instance of scala.collection.immutable.$colon$colon")
@@ -330,8 +411,8 @@ class DebugTest extends EnsimeSpec
             getVariableAsString(threadId, "person").text should
               startWith("Instance of variables.Person")
           }
+        }
       }
-    }
   }
 
   they should "set variable values" in withEnsimeConfig { implicit config =>
@@ -343,142 +424,162 @@ class DebugTest extends EnsimeSpec
           "variables/WriteVariables.scala",
           21
         ) { (threadId, variablesFile) =>
-            import testkit._
+          import testkit._
 
-            /* boolean local */ within(10.seconds) {
-              val n = "a"
+          /* boolean local */
+          within(10.seconds) {
+            val n = "a"
 
-              project ! DebugLocateNameReq(threadId, n)
-              val location = testkit.expectMsgType[DebugStackSlot]
+            project ! DebugLocateNameReq(threadId, n)
+            val location = testkit.expectMsgType[DebugStackSlot]
 
-              project ! DebugSetValueReq(location, "false")
-              expectMsg(remaining, s"Unable to set boolean for '$n'!", TrueResponse)
+            project ! DebugSetValueReq(location, "false")
+            expectMsg(remaining,
+                      s"Unable to set boolean for '$n'!",
+                      TrueResponse)
 
-              getVariableValue(threadId, n) should matchPattern {
-                case DebugPrimitiveValue("false", "boolean") =>
-              }
-            }
-
-            /* char local */ within(10.seconds) {
-              val n = "b"
-
-              project ! DebugLocateNameReq(threadId, n)
-              val location = testkit.expectMsgType[DebugStackSlot]
-
-              project ! DebugSetValueReq(location, "a")
-              expectMsg(remaining, s"Unable to set char for '$n'!", TrueResponse)
-
-              getVariableValue(threadId, n) should matchPattern {
-                case DebugPrimitiveValue("'a'", "char") =>
-              }
-            }
-
-            /* short local */ within(10.seconds) {
-              val n = "c"
-
-              project ! DebugLocateNameReq(threadId, n)
-              val location = testkit.expectMsgType[DebugStackSlot]
-
-              project ! DebugSetValueReq(location, "99")
-              expectMsg(remaining, s"Unable to set short for '$n'!", TrueResponse)
-
-              getVariableValue(threadId, n) should matchPattern {
-                case DebugPrimitiveValue("99", "short") =>
-              }
-            }
-
-            /* int local */ within(10.seconds) {
-              val n = "d"
-
-              project ! DebugLocateNameReq(threadId, n)
-              val location = testkit.expectMsgType[DebugStackSlot]
-
-              project ! DebugSetValueReq(location, "99")
-              expectMsg(remaining, s"Unable to set int for '$n'!", TrueResponse)
-
-              getVariableValue(threadId, n) should matchPattern {
-                case DebugPrimitiveValue("99", "int") =>
-              }
-            }
-
-            /* long local */ within(10.seconds) {
-              val n = "e"
-
-              project ! DebugLocateNameReq(threadId, n)
-              val location = testkit.expectMsgType[DebugStackSlot]
-
-              project ! DebugSetValueReq(location, "99")
-              expectMsg(remaining, s"Unable to set long for '$n'!", TrueResponse)
-
-              getVariableValue(threadId, n) should matchPattern {
-                case DebugPrimitiveValue("99", "long") =>
-              }
-            }
-
-            /* float local */ within(10.seconds) {
-              val n = "f"
-
-              project ! DebugLocateNameReq(threadId, n)
-              val location = testkit.expectMsgType[DebugStackSlot]
-
-              project ! DebugSetValueReq(location, "99.5")
-              expectMsg(remaining, s"Unable to set float for '$n'!", TrueResponse)
-
-              getVariableValue(threadId, n) should matchPattern {
-                case DebugPrimitiveValue("99.5", "float") =>
-              }
-            }
-
-            /* double local */ within(10.seconds) {
-              val n = "g"
-
-              project ! DebugLocateNameReq(threadId, n)
-              val location = testkit.expectMsgType[DebugStackSlot]
-
-              project ! DebugSetValueReq(location, "99.5")
-              expectMsg(remaining, s"Unable to set double for '$n'!", TrueResponse)
-
-              getVariableValue(threadId, n) should matchPattern {
-                case DebugPrimitiveValue("99.5", "double") =>
-              }
-            }
-
-            /* string local */ within(10.seconds) {
-              val n = "h"
-
-              project ! DebugLocateNameReq(threadId, n)
-              val location = testkit.expectMsgType[DebugStackSlot]
-
-              project ! DebugSetValueReq(location, "\"fish\"")
-              expectMsg(remaining, s"Unable to set string for '$n'!", TrueResponse)
-
-              getVariableValue(threadId, n) should matchPattern {
-                case DebugStringInstance("\"fish\"", _, "java.lang.String", _) =>
-              }
+            getVariableValue(threadId, n) should matchPattern {
+              case DebugPrimitiveValue("false", "boolean") =>
             }
           }
+
+          /* char local */
+          within(10.seconds) {
+            val n = "b"
+
+            project ! DebugLocateNameReq(threadId, n)
+            val location = testkit.expectMsgType[DebugStackSlot]
+
+            project ! DebugSetValueReq(location, "a")
+            expectMsg(remaining, s"Unable to set char for '$n'!", TrueResponse)
+
+            getVariableValue(threadId, n) should matchPattern {
+              case DebugPrimitiveValue("'a'", "char") =>
+            }
+          }
+
+          /* short local */
+          within(10.seconds) {
+            val n = "c"
+
+            project ! DebugLocateNameReq(threadId, n)
+            val location = testkit.expectMsgType[DebugStackSlot]
+
+            project ! DebugSetValueReq(location, "99")
+            expectMsg(remaining, s"Unable to set short for '$n'!", TrueResponse)
+
+            getVariableValue(threadId, n) should matchPattern {
+              case DebugPrimitiveValue("99", "short") =>
+            }
+          }
+
+          /* int local */
+          within(10.seconds) {
+            val n = "d"
+
+            project ! DebugLocateNameReq(threadId, n)
+            val location = testkit.expectMsgType[DebugStackSlot]
+
+            project ! DebugSetValueReq(location, "99")
+            expectMsg(remaining, s"Unable to set int for '$n'!", TrueResponse)
+
+            getVariableValue(threadId, n) should matchPattern {
+              case DebugPrimitiveValue("99", "int") =>
+            }
+          }
+
+          /* long local */
+          within(10.seconds) {
+            val n = "e"
+
+            project ! DebugLocateNameReq(threadId, n)
+            val location = testkit.expectMsgType[DebugStackSlot]
+
+            project ! DebugSetValueReq(location, "99")
+            expectMsg(remaining, s"Unable to set long for '$n'!", TrueResponse)
+
+            getVariableValue(threadId, n) should matchPattern {
+              case DebugPrimitiveValue("99", "long") =>
+            }
+          }
+
+          /* float local */
+          within(10.seconds) {
+            val n = "f"
+
+            project ! DebugLocateNameReq(threadId, n)
+            val location = testkit.expectMsgType[DebugStackSlot]
+
+            project ! DebugSetValueReq(location, "99.5")
+            expectMsg(remaining, s"Unable to set float for '$n'!", TrueResponse)
+
+            getVariableValue(threadId, n) should matchPattern {
+              case DebugPrimitiveValue("99.5", "float") =>
+            }
+          }
+
+          /* double local */
+          within(10.seconds) {
+            val n = "g"
+
+            project ! DebugLocateNameReq(threadId, n)
+            val location = testkit.expectMsgType[DebugStackSlot]
+
+            project ! DebugSetValueReq(location, "99.5")
+            expectMsg(remaining,
+                      s"Unable to set double for '$n'!",
+                      TrueResponse)
+
+            getVariableValue(threadId, n) should matchPattern {
+              case DebugPrimitiveValue("99.5", "double") =>
+            }
+          }
+
+          /* string local */
+          within(10.seconds) {
+            val n = "h"
+
+            project ! DebugLocateNameReq(threadId, n)
+            val location = testkit.expectMsgType[DebugStackSlot]
+
+            project ! DebugSetValueReq(location, "\"fish\"")
+            expectMsg(remaining,
+                      s"Unable to set string for '$n'!",
+                      TrueResponse)
+
+            getVariableValue(threadId, n) should matchPattern {
+              case DebugStringInstance("\"fish\"", _, "java.lang.String", _) =>
+            }
+          }
+        }
       }
     }
   }
 
-  "Debug backtrace" should "generate backtrace" in withEnsimeConfig { implicit config =>
-    withTestKit { implicit testkit =>
-      withProject { (project, asyncHelper) =>
-        implicit val p = (project, asyncHelper)
-        withDebugSession(
-          "debug.Backtrace",
-          "debug/Backtrace.scala",
-          13
-        ) { (threadId, f) =>
+  "Debug backtrace" should "generate backtrace" in withEnsimeConfig {
+    implicit config =>
+      withTestKit { implicit testkit =>
+        withProject { (project, asyncHelper) =>
+          implicit val p = (project, asyncHelper)
+          withDebugSession(
+            "debug.Backtrace",
+            "debug/Backtrace.scala",
+            13
+          ) { (threadId, f) =>
             import testkit._
             project ! DebugBacktraceReq(threadId, 0, 20)
             val backTrace = expectMsgType[DebugBacktrace]
             // just some sanity assertions
-            assert(backTrace.frames.forall(_.className.startsWith("debug.Backtrace")))
-            assert(backTrace.frames.forall(_.pcLocation.file.toString.contains("Backtrace.scala")))
+            assert(
+              backTrace.frames.forall(_.className.startsWith("debug.Backtrace"))
+            )
+            assert(
+              backTrace.frames
+                .forall(_.pcLocation.file.toString.contains("Backtrace.scala"))
+            )
           }
+        }
       }
-    }
   }
 }
 
@@ -508,10 +609,10 @@ trait DebugTestUtils {
     p: (TestActorRef[Project], TestProbe)
   ): Any = {
     import testkit._
-    val resolvedFile = (scalaMain(config) / fileName)
+    val resolvedFile       = (scalaMain(config) / fileName)
     val ensimeResolvedFile = RawFile(resolvedFile.toPath)
-    val project = p._1
-    val asyncHelper = p._2
+    val project            = p._1
+    val asyncHelper        = p._2
 
     project ! DebugSetBreakReq(ensimeResolvedFile, breakLine)
     expectMsg(TrueResponse)
@@ -527,14 +628,20 @@ trait DebugTestUtils {
 
       asyncHelper.expectMsg(DebugVmStartEvent)
 
-      val gotOnStartup = asyncHelper.expectMsgType[EnsimeServerMessage](10 seconds)
+      val gotOnStartup =
+        asyncHelper.expectMsgType[EnsimeServerMessage](10 seconds)
       // weird! we sometimes see a duplicate break event instantly, not really expected
-      val additionalOnStartup = Try(asyncHelper.expectMsgType[EnsimeServerMessage]).toOption.toSeq
+      val additionalOnStartup = Try(
+        asyncHelper.expectMsgType[EnsimeServerMessage]
+      ).toOption.toSeq
       // but it doesn't always come through
 
       val allEvents = gotOnStartup +: additionalOnStartup
       val threadId = allEvents.flatMap {
-        case DebugBreakEvent(foundThreadId, "main", `ensimeResolvedFile`, `breakLine`) =>
+        case DebugBreakEvent(foundThreadId,
+                             "main",
+                             `ensimeResolvedFile`,
+                             `breakLine`) =>
           List(foundThreadId)
         case _ =>
           Nil
@@ -550,8 +657,8 @@ trait DebugTestUtils {
       project ! DebugStopReq
 
       // If shutdown fails, attempt to forcefully kill the process
-      Try(expectMsgPF() { case TrueResponse => })
-        .failed.foreach(_ => vm._1.destroy())
+      Try(expectMsgPF() { case TrueResponse => }).failed
+        .foreach(_ => vm._1.destroy())
     }
   }
 
@@ -585,15 +692,29 @@ trait DebugTestUtils {
     expectMsgType[StringResponse]
   }
 
-  def checkTopStackFrame(threadId: DebugThreadId, className: String, method: String, line: Int)(implicit testkit: TestKitFix, p: (TestActorRef[Project], TestProbe)): Unit = {
+  def checkTopStackFrame(
+    threadId: DebugThreadId,
+    className: String,
+    method: String,
+    line: Int
+  )(implicit testkit: TestKitFix,
+    p: (TestActorRef[Project], TestProbe)): Unit = {
     import testkit._
     val project = p._1
 
     project ! DebugBacktraceReq(threadId, 0, 1)
     expectMsgType[DebugBacktrace] should matchPattern {
-      case DebugBacktrace(List(DebugStackFrame(0, _, 1, `className`, `method`,
-        LineSourcePosition(_, `line`), _)),
-        `threadId`, "main") =>
+      case DebugBacktrace(List(
+                            DebugStackFrame(0,
+                                            _,
+                                            1,
+                                            `className`,
+                                            `method`,
+                                            LineSourcePosition(_, `line`),
+                                            _)
+                          ),
+                          `threadId`,
+                          "main") =>
     }
   }
 }
@@ -622,7 +743,8 @@ object VMStarter extends SLF4JLogging {
     if (Properties.isWin) Properties.javaHome + """\bin\javaw.exe"""
     else Properties.javaHome + "/bin/java"
 
-  def apply(config: EnsimeConfig, clazz: String): (Process, String, Int, Future[Unit]) = {
+  def apply(config: EnsimeConfig,
+            clazz: String): (Process, String, Int, Future[Unit]) = {
     // would be nice to have ephemeral debug ports
     val port = 5000 + scala.util.Random.nextInt(1000)
 
@@ -630,8 +752,10 @@ object VMStarter extends SLF4JLogging {
     val args = Seq(
       java,
       "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=" + port,
-      "-Xms32m", "-Xmx64m",
-      "-classpath", classpath,
+      "-Xms32m",
+      "-Xmx64m",
+      "-classpath",
+      classpath,
       clazz
     )
 

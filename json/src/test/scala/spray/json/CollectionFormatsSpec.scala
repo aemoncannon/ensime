@@ -22,7 +22,7 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
 
   "The arrayFormat" should {
     val array = Array(1, 2, 3)
-    val json = JsArray(JsNumber(1), JsNumber(2), JsNumber(3))
+    val json  = JsArray(JsNumber(1), JsNumber(2), JsNumber(3))
     "convert an Array[Int] to a JsArray of JsNumbers" in {
       array.toJson shouldEqual json
     }
@@ -33,7 +33,8 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
 
   "The mapFormat" should {
     val map = Map("a" -> 1, "b" -> 2, "c" -> 3)
-    val json = JsObject("a" -> JsNumber(1), "b" -> JsNumber(2), "c" -> JsNumber(3))
+    val json =
+      JsObject("a" -> JsNumber(1), "b" -> JsNumber(2), "c" -> JsNumber(3))
     "convert a Map[String, Long] to a JsObject" in {
       map.toJson shouldEqual json
     }
@@ -48,7 +49,7 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
   }
 
   "The immutableSetFormat" should {
-    val set = Set(1, 2, 3)
+    val set  = Set(1, 2, 3)
     val json = JsArray(JsNumber(1), JsNumber(2), JsNumber(3))
     "convert a Set[Int] to a JsArray of JsNumbers" in {
       set.toJson shouldEqual json
@@ -59,7 +60,7 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
   }
 
   "The indexedSeqFormat" should {
-    val seq = collection.IndexedSeq(1, 2, 3)
+    val seq  = collection.IndexedSeq(1, 2, 3)
     val json = JsArray(JsNumber(1), JsNumber(2), JsNumber(3))
     "convert a Set[Int] to a JsArray of JsNumbers" in {
       seq.toJson shouldEqual json

@@ -14,7 +14,7 @@ package object list {
      */
     def initLast: (List[T], T) = list.reverse match {
       case head :: tail => (tail.reverse, head)
-      case _ => throw new IllegalArgumentException("list was empty")
+      case _            => throw new IllegalArgumentException("list was empty")
     }
 
     /**
@@ -23,7 +23,7 @@ package object list {
      */
     def distinctBy[U](key: T => U): List[T] = {
       var builder = List[T]()
-      var seen = Set[U]()
+      var seen    = Set[U]()
       list.foreach { entry =>
         val k = key(entry)
         if (!seen(k)) {
@@ -36,13 +36,15 @@ package object list {
   }
 
   implicit class RichListTuple2[K, V](val list: List[(K, V)]) extends AnyVal {
+
     /**
      * Whereas a list of tuples may often be treated as a `Map`, here
      * we wish to treat it as a multimap of sets.
      */
     def toMultiMapSet: Map[K, Set[V]] = {
       import collection.mutable
-      val builder = new mutable.HashMap[K, mutable.Set[V]] with mutable.MultiMap[K, V]
+      val builder = new mutable.HashMap[K, mutable.Set[V]]
+      with mutable.MultiMap[K, V]
 
       list.foreach {
         case (k, v) => builder.addBinding(k, v)

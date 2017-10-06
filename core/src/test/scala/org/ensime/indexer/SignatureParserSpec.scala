@@ -7,12 +7,12 @@ import org.ensime.util.EnsimeSpec
 
 class SignatureParserSpec extends EnsimeSpec {
 
-  private val JavaLangPackage = PackageName(List("java", "lang"))
-  private val JavaUtilPackage = PackageName(List("java", "util"))
-  private val EnsimePackage = PackageName(List("org", "ensime"))
+  private val JavaLangPackage        = PackageName(List("java", "lang"))
+  private val JavaUtilPackage        = PackageName(List("java", "util"))
+  private val EnsimePackage          = PackageName(List("org", "ensime"))
   private val ScalaCollectionPackage = PackageName(List("scala", "collection"))
-  private val ObjectSignature = ClassName(JavaLangPackage, "Object")
-  private val StringSignature = ClassName(JavaLangPackage, "String")
+  private val ObjectSignature        = ClassName(JavaLangPackage, "Object")
+  private val StringSignature        = ClassName(JavaLangPackage, "String")
 
   "SignatureParser" should "fail to parse the empty string" in {
     intercept[Exception](parseGeneric(""))
@@ -36,7 +36,8 @@ class SignatureParserSpec extends EnsimeSpec {
         Vector(
           GenericClassName(ObjectSignature),
           GenericClassName(
-            ClassName(EnsimePackage, "SomeClass"), Seq.empty
+            ClassName(EnsimePackage, "SomeClass"),
+            Seq.empty
           )
         )
       )
@@ -48,7 +49,8 @@ class SignatureParserSpec extends EnsimeSpec {
       GenericClass(
         Vector(
           GenericParam("X", Vector(GenericClassName(ObjectSignature)))
-        ), Vector(
+        ),
+        Vector(
           GenericClassName(ObjectSignature)
         )
       )
@@ -59,21 +61,28 @@ class SignatureParserSpec extends EnsimeSpec {
         Vector(
           GenericParam("T", Vector(GenericClassName(ObjectSignature))),
           GenericParam("U", Vector(GenericClassName(ObjectSignature)))
-        ), Vector(
+        ),
+        Vector(
           GenericClassName(ObjectSignature)
         )
       )
     )
 
-    parseGeneric("<U:Ljava/lang/Object;V:Lorg/ensime/DummyParent<TU;>;>Lorg/ensime/DummyParent<TV;>;") should ===(
+    parseGeneric(
+      "<U:Ljava/lang/Object;V:Lorg/ensime/DummyParent<TU;>;>Lorg/ensime/DummyParent<TV;>;"
+    ) should ===(
       GenericClass(
         Vector(
           GenericParam("U", Vector(GenericClassName(ObjectSignature))),
-          GenericParam("V", Vector(GenericClassName(
-            ClassName(EnsimePackage, "DummyParent"),
-            Vector(GenericArg(None, GenericVar("U")))
-          )))
-        ), Vector(
+          GenericParam("V",
+                       Vector(
+                         GenericClassName(
+                           ClassName(EnsimePackage, "DummyParent"),
+                           Vector(GenericArg(None, GenericVar("U")))
+                         )
+                       ))
+        ),
+        Vector(
           GenericClassName(
             ClassName(EnsimePackage, "DummyParent"),
             Vector(GenericArg(None, GenericVar("V")))
@@ -97,9 +106,10 @@ class SignatureParserSpec extends EnsimeSpec {
     parseGeneric("<T:[I>Ljava/lang/Object;") should ===(
       GenericClass(
         Vector(
-          GenericParam("T", Vector(
-            GenericArray(GenericClassName(ClassName.PrimitiveInt))
-          ))
+          GenericParam("T",
+                       Vector(
+                         GenericArray(GenericClassName(ClassName.PrimitiveInt))
+                       ))
         ),
         Vector(
           GenericClassName(ObjectSignature)
@@ -110,12 +120,14 @@ class SignatureParserSpec extends EnsimeSpec {
     parseGeneric("<U:[TT;T:TU;>Ljava/lang/Object;") should ===(
       GenericClass(
         Vector(
-          GenericParam("U", Vector(
-            GenericArray(GenericVar("T"))
-          )),
-          GenericParam("T", Vector(
-            GenericVar("U")
-          ))
+          GenericParam("U",
+                       Vector(
+                         GenericArray(GenericVar("T"))
+                       )),
+          GenericParam("T",
+                       Vector(
+                         GenericVar("U")
+                       ))
         ),
         Vector(GenericClassName(ObjectSignature))
       )
@@ -123,25 +135,33 @@ class SignatureParserSpec extends EnsimeSpec {
   }
 
   it should "handle generic params with many classes" in {
-    parseGeneric("<T:Lorg/ensime/ClassOne;:Lorg/ensime/TraitTwo;>Ljava/lang/Object;") should ===(
+    parseGeneric(
+      "<T:Lorg/ensime/ClassOne;:Lorg/ensime/TraitTwo;>Ljava/lang/Object;"
+    ) should ===(
       GenericClass(
         Vector(
-          GenericParam("T", Vector(
-            GenericClassName(ClassName(EnsimePackage, "ClassOne")),
-            GenericClassName(ClassName(EnsimePackage, "TraitTwo"))
-          ))
-        ), Vector(GenericClassName(ObjectSignature))
+          GenericParam("T",
+                       Vector(
+                         GenericClassName(ClassName(EnsimePackage, "ClassOne")),
+                         GenericClassName(ClassName(EnsimePackage, "TraitTwo"))
+                       ))
+        ),
+        Vector(GenericClassName(ObjectSignature))
       )
     )
 
-    parseGeneric("<T::Lorg/ensime/TraitOne;:Lorg/ensime/TraitTwo;>Ljava/lang/Object;") should ===(
+    parseGeneric(
+      "<T::Lorg/ensime/TraitOne;:Lorg/ensime/TraitTwo;>Ljava/lang/Object;"
+    ) should ===(
       GenericClass(
         Vector(
-          GenericParam("T", Vector(
-            GenericClassName(ClassName(EnsimePackage, "TraitOne")),
-            GenericClassName(ClassName(EnsimePackage, "TraitTwo"))
-          ))
-        ), Vector(GenericClassName(ObjectSignature))
+          GenericParam("T",
+                       Vector(
+                         GenericClassName(ClassName(EnsimePackage, "TraitOne")),
+                         GenericClassName(ClassName(EnsimePackage, "TraitTwo"))
+                       ))
+        ),
+        Vector(GenericClassName(ObjectSignature))
       )
     )
 
@@ -151,15 +171,19 @@ class SignatureParserSpec extends EnsimeSpec {
     parseGeneric("Ljava/lang/Comparable<Ljava/lang/String;>;") should ===(
       GenericClass(
         Seq.empty,
-        Vector(GenericClassName(
-          ClassName(JavaLangPackage, "Comparable"),
-          Vector(GenericArg(None, GenericClassName(StringSignature)))
-        ))
+        Vector(
+          GenericClassName(
+            ClassName(JavaLangPackage, "Comparable"),
+            Vector(GenericArg(None, GenericClassName(StringSignature)))
+          )
+        )
       )
     )
 
-    parseGeneric("Ljava/lang/Object;Ljava/io/Serializable;" +
-      "Ljava/lang/Comparable<Ljava/lang/String;>;Ljava/lang/CharSequence;") should ===(
+    parseGeneric(
+      "Ljava/lang/Object;Ljava/io/Serializable;" +
+        "Ljava/lang/Comparable<Ljava/lang/String;>;Ljava/lang/CharSequence;"
+    ) should ===(
       GenericClass(
         Seq.empty,
         Vector(
@@ -193,13 +217,15 @@ class SignatureParserSpec extends EnsimeSpec {
         Vector(
           GenericClassName(
             ClassName(EnsimePackage, "Dummy"),
-            Vector(GenericArg(
-              None,
-              GenericClassName(
-                ClassName(JavaUtilPackage, "List"),
-                Vector(ExtendsObjectGenericArg)
+            Vector(
+              GenericArg(
+                None,
+                GenericClassName(
+                  ClassName(JavaUtilPackage, "List"),
+                  Vector(ExtendsObjectGenericArg)
+                )
               )
-            ))
+            )
           )
         )
       )
@@ -212,12 +238,18 @@ class SignatureParserSpec extends EnsimeSpec {
           GenericClassName(
             ClassName(EnsimePackage, "Dummy"),
             Vector(
-              GenericArg(None, GenericClassName(
-                ClassName(JavaUtilPackage, "List"),
-                Vector(GenericArg(
-                  Some(UpperBound), GenericClassName(ClassName(JavaLangPackage, "Number"))
-                ))
-              ))
+              GenericArg(
+                None,
+                GenericClassName(
+                  ClassName(JavaUtilPackage, "List"),
+                  Vector(
+                    GenericArg(
+                      Some(UpperBound),
+                      GenericClassName(ClassName(JavaLangPackage, "Number"))
+                    )
+                  )
+                )
+              )
             )
           )
         )
@@ -230,14 +262,20 @@ class SignatureParserSpec extends EnsimeSpec {
         Vector(
           GenericClassName(
             ClassName(PackageName(List("org", "ensime")), "Dummy"),
-            Vector(GenericArg(None, GenericClassName(
-              ClassName(JavaUtilPackage, "List"),
-              Vector(GenericArg(
-                Some(LowerBound), GenericClassName(
-                  ClassName(JavaLangPackage, "Number")
-                )
-              ))
-            )))
+            Vector(
+              GenericArg(None,
+                         GenericClassName(
+                           ClassName(JavaUtilPackage, "List"),
+                           Vector(
+                             GenericArg(
+                               Some(LowerBound),
+                               GenericClassName(
+                                 ClassName(JavaLangPackage, "Number")
+                               )
+                             )
+                           )
+                         ))
+            )
           )
         )
       )
@@ -245,20 +283,27 @@ class SignatureParserSpec extends EnsimeSpec {
   }
 
   it should "parse class with param and generic in super class" in {
-    parseGeneric("<A:Ljava/lang/Object;>Ljava/lang/Comparable<Ljava/lang/String;>;") should ===(
+    parseGeneric(
+      "<A:Ljava/lang/Object;>Ljava/lang/Comparable<Ljava/lang/String;>;"
+    ) should ===(
       GenericClass(
-        Vector(GenericParam(
-          "A",
-          Vector(GenericClassName(ObjectSignature))
-        )), Vector(GenericClassName(
-          ClassName(JavaLangPackage, "Comparable"),
-          Vector(
-            GenericArg(
-              None,
-              GenericClassName(StringSignature)
+        Vector(
+          GenericParam(
+            "A",
+            Vector(GenericClassName(ObjectSignature))
+          )
+        ),
+        Vector(
+          GenericClassName(
+            ClassName(JavaLangPackage, "Comparable"),
+            Vector(
+              GenericArg(
+                None,
+                GenericClassName(StringSignature)
+              )
             )
           )
-        ))
+        )
       )
     )
   }
@@ -268,9 +313,11 @@ class SignatureParserSpec extends EnsimeSpec {
       GenericClass(
         Vector(
           GenericParam(
-            "A", Vector(GenericClassName(ObjectSignature))
+            "A",
+            Vector(GenericClassName(ObjectSignature))
           )
-        ), Vector(
+        ),
+        Vector(
           GenericClassName(
             ClassName(ScalaCollectionPackage, "AbstractSeq"),
             Vector(
@@ -283,20 +330,27 @@ class SignatureParserSpec extends EnsimeSpec {
   }
 
   it should "parse class with generic variable in generic param" in {
-    parseGeneric("<TypeName:Ljava/lang/Object;>Lscala/collection/LinearSeqOptimized<TTypeName;" +
-      "Lscala/collection/immutable/List<TTypeName;>;>;") should ===(
+    parseGeneric(
+      "<TypeName:Ljava/lang/Object;>Lscala/collection/LinearSeqOptimized<TTypeName;" +
+        "Lscala/collection/immutable/List<TTypeName;>;>;"
+    ) should ===(
       GenericClass(
         Vector(
           GenericParam("TypeName", Vector(GenericClassName(ObjectSignature)))
-        ), Vector(
+        ),
+        Vector(
           GenericClassName(
             ClassName(ScalaCollectionPackage, "LinearSeqOptimized"),
             Vector(
               GenericArg(None, GenericVar("TypeName")),
-              GenericArg(None, GenericClassName(
-                ClassName(PackageName(List("scala", "collection", "immutable")), "List"),
-                Vector(GenericArg(None, GenericVar("TypeName")))
-              ))
+              GenericArg(None,
+                         GenericClassName(
+                           ClassName(PackageName(
+                                       List("scala", "collection", "immutable")
+                                     ),
+                                     "List"),
+                           Vector(GenericArg(None, GenericVar("TypeName")))
+                         ))
             )
           )
         )
@@ -308,25 +362,38 @@ class SignatureParserSpec extends EnsimeSpec {
     parseGeneric("<T::Lorg/ensime/SomeTrait;>Ljava/lang/Object;") should ===(
       GenericClass(
         Vector(
-          GenericParam("T", Vector(GenericClassName(
-            ClassName(EnsimePackage, "SomeTrait")
-          )))
-        ), Vector(
+          GenericParam("T",
+                       Vector(
+                         GenericClassName(
+                           ClassName(EnsimePackage, "SomeTrait")
+                         )
+                       ))
+        ),
+        Vector(
           GenericClassName(ObjectSignature)
         )
       )
     )
 
-    parseGeneric("<T::Lorg/ensime/SomeTrait;U::Lorg/ensime/OtherTrait;>Ljava/lang/Object;") should ===(
+    parseGeneric(
+      "<T::Lorg/ensime/SomeTrait;U::Lorg/ensime/OtherTrait;>Ljava/lang/Object;"
+    ) should ===(
       GenericClass(
         Vector(
-          GenericParam("T", Vector(GenericClassName(
-            ClassName(EnsimePackage, "SomeTrait")
-          ))),
-          GenericParam("U", Vector(GenericClassName(
-            ClassName(EnsimePackage, "OtherTrait")
-          )))
-        ), Vector(
+          GenericParam("T",
+                       Vector(
+                         GenericClassName(
+                           ClassName(EnsimePackage, "SomeTrait")
+                         )
+                       )),
+          GenericParam("U",
+                       Vector(
+                         GenericClassName(
+                           ClassName(EnsimePackage, "OtherTrait")
+                         )
+                       ))
+        ),
+        Vector(
           GenericClassName(ObjectSignature)
         )
       )
@@ -381,18 +448,23 @@ class SignatureParserSpec extends EnsimeSpec {
                 GenericVar("T")
               )
             ),
-            Vector(InnerClassName("Inner", Vector(
-              GenericArg(
-                None,
-                GenericClassName(ObjectSignature)
-              )
-            )))
+            Vector(
+              InnerClassName("Inner",
+                             Vector(
+                               GenericArg(
+                                 None,
+                                 GenericClassName(ObjectSignature)
+                               )
+                             ))
+            )
           )
         )
       )
     )
 
-    parseGeneric("Lorg/ensime/Outer<TT;>.Inner<Ljava/lang/Object;>.InnerInner<Ljava/lang/Object;>;") should ===(
+    parseGeneric(
+      "Lorg/ensime/Outer<TT;>.Inner<Ljava/lang/Object;>.InnerInner<Ljava/lang/Object;>;"
+    ) should ===(
       GenericClass(
         Seq.empty,
         Vector(
@@ -405,18 +477,20 @@ class SignatureParserSpec extends EnsimeSpec {
               )
             ),
             Vector(
-              InnerClassName("Inner", Vector(
-                GenericArg(
-                  None,
-                  GenericClassName(ObjectSignature)
-                )
-              )),
-              InnerClassName("InnerInner", Vector(
-                GenericArg(
-                  None,
-                  GenericClassName(ObjectSignature)
-                )
-              ))
+              InnerClassName("Inner",
+                             Vector(
+                               GenericArg(
+                                 None,
+                                 GenericClassName(ObjectSignature)
+                               )
+                             )),
+              InnerClassName("InnerInner",
+                             Vector(
+                               GenericArg(
+                                 None,
+                                 GenericClassName(ObjectSignature)
+                               )
+                             ))
             )
           )
         )
@@ -434,9 +508,11 @@ class SignatureParserSpec extends EnsimeSpec {
             Vector(
               GenericArg(
                 None,
-                GenericArray(GenericClassName(
-                  ClassName(JavaLangPackage, "Integer")
-                ))
+                GenericArray(
+                  GenericClassName(
+                    ClassName(JavaLangPackage, "Integer")
+                  )
+                )
               )
             )
           )
@@ -453,15 +529,19 @@ class SignatureParserSpec extends EnsimeSpec {
             Vector(
               GenericArg(
                 None,
-                GenericArray(GenericClassName(
-                  ClassName(JavaUtilPackage, "List"),
-                  Vector(GenericArg(
-                    Some(LowerBound),
-                    GenericArray(
-                      GenericClassName(ClassName.PrimitiveDouble)
+                GenericArray(
+                  GenericClassName(
+                    ClassName(JavaUtilPackage, "List"),
+                    Vector(
+                      GenericArg(
+                        Some(LowerBound),
+                        GenericArray(
+                          GenericClassName(ClassName.PrimitiveDouble)
+                        )
+                      )
                     )
-                  ))
-                ))
+                  )
+                )
               )
             )
           )
@@ -478,15 +558,23 @@ class SignatureParserSpec extends EnsimeSpec {
             Vector(
               GenericArg(
                 None,
-                GenericArray(GenericClassName(
-                  ClassName(JavaUtilPackage, "List"),
-                  Vector(GenericArg(
-                    Some(LowerBound),
-                    GenericArray(GenericArray(GenericArray(
-                      GenericClassName(ClassName.PrimitiveDouble)
-                    )))
-                  ))
-                ))
+                GenericArray(
+                  GenericClassName(
+                    ClassName(JavaUtilPackage, "List"),
+                    Vector(
+                      GenericArg(
+                        Some(LowerBound),
+                        GenericArray(
+                          GenericArray(
+                            GenericArray(
+                              GenericClassName(ClassName.PrimitiveDouble)
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
               )
             )
           )
@@ -494,16 +582,20 @@ class SignatureParserSpec extends EnsimeSpec {
       )
     )
 
-    parseGeneric("<T:Ljava/lang/Object;>Lscala/collection/mutable/ArrayLike<TT;[TT;>;") should ===(
+    parseGeneric(
+      "<T:Ljava/lang/Object;>Lscala/collection/mutable/ArrayLike<TT;[TT;>;"
+    ) should ===(
       GenericClass(
         Vector(
           GenericParam(
             "T",
             Vector(GenericClassName(ObjectSignature))
           )
-        ), Vector(
+        ),
+        Vector(
           GenericClassName(
-            ClassName(PackageName(List("scala", "collection", "mutable")), "ArrayLike"),
+            ClassName(PackageName(List("scala", "collection", "mutable")),
+                      "ArrayLike"),
             Vector(
               GenericArg(
                 None,

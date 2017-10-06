@@ -110,11 +110,13 @@ trait FamilyFormats extends MiddlePriorityFamilyFormats {
   this: BasicFormats with StandardFormats =>
 
   // scala compiler doesn't like spray-json's use of a type alias in the sig
-  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] = new OptionFormat[T]
+  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
+    new OptionFormat[T]
 }
 object FamilyFormats extends DefaultJsonProtocol with FamilyFormats
 
-private[json] trait MiddlePriorityFamilyFormats extends LowPriorityFamilyFormats {
+private[json] trait MiddlePriorityFamilyFormats
+    extends LowPriorityFamilyFormats {
   this: StandardFormats with FamilyFormats =>
 
   /**
@@ -131,14 +133,13 @@ private[json] trait MiddlePriorityFamilyFormats extends LowPriorityFamilyFormats
     default: Default.AsOptions.Aux[T, DefaultRepr],
     sg: Cached[Strict[WrappedRootJsonFormatWithDefault[T, Repr, DefaultRepr]]]
   ): RootJsonFormat[T] = new RootJsonFormat[T] {
-    def read(j: JsValue): T = gen.from(sg.value.value.read(j, default()))
+    def read(j: JsValue): T   = gen.from(sg.value.value.read(j, default()))
     def write(t: T): JsObject = sg.value.value.write(gen.to(t))
   }
 }
 
 /* low priority implicit scope so user-defined implicits take precedence */
-private[json] trait LowPriorityFamilyFormats
-    extends JsonFormatHints {
+private[json] trait LowPriorityFamilyFormats extends JsonFormatHints {
   this: StandardFormats with MiddlePriorityFamilyFormats =>
 
   /**
@@ -152,12 +153,12 @@ private[json] trait LowPriorityFamilyFormats
    * avoid ambiguous implicit errors.
    */
   abstract class WrappedRootJsonFormat[Wrapped, SubRepr](
-      implicit
-      tpe: Typeable[Wrapped]
+    implicit
+    tpe: Typeable[Wrapped]
   ) {
     final def read(j: JsValue): SubRepr = j match {
       case jso: JsObject => readJsObject(jso)
-      case other => unexpectedJson[Wrapped](other)
+      case other         => unexpectedJson[Wrapped](other)
     }
     def readJsObject(j: JsObject): SubRepr
     def write(v: SubRepr): JsObject
@@ -168,15 +169,18 @@ private[json] trait LowPriorityFamilyFormats
    * deserialize product with a default value.
    */
   abstract class WrappedRootJsonFormatWithDefault[Wrapped, SubRepr, DefaultRepr](
-      implicit
-      tpe: Typeable[Wrapped]
+    implicit
+    tpe: Typeable[Wrapped]
   ) extends WrappedRootJsonFormat[Wrapped, SubRepr] {
     final def read(j: JsValue, default: DefaultRepr): SubRepr = j match {
       case jso: JsObject => readJsObjectWithDefault(jso, default)
-      case other => unexpectedJson[Wrapped](other)
+      case other         => unexpectedJson[Wrapped](other)
     }
     def readJsObjectWithDefault(j: JsObject, default: DefaultRepr): SubRepr
-    def readJsObject(j: JsObject): SubRepr = deserError(s"read should never be from WrappedRootJsonFormatWithDefault, $j")
+    def readJsObject(j: JsObject): SubRepr =
+      deserError(
+        s"read should never be from WrappedRootJsonFormatWithDefault, $j"
+      )
   }
 
   // save an object alloc every time and gives ordering guarantees
@@ -186,21 +190,31 @@ private[json] trait LowPriorityFamilyFormats
   implicit def hNilFormat[Wrapped](
     implicit
     t: Typeable[Wrapped]
-  ): WrappedRootJsonFormatWithDefault[Wrapped, HNil, HNil] = new WrappedRootJsonFormatWithDefault[Wrapped, HNil, HNil] {
-    def readJsObjectWithDefault(j: JsObject, default: HNil) = HNil // usually a populated JsObject, contents irrelevant
-    def write(n: HNil) = emptyJsObject
-  }
+  ): WrappedRootJsonFormatWithDefault[Wrapped, HNil, HNil] =
+    new WrappedRootJsonFormatWithDefault[Wrapped, HNil, HNil] {
+      def readJsObjectWithDefault(j: JsObject, default: HNil) =
+        HNil // usually a populated JsObject, contents irrelevant
+      def write(n: HNil) = emptyJsObject
+    }
 
   // HList with a FieldType at the head
-  implicit def hListFormat[Wrapped, Key <: Symbol, Value, Remaining <: HList, D <: HList](
+  implicit def hListFormat[Wrapped,
+                           Key <: Symbol,
+                           Value,
+                           Remaining <: HList,
+                           D <: HList](
     implicit
     t: Typeable[Wrapped],
     ph: ProductHint[Wrapped],
     key: Witness.Aux[Key],
     jfh: Lazy[JsonFormat[Value]], // svc doesn't need to be a RootJsonFormat
     jft: WrappedRootJsonFormatWithDefault[Wrapped, Remaining, D]
-  ): WrappedRootJsonFormatWithDefault[Wrapped, FieldType[Key, Value] :: Remaining, Option[Value] :: D] =
-    new WrappedRootJsonFormatWithDefault[Wrapped, FieldType[Key, Value] :: Remaining, Option[Value] :: D] {
+  ): WrappedRootJsonFormatWithDefault[Wrapped,
+                                      FieldType[Key, Value] :: Remaining,
+                                      Option[Value] :: D] =
+    new WrappedRootJsonFormatWithDefault[Wrapped,
+                                         FieldType[Key, Value] :: Remaining,
+                                         Option[Value] :: D] {
       private[this] val fieldName = ph.fieldName(key.value)
 
       private[this] def missingFieldError(j: JsObject): Nothing =
@@ -218,10 +232,12 @@ private[json] trait LowPriorityFamilyFormats
           case (None, f) if ph.nulls == AlwaysJsNull =>
             missingFieldError(j)
 
-          case (None, f: OptionFormat[_]) if ph.nulls == JsNullNotNone || ph.nulls == AlwaysJsNullTolerateAbsent =>
+          case (None, f: OptionFormat[_])
+              if ph.nulls == JsNullNotNone || ph.nulls == AlwaysJsNullTolerateAbsent =>
             None.asInstanceOf[Value]
 
-          case (Some(JsNull), f: OptionFormat[_]) if ph.nulls == JsNullNotNone =>
+          case (Some(JsNull), f: OptionFormat[_])
+              if ph.nulls == JsNullNotNone =>
             f.readSome(JsNull)
 
           case (Some(value), f) =>
@@ -234,23 +250,24 @@ private[json] trait LowPriorityFamilyFormats
         field[Key](resolved) :: remaining
       }
 
-      def write(ft: FieldType[Key, Value] :: Remaining) = (jfh.value.write(ft.head), jfh.value) match {
-        // (JsNull, _) means the underlying formatter serialises to JsNull
-        case (JsNull, _) if ph.nulls == NeverJsNull =>
-          jft.write(ft.tail)
-        case (JsNull, _) if ph.nulls == JsNullNotNone & ft.head == None =>
-          jft.write(ft.tail)
-        case (value, _) =>
-          jft.write(ft.tail) match {
-            case JsObject(others) =>
-              // when gathering results, we must remember that 'other'
-              // is to the right of us and this seems to be the
-              // easiest way to prepend to a ListMap
-              JsObject(ListMap(fieldName -> value) ++: others)
-            case other =>
-              serError(s"expected JsObject, seen $other")
-          }
-      }
+      def write(ft: FieldType[Key, Value] :: Remaining) =
+        (jfh.value.write(ft.head), jfh.value) match {
+          // (JsNull, _) means the underlying formatter serialises to JsNull
+          case (JsNull, _) if ph.nulls == NeverJsNull =>
+            jft.write(ft.tail)
+          case (JsNull, _) if ph.nulls == JsNullNotNone & ft.head == None =>
+            jft.write(ft.tail)
+          case (value, _) =>
+            jft.write(ft.tail) match {
+              case JsObject(others) =>
+                // when gathering results, we must remember that 'other'
+                // is to the right of us and this seems to be the
+                // easiest way to prepend to a ListMap
+                JsObject(ListMap(fieldName -> value) ++: others)
+              case other =>
+                serError(s"expected JsObject, seen $other")
+            }
+        }
     }
 
   // CNil is the empty co-product. It's never called because it would
@@ -258,13 +275,18 @@ private[json] trait LowPriorityFamilyFormats
   implicit def cNilFormat[Wrapped](
     implicit
     t: Typeable[Wrapped]
-  ): WrappedRootJsonFormat[Wrapped, CNil] = new WrappedRootJsonFormat[Wrapped, CNil] {
-    def readJsObject(j: JsObject) = deserError(s"read should never be called for CNil, $j")
-    def write(c: CNil) = serError("write should never be called for CNil")
-  }
+  ): WrappedRootJsonFormat[Wrapped, CNil] =
+    new WrappedRootJsonFormat[Wrapped, CNil] {
+      def readJsObject(j: JsObject) =
+        deserError(s"read should never be called for CNil, $j")
+      def write(c: CNil) = serError("write should never be called for CNil")
+    }
 
   // Coproduct with a FieldType at the head
-  implicit def coproductFormat[Wrapped, Name <: Symbol, Instance, Remaining <: Coproduct](
+  implicit def coproductFormat[Wrapped,
+                               Name <: Symbol,
+                               Instance,
+                               Remaining <: Coproduct](
     implicit
     tpe: Typeable[Wrapped],
     th: CoproductHint[Wrapped],
@@ -286,7 +308,7 @@ private[json] trait LowPriorityFamilyFormats
         case Inl(l) =>
           jfh.value.write(l) match {
             case j: JsObject => th.write(j, key.value)
-            case other => serError(s"expected JsObject, got $other")
+            case other       => serError(s"expected JsObject, got $other")
           }
 
         case Inr(r) =>
@@ -308,13 +330,14 @@ private[json] trait LowPriorityFamilyFormats
     gen: LabelledGeneric.Aux[T, Repr],
     sg: Cached[Strict[WrappedRootJsonFormat[T, Repr]]]
   ): RootJsonFormat[T] = new RootJsonFormat[T] {
-    def read(j: JsValue): T = gen.from(sg.value.value.read(j))
+    def read(j: JsValue): T   = gen.from(sg.value.value.read(j))
     def write(t: T): JsObject = sg.value.value.write(gen.to(t))
   }
 }
 
 trait JsonFormatHints {
   trait CoproductHint[T] {
+
     /**
      * Given the `JsObject` for the sealed family, disambiguate and
      * extract the `JsObject` associated to the `Name` implementation
@@ -346,20 +369,21 @@ trait JsonFormatHints {
    * well supported by other frameworks.
    */
   class FlatCoproductHint[T: Typeable](key: String) extends CoproductHint[T] {
-    def read[Name <: Symbol](j: JsObject, n: Name): Option[JsObject] = {
+    def read[Name <: Symbol](j: JsObject, n: Name): Option[JsObject] =
       j.fields.get(key) match {
         case Some(JsString(hint)) if hint == fieldName(n.name) => Some(j)
-        case Some(JsString(hint)) => None
+        case Some(JsString(hint))                              => None
         case _ =>
           deserError(s"missing $key, found ${j.fields.keys.mkString(",")}")
       }
-    }
 
     // puts the typehint at the head of the field list
     def write[Name <: Symbol](j: JsObject, n: Name): JsObject = {
       // runtime error, would be nice if we could check this at compile time
       if (j.fields.contains(key))
-        serError(s"typehint '$key' collides with existing field ${j.fields(key)}")
+        serError(
+          s"typehint '$key' collides with existing field ${j.fields(key)}"
+        )
       JsObject(ListMap(key -> JsString(fieldName(n.name))) ++: j.fields)
     }
   }
@@ -377,14 +401,15 @@ trait JsonFormatHints {
     def read[Name <: Symbol](j: JsObject, n: Name): Option[JsObject] =
       j.fields.get(fieldName(n.name)).map {
         case jso: JsObject => jso
-        case other => unexpectedJson(other)
+        case other         => unexpectedJson(other)
       }
 
     def write[Name <: Symbol](j: JsObject, n: Name): JsObject =
       JsObject(fieldName(n.name) -> j)
   }
 
-  implicit def coproductHint[T: Typeable]: CoproductHint[T] = new FlatCoproductHint[T]("type")
+  implicit def coproductHint[T: Typeable]: CoproductHint[T] =
+    new FlatCoproductHint[T]("type")
 
   /**
    * Sometimes the wire format needs to match an existing format and
@@ -393,19 +418,24 @@ trait JsonFormatHints {
    * is only possible with a user-defined `RootJsonFormat`.
    */
   sealed trait JsNullBehaviour
+
   /** All values serialising to `JsNull` will be included in the wire format. Ambiguous. */
   case object AlwaysJsNull extends JsNullBehaviour
+
   /** Option values of `None` are omitted, but `Some` values of `JsNull` are retained. Default. */
   case object JsNullNotNone extends JsNullBehaviour
+
   /** No values serialising to `JsNull` will be included in the wire format. Ambiguous. */
   case object NeverJsNull extends JsNullBehaviour
+
   /** Same as AlwaysJsNull when serialising, with missing values treated as optional upon deserialisation. Ambiguous. */
   case object AlwaysJsNullTolerateAbsent extends JsNullBehaviour
+
   /** Use the case class default value provided for the field when available. Ambiguous. */
   case object UseDefaultJsNull extends JsNullBehaviour
 
   trait ProductHint[T] {
-    def nulls: JsNullBehaviour = JsNullNotNone
+    def nulls: JsNullBehaviour                     = JsNullNotNone
     def fieldName[Key <: Symbol](key: Key): String = key.name
   }
   implicit def productHint[T: Typeable] = new ProductHint[T] {}

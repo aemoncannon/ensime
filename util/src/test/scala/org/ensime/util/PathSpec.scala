@@ -10,9 +10,9 @@ class PathSpec extends FlatSpec {
   import ensimefile.Implicits.DefaultCharset
   import path._
 
-  val unix = Array[Byte](0x61, 0x0a, 0x62, 0x0a, 0x63)
+  val unix    = Array[Byte](0x61, 0x0a, 0x62, 0x0a, 0x63)
   val windows = Array[Byte](0x61, 0x0d, 0x0a, 0x62, 0x0d, 0x0a, 0x63)
-  val abc = List("a", "b", "c")
+  val abc     = List("a", "b", "c")
 
   // all the later tests assume that these work, so do them first
   "path._" should "provide scoped temp directories" in {
@@ -43,17 +43,18 @@ class PathSpec extends FlatSpec {
     link.canon shouldBe orig
   }
 
-  it should "canonically resolve files in symbolically linked directories" in withTempDirPath { dir =>
-    val origDir = dir / "orig"
-    val origFile = (origDir / "file")
-    val linkDir = dir / "link"
+  it should "canonically resolve files in symbolically linked directories" in withTempDirPath {
+    dir =>
+      val origDir  = dir / "orig"
+      val origFile = (origDir / "file")
+      val linkDir  = dir / "link"
 
-    origDir.mkdirs()
-    origFile.write(windows)
+      origDir.mkdirs()
+      origFile.write(windows)
 
-    Files.createSymbolicLink(linkDir, origDir)
+      Files.createSymbolicLink(linkDir, origDir)
 
-    (linkDir / "file").canon shouldBe origFile
+      (linkDir / "file").canon shouldBe origFile
   }
 
   it should "create Files with parents if necessary" in withTempDirPath { dir =>
@@ -90,21 +91,24 @@ class PathSpec extends FlatSpec {
     file.readBytes() shouldEqual windows
   }
 
-  it should "read lines from a File with UNIX line endings" in withTempFilePath { file =>
-    file.write(unix)
-    file.readLines shouldBe abc
+  it should "read lines from a File with UNIX line endings" in withTempFilePath {
+    file =>
+      file.write(unix)
+      file.readLines shouldBe abc
   }
 
-  it should "read lines from a File with Windows line endings" in withTempFilePath { file =>
-    file.write(windows)
-    file.readLines shouldBe abc
+  it should "read lines from a File with Windows line endings" in withTempFilePath {
+    file =>
+      file.write(windows)
+      file.readLines shouldBe abc
   }
 
-  it should "read a File as a String preserving CR" in withTempFilePath { file =>
-    file.write(windows)
+  it should "read a File as a String preserving CR" in withTempFilePath {
+    file =>
+      file.write(windows)
 
-    // carriage returns are preserved
-    file.readString() shouldBe "a\r\nb\r\nc"
+      // carriage returns are preserved
+      file.readString() shouldBe "a\r\nb\r\nc"
   }
 
 }

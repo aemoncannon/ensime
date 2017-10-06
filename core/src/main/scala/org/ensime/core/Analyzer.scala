@@ -33,10 +33,11 @@ final case class CompilerFatalError(e: Throwable)
  */
 final case class DocFqn(pack: String, typeName: String) {
   def mkString: String = if (pack.isEmpty) typeName else pack + "." + typeName
-  def inPackage(prefix: String): Boolean = pack == prefix || pack.startsWith(prefix + ".")
-  def javaStdLib: Boolean = inPackage("java") || inPackage("javax")
+  def inPackage(prefix: String): Boolean =
+    pack == prefix || pack.startsWith(prefix + ".")
+  def javaStdLib: Boolean    = inPackage("java") || inPackage("javax")
   def androidStdLib: Boolean = inPackage("android")
-  def scalaStdLib: Boolean = inPackage("scala")
+  def scalaStdLib: Boolean   = inPackage("scala")
 }
 final case class DocSig(fqn: DocFqn, member: Option[String])
 
@@ -48,24 +49,27 @@ final case class DocSig(fqn: DocFqn, member: Option[String])
 final case class DocSigPair(scala: DocSig, java: DocSig)
 
 class Analyzer(
-    broadcaster: ActorRef,
-    indexer: ActorRef,
-    search: SearchService,
-    scoped: List[EnsimeProjectId],
-    implicit val config: EnsimeConfig,
-    implicit val serverConfig: EnsimeServerConfig,
-    implicit val vfs: EnsimeVFS
-) extends Actor with Stash with ActorLogging with RefactoringHandler {
+  broadcaster: ActorRef,
+  indexer: ActorRef,
+  search: SearchService,
+  scoped: List[EnsimeProjectId],
+  implicit val config: EnsimeConfig,
+  implicit val serverConfig: EnsimeServerConfig,
+  implicit val vfs: EnsimeVFS
+) extends Actor
+    with Stash
+    with ActorLogging
+    with RefactoringHandler {
 
   import context.dispatcher
   import org.ensime.util.FileUtils._
 
-  private val projects = scoped.map(config.lookup)
-  private var allFilesMode = false
-  private var settings: Settings = _
+  private val projects                       = scoped.map(config.lookup)
+  private var allFilesMode                   = false
+  private var settings: Settings             = _
   private var reporter: PresentationReporter = _
-  private var loadedFiles: List[SourceFile] = List.empty
-  private var countdown: Cancellable = _
+  private var loadedFiles: List[SourceFile]  = List.empty
+  private var countdown: Cancellable         = _
 
   private case object SuspendAnalyzer
 
@@ -80,14 +84,16 @@ class Analyzer(
     settings.verbose.value = presCompLog.isDebugEnabled
     settings.usejavacp.value = false
     config.scalaLibrary match {
-      case Some(scalaLib) => settings.bootclasspath.value = scalaLib.getAbsolutePath
-      case None => log.warning("scala-library.jar not present, enabling Odersky mode")
+      case Some(scalaLib) =>
+        settings.bootclasspath.value = scalaLib.getAbsolutePath
+      case None =>
+        log.warning("scala-library.jar not present, enabling Odersky mode")
     }
 
     settings.classpath.value = {
       for {
         project <- projects
-        entry <- project.classpath
+        entry   <- project.classpath
       } yield entry
     }.distinct.mkString(JFile.pathSeparator)
 
@@ -97,32 +103,37 @@ class Analyzer(
     presCompLog.debug("Presentation Compiler settings:\n" + settings)
 
     reporter = new PresentationReporter(new ReportHandler {
-      override def messageUser(str: String): Unit = {
+      override def messageUser(str: String): Unit =
         broadcaster ! SendBackgroundMessageEvent(str, 101)
-      }
-      override def clearAllScalaNotes(): Unit = {
+      override def clearAllScalaNotes(): Unit =
         broadcaster ! ClearAllScalaNotesEvent
-      }
-      override def reportScalaNotes(notes: List[Note]): Unit = {
+      override def reportScalaNotes(notes: List[Note]): Unit =
         broadcaster ! NewScalaNotesEvent(isFull = false, notes)
-      }
     })
     reporter.disable() // until we start up
 
     scalaCompiler = makeScalaCompiler()
-    broadcaster ! SendBackgroundMessageEvent("Initializing Analyzer. Please wait...")
+    broadcaster ! SendBackgroundMessageEvent(
+      "Initializing Analyzer. Please wait..."
+    )
     scalaCompiler.askNotifyWhenReady()
     countdown = setCountdown()
   }
 
-  private def setCountdown(): Cancellable = context.system.scheduler.scheduleOnce(
-    delay = 5 minutes,
-    receiver = self,
-    message = SuspendAnalyzer
-  )
+  private def setCountdown(): Cancellable =
+    context.system.scheduler.scheduleOnce(
+      delay = 5 minutes,
+      receiver = self,
+      message = SuspendAnalyzer
+    )
 
   protected def makeScalaCompiler() = new RichPresentationCompiler(
-    config, settings, reporter, self, indexer, search
+    config,
+    settings,
+    reporter,
+    self,
+    indexer,
+    search
   )
 
   protected def restartCompiler(
@@ -134,7 +145,7 @@ class Analyzer(
       case ReloadStrategy.LoadProject =>
         for {
           project <- projects
-          file <- project.scalaSourceFiles
+          file    <- project.scalaSourceFiles
         } yield scalaCompiler.createSourceFile(file)
       case ReloadStrategy.KeepLoaded => scalaCompiler.loadedFiles
     }
@@ -149,9 +160,8 @@ class Analyzer(
     broadcaster ! CompilerRestartedEvent
   }
 
-  override def postStop(): Unit = {
+  override def postStop(): Unit =
     Try(scalaCompiler.askShutdown())
-  }
 
   def charset: Charset = scalaCompiler.charset
 
@@ -216,13 +226,17 @@ class Analyzer(
     case TypecheckFileReq(fileInfo) =>
       self forward TypecheckFilesReq(List(Right(fileInfo)))
     case TypecheckFilesReq(files) =>
-      sender ! scalaCompiler.handleReloadFiles(files.map(toSourceFileInfo)(breakOut))
+      sender ! scalaCompiler.handleReloadFiles(
+        files.map(toSourceFileInfo)(breakOut)
+      )
     case req: RefactorReq =>
       pipe(handleRefactorRequest(req)) to sender
     case CompletionsReq(fileInfo, point, maxResults, caseSens, _reload) =>
       withExistingAsync(fileInfo) {
         reporter.disable()
-        scalaCompiler.askCompletionsAt(pos(fileInfo, point), maxResults, caseSens)
+        scalaCompiler.askCompletionsAt(pos(fileInfo, point),
+                                       maxResults,
+                                       caseSens)
       } pipeTo sender
     case FqnOfSymbolAtPointReq(file, point) =>
       if (file.exists()) {
@@ -256,9 +270,9 @@ class Analyzer(
       sender ! SymbolDesignations(f.file, List.empty)
     case SymbolDesignationsReq(f, start, end, tpes) =>
       sender ! withExisting(f) {
-        val sf = createSourceFile(f)
+        val sf         = createSourceFile(f)
         val clampedEnd = math.max(end, start)
-        val pos = new RangePosition(sf, start, start, clampedEnd)
+        val pos        = new RangePosition(sf, start, start, clampedEnd)
         scalaCompiler.askLoadedTyped(pos.source)
         scalaCompiler.askSymbolDesignationsInRegion(pos, tpes)
       }
@@ -269,7 +283,7 @@ class Analyzer(
         scalaCompiler.askImplicitInfoInRegion(p)
       }
     case ExpandSelectionReq(file, start: Int, stop: Int) =>
-      val p = new RangePosition(createSourceFile(file), start, start, stop)
+      val p            = new RangePosition(createSourceFile(file), start, start, stop)
       val enclosingPos = scalaCompiler.askEnclosingTreePosition(p)
       sender ! FileRange(file.getPath, enclosingPos.start, enclosingPos.end)
     case StructureViewReq(fileInfo: SourceFileInfo) =>
@@ -282,8 +296,11 @@ class Analyzer(
   def withExisting(x: SourceFileInfo)(f: => RpcResponse): RpcResponse =
     if (x.exists()) f else EnsimeServerError(s"File does not exist: ${x.file}")
 
-  def withExistingAsync(x: SourceFileInfo)(f: => Future[RpcResponse]): Future[RpcResponse] =
-    if (x.exists()) f else Future.successful(EnsimeServerError(s"File does not exist: ${x.file}"))
+  def withExistingAsync(
+    x: SourceFileInfo
+  )(f: => Future[RpcResponse]): Future[RpcResponse] =
+    if (x.exists()) f
+    else Future.successful(EnsimeServerError(s"File does not exist: ${x.file}"))
 
   def pos(file: File, range: OffsetRange): OffsetPosition =
     pos(createSourceFile(file), range)
@@ -293,11 +310,11 @@ class Analyzer(
     pos(createSourceFile(file), range)
   def pos(file: SourceFileInfo, offset: Int): OffsetPosition =
     pos(createSourceFile(file), offset)
-  def pos(f: SourceFile, range: OffsetRange): OffsetPosition = {
+  def pos(f: SourceFile, range: OffsetRange): OffsetPosition =
     if (range.from == range.to) new OffsetPosition(f, range.from)
     else new RangePosition(f, range.from, range.from, range.to)
-  }
-  def pos(f: SourceFile, offset: Int): OffsetPosition = new OffsetPosition(f, offset)
+  def pos(f: SourceFile, offset: Int): OffsetPosition =
+    new OffsetPosition(f, offset)
 
   def createSourceFile(file: File): SourceFile =
     scalaCompiler.createSourceFile(file.getPath)
@@ -317,5 +334,14 @@ object Analyzer {
     config: EnsimeConfig,
     serverConfig: EnsimeServerConfig,
     vfs: EnsimeVFS
-  ) = Props(new Analyzer(broadcaster, indexer, search, scoped, config, serverConfig, vfs))
+  ) =
+    Props(
+      new Analyzer(broadcaster,
+                   indexer,
+                   search,
+                   scoped,
+                   config,
+                   serverConfig,
+                   vfs)
+    )
 }

@@ -13,7 +13,11 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.refactoring._
 import scala.tools.refactoring.analysis.{ GlobalIndexes, TreeAnalysis }
-import scala.tools.refactoring.common.{ Change, CompilerAccess, RenameSourceFileChange }
+import scala.tools.refactoring.common.{
+  Change,
+  CompilerAccess,
+  RenameSourceFileChange
+}
 import scala.tools.refactoring.implementations._
 import scala.tools.refactoring.transformation.TreeFactory
 
@@ -27,19 +31,22 @@ abstract class RefactoringEnvironment(file: String, start: Int, end: Int) {
     parameters: refactoring.RefactoringParameters
   )(implicit charset: Charset): Either[RefactorFailure, RefactorDiffEffect] = {
 
-    def transformToDiff(modifications: List[Change]): Either[RefactorFailure, RefactorDiffEffect] = {
-      val renameChange = modifications.collectFirst { case ch: RenameSourceFileChange => ch }
-      val renameTarget = renameChange.map {
-        ch =>
-          val sourceFile = ch.sourceFile
-          val fullNewName = sourceFile.path.replace(sourceFile.name, ch.to)
-          (sourceFile.file, File(fullNewName))
+    def transformToDiff(
+      modifications: List[Change]
+    ): Either[RefactorFailure, RefactorDiffEffect] = {
+      val renameChange = modifications.collectFirst {
+        case ch: RenameSourceFileChange => ch
+      }
+      val renameTarget = renameChange.map { ch =>
+        val sourceFile  = ch.sourceFile
+        val fullNewName = sourceFile.path.replace(sourceFile.name, ch.to)
+        (sourceFile.file, File(fullNewName))
       }
       val edits = modifications.flatMap(FileEditHelper.fromChange).sorted
 
       writeDiffChanges(edits, renameTarget) match {
         case Right(diff) => Right(RefactorDiffEffect(procId, tpe, diff))
-        case Left(err) => Left(RefactorFailure(procId, err.toString))
+        case Left(err)   => Left(RefactorFailure(procId, err.toString))
       }
     }
 
@@ -52,7 +59,7 @@ abstract class RefactoringEnvironment(file: String, start: Int, end: Int) {
           case Right(prepare) =>
             refactoring.perform(selection, prepare, parameters) match {
               case Right(modifications) => transformToDiff(modifications)
-              case Left(error) => Left(RefactorFailure(procId, error.cause))
+              case Left(error)          => Left(RefactorFailure(procId, error.cause))
             }
           case Left(error) => Left(RefactorFailure(procId, error.cause))
         }
@@ -67,10 +74,12 @@ trait RefactoringHandler { self: Analyzer =>
 
   implicit def cs: Charset = charset
 
-  def handleRefactorRequest(req: RefactorReq)(implicit ec: ExecutionContext): Future[RpcResponse] =
+  def handleRefactorRequest(
+    req: RefactorReq
+  )(implicit ec: ExecutionContext): Future[RpcResponse] =
     scalaCompiler.askDoRefactor(req.procId, req.params).map {
       case Right(success) => success
-      case Left(failure) => failure
+      case Left(failure)  => failure
     }
 }
 
@@ -82,7 +91,8 @@ trait RefactoringControl { self: RichCompilerControl with RefactoringImpl =>
   )(
     implicit
     ec: ExecutionContext
-  ): Future[Either[RefactorFailure, RefactorDiffEffect]] = doRefactor(procId, refactor)
+  ): Future[Either[RefactorFailure, RefactorDiffEffect]] =
+    doRefactor(procId, refactor)
 
 }
 
@@ -107,50 +117,76 @@ trait RefactoringImpl {
     )
   )
 
-  protected def doRename(procId: Int, tpe: RefactorType, name: String, file: File, start: Int, end: Int, files: Set[String]) =
+  protected def doRename(procId: Int,
+                         tpe: RefactorType,
+                         name: String,
+                         file: File,
+                         start: Int,
+                         end: Int,
+                         files: Set[String]) =
     new RefactoringEnvironment(file.getPath, start, end) {
       val refactoring = new Rename with GlobalIndexes {
         val global = RefactoringImpl.this
-        val cuIndexes: List[CompilationUnitIndex] = this.global.unitOfFile.collect {
-          case (f, unit) if search.noReverseLookups || files.contains(f.file.getPath) =>
-            CompilationUnitIndex(unit.body)
-        }(collection.breakOut)
+        val cuIndexes: List[CompilationUnitIndex] =
+          this.global.unitOfFile.collect {
+            case (f, unit)
+                if search.noReverseLookups || files.contains(f.file.getPath) =>
+              CompilationUnitIndex(unit.body)
+          }(collection.breakOut)
         val index = GlobalIndex(cuIndexes)
       }
       val result = performRefactoring(procId, tpe, name)
     }.result
 
-  protected def doExtractMethod(procId: Int, tpe: RefactorType,
-    name: String, file: File, start: Int, end: Int) =
+  protected def doExtractMethod(procId: Int,
+                                tpe: RefactorType,
+                                name: String,
+                                file: File,
+                                start: Int,
+                                end: Int) =
     new RefactoringEnvironment(file.getPath, start, end) {
       val refactoring = new ExtractMethod with GlobalIndexes {
         val global = RefactoringImpl.this
-        val cuIndexes = this.global.activeUnits().map { u => CompilationUnitIndex(u.body) }
+        val cuIndexes = this.global.activeUnits().map { u =>
+          CompilationUnitIndex(u.body)
+        }
         val index = GlobalIndex(cuIndexes)
       }
       val result = performRefactoring(procId, tpe, name)
     }.result
 
-  protected def doExtractLocal(procId: Int, tpe: RefactorType,
-    name: String, file: File, start: Int, end: Int) =
+  protected def doExtractLocal(procId: Int,
+                               tpe: RefactorType,
+                               name: String,
+                               file: File,
+                               start: Int,
+                               end: Int) =
     new RefactoringEnvironment(file.getPath, start, end) {
       val refactoring = new ExtractLocal with GlobalIndexes {
         val global = RefactoringImpl.this
-        val cuIndexes = this.global.activeUnits().map { u => CompilationUnitIndex(u.body) }
+        val cuIndexes = this.global.activeUnits().map { u =>
+          CompilationUnitIndex(u.body)
+        }
         val index = GlobalIndex(cuIndexes)
       }
       val result = performRefactoring(procId, tpe, name)
     }.result
 
-  protected def doInlineLocal(procId: Int, tpe: RefactorType, file: File,
-    start: Int, end: Int) =
+  protected def doInlineLocal(procId: Int,
+                              tpe: RefactorType,
+                              file: File,
+                              start: Int,
+                              end: Int) =
     new RefactoringEnvironment(file.getPath, start, end) {
       val refactoring = new InlineLocal with GlobalIndexes {
         val global = RefactoringImpl.this
-        val cuIndexes = this.global.activeUnits().map { u => CompilationUnitIndex(u.body) }
+        val cuIndexes = this.global.activeUnits().map { u =>
+          CompilationUnitIndex(u.body)
+        }
         val index = GlobalIndex(cuIndexes)
       }
-      val result = performRefactoring(procId, tpe, new refactoring.RefactoringParameters())
+      val result =
+        performRefactoring(procId, tpe, new refactoring.RefactoringParameters())
     }.result
 
   // we probably want to allow users to customise this
@@ -169,38 +205,53 @@ trait RefactoringImpl {
         val global = RefactoringImpl.this
       }
 
-      val result = performRefactoring(procId, tpe, new refactoring.RefactoringParameters(
-        organizeLocalImports = serverConfig.imports.locals,
-        config = importsConfig
-      ))
+      val result = performRefactoring(procId,
+                                      tpe,
+                                      new refactoring.RefactoringParameters(
+                                        organizeLocalImports =
+                                          serverConfig.imports.locals,
+                                        config = importsConfig
+                                      ))
     }.result
 
-  protected def doAddImport(procId: Int, tpe: RefactorType, qualName: String, file: File) = {
+  protected def doAddImport(procId: Int,
+                            tpe: RefactorType,
+                            qualName: String,
+                            file: File) = {
     val refactoring = new AddImportStatement {
       val global = RefactoringImpl.this
     }
 
-    val af = AbstractFile.getFile(file.getPath)
+    val af            = AbstractFile.getFile(file.getPath)
     val modifications = refactoring.addImport(af, qualName)
-    val edits = modifications.flatMap(FileEditHelper.fromChange)
+    val edits         = modifications.flatMap(FileEditHelper.fromChange)
 
     writeDiffChanges(edits)(charset) match {
       case Right(diff) => Right(RefactorDiffEffect(procId, tpe, diff))
-      case Left(err) => Left(RefactorFailure(procId, err.toString))
+      case Left(err)   => Left(RefactorFailure(procId, err.toString))
     }
   }
 
-  protected def doExpandMatchCases(procId: Int, tpe: RefactorType, file: File, start: Int, end: Int): Either[RefactorFailure, RefactorDiffEffect] =
+  protected def doExpandMatchCases(
+    procId: Int,
+    tpe: RefactorType,
+    file: File,
+    start: Int,
+    end: Int
+  ): Either[RefactorFailure, RefactorDiffEffect] =
     new RefactoringEnvironment(file.getPath, start, end) {
       val refactoring = new ExpandMatchCases with GlobalIndexes {
         val global = RefactoringImpl.this
-        val cuIndexes = this.global.activeUnits().map { u => CompilationUnitIndex(u.body) }
+        val cuIndexes = this.global.activeUnits().map { u =>
+          CompilationUnitIndex(u.body)
+        }
         val index = GlobalIndex(cuIndexes)
       }
       val result = performRefactoring(procId, tpe, ())
     }.result
 
-  protected def reloadAndType(f: File) = reloadAndTypeFiles(List(this.createSourceFile(f.getPath)))
+  protected def reloadAndType(f: File) =
+    reloadAndTypeFiles(List(this.createSourceFile(f.getPath)))
 
   protected def doRefactor(
     procId: Int,
@@ -234,20 +285,33 @@ trait RefactoringImpl {
           doInlineLocal(procId, tpe, file, start, end)
         }
       case RenameRefactorDesc(newName, file, start, end) =>
-        import scala.reflect.internal.util.{ RangePosition, OffsetPosition }
+        import scala.reflect.internal.util.{ OffsetPosition, RangePosition }
         val sourceFile = createSourceFile(file.getPath)
         askLoadedTyped(sourceFile)
-        val pos = if (start == end) new OffsetPosition(sourceFile, start)
-        else new RangePosition(sourceFile, start, start, end)
+        val pos =
+          if (start == end) new OffsetPosition(sourceFile, start)
+          else new RangePosition(sourceFile, start, start, end)
         val symbol = askSymbolAt(pos)
         symbol match {
-          case None => Future.successful(Left(RefactorFailure(procId, "No symbol at given position.")))
+          case None =>
+            Future.successful(
+              Left(RefactorFailure(procId, "No symbol at given position."))
+            )
           case Some(sym) =>
             usesOfSym(sym).map { uses =>
               val files = uses.map(rf => createSourceFile(rf)) - sourceFile
               files.foreach(askLoadedTyped)
-              askOption(doRename(procId, tpe, newName, file, start, end, files.map(_.path) + sourceFile.path))
-                .getOrElse(Left(RefactorFailure(procId, "Refactor call failed.")))
+              askOption(
+                doRename(procId,
+                         tpe,
+                         newName,
+                         file,
+                         start,
+                         end,
+                         files.map(_.path) + sourceFile.path)
+              ).getOrElse(
+                Left(RefactorFailure(procId, "Refactor call failed."))
+              )
             }
         }
       case ExtractMethodRefactorDesc(methodName, file, start, end) =>
@@ -279,15 +343,19 @@ trait RefactoringImpl {
   }
 }
 
-abstract class ExpandMatchCases extends MultiStageRefactoring
-    with TreeAnalysis with analysis.Indexes with TreeFactory with common.InteractiveScalaCompiler {
+abstract class ExpandMatchCases
+    extends MultiStageRefactoring
+    with TreeAnalysis
+    with analysis.Indexes
+    with TreeFactory
+    with common.InteractiveScalaCompiler {
   import global._
 
   case class PreparationResult(matchBlock: Match, selectorType: SelectorType)
 
   sealed trait SelectorType
-  case object SingleCaseClass extends SelectorType
-  case object SingleCaseObject extends SelectorType
+  case object SingleCaseClass            extends SelectorType
+  case object SingleCaseObject           extends SelectorType
   case object SealedTraitOrAbstractClass extends SelectorType
 
   type RefactoringParameters = Unit
@@ -295,44 +363,58 @@ abstract class ExpandMatchCases extends MultiStageRefactoring
   def prepare(s: Selection): Either[PreparationError, PreparationResult] = {
     val selectedTree = s.findSelectedWithPredicate {
       case _: SymTree | _: TermTree => true
-      case _ => false
+      case _                        => false
     }
 
     selectedTree match {
       case Some(Match(_, cases)) if cases.nonEmpty =>
         Left(PreparationError("Match block is not empty"))
-      case Some(m @ Match(selector, _)) if selector.tpe.typeSymbol.isModuleClass =>
+      case Some(m @ Match(selector, _))
+          if selector.tpe.typeSymbol.isModuleClass =>
         Right(PreparationResult(m, SingleCaseObject))
-      case Some(m @ Match(selector, _)) if selector.tpe.typeSymbol.isCaseClass =>
+      case Some(m @ Match(selector, _))
+          if selector.tpe.typeSymbol.isCaseClass =>
         Right(PreparationResult(m, SingleCaseClass))
-      case Some(m @ Match(selector, _)) if (selector.tpe.typeSymbol.isTrait || selector.tpe.typeSymbol.isAbstractClass)
-        && selector.tpe.typeSymbol.isSealed =>
+      case Some(m @ Match(selector, _))
+          if (selector.tpe.typeSymbol.isTrait || selector.tpe.typeSymbol.isAbstractClass)
+            && selector.tpe.typeSymbol.isSealed =>
         Right(PreparationResult(m, SealedTraitOrAbstractClass))
       case Some(m @ Match(selector, _)) =>
-        Left(PreparationError(s"Selector is not a case class or sealed trait: ${showRaw(selector)}\n${showRaw(m)}"))
+        Left(
+          PreparationError(
+            s"Selector is not a case class or sealed trait: ${showRaw(selector)}\n${showRaw(m)}"
+          )
+        )
       case Some(otherwise) =>
-        Left(PreparationError(s"Selection is not inside a match block: ${showRaw(otherwise)}"))
+        Left(
+          PreparationError(
+            s"Selection is not inside a match block: ${showRaw(otherwise)}"
+          )
+        )
       case None =>
         Left(PreparationError("No selected SymTree/TermTree found"))
     }
   }
 
-  def perform(selection: Selection, prepared: PreparationResult, params: Unit): Either[RefactoringError, List[Change]] = {
+  def perform(selection: Selection,
+              prepared: PreparationResult,
+              params: Unit): Either[RefactoringError, List[Change]] = {
     val caseDefs = prepared.selectorType match {
       case SingleCaseClass | SingleCaseObject =>
-        val tpe = prepared.matchBlock.selector.tpe
+        val tpe      = prepared.matchBlock.selector.tpe
         val maybePat = toPatDef(tpe)
 
         maybePat.right.map(List(_))
 
       case SealedTraitOrAbstractClass =>
-        val tpe = prepared.matchBlock.selector.tpe
-        val ctors = collectCtors(tpe)
+        val tpe       = prepared.matchBlock.selector.tpe
+        val ctors     = collectCtors(tpe)
         val maybePats = ctors map toPatDef
-        val errs = maybePats collect { case Left(e) => e }
-        val pats = maybePats collect { case Right(p) => p }
+        val errs      = maybePats collect { case Left(e) => e }
+        val pats      = maybePats collect { case Right(p) => p }
 
-        if (errs.nonEmpty) Left(RefactoringError(errs.map(_.cause).mkString("\n")))
+        if (errs.nonEmpty)
+          Left(RefactoringError(errs.map(_.cause).mkString("\n")))
         else Right(pats)
     }
 
@@ -361,7 +443,8 @@ abstract class ExpandMatchCases extends MultiStageRefactoring
       sym.knownDirectSubclasses.toList.flatMap { subclass =>
         val subSym = subclass.asClass
         if (subSym.isCaseClass || sym.isModuleClass) List(subSym)
-        else if ((subSym.isTrait || subSym.isAbstractClass) && subSym.isSealed) ctors(subSym)
+        else if ((subSym.isTrait || subSym.isAbstractClass) && subSym.isSealed)
+          ctors(subSym)
         else List()
       }
 
@@ -369,13 +452,21 @@ abstract class ExpandMatchCases extends MultiStageRefactoring
   }
 
   def toPatDef(tpe: Type): Either[RefactoringError, CaseDef] =
-    if (tpe.typeSymbol.asClass.isModuleClass) Right(CaseDef(caseObjectPattern(tpe), Ident("???")))
-    else if (tpe.typeSymbol.asClass.isCaseClass) Right(CaseDef(caseClassExtractionPattern(tpe), Ident("???")))
-    else Left(RefactoringError(s"${tpe} is not a case object or case class in toPatDef"))
+    if (tpe.typeSymbol.asClass.isModuleClass)
+      Right(CaseDef(caseObjectPattern(tpe), Ident("???")))
+    else if (tpe.typeSymbol.asClass.isCaseClass)
+      Right(CaseDef(caseClassExtractionPattern(tpe), Ident("???")))
+    else
+      Left(
+        RefactoringError(
+          s"${tpe} is not a case object or case class in toPatDef"
+        )
+      )
 
   def caseClassExtractionPattern(tpe: Type): Tree = {
     val fields: List[Tree] = tpe.decls.collect {
-      case f: TermSymbol if f.isPublic && f.isCaseAccessor => Ident(f.name.toTermName)
+      case f: TermSymbol if f.isPublic && f.isCaseAccessor =>
+        Ident(f.name.toTermName)
     }.toList
     val companion = tpe.typeSymbol.companionSymbol
 

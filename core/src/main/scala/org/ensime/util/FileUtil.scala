@@ -11,7 +11,9 @@ import org.ensime.util.file._
 object FileUtils {
 
   @deprecating
-  implicit def toSourceFileInfo(f: Either[File, SourceFileInfo]): SourceFileInfo =
+  implicit def toSourceFileInfo(
+    f: Either[File, SourceFileInfo]
+  ): SourceFileInfo =
     f.fold(l => SourceFileInfo(RawFile(l.toPath), None, None), r => r)
 
   @deprecating("prefer file.readString()")
@@ -21,16 +23,22 @@ object FileUtils {
       case e: IOException => Left(e)
     }
 
-  def writeChanges(changes: List[FileEdit])(implicit cs: Charset): Either[Exception, List[File]] = {
-    val editsByFile = changes.collect { case ed: TextEdit => ed }.groupBy(_.file)
+  def writeChanges(
+    changes: List[FileEdit]
+  )(implicit cs: Charset): Either[Exception, List[File]] = {
+    val editsByFile = changes.collect { case ed: TextEdit => ed }
+      .groupBy(_.file)
     val newFiles = changes.collect { case ed: NewFile => ed }
     try {
-      val rewriteList = newFiles.map { ed => (ed.file, ed.text) } ++
+      val rewriteList = newFiles.map { ed =>
+        (ed.file, ed.text)
+      } ++
         editsByFile.map {
           case (file, fileChanges) =>
             readFile(file)(cs) match {
               case Right(contents) =>
-                val newContents = FileEditHelper.applyEdits(fileChanges.toList, contents)
+                val newContents =
+                  FileEditHelper.applyEdits(fileChanges.toList, contents)
                 (file, newContents)
               case Left(e) => throw e
             }
@@ -54,9 +62,13 @@ object FileUtils {
     }
   }
 
-  def writeDiffChanges(changes: List[FileEdit], renameFromTo: Option[(File, File)] = None)(implicit cs: Charset): Either[Exception, File] = {
+  def writeDiffChanges(
+    changes: List[FileEdit],
+    renameFromTo: Option[(File, File)] = None
+  )(implicit cs: Charset): Either[Exception, File] = {
     //sorted for the sake of testing, because otherwise the order of files in diff is not well defined
-    val editsByFile = scala.collection.immutable.SortedMap(changes.groupBy(_.file).toSeq: _*)
+    val editsByFile =
+      scala.collection.immutable.SortedMap(changes.groupBy(_.file).toSeq: _*)
     try {
       val diffContents =
         editsByFile.map {
@@ -64,19 +76,28 @@ object FileUtils {
             val Some((from, to)) = renameFromTo
             readFile(from)(cs) match {
               case Right(contents) =>
-                val edits = editsByFile(from).collect { case ed: TextEdit => ed }
+                val edits = editsByFile(from).collect {
+                  case ed: TextEdit => ed
+                }
                 FileEditHelper.diffFromNewFile(nf, edits, contents)
               case Left(e) => throw e
             }
           case (file, fileChanges) =>
             val textEdits = fileChanges.collect { case ed: TextEdit => ed }
-            val deleteFile = fileChanges.collectFirst { case delete: DeleteFile => delete }
+            val deleteFile = fileChanges.collectFirst {
+              case delete: DeleteFile => delete
+            }
             readFile(file)(cs) match {
               case Right(contents) =>
                 deleteFile match {
                   //ignore text changes if the file is being deleted
-                  case Some(deletion) => FileEditHelper.diffFromDeleteFile(deletion, contents)
-                  case None => FileEditHelper.diffFromTextEdits(textEdits, contents, file, file)
+                  case Some(deletion) =>
+                    FileEditHelper.diffFromDeleteFile(deletion, contents)
+                  case None =>
+                    FileEditHelper.diffFromTextEdits(textEdits,
+                                                     contents,
+                                                     file,
+                                                     file)
                 }
               case Left(e) => throw e
             }

@@ -9,8 +9,10 @@ import akka.actor._
  * Holds messages until an Activate is received.
  */
 class FloodGate(
-    target: ActorRef
-) extends Actor with ActorLogging with Stash {
+  target: ActorRef
+) extends Actor
+    with ActorLogging
+    with Stash {
 
   override def receive = waiting
 

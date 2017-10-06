@@ -7,7 +7,9 @@ import org.ensime.util.enums._
 
 class EnumsSpec extends FlatSpec with Matchers {
 
-  private def marshall[T](expected: Map[String, T])(implicit adtToMap: AdtToMap[T]): Unit = {
+  private def marshall[T](
+    expected: Map[String, T]
+  )(implicit adtToMap: AdtToMap[T]): Unit = {
     val result = adtToMap.lookup
     result should ===(expected)
   }
@@ -22,19 +24,20 @@ class EnumsSpec extends FlatSpec with Matchers {
     marshall[AllSingletons](allSingletonsMap)
 
     sealed abstract class Enums(val s: String)
-    object Qux extends Enums("qux")
-    object Quux extends Enums("quux")
+    object Qux    extends Enums("qux")
+    object Quux   extends Enums("quux")
     object FooBar extends Enums("foobar")
     object BarBaz extends Enums("barbaz")
 
-    val enumsMap = Map("Qux" -> Qux, "Quux" -> Quux, "FooBar" -> FooBar, "BarBaz" -> BarBaz)
+    val enumsMap =
+      Map("Qux" -> Qux, "Quux" -> Quux, "FooBar" -> FooBar, "BarBaz" -> BarBaz)
     marshall[Enums](enumsMap)
   }
 
   it should "not be able to convert non-singleton types" in {
     sealed trait NotAllSingletons
-    case object Foo extends NotAllSingletons
-    case object Bar extends NotAllSingletons
+    case object Foo           extends NotAllSingletons
+    case object Bar           extends NotAllSingletons
     case class FooBar(a: Int) extends NotAllSingletons
 
     "implicitly[AdtToMap[NotAllSingletons]]" shouldNot typeCheck

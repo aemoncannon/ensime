@@ -29,24 +29,29 @@ package api {
 
   // defining really basic implementations on the companion
   object OrientPropertyFormat {
-    implicit object StringOrientPropertyFormat extends OrientPropertyFormat[String] {
+    implicit object StringOrientPropertyFormat
+        extends OrientPropertyFormat[String] {
       def toOrientProperty: OrientProperty = OrientProperty(OType.STRING)
     }
     implicit object IntOrientPropertyFormat extends OrientPropertyFormat[Int] {
       def toOrientProperty: OrientProperty = OrientProperty(OType.INTEGER)
     }
-    implicit object LongOrientPropertyFormat extends OrientPropertyFormat[Long] {
+    implicit object LongOrientPropertyFormat
+        extends OrientPropertyFormat[Long] {
       def toOrientProperty: OrientProperty = OrientProperty(OType.LONG)
     }
-    implicit object TimeStampOrientPropertyFormat extends OrientPropertyFormat[Timestamp] {
+    implicit object TimeStampOrientPropertyFormat
+        extends OrientPropertyFormat[Timestamp] {
       def toOrientProperty: OrientProperty = OrientProperty(OType.LONG)
     }
 
     // domain specific
-    implicit object AccessOrientPropertyFormat extends OrientPropertyFormat[Access] {
+    implicit object AccessOrientPropertyFormat
+        extends OrientPropertyFormat[Access] {
       def toOrientProperty: OrientProperty = OrientProperty(OType.INTEGER)
     }
-    implicit object DeclaredAsPropertyFormat extends OrientPropertyFormat[DeclaredAs] {
+    implicit object DeclaredAsPropertyFormat
+        extends OrientPropertyFormat[DeclaredAs] {
       def toOrientProperty: OrientProperty = OrientProperty(OType.STRING)
     }
 
@@ -54,7 +59,8 @@ package api {
       implicit
       p: OrientPropertyFormat[T]
     ) = new OrientPropertyFormat[Option[T]] {
-      def toOrientProperty: OrientProperty = OrientProperty(p.toOrientProperty.oType, isMandatory = false)
+      def toOrientProperty: OrientProperty =
+        OrientProperty(p.toOrientProperty.oType, isMandatory = false)
     }
   }
 }
@@ -62,9 +68,10 @@ package api {
 package object impl {
   import org.ensime.indexer.orientdb.schema.api._
 
-  implicit def hNilSchemaFormat[T]: SchemaFormat[HNil] = new SchemaFormat[HNil] {
-    def toSchema: Map[String, OrientProperty] = Map.empty
-  }
+  implicit def hNilSchemaFormat[T]: SchemaFormat[HNil] =
+    new SchemaFormat[HNil] {
+      def toSchema: Map[String, OrientProperty] = Map.empty
+    }
 
   implicit def hListSchemaFormat[Key <: Symbol, Value, Remaining <: HList](
     implicit
@@ -75,7 +82,7 @@ package object impl {
     new SchemaFormat[FieldType[Key, Value] :: Remaining] {
       def toSchema: Map[String, OrientProperty] = {
         val otype = prim.toOrientProperty
-        val map = remV.value.toSchema
+        val map   = remV.value.toSchema
         map + (key.value.name -> otype)
       }
     }

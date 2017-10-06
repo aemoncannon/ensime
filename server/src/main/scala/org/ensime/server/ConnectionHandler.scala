@@ -14,18 +14,17 @@ import org.ensime.core._
  * Ensures that everything in and out is canonised.
  */
 class ConnectionHandler(
-    project: ActorRef,
-    broadcaster: ActorRef,
-    target: ActorRef
-) extends Actor with ActorLogging {
+  project: ActorRef,
+  broadcaster: ActorRef,
+  target: ActorRef
+) extends Actor
+    with ActorLogging {
 
-  override def preStart(): Unit = {
+  override def preStart(): Unit =
     broadcaster ! Broadcaster.Register
-  }
 
-  override def postStop(): Unit = {
+  override def postStop(): Unit =
     broadcaster ! Broadcaster.Unregister
-  }
 
   // not Receive, thanks to https://issues.scala-lang.org/browse/SI-8861
   // (fixed in 2.11.7)

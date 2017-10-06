@@ -15,7 +15,8 @@ trait EnsimeTestData {
     RawFile(canonised.toPath)
   }
 
-  val typeInfo = BasicTypeInfo("type1", DeclaredAs.Method, "FOO.type1", Nil, Nil, None, Nil)
+  val typeInfo =
+    BasicTypeInfo("type1", DeclaredAs.Method, "FOO.type1", Nil, Nil, None, Nil)
 
   val interfaceInfo = new InterfaceInfo(typeInfo, Some("DEF"))
 
@@ -49,7 +50,8 @@ trait EnsimeTestData {
   val file4 = canon("/foo/def")
   val file5 = canon("/foo/hij")
 
-  val refactorDiffEffect = new RefactorDiffEffect(9, RefactorType.AddImport, file2.file.toFile)
+  val refactorDiffEffect =
+    new RefactorDiffEffect(9, RefactorType.AddImport, file2.file.toFile)
 
   val sourcePos1 = new LineSourcePosition(file1, 57)
   val sourcePos2 = new LineSourcePosition(file1, 59)
@@ -64,21 +66,41 @@ trait EnsimeTestData {
   val debugStackLocal1 = DebugStackLocal(3, "name1", "summary1", "type1")
   val debugStackLocal2 = DebugStackLocal(4, "name2", "summary2", "type2")
 
-  val debugStackFrame = DebugStackFrame(7, List(debugStackLocal1, debugStackLocal2), 4, "class1", "method1", sourcePos1, DebugObjectId(7))
+  val debugStackFrame = DebugStackFrame(
+    7,
+    List(debugStackLocal1, debugStackLocal2),
+    4,
+    "class1",
+    "method1",
+    sourcePos1,
+    DebugObjectId(7)
+  )
 
-  val debugBacktrace = DebugBacktrace(List(debugStackFrame), DebugThreadId(17), "thread1")
+  val debugBacktrace =
+    DebugBacktrace(List(debugStackFrame), DebugThreadId(17), "thread1")
 
   val analyzerFile = canon("Analyzer.scala")
-  val fooFile = canon("Foo.scala")
+  val fooFile      = canon("Foo.scala")
 
   val abd = canon("/abd")
 
-  val methodSearchRes = MethodSearchResult("abc", "a", DeclaredAs.Method, Some(LineSourcePosition(abd, 10)), "ownerStr")
-  val typeSearchRes = TypeSearchResult("abc", "a", DeclaredAs.Trait, Some(LineSourcePosition(abd, 10)))
+  val methodSearchRes = MethodSearchResult("abc",
+                                           "a",
+                                           DeclaredAs.Method,
+                                           Some(LineSourcePosition(abd, 10)),
+                                           "ownerStr")
+  val typeSearchRes = TypeSearchResult("abc",
+                                       "a",
+                                       DeclaredAs.Trait,
+                                       Some(LineSourcePosition(abd, 10)))
 
-  val importSuggestions = new ImportSuggestions(List(List(methodSearchRes, typeSearchRes)))
+  val importSuggestions = new ImportSuggestions(
+    List(List(methodSearchRes, typeSearchRes))
+  )
 
-  val symbolSearchResults = new SymbolSearchResults(List(methodSearchRes, typeSearchRes))
+  val symbolSearchResults = new SymbolSearchResults(
+    List(methodSearchRes, typeSearchRes)
+  )
 
   val completionInfoCList = CompletionInfoList("fooBar", List(completionInfo))
 
@@ -88,24 +110,41 @@ trait EnsimeTestData {
 
   val debugNullValue = DebugNullValue("typeNameStr")
 
-  val debugArrayInstValue = DebugArrayInstance(3, "typeName", "elementType", DebugObjectId(5L))
+  val debugArrayInstValue =
+    DebugArrayInstance(3, "typeName", "elementType", DebugObjectId(5L))
 
   val debugPrimitiveValue = DebugPrimitiveValue("summaryStr", "typeNameStr")
 
-  val debugClassField = DebugClassField(19, "nameStr", "typeNameStr", "summaryStr")
+  val debugClassField =
+    DebugClassField(19, "nameStr", "typeNameStr", "summaryStr")
 
-  val debugStringValue = DebugStringInstance("summaryStr", List(debugClassField), "typeNameStr", DebugObjectId(6L))
+  val debugStringValue = DebugStringInstance("summaryStr",
+                                             List(debugClassField),
+                                             "typeNameStr",
+                                             DebugObjectId(6L))
 
   val note1 = new Note("file1", "note1", NoteError, 23, 33, 19, 8)
   val note2 = new Note("file1", "note2", NoteWarn, 23, 33, 19, 8)
 
   val noteList = NewScalaNotesEvent(isFull = true, List(note1, note2))
 
-  val entityInfo: TypeInfo = new ArrowTypeInfo("Arrow1", "example.Arrow1", typeInfo, List(paramSectionInfo), Nil)
+  val entityInfo: TypeInfo = new ArrowTypeInfo("Arrow1",
+                                               "example.Arrow1",
+                                               typeInfo,
+                                               List(paramSectionInfo),
+                                               Nil)
 
-  val typeParamA = BasicTypeInfo("A", DeclaredAs.Nil, "example.Arrow1.A", Nil, Nil, None, Nil)
-  val typeParamB = BasicTypeInfo("B", DeclaredAs.Nil, "example.Arrow1.B", Nil, Nil, None, Nil)
-  val entityInfoTypeParams: TypeInfo = new ArrowTypeInfo("Arrow1", "example.Arrow1", typeInfo, List(paramSectionInfo), List(typeParamA, typeParamB))
+  val typeParamA =
+    BasicTypeInfo("A", DeclaredAs.Nil, "example.Arrow1.A", Nil, Nil, None, Nil)
+  val typeParamB =
+    BasicTypeInfo("B", DeclaredAs.Nil, "example.Arrow1.B", Nil, Nil, None, Nil)
+  val entityInfoTypeParams: TypeInfo = new ArrowTypeInfo(
+    "Arrow1",
+    "example.Arrow1",
+    typeInfo,
+    List(paramSectionInfo),
+    List(typeParamA, typeParamB)
+  )
 
   val completionInfo = CompletionInfo(Some(typeInfo), "name", 90, Some("BAZ"))
 
@@ -113,35 +152,39 @@ trait EnsimeTestData {
 
   val completionInfoList = List(completionInfo, completionInfo2)
 
-  val sourceFileInfo = SourceFileInfo(file1, Some("{/* code here */}"), Some(file2.file.toFile))
+  val sourceFileInfo =
+    SourceFileInfo(file1, Some("{/* code here */}"), Some(file2.file.toFile))
   val sourceFileInfo2 = SourceFileInfo(file1)
 
-  val dtid = DebugThreadId(13)
+  val dtid               = DebugThreadId(13)
   val debugLocationArray = DebugArrayElement(DebugObjectId(13), 14)
 
-  val structureView = StructureView(List(
-    StructureViewMember(
-      keyword = "class",
-      name = "StructureView",
-      position = sourcePos1,
-      members = Nil
-    ),
-    StructureViewMember(
-      keyword = "object",
-      name = "StructureView",
-      position = sourcePos2,
-      members = List(
-        StructureViewMember(
-          keyword = "type",
-          name = "BasicType",
-          position = sourcePos4,
-          members = Nil
+  val structureView = StructureView(
+    List(
+      StructureViewMember(
+        keyword = "class",
+        name = "StructureView",
+        position = sourcePos1,
+        members = Nil
+      ),
+      StructureViewMember(
+        keyword = "object",
+        name = "StructureView",
+        position = sourcePos2,
+        members = List(
+          StructureViewMember(
+            keyword = "type",
+            name = "BasicType",
+            position = sourcePos4,
+            members = Nil
+          )
         )
       )
     )
-  ))
+  )
 
-  val classInfo = ClassInfo(Some("def.foo"), "def$foo", DeclaredAs.Class, Some(sourcePos2))
-  val classInfo2 = ClassInfo(None, "java.lang.object", DeclaredAs.Class, None)
+  val classInfo =
+    ClassInfo(Some("def.foo"), "def$foo", DeclaredAs.Class, Some(sourcePos2))
+  val classInfo2    = ClassInfo(None, "java.lang.object", DeclaredAs.Class, None)
   val hierarchyInfo = HierarchyInfo(classInfo2 :: Nil, classInfo :: Nil)
 }

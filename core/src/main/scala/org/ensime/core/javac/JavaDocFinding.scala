@@ -7,10 +7,9 @@ import org.ensime.core.{ DocSigPair }
 
 trait JavaDocFinding extends Helpers {
 
-  def docSignature(c: Compilation, p: TreePath): Option[DocSigPair] = {
+  def docSignature(c: Compilation, p: TreePath): Option[DocSigPair] =
     fqn(c, p).map { fqn =>
       val sig = toDocSig(fqn)
       DocSigPair(sig, sig)
     }
-  }
 }

@@ -6,9 +6,16 @@ import scala.util._
 
 import com.sun.jdi.VMDisconnectedException
 import org.ensime.util.Timing.dilation
-import org.scaladebugger.api.debuggers.{ AttachingDebugger, Debugger, LaunchingDebugger }
+import org.scaladebugger.api.debuggers.{
+  AttachingDebugger,
+  Debugger,
+  LaunchingDebugger
+}
 import org.scaladebugger.api.profiles.scala210.Scala210DebugProfile
-import org.scaladebugger.api.virtualmachines.{ DummyScalaVirtualMachine, ScalaVirtualMachine }
+import org.scaladebugger.api.virtualmachines.{
+  DummyScalaVirtualMachine,
+  ScalaVirtualMachine
+}
 import org.slf4j.LoggerFactory
 
 /**
@@ -20,8 +27,8 @@ import org.slf4j.LoggerFactory
  *                 unexpectedly
  */
 class VirtualMachineManager(
-    private val globalStartFunc: (ScalaVirtualMachine) => Unit = _ => {},
-    private val globalStopFunc: (ScalaVirtualMachine) => Unit = _ => {}
+  private val globalStartFunc: (ScalaVirtualMachine) => Unit = _ => {},
+  private val globalStopFunc: (ScalaVirtualMachine) => Unit = _ => {}
 ) {
   private val log = LoggerFactory.getLogger(this.getClass)
 
@@ -32,9 +39,9 @@ class VirtualMachineManager(
     d
   }
 
-  @volatile private var debugger: Option[Debugger] = None
+  @volatile private var debugger: Option[Debugger]      = None
   @volatile private var vm: Option[ScalaVirtualMachine] = None
-  @volatile private var mode: Option[VmMode] = None
+  @volatile private var mode: Option[VmMode]            = None
 
   /**
    * Represents the mode actively being used by the internal debugger.
@@ -133,15 +140,16 @@ class VirtualMachineManager(
    * @param stopFunc Optional function to call before the virtual machine
    *                 shuts down
    */
-  def stop(stopFunc: (ScalaVirtualMachine) => Unit = _ => {}): Unit = synchronized {
-    // Invoke our stop function, ignoring any error that may arise
-    if (hasActiveVM) {
-      withVM(globalStopFunc)
-      withVM(stopFunc)
-    }
+  def stop(stopFunc: (ScalaVirtualMachine) => Unit = _ => {}): Unit =
+    synchronized {
+      // Invoke our stop function, ignoring any error that may arise
+      if (hasActiveVM) {
+        withVM(globalStopFunc)
+        withVM(stopFunc)
+      }
 
-    clear()
-  }
+      clear()
+    }
 
   /** Clears the active mode, vm, and debugger. */
   private def clear(): Unit = synchronized {
@@ -201,15 +209,17 @@ class VirtualMachineManager(
    * @tparam T The expected return value from the action
    * @return Some containing the result if successful, otherwise None
    */
-  def withDummyVM[T](action: (ScalaVirtualMachine => T)): Try[T] = synchronized {
-    log.trace("Applying action to dummy vm")
-    val result = Try(action(dummyScalaVirtualMachine))
+  def withDummyVM[T](action: (ScalaVirtualMachine => T)): Try[T] =
+    synchronized {
+      log.trace("Applying action to dummy vm")
+      val result = Try(action(dummyScalaVirtualMachine))
 
-    result.failed.foreach(e =>
-      log.error("Exception thrown whilst handling dummy vm action", e))
+      result.failed.foreach(
+        e => log.error("Exception thrown whilst handling dummy vm action", e)
+      )
 
-    result
-  }
+      result
+    }
 
   /**
    * Attaches common event handlers to the virtual machine.

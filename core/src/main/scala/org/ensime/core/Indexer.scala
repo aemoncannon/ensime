@@ -19,13 +19,16 @@ import org.ensime.vfs._
 final case class TypeCompletionsReq(prefix: String, maxResults: Int)
 
 class Indexer(
-    index: SearchService,
-    implicit val config: EnsimeConfig,
-    implicit val vfs: EnsimeVFS
-) extends Actor with ActorLogging {
+  index: SearchService,
+  implicit val config: EnsimeConfig,
+  implicit val vfs: EnsimeVFS
+) extends Actor
+    with ActorLogging {
 
   private def typeResult(hit: FqnSymbol) = TypeSearchResult(
-    hit.fqn, hit.fqn.split("\\.").last, hit.declAs,
+    hit.fqn,
+    hit.fqn.split("\\.").last,
+    hit.declAs,
     LineSourcePositionHelper.fromFqnSymbol(hit)(vfs)
   )
 
@@ -35,25 +38,32 @@ class Indexer(
 
     import org.ensime.util.list._
 
-    index.searchClasses(query, max)
+    index
+      .searchClasses(query, max)
       .map {
         case c: ClassDef => c.copy(fqn = strip(c.fqn))
-        case f: Field => f.copy(fqn = strip(f.fqn))
-        case m: Method => m.copy(fqn = strip(m.fqn))
+        case f: Field    => f.copy(fqn = strip(f.fqn))
+        case m: Method   => m.copy(fqn = strip(m.fqn))
       }
       .distinctBy(_.fqn)
       .map(typeResult)
   }
 
-  private val typeDecls: Set[DeclaredAs] = Set(DeclaredAs.Class, DeclaredAs.Trait, DeclaredAs.Object)
+  private val typeDecls: Set[DeclaredAs] =
+    Set(DeclaredAs.Class, DeclaredAs.Trait, DeclaredAs.Object)
   def oldSearchSymbols(terms: List[String], max: Int) =
     index.searchClassesMethods(terms, max).flatMap {
       case hit if typeDecls.contains(hit.declAs) => Some(typeResult(hit))
-      case hit if hit.declAs == DeclaredAs.Method => Some(MethodSearchResult(
-        hit.fqn, hit.fqn.split("\\.").last, hit.declAs,
-        LineSourcePositionHelper.fromFqnSymbol(hit)(vfs),
-        hit.fqn.split("\\.").init.mkString(".")
-      ))
+      case hit if hit.declAs == DeclaredAs.Method =>
+        Some(
+          MethodSearchResult(
+            hit.fqn,
+            hit.fqn.split("\\.").last,
+            hit.declAs,
+            LineSourcePositionHelper.fromFqnSymbol(hit)(vfs),
+            hit.fqn.split("\\.").init.mkString(".")
+          )
+        )
       case _ => None // were never supported
     }
 
@@ -73,25 +83,32 @@ class Indexer(
       import context.dispatcher
       val usages = index.findUsageLocations(fqn)
       val response = usages.map { usages =>
-        val positions: List[LineSourcePosition] = usages.take(1000).flatMap { u =>
-          val file = u.file
-          file.map { f =>
-            LineSourcePosition(
-              EnsimeFile(Paths.get(new URI(f)).toString),
-              u.line.getOrElse(0)
-            )
-          }
-        }(collection.breakOut)
-        val files = positions.foldLeft[Set[EnsimeFile]](Set.empty) { (files, pos) =>
-          if (pos.line > 0) files + pos.file else files
+        val positions: List[LineSourcePosition] = usages
+          .take(1000)
+          .flatMap { u =>
+            val file = u.file
+            file.map { f =>
+              LineSourcePosition(
+                EnsimeFile(Paths.get(new URI(f)).toString),
+                u.line.getOrElse(0)
+              )
+            }
+          }(collection.breakOut)
+        val files = positions.foldLeft[Set[EnsimeFile]](Set.empty) {
+          (files, pos) =>
+            if (pos.line > 0) files + pos.file else files
         }
-        val contents: Map[EnsimeFile, Array[String]] = files.map(f => f -> f.readAllLines.toArray)(collection.breakOut)
-        val positionHints: List[PositionHint] = positions.map(pos => PositionHint(pos, contents.get(pos.file) match {
-          case Some(content) if pos.line > 0 =>
-            Some(content(pos.line - 1).trim)
-          case _ =>
-            None
-        }))
+        val contents: Map[EnsimeFile, Array[String]] =
+          files.map(f => f -> f.readAllLines.toArray)(collection.breakOut)
+        val positionHints: List[PositionHint] = positions.map(
+          pos =>
+            PositionHint(pos, contents.get(pos.file) match {
+              case Some(content) if pos.line > 0 =>
+                Some(content(pos.line - 1).trim)
+              case _ =>
+                None
+            })
+        )
         SourcePositions(positionHints)
       }
       pipe(response) to sender
@@ -100,23 +117,35 @@ class Indexer(
       import context.dispatcher
 
       def toClassInfos(h: Hierarchy): List[ClassInfo] = {
-        def toClassInfo(c: ClassDef) = ClassInfo(c.scalaName, c.fqn, c.declAs, LineSourcePositionHelper.fromFqnSymbol(c))
+        def toClassInfo(c: ClassDef) =
+          ClassInfo(c.scalaName,
+                    c.fqn,
+                    c.declAs,
+                    LineSourcePositionHelper.fromFqnSymbol(c))
         h match {
           case TypeHierarchy(aClass, typeRefs) =>
-            typeRefs.foldLeft(toClassInfo(aClass) :: Nil)((listOfInfos, hierarchy) =>
-              toClassInfos(hierarchy) ::: listOfInfos)
+            typeRefs.foldLeft(toClassInfo(aClass) :: Nil)(
+              (listOfInfos, hierarchy) =>
+                toClassInfos(hierarchy) ::: listOfInfos
+            )
           case classDef: ClassDef => toClassInfo(classDef) :: Nil
         }
       }
 
-      val ancestors = index.getTypeHierarchy(fqn, Hierarchy.Supertypes, None).map(_.map {
-        case TypeHierarchy(_, typeRefs) => typeRefs.toList.flatMap(toClassInfos)
-        case _ => Nil
-      })
-      val inheritors = index.getTypeHierarchy(fqn, Hierarchy.Subtypes, None).map(_.map {
-        case TypeHierarchy(_, typeRefs) => typeRefs.toList.flatMap(toClassInfos)
-        case _ => Nil
-      })
+      val ancestors = index
+        .getTypeHierarchy(fqn, Hierarchy.Supertypes, None)
+        .map(_.map {
+          case TypeHierarchy(_, typeRefs) =>
+            typeRefs.toList.flatMap(toClassInfos)
+          case _ => Nil
+        })
+      val inheritors = index
+        .getTypeHierarchy(fqn, Hierarchy.Subtypes, None)
+        .map(_.map {
+          case TypeHierarchy(_, typeRefs) =>
+            typeRefs.toList.flatMap(toClassInfos)
+          case _ => Nil
+        })
       val symbolTreeInfo = for {
         anc <- ancestors
         inh <- inheritors
@@ -125,5 +154,7 @@ class Indexer(
   }
 }
 object Indexer {
-  def apply(index: SearchService)(implicit config: EnsimeConfig, vfs: EnsimeVFS): Props = Props(classOf[Indexer], index, config, vfs)
+  def apply(index: SearchService)(implicit config: EnsimeConfig,
+                                  vfs: EnsimeVFS): Props =
+    Props(classOf[Indexer], index, config, vfs)
 }

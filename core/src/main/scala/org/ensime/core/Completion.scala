@@ -77,9 +77,11 @@ trait CompletionControl {
 
   import CompletionUtil._
 
-  def completionsAt(inputP: Position, maxResultsArg: Int, caseSens: Boolean)(implicit ec: ExecutionContext): Future[CompletionInfoList] = {
+  def completionsAt(inputP: Position, maxResultsArg: Int, caseSens: Boolean)(
+    implicit ec: ExecutionContext
+  ): Future[CompletionInfoList] = {
     val origContents = inputP.source.content
-    val point = inputP.endOrCursor
+    val point        = inputP.endOrCursor
 
     if (point > origContents.length) {
       // invalid request - completion point is outside of file
@@ -87,18 +89,21 @@ trait CompletionControl {
       logger.warn("completionsAt request has point outside of file")
       Future.successful(CompletionInfoList("", List.empty))
     } else {
-      val maxResults = if (maxResultsArg == 0) SimpleLucene.MaxResults else maxResultsArg
+      val maxResults =
+        if (maxResultsArg == 0) SimpleLucene.MaxResults else maxResultsArg
 
       val preceding = inputP.source.content.slice(
-        Math.max(0, inputP.point - 100), inputP.point
+        Math.max(0, inputP.point - 100),
+        inputP.point
       )
 
       val defaultPrefix = IdentRegexp.findFirstMatchIn(preceding) match {
         case Some(m) => m.group(1)
-        case _ => ""
+        case _       => ""
       }
 
-      val constructing = ConstructingRegexp.findFirstMatchIn(preceding).isDefined
+      val constructing =
+        ConstructingRegexp.findFirstMatchIn(preceding).isDefined
 
       val (src, p, patched) = if (defaultPrefix.isEmpty) {
 
@@ -131,25 +136,65 @@ trait CompletionControl {
             case Apply(fun, _) =>
               fun match {
                 case Select(qualifier: New, name) =>
-                  Some(ScopeContext(src, qualifier.pos.endOrCursor, defaultPrefix, constructing = true))
-                case Select(qual, name) if qual.pos.isDefined && qual.pos.isRange =>
+                  Some(
+                    ScopeContext(src,
+                                 qualifier.pos.endOrCursor,
+                                 defaultPrefix,
+                                 constructing = true)
+                  )
+                case Select(qual, name)
+                    if qual.pos.isDefined && qual.pos.isRange =>
                   val prefix = if (patched) "" else name.decoded
-                  Some(MemberContext(src, qual.pos.endOrCursor, prefix, constructing))
+                  Some(
+                    MemberContext(src,
+                                  qual.pos.endOrCursor,
+                                  prefix,
+                                  constructing)
+                  )
                 case _ =>
-                  val prefix = if (patched) "" else src.content.slice(fun.pos.startOrCursor, fun.pos.endOrCursor).mkString
-                  Some(ScopeContext(src, fun.pos.endOrCursor, prefix, constructing))
+                  val prefix =
+                    if (patched) ""
+                    else
+                      src.content
+                        .slice(fun.pos.startOrCursor, fun.pos.endOrCursor)
+                        .mkString
+                  Some(
+                    ScopeContext(src, fun.pos.endOrCursor, prefix, constructing)
+                  )
               }
             case Literal(Constant(_)) => None
             case New(name) =>
-              Some(ScopeContext(src, name.pos.endOrCursor, defaultPrefix, constructing = true))
-            case Select(qualifier, name) if qualifier.pos.isDefined && qualifier.pos.isRange =>
-              Some(MemberContext(src, qualifier.pos.endOrCursor, defaultPrefix, constructing))
+              Some(
+                ScopeContext(src,
+                             name.pos.endOrCursor,
+                             defaultPrefix,
+                             constructing = true)
+              )
+            case Select(qualifier, name)
+                if qualifier.pos.isDefined && qualifier.pos.isRange =>
+              Some(
+                MemberContext(src,
+                              qualifier.pos.endOrCursor,
+                              defaultPrefix,
+                              constructing)
+              )
             case Import(expr, _) =>
-              val topLevel = ImportTopLevelRegexp.findFirstMatchIn(preceding).isDefined
+              val topLevel =
+                ImportTopLevelRegexp.findFirstMatchIn(preceding).isDefined
               if (topLevel) {
-                Some(ScopeContext(src, expr.pos.endOrCursor, defaultPrefix, constructing = false))
+                Some(
+                  ScopeContext(src,
+                               expr.pos.endOrCursor,
+                               defaultPrefix,
+                               constructing = false)
+                )
               } else {
-                Some(MemberContext(src, expr.pos.endOrCursor, defaultPrefix, constructing = false))
+                Some(
+                  MemberContext(src,
+                                expr.pos.endOrCursor,
+                                defaultPrefix,
+                                constructing = false)
+                )
               }
             case other =>
               Some(ScopeContext(src, p.point, defaultPrefix, constructing))
@@ -165,8 +210,8 @@ trait CompletionControl {
             compResults <- makeAll(context, maxResults, caseSens)
             sorted = compResults.sortWith { (c1, c2) =>
               c1.relevance > c2.relevance ||
-                (c1.relevance == c2.relevance &&
-                  c1.name.length < c2.name.length)
+              (c1.relevance == c2.relevance &&
+              c1.name.length < c2.name.length)
             }
             filtered = sorted.take(maxResults)
           } yield CompletionInfoList(context.prefix, filtered)
@@ -177,7 +222,9 @@ trait CompletionControl {
     }
   }
 
-  def makeAll(context: CompletionContext, maxResults: Int, caseSens: Boolean)(implicit ec: ExecutionContext): Future[List[CompletionInfo]] = {
+  def makeAll(context: CompletionContext, maxResults: Int, caseSens: Boolean)(
+    implicit ec: ExecutionContext
+  ): Future[List[CompletionInfo]] = {
 
     def toCompletionInfo(
       context: CompletionContext,
@@ -196,19 +243,19 @@ trait CompletionControl {
       if (sym.isPublic) score += 10
       if (viaView == NoSymbol) score += 10
       if (sym.owner != definitions.AnyClass &&
-        sym.owner != definitions.AnyRefClass &&
-        sym.owner != definitions.ObjectClass) score += 30
+          sym.owner != definitions.AnyRefClass &&
+          sym.owner != definitions.ObjectClass) score += 30
 
       val infos = List(CompletionInfoBuilder.fromSymbolAndType(sym, tpe, score))
 
       if (context.constructing) {
-        val constructorSyns = constructorSynonyms(sym).map {
-          c => CompletionInfoBuilder.fromSymbolAndType(sym, c.tpe, score + 50)
+        val constructorSyns = constructorSynonyms(sym).map { c =>
+          CompletionInfoBuilder.fromSymbolAndType(sym, c.tpe, score + 50)
         }
         infos ++ constructorSyns
       } else {
-        val applySyns = applySynonyms(sym).map {
-          c => CompletionInfoBuilder.fromSymbolAndType(sym, c.tpe, score)
+        val applySyns = applySynonyms(sym).map { c =>
+          CompletionInfoBuilder.fromSymbolAndType(sym, c.tpe, score)
         }
         infos ++ applySyns
       }
@@ -228,7 +275,7 @@ trait CompletionControl {
     }
 
     var members = List[Member]()
-    val x = new Response[List[Member]]
+    val x       = new Response[List[Member]]
     context match {
       case ScopeContext(src, offset, _, _) =>
         askScopeCompletion(rangePos(src, offset, offset, offset), x)
@@ -238,7 +285,7 @@ trait CompletionControl {
     do {
       x.get match {
         case Left(mems) => members ++= mems
-        case _ =>
+        case _          =>
       }
     } while (!x.isComplete)
 
@@ -247,23 +294,30 @@ trait CompletionControl {
     askOption[Unit] {
       val filtered = members.filter { m =>
         val s = m.sym.nameString
-        matchesPrefix(s, context.prefix, matchEntire = false, caseSens = caseSens) && !s.contains("$")
+        matchesPrefix(s,
+                      context.prefix,
+                      matchEntire = false,
+                      caseSens = caseSens) && !s.contains("$")
       }
       for (m <- filtered) {
         m match {
           case m @ ScopeMember(sym, tpe, accessible, viaView) =>
-            val p = sym.pos
+            val p        = sym.pos
             val inSymbol = p.isRange && (context.offset >= p.startOrCursor && context.offset <= p.endOrCursor)
 
             val isBrokenType = tpe match {
               // ByNameParamClass without args is the invalid object. PC generates it when there is no
               // completion context. See the ignored test in RichPresentationCompilerSpec.
               case TypeRef(_, definitions.ByNameParamClass, Nil) => true
-              case _ => false
+              case _                                             => false
             }
 
             if (!sym.isConstructor && !inSymbol & !isBrokenType) {
-              buff ++= toCompletionInfo(context, sym, tpe, inherited = false, NoSymbol)
+              buff ++= toCompletionInfo(context,
+                                        sym,
+                                        tpe,
+                                        inherited = false,
+                                        NoSymbol)
             }
           case m @ TypeMember(sym, tpe, accessible, inherited, viaView) =>
             if (!sym.isConstructor) {
@@ -274,19 +328,20 @@ trait CompletionControl {
       }
     }
 
-    def keywordCompletions(prefix: String): Seq[CompletionInfo] = {
+    def keywordCompletions(prefix: String): Seq[CompletionInfo] =
       if (prefix.length > 0) {
         Keywords.keywordCompletions.filter(_.name.startsWith(prefix))
       } else
         Seq()
-    }
 
     val pcResults = buff.toList
 
     typeSearch
       .getOrElse(Future.successful(None))
       .map { searchResults =>
-        pcResults ++ searchResults.getOrElse(Nil) ++ keywordCompletions(context.prefix)
+        pcResults ++ searchResults.getOrElse(Nil) ++ keywordCompletions(
+          context.prefix
+        )
       }
   }
 
@@ -342,27 +397,37 @@ object Keywords {
 }
 
 object CompletionUtil {
-  val IdentRegexp = """([a-zA-Z0-9_#:<=>@!%&*+/?\\^|~-]*)\z""".r
-  val JavaIdentRegexp = """([a-zA-Z0-9_]+)\z""".r
+  val IdentRegexp          = """([a-zA-Z0-9_#:<=>@!%&*+/?\\^|~-]*)\z""".r
+  val JavaIdentRegexp      = """([a-zA-Z0-9_]+)\z""".r
   val ImportTopLevelRegexp = """import [^\.]*\z""".r
-  val ImportRegexp = """import [a-zA-Z0-9_\.]*\z""".r
-  val ImportSubtypeRegexp = """import [a-z0-9_\.]*[A-Z][a-zA-Z0-9_]*\.[a-zA-Z0-9_\.]*\z""".r
+  val ImportRegexp         = """import [a-zA-Z0-9_\.]*\z""".r
+  val ImportSubtypeRegexp =
+    """import [a-z0-9_\.]*[A-Z][a-zA-Z0-9_]*\.[a-zA-Z0-9_\.]*\z""".r
   val ConstructingRegexp = """new [\.a-zA-Z0-9_]*\z""".r
-  val TypeNameRegex = """^[A-Z][a-zA-Z0-9]*\z""".r
+  val TypeNameRegex      = """^[A-Z][a-zA-Z0-9]*\z""".r
 
-  def matchesPrefix(m: String, prefix: String,
-    matchEntire: Boolean, caseSens: Boolean): Boolean = {
+  def matchesPrefix(m: String,
+                    prefix: String,
+                    matchEntire: Boolean,
+                    caseSens: Boolean): Boolean = {
     val prefixUpper = prefix.toUpperCase
 
-    val prefixRegexp = "[A-Za-z0-9]*" + prefix.replaceAll("(?<!^)([A-Z])", "[A-Za-z0-9]*$1") + "[A-Za-z0-9]*"
+    val prefixRegexp = "[A-Za-z0-9]*" + prefix.replaceAll(
+      "(?<!^)([A-Z])",
+      "[A-Za-z0-9]*$1"
+    ) + "[A-Za-z0-9]*"
 
     (matchEntire && m == prefix) ||
-      (!matchEntire && caseSens && m.startsWith(prefix)) ||
-      (!matchEntire && !caseSens && m.toUpperCase.startsWith(prefixUpper)) ||
-      (!matchEntire && prefix.exists(_.isUpper) && m.matches(prefixRegexp))
+    (!matchEntire && caseSens && m.startsWith(prefix)) ||
+    (!matchEntire && !caseSens && m.toUpperCase.startsWith(prefixUpper)) ||
+    (!matchEntire && prefix.exists(_.isUpper) && m.matches(prefixRegexp))
   }
 
-  def fetchTypeSearchCompletions(prefix: String, maxResults: Int, indexer: ActorRef): Future[Option[List[CompletionInfo]]] = {
+  def fetchTypeSearchCompletions(
+    prefix: String,
+    maxResults: Int,
+    indexer: ActorRef
+  ): Future[Option[List[CompletionInfo]]] = {
     val req = TypeCompletionsReq(prefix, maxResults)
     import scala.concurrent.ExecutionContext.Implicits.{ global => exe }
     val askRes = Patterns.ask(indexer, req, Timeout((1 * dilation).seconds))
@@ -371,11 +436,15 @@ object CompletionUtil {
         s.syms.map { s =>
           CompletionInfo(
             None,
-            s.localName, 40, None
+            s.localName,
+            40,
+            None
           )
         }
       case unknown =>
-        throw new IllegalStateException("Unexpected response type from request:" + unknown)
+        throw new IllegalStateException(
+          "Unexpected response type from request:" + unknown
+        )
     }.map(Some(_)).recover { case _ => None }
   }
 

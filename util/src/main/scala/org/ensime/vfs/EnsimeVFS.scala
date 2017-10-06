@@ -12,17 +12,17 @@ import org.ensime.api.deprecating
 
 @deprecating("https://github.com/ensime/ensime-server/issues/1437")
 abstract class ExtSelector extends FileSelector {
-  def includeFile(f: FileObject): Boolean = include(f.getName.getExtension)
+  def includeFile(f: FileObject): Boolean        = include(f.getName.getExtension)
   def includeFile(info: FileSelectInfo): Boolean = includeFile(info.getFile)
-  def includeFile(f: File): Boolean = include.exists(f.getName.endsWith(_))
-  def traverseDescendents(info: FileSelectInfo) = true
+  def includeFile(f: File): Boolean              = include.exists(f.getName.endsWith(_))
+  def traverseDescendents(info: FileSelectInfo)  = true
   def include: Set[String]
 }
 
 // intended to be used when watching a single jar file
 @deprecating("https://github.com/ensime/ensime-server/issues/1437")
 object JarSelector extends ExtSelector {
-  val include = Set("jar")
+  val include                                            = Set("jar")
   override def traverseDescendents(info: FileSelectInfo) = false
 }
 
@@ -56,7 +56,7 @@ object `package` {
   @deprecating("https://github.com/ensime/ensime-server/issues/1437")
   object URLParamEncoder {
     def encode(input: String): String = {
-      var ofs = 0
+      var ofs       = 0
       val resultStr = new StringBuilder()
       while (ofs < input.length) {
         val ch = input.charAt(ofs)
@@ -75,7 +75,8 @@ object `package` {
     implicit def toFileObject(f: File): FileObject = vfile(f)
 
     private def withContext[T](msg: String)(t: => T): T = try { t } catch {
-      case e: FileSystemException => throw new FileSystemException(e.getMessage + " in " + msg, e)
+      case e: FileSystemException =>
+        throw new FileSystemException(e.getMessage + " in " + msg, e)
     }
 
     def vfile(name: String) = withContext(s"$name =>")(
@@ -91,9 +92,8 @@ object `package` {
       vfs.resolveFile(asUri("jar", jar.getAbsolutePath).intern)
     }
 
-    private def asUri(scheme: String, path: String): String = {
+    private def asUri(scheme: String, path: String): String =
       s"${scheme}:${URLParamEncoder.encode(path)}"
-    }
 
     // WORKAROUND https://issues.apache.org/jira/browse/VFS-594
     def nuke(jar: FileObject) = {

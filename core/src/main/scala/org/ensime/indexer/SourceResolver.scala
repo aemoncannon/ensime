@@ -20,14 +20,15 @@ import scala.concurrent.duration._
 
 // mutable: lookup of user's source files are atomically updated
 class SourceResolver(
-    config: EnsimeConfig
+  config: EnsimeConfig
 )(
-    implicit
-    actorSystem: ActorSystem,
-    vfs: EnsimeVFS
-) extends FileChangeListener with SLF4JLogging {
+  implicit
+  actorSystem: ActorSystem,
+  vfs: EnsimeVFS
+) extends FileChangeListener
+    with SLF4JLogging {
 
-  def fileAdded(f: FileObject) = if (relevant(f)) debouncedUpdate.call()
+  def fileAdded(f: FileObject)   = if (relevant(f)) debouncedUpdate.call()
   def fileRemoved(f: FileObject) = debouncedUpdate.call()
   def fileChanged(f: FileObject) = {}
 
@@ -38,34 +39,38 @@ class SourceResolver(
 
   def resolve(clazz: PackageName, source: RawSource): Option[FileObject] = {
     @tailrec
-    def loop(clazzes: List[PackageName]): Option[FileObject] = {
+    def loop(clazzes: List[PackageName]): Option[FileObject] =
       clazzes match {
         case Nil => None
-        case h :: t => resolveClazz(h, source) match {
-          case None => loop(t)
-          case s @ Some(_) => s
-        }
+        case h :: t =>
+          resolveClazz(h, source) match {
+            case None        => loop(t)
+            case s @ Some(_) => s
+          }
       }
-    }
 
     val size = clazz.path.size
-    val combinations = clazz.path.tails.flatMap(_.inits).filterNot(_.isEmpty).toList
+    val combinations =
+      clazz.path.tails.flatMap(_.inits).filterNot(_.isEmpty).toList
     // Quite offen people put stuff into the root package,
     // so we add empty package after parent packages, just
     // before we try other possible packages
     val combinationsWithEmpty =
-      (combinations.take(size) ::: List.empty[String] :: combinations.drop(size))
+      (combinations.take(size) ::: List
+        .empty[String] :: combinations.drop(size))
         .map(PackageName.apply)
     loop(combinationsWithEmpty)
   }
 
   // we only support the case where RawSource has a Some(filename)
-  private def resolveClazz(clazz: PackageName, source: RawSource): Option[FileObject] =
+  private def resolveClazz(clazz: PackageName,
+                           source: RawSource): Option[FileObject] =
     source.filename match {
       case None => None
-      case Some(filename) => all.get(clazz).flatMap {
-        _.find(_.getName.getBaseName == filename)
-      }
+      case Some(filename) =>
+        all.get(clazz).flatMap {
+          _.find(_.getName.getBaseName == filename)
+        }
     }
 
   def update(): Unit = {
@@ -75,20 +80,20 @@ class SourceResolver(
 
   private def scan(f: FileObject) = f.findFiles(SourceSelector) match {
     case null => Nil
-    case res => res.toList
+    case res  => res.toList
   }
 
   private val depSources = {
     val srcJars = config.referenceSourceJars.toSet ++ {
       for {
-        project <- config.projects
+        project    <- config.projects
         srcArchive <- project.librarySources.map(_.file.toFile)
       } yield srcArchive
     }
     for {
       srcJarFile <- srcJars.toList
       // interestingly, this is able to handle zip files
-      srcJar = vfs.vjar(srcJarFile)
+      srcJar   = vfs.vjar(srcJarFile)
       srcEntry <- scan(srcJar)
       inferred = infer(srcJar, srcEntry)
       // continue to hold a reference to source jars
@@ -101,9 +106,9 @@ class SourceResolver(
   private def userSources = {
     for {
       project <- config.projects
-      root <- project.sources.map(_.file.toFile)
-      dir = vfs.vfile(root)
-      file <- scan(dir)
+      root    <- project.sources.map(_.file.toFile)
+      dir     = vfs.vfile(root)
+      file    <- scan(dir)
     } yield (infer(dir, file), file)
   }.toMultiMapSet
 
@@ -113,7 +118,10 @@ class SourceResolver(
 
   val debouncedUpdate = {
     import actorSystem.dispatcher
-    Debouncer("SourceResolver", actorSystem.scheduler, delay = 5.seconds, maxDelay = 1.hour) { () =>
+    Debouncer("SourceResolver",
+              actorSystem.scheduler,
+              delay = 5.seconds,
+              maxDelay = 1.hour) { () =>
       this.update()
     }
   }

@@ -6,11 +6,11 @@ package spray.json
  * The general type of a JSON AST node.
  */
 sealed abstract class JsValue {
-  override def toString = compactPrint
+  override def toString                      = compactPrint
   def toString(printer: (JsValue => String)) = printer(this)
-  def compactPrint = CompactPrinter(this)
-  def prettyPrint = PrettyPrinter(this)
-  def convertTo[T: JsonReader]: T = JsonReader[T].read(this)
+  def compactPrint                           = CompactPrinter(this)
+  def prettyPrint                            = PrettyPrinter(this)
+  def convertTo[T: JsonReader]: T            = JsonReader[T].read(this)
 }
 
 /**
@@ -18,7 +18,7 @@ sealed abstract class JsValue {
  */
 final case class JsObject(fields: Map[String, JsValue]) extends JsValue
 object JsObject {
-  val empty = JsObject(Map.empty[String, JsValue])
+  val empty                    = JsObject(Map.empty[String, JsValue])
   def apply(members: JsField*) = new JsObject(Map(members: _*))
 }
 
@@ -27,7 +27,7 @@ object JsObject {
  */
 final case class JsArray(elements: Vector[JsValue]) extends JsValue
 object JsArray {
-  val empty = JsArray(Vector.empty)
+  val empty                     = JsArray(Vector.empty)
   def apply(elements: JsValue*) = new JsArray(elements.toVector)
 }
 
@@ -37,7 +37,7 @@ object JsArray {
 final case class JsString(value: String) extends JsValue
 
 object JsString {
-  val empty = JsString("")
+  val empty                = JsString("")
   def apply(value: Symbol) = new JsString(value.name)
 }
 
@@ -47,15 +47,15 @@ object JsString {
 final case class JsNumber(value: BigDecimal) extends JsValue
 object JsNumber {
   val zero: JsNumber = apply(0)
-  def apply(n: Int) = new JsNumber(BigDecimal(n))
+  def apply(n: Int)  = new JsNumber(BigDecimal(n))
   def apply(n: Long) = new JsNumber(BigDecimal(n))
   def apply(n: Double) = n match {
-    case n if n.isNaN => JsNull
+    case n if n.isNaN      => JsNull
     case n if n.isInfinity => JsNull
-    case _ => new JsNumber(BigDecimal(n))
+    case _                 => new JsNumber(BigDecimal(n))
   }
-  def apply(n: BigInt) = new JsNumber(BigDecimal(n))
-  def apply(n: String) = new JsNumber(BigDecimal(n))
+  def apply(n: BigInt)      = new JsNumber(BigDecimal(n))
+  def apply(n: String)      = new JsNumber(BigDecimal(n))
   def apply(n: Array[Char]) = new JsNumber(BigDecimal(n))
 }
 
@@ -66,7 +66,7 @@ sealed abstract class JsBoolean extends JsValue {
   def value: Boolean
 }
 object JsBoolean {
-  def apply(x: Boolean): JsBoolean = if (x) JsTrue else JsFalse
+  def apply(x: Boolean): JsBoolean           = if (x) JsTrue else JsFalse
   def unapply(x: JsBoolean): Option[Boolean] = Some(x.value)
 }
 case object JsTrue extends JsBoolean {

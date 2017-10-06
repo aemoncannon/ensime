@@ -8,31 +8,37 @@ import shapeless._
 /**
  * Provides the JSON deserialization for type T.
  */
-@implicitNotFound(msg = "Cannot find JsonReader or JsonFormat type class for ${T}")
+@implicitNotFound(
+  msg = "Cannot find JsonReader or JsonFormat type class for ${T}"
+)
 trait JsonReader[T] {
   def read(json: JsValue): T
 }
 
 object JsonReader {
   def apply[T](implicit reader: JsonReader[T]): JsonReader[T] = reader
-  implicit def func2Reader[T](f: JsValue => T): JsonReader[T] = new JsonReader[T] {
-    def read(json: JsValue) = f(json)
-  }
+  implicit def func2Reader[T](f: JsValue => T): JsonReader[T] =
+    new JsonReader[T] {
+      def read(json: JsValue) = f(json)
+    }
 }
 
 /**
  * Provides the JSON serialization for type T.
  */
-@implicitNotFound(msg = "Cannot find JsonWriter or JsonFormat type class for ${T}")
+@implicitNotFound(
+  msg = "Cannot find JsonWriter or JsonFormat type class for ${T}"
+)
 trait JsonWriter[T] {
   def write(obj: T): JsValue
 }
 
 object JsonWriter {
   def apply[T](implicit writer: JsonWriter[T]): JsonWriter[T] = writer
-  implicit def func2Writer[T](f: T => JsValue): JsonWriter[T] = new JsonWriter[T] {
-    def write(obj: T) = f(obj)
-  }
+  implicit def func2Writer[T](f: T => JsValue): JsonWriter[T] =
+    new JsonWriter[T] {
+      def write(obj: T) = f(obj)
+    }
 }
 
 /**
@@ -46,20 +52,28 @@ object JsonFormat {
 /**
  * A special JsonReader capable of reading a legal JSON root object, i.e. either a JSON array or a JSON object.
  */
-@implicitNotFound(msg = "Cannot find RootJsonReader or RootJsonFormat type class for ${T}")
+@implicitNotFound(
+  msg = "Cannot find RootJsonReader or RootJsonFormat type class for ${T}"
+)
 trait RootJsonReader[T] extends JsonReader[T]
 
 /**
  * A special JsonWriter capable of writing a legal JSON root object, i.e. either a JSON array or a JSON object.
  */
-@implicitNotFound(msg = "Cannot find RootJsonWriter or RootJsonFormat type class for ${T}")
+@implicitNotFound(
+  msg = "Cannot find RootJsonWriter or RootJsonFormat type class for ${T}"
+)
 trait RootJsonWriter[T] extends JsonWriter[T]
 
 /**
  * A special JsonFormat signaling that the format produces a legal JSON root object, i.e. either a JSON array
  * or a JSON object.
  */
-trait RootJsonFormat[T] extends JsonFormat[T] with RootJsonReader[T] with RootJsonWriter[T]
+trait RootJsonFormat[T]
+    extends JsonFormat[T]
+    with RootJsonReader[T]
+    with RootJsonWriter[T]
 object RootJsonFormat {
-  def apply[T](implicit f: Strict[RootJsonFormat[T]]): RootJsonFormat[T] = f.value
+  def apply[T](implicit f: Strict[RootJsonFormat[T]]): RootJsonFormat[T] =
+    f.value
 }

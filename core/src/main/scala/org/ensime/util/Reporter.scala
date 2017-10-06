@@ -11,19 +11,21 @@ import org.ensime.api._
 import org.ensime.core.PositionBackCompat
 
 trait ReportHandler {
-  def messageUser(@deprecated("local", "") str: String): Unit = {}
-  def clearAllScalaNotes(): Unit = {}
+  def messageUser(@deprecated("local", "") str: String): Unit            = {}
+  def clearAllScalaNotes(): Unit                                         = {}
   def reportScalaNotes(@deprecated("local", "") notes: List[Note]): Unit = {}
-  def clearAllJavaNotes(): Unit = {}
-  def reportJavaNotes(@deprecated("local", "") notes: List[Note]): Unit = {}
+  def clearAllJavaNotes(): Unit                                          = {}
+  def reportJavaNotes(@deprecated("local", "") notes: List[Note]): Unit  = {}
 }
 
-class PresentationReporter(handler: ReportHandler) extends Reporter with PositionBackCompat {
+class PresentationReporter(handler: ReportHandler)
+    extends Reporter
+    with PositionBackCompat {
 
-  val log = LoggerFactory.getLogger(classOf[PresentationReporter])
+  val log             = LoggerFactory.getLogger(classOf[PresentationReporter])
   private var enabled = true
-  def enable(): Unit = { enabled = true }
-  def disable(): Unit = { enabled = false }
+  def enable(): Unit  = enabled = true
+  def disable(): Unit = enabled = false
 
   override def reset(): Unit = {
     super.reset()
@@ -32,7 +34,10 @@ class PresentationReporter(handler: ReportHandler) extends Reporter with Positio
     }
   }
 
-  override def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+  override def info0(pos: Position,
+                     msg: String,
+                     severity: Severity,
+                     force: Boolean): Unit = {
     severity.count += 1
     try {
       if (severity.id == 0) {
@@ -41,7 +46,7 @@ class PresentationReporter(handler: ReportHandler) extends Reporter with Positio
         if (enabled) {
           if (pos.isDefined) {
             val source = pos.source
-            val f = source.file.absolute.path
+            val f      = source.file.absolute.path
             val posColumn = if (pos.point == -1) {
               0
             } else {

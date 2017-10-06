@@ -8,42 +8,52 @@ import org.ensime.indexer._
 import org.ensime.util.EnsimeSpec
 import org.ensime.vfs._
 
-class ScalapSymbolToFqnSpec extends EnsimeSpec
+class ScalapSymbolToFqnSpec
+    extends EnsimeSpec
     with IsolatedRichPresentationCompilerFixture
     with RichPresentationCompilerTestUtils
     with ReallyRichPresentationCompilerFixture {
 
   override def original: EnsimeConfig = EnsimeConfigFixture.FqnsTestProject
 
-  private def verify(javaName: FullyQualifiedName, scalaName: String, declaredAs: DeclaredAs, cc: RichPresentationCompiler): Unit = {
-    val byJavaName = cc.askSymbolByFqn(javaName).get
+  private def verify(javaName: FullyQualifiedName,
+                     scalaName: String,
+                     declaredAs: DeclaredAs,
+                     cc: RichPresentationCompiler): Unit = {
+    val byJavaName  = cc.askSymbolByFqn(javaName).get
     val byScalaName = cc.askSymbolByScalaName(scalaName, Some(declaredAs)).get
     byJavaName should not be a[cc.NoSymbol]
     javaName match {
       case FieldName(_, _) => byJavaName shouldBe a[cc.TermSymbol]
-      case _ =>
+      case _               =>
     }
     byScalaName.fullName should ===(byJavaName.fullName)
   }
 
-  "ScalapSymbolToFqn" should "find and resolve class names defined in Predef" in withPresCompiler { (_, cc) =>
-    val vfs = cc.vfs
+  "ScalapSymbolToFqn" should "find and resolve class names defined in Predef" in withPresCompiler {
+    (_, cc) =>
+      val vfs = cc.vfs
 
-    val predef = vfs.vres("scala/Predef.class")
-    val definedClassNames = new ClassfileDepickler(predef).getClasses
-    definedClassNames.foreach {
-      case (_, scalaClass) =>
-        verify(scalaClass.javaName, scalaClass.scalaName, scalaClass.declaredAs, cc)
-    }
+      val predef            = vfs.vres("scala/Predef.class")
+      val definedClassNames = new ClassfileDepickler(predef).getClasses
+      definedClassNames.foreach {
+        case (_, scalaClass) =>
+          verify(scalaClass.javaName,
+                 scalaClass.scalaName,
+                 scalaClass.declaredAs,
+                 cc)
+      }
   }
 
-  it should "find and resolve field names in Predef" in withPresCompiler { (_, cc) =>
-    val vfs = cc.vfs
+  it should "find and resolve field names in Predef" in withPresCompiler {
+    (_, cc) =>
+      val vfs = cc.vfs
 
-    val predef = vfs.vres("scala/Predef.class")
-    val fieldNames = new ClassfileDepickler(predef).getClasses.values.flatMap(_.fields.values)
-    fieldNames.foreach { field =>
-      verify(field.javaName, field.scalaName, DeclaredAs.Field, cc)
-    }
+      val predef = vfs.vres("scala/Predef.class")
+      val fieldNames = new ClassfileDepickler(predef).getClasses.values
+        .flatMap(_.fields.values)
+      fieldNames.foreach { field =>
+        verify(field.javaName, field.scalaName, DeclaredAs.Field, cc)
+      }
   }
 }

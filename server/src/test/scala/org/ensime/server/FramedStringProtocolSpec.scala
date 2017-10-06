@@ -10,19 +10,21 @@ class FramedStringProtocolSpec extends EnsimeSpec {
 
   // subclassed FramedStringProtocol so we can get access we want to test
   trait Proto extends FramedStringProtocol {
-    override def decode(bytes: ByteString): (Option[RpcRequestEnvelope], ByteString) = ???
+    override def decode(
+      bytes: ByteString
+    ): (Option[RpcRequestEnvelope], ByteString)               = ???
     override def encode(msg: RpcResponseEnvelope): ByteString = ???
   }
 
   "FramedStringProtocol" should "write framed strings" in new Proto {
-    val buffer = writeString("foobar")
+    val buffer  = writeString("foobar")
     val written = buffer.utf8String
 
     written shouldBe "000006foobar"
   }
 
   it should "write multi-byte UTF-8 strings" in new Proto {
-    val buffer = writeString("€")
+    val buffer  = writeString("€")
     val written = buffer.utf8String
 
     written shouldBe "000003€"

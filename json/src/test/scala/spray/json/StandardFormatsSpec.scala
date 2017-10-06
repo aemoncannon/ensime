@@ -15,7 +15,9 @@ class StandardFormatsSpec extends WordSpec with DefaultJsonProtocol {
       JsNull.convertTo[Option[Int]] shouldEqual None
     }
     "convert Some(Hello) to JsString(Hello)" in {
-      Some("Hello").asInstanceOf[Option[String]].toJson shouldEqual JsString("Hello")
+      Some("Hello").asInstanceOf[Option[String]].toJson shouldEqual JsString(
+        "Hello"
+      )
     }
     "convert JsString(Hello) to Some(Hello)" in {
       JsString("Hello").convertTo[Option[String]] shouldEqual Some("Hello")
@@ -36,7 +38,9 @@ class StandardFormatsSpec extends WordSpec with DefaultJsonProtocol {
       JsNumber(42).convertTo[Either[Int, String]] shouldEqual Left(42)
     }
     "convert the right side of an Either value from Json" in {
-      JsString("Hello").convertTo[Either[Int, String]] shouldEqual Right("Hello")
+      JsString("Hello").convertTo[Either[Int, String]] shouldEqual Right(
+        "Hello"
+      )
     }
   }
 
@@ -78,30 +82,60 @@ class StandardFormatsSpec extends WordSpec with DefaultJsonProtocol {
     }
   }
   "The tuple5Format" should {
-    val json = JsArray(JsNumber(42), JsNumber(4.2), JsNumber(3), JsNumber(4), JsNumber(5))
+    val json = JsArray(JsNumber(42),
+                       JsNumber(4.2),
+                       JsNumber(3),
+                       JsNumber(4),
+                       JsNumber(5))
     "convert (42, 4.2, 3, 4, 5) to a JsArray" in {
       (42, 4.2, 3, 4, 5).toJson shouldEqual json
     }
     "be able to convert a JsArray to a (Int, Double, Int, Int, Int)]" in {
-      json.convertTo[(Int, Double, Int, Int, Int)] shouldEqual ((42, 4.2, 3, 4, 5))
+      json.convertTo[(Int, Double, Int, Int, Int)] shouldEqual ((42,
+                                                                 4.2,
+                                                                 3,
+                                                                 4,
+                                                                 5))
     }
   }
   "The tuple6Format" should {
-    val json = JsArray(JsNumber(42), JsNumber(4.2), JsNumber(3), JsNumber(4), JsNumber(5), JsNumber(6))
+    val json = JsArray(JsNumber(42),
+                       JsNumber(4.2),
+                       JsNumber(3),
+                       JsNumber(4),
+                       JsNumber(5),
+                       JsNumber(6))
     "convert (42, 4.2, 3, 4, 5, 6) to a JsArray" in {
       (42, 4.2, 3, 4, 5, 6).toJson shouldEqual json
     }
     "be able to convert a JsArray to a (Int, Double, Int, Int, Int, Int)]" in {
-      json.convertTo[(Int, Double, Int, Int, Int, Int)] shouldEqual ((42, 4.2, 3, 4, 5, 6))
+      json.convertTo[(Int, Double, Int, Int, Int, Int)] shouldEqual ((42,
+                                                                      4.2,
+                                                                      3,
+                                                                      4,
+                                                                      5,
+                                                                      6))
     }
   }
   "The tuple7Format" should {
-    val json = JsArray(JsNumber(42), JsNumber(4.2), JsNumber(3), JsNumber(4), JsNumber(5), JsNumber(6), JsNumber(7))
+    val json = JsArray(JsNumber(42),
+                       JsNumber(4.2),
+                       JsNumber(3),
+                       JsNumber(4),
+                       JsNumber(5),
+                       JsNumber(6),
+                       JsNumber(7))
     "convert (42, 4.2, 3, 4, 5, 6, 7) to a JsArray" in {
       (42, 4.2, 3, 4, 5, 6, 7).toJson shouldEqual json
     }
     "be able to convert a JsArray to a (Int, Double, Int, Int, Int, Int, Int)]" in {
-      json.convertTo[(Int, Double, Int, Int, Int, Int, Int)] shouldEqual ((42, 4.2, 3, 4, 5, 6, 7))
+      json.convertTo[(Int, Double, Int, Int, Int, Int, Int)] shouldEqual ((42,
+                                                                           4.2,
+                                                                           3,
+                                                                           4,
+                                                                           5,
+                                                                           6,
+                                                                           7))
     }
   }
 }

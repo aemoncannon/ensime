@@ -15,7 +15,12 @@ import com.orientechnologies.orient.core.metadata.schema.OClass
 import com.tinkerpop.blueprints._
 import com.tinkerpop.blueprints.impls.orient._
 import org.ensime.indexer.graph._
-import org.ensime.indexer.graph.GraphService.{ EnclosingClass, IsParent, UsedAt, UsedIn }
+import org.ensime.indexer.graph.GraphService.{
+  EnclosingClass,
+  IsParent,
+  UsedAt,
+  UsedIn
+}
 import org.ensime.indexer.orientdb.api._
 import org.ensime.indexer.orientdb.schema.api._
 import org.ensime.util.stringymap.api._
@@ -87,7 +92,10 @@ package object syntax {
       id: OrientIdFormat[T, F]
     ): RichOrientGraph = {
       val label = tpe.describe.replace(".type", "")
-      graph.createKeyIndex(id.key, tag.aClass, "type" -> idx.orientKey, "class" -> label)
+      graph.createKeyIndex(id.key,
+                           tag.aClass,
+                           "type"  -> idx.orientKey,
+                           "class" -> label)
       this
     }
 
@@ -123,7 +131,9 @@ package object syntax {
 
   import org.ensime.indexer.orientdb.api._
 
-  implicit def RichParameter(props: (String, String)): Parameter[String, String] =
+  implicit def RichParameter(
+    props: (String, String)
+  ): Parameter[String, String] =
     new Parameter(props._1, props._2)
 
   implicit class RichVertex(val v: Vertex) extends AnyVal {
@@ -143,24 +153,29 @@ package object syntax {
 
     def getProperty[P](key: String): P = v.underlying.getProperty[P](key)
 
-    def setProperty[P](key: String, p: P): Unit = v.underlying.setProperty(key, p)
+    def setProperty[P](key: String, p: P): Unit =
+      v.underlying.setProperty(key, p)
 
     def getInVertices[S, E <: EdgeT[S, T]](
       implicit
       bdf: BigDataFormat[E]
-    ): Iterable[VertexT[S]] = v.underlying.getVertices(Direction.IN, bdf.label).asScala.map(VertexT[S])
+    ): Iterable[VertexT[S]] =
+      v.underlying.getVertices(Direction.IN, bdf.label).asScala.map(VertexT[S])
 
     def getOutVertices[S, E](
       implicit
       bdf: BigDataFormat[E]
-    ): Iterable[VertexT[S]] = v.underlying.getVertices(Direction.OUT, bdf.label).asScala.map(VertexT[S])
+    ): Iterable[VertexT[S]] =
+      v.underlying.getVertices(Direction.OUT, bdf.label).asScala.map(VertexT[S])
   }
 
   /**
    * Creates a context to communicate with the Graph.
    *  Commits are not automatic for performance reasons.
    */
-  def withGraph[T](f: OrientBaseGraph => T)(implicit factory: OrientGraphFactory): T = {
+  def withGraph[T](
+    f: OrientBaseGraph => T
+  )(implicit factory: OrientGraphFactory): T = {
     val g = factory.getTx()
     try f(g)
     finally g.shutdown()
@@ -178,22 +193,25 @@ package object syntax {
   // the presentation complier doesn't like it if we enrich the Graph,
   // so do it this way instead
   object RichGraph extends SLF4JLogging {
+
     /** Side-effecting vertex insertion. */
-    def insertV[T](t: T)(implicit graph: OrientBaseGraph, s: BigDataFormat[T]): VertexT[T] = {
+    def insertV[T](t: T)(implicit graph: OrientBaseGraph,
+                         s: BigDataFormat[T]): VertexT[T] = {
       val props = t.toProperties
-      val v = graph.addVertex("class:" + t.label, props)
+      val v     = graph.addVertex("class:" + t.label, props)
       VertexT[T](v)
     }
 
     // e: E is taken as a way of providing the E type but without having to provide O and I
-    def insertE[O, I, E <: EdgeT[O, I]](out: VertexT[O], in: VertexT[I], @deprecated("local", "") e: E)(
+    def insertE[O, I, E <: EdgeT[O, I]](out: VertexT[O],
+                                        in: VertexT[I],
+                                        @deprecated("local", "") e: E)(
       implicit
       graph: Graph,
       @deprecated("local", "") tpe: shapeless.Typeable[E],
       ser: BigDataFormat[E]
-    ): Unit = {
+    ): Unit =
       graph.addEdge("class:" + ser.label, out.underlying, in.underlying, null)
-    }
 
     /**
      * Obtain a unique vertex representing an entity of type `T` with a field equal to value.
@@ -207,19 +225,27 @@ package object syntax {
       s: BigDataFormat[T],
       u: OrientIdFormat[T, P],
       p: SPrimitive[P]
-    ): Option[VertexT[T]] = {
-      graph.getVertices(s.label + "." + u.key, p.toValue(value))
-        .asScala.toList match {
-          case Nil => None
-          case head :: Nil => Some(VertexT(head))
-          case multi => throw new IllegalStateException(s"multiple hits ${multi.size}")
-        }
-    }
+    ): Option[VertexT[T]] =
+      graph
+        .getVertices(s.label + "." + u.key, p.toValue(value))
+        .asScala
+        .toList match {
+        case Nil         => None
+        case head :: Nil => Some(VertexT(head))
+        case multi =>
+          throw new IllegalStateException(s"multiple hits ${multi.size}")
+      }
 
     // hack is needed to filter out "partial" entries (i.e. those
     // added because they are only one side of an edge)
-    def findV[T](hack: String)(p: T => Boolean)(implicit g: OrientBaseGraph, f: BigDataFormat[T]): Seq[T] =
-      g.getVerticesOfClass(f.label).asScala.filter(_.getPropertyKeys.contains(hack)).map(_.to[T]).filter(p).toList
+    def findV[T](hack: String)(p: T => Boolean)(implicit g: OrientBaseGraph,
+                                                f: BigDataFormat[T]): Seq[T] =
+      g.getVerticesOfClass(f.label)
+        .asScala
+        .filter(_.getPropertyKeys.contains(hack))
+        .map(_.to[T])
+        .filter(p)
+        .toList
 
     def upsertV[T, P](
       t: T
@@ -229,12 +255,12 @@ package object syntax {
       s: BigDataFormat[T],
       u: OrientIdFormat[T, P],
       p: SPrimitive[P]
-    ): VertexT[T] = {
+    ): VertexT[T] =
       readUniqueV(u.value(t)) match {
         case None => insertV(t)
         case Some(existing) =>
-          val v = existing.underlying
-          val old = v.getPropertyMap.asScala
+          val v       = existing.underlying
+          val old     = v.getPropertyMap.asScala
           val updates = t.toProperties.asScala
 
           updates.foreach {
@@ -245,7 +271,6 @@ package object syntax {
 
           existing
       }
-    }
 
     def insertIfNotExists[T, P](
       t: T
@@ -255,12 +280,11 @@ package object syntax {
       s: BigDataFormat[T],
       u: OrientIdFormat[T, P],
       p: SPrimitive[P]
-    ): VertexT[T] = {
+    ): VertexT[T] =
       readUniqueV(u.value(t)) match {
-        case None => insertV(t)
+        case None           => insertV(t)
         case Some(existing) => existing
       }
-    }
 
     /**
      * Removes a vertex, representing `t`, from the graph.
@@ -333,10 +357,11 @@ package object syntax {
       implicit
       graph: OrientBaseGraph,
       s: BigDataFormat[T]
-    ): List[T] = {
-      graph.getVerticesOfClass(s.label)
-        .asScala.map(_.to[T])(collection.breakOut)
-    }
+    ): List[T] =
+      graph
+        .getVerticesOfClass(s.label)
+        .asScala
+        .map(_.to[T])(collection.breakOut)
 
     // this is domain specific and should not be here (a general Orient layer)
     def classHierarchy[P: Ordering](
@@ -357,7 +382,7 @@ package object syntax {
         noOfTimesLeft: Option[Int] = None
       ): Hierarchy = {
         val vertices: Iterable[VertexT[ClassDef]] = hierarchyType match {
-          case Hierarchy.Subtypes => v.getInVertices[ClassDef, IsParent.type]
+          case Hierarchy.Subtypes   => v.getInVertices[ClassDef, IsParent.type]
           case Hierarchy.Supertypes => v.getOutVertices[ClassDef, IsParent.type]
         }
         vertices.toList match {
@@ -365,9 +390,13 @@ package object syntax {
           case xs =>
             noOfTimesLeft match {
               case None =>
-                TypeHierarchy(v.toDomain, xs.sortBy(_.getProperty[P](u.key)).map(traverseClassHierarchy(_)))
+                TypeHierarchy(v.toDomain,
+                              xs.sortBy(_.getProperty[P](u.key))
+                                .map(traverseClassHierarchy(_)))
               case Some(n) if n > 0 =>
-                TypeHierarchy(v.toDomain, xs.sortBy(_.getProperty[P](u.key)).map(traverseClassHierarchy(_, Some(n - 1))))
+                TypeHierarchy(v.toDomain,
+                              xs.sortBy(_.getProperty[P](u.key))
+                                .map(traverseClassHierarchy(_, Some(n - 1))))
               case _ =>
                 TypeHierarchy(v.toDomain, xs.map(_.toDomain))
             }
@@ -376,7 +405,8 @@ package object syntax {
       }
 
       readUniqueV[ClassDef, P](value) match {
-        case Some(vertexT) => Some(traverseClassHierarchy(vertexT, levels.map(_ - 1)))
+        case Some(vertexT) =>
+          Some(traverseClassHierarchy(vertexT, levels.map(_ - 1)))
         case None => None
       }
     }
@@ -391,9 +421,11 @@ package object syntax {
       oid: OrientIdFormat[FqnSymbol, P],
       p: SPrimitive[P]
     ): Seq[VertexT[UsageLocation]] = {
-      import GraphService.{ UsedAtS, UsedInS, EnclosingClassS }
+      import GraphService.{ EnclosingClassS, UsedAtS, UsedInS }
 
-      def traverseEnclosingClasses(v: VertexT[FqnSymbol]): Iterable[VertexT[FqnSymbol]] = {
+      def traverseEnclosingClasses(
+        v: VertexT[FqnSymbol]
+      ): Iterable[VertexT[FqnSymbol]] = {
         val vertices = v.getInVertices[FqnSymbol, EnclosingClass.type]
         vertices ++ vertices.flatMap(traverseEnclosingClasses)
       }
@@ -401,10 +433,12 @@ package object syntax {
       readUniqueV[FqnSymbol, P](value) match {
         case Some(vertexT) =>
           val innerClasses = traverseEnclosingClasses(vertexT).toList
-          (vertexT :: innerClasses).flatMap(_.getOutVertices[UsageLocation, UsedAt.type])
+          (vertexT :: innerClasses)
+            .flatMap(_.getOutVertices[UsageLocation, UsedAt.type])
             .filterNot { vertex =>
               val usedIn = vertex.getOutVertices[FqnSymbol, UsedIn.type].head
-              val enclosingClass = usedIn.getOutVertices[FqnSymbol, EnclosingClass.type].toList
+              val enclosingClass =
+                usedIn.getOutVertices[FqnSymbol, EnclosingClass.type].toList
               (usedIn :: enclosingClass).contains(vertexT)
             }
         case None => Seq.empty
@@ -424,8 +458,12 @@ package object syntax {
 
       readUniqueV[FqnSymbol, P](value) match {
         case Some(vertexT) =>
-          val intermediary: Seq[VertexT[UsageLocation]] = findUsageLocations(value)
-          intermediary.map(_.getOutVertices[FqnSymbol, UsedIn.type].head).distinct
+          val intermediary: Seq[VertexT[UsageLocation]] = findUsageLocations(
+            value
+          )
+          intermediary
+            .map(_.getOutVertices[FqnSymbol, UsedIn.type].head)
+            .distinct
         case None => Seq.empty
       }
     }

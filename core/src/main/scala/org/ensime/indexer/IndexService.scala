@@ -28,11 +28,11 @@ object IndexService extends SLF4JLogging {
   class FqnAnalyzer extends DynamicSynonymAnalyzer {
     private def cases(s: String) = List(s, s.toLowerCase)
     override def synonyms(term: String): Set[String] = {
-      val (path, name) = term.replaceAll("\\(.*", "").split('.').toList.initLast
-      def camel(s: String) = s.filter(_.isUpper)
+      val (path, name)      = term.replaceAll("\\(.*", "").split('.').toList.initLast
+      def camel(s: String)  = s.filter(_.isUpper)
       def spacey(s: String) = List(s, s.replace('.', ' '))
 
-      val shortPkg = path.map(_.charAt(0)).mkString("", ".", "." + name)
+      val shortPkg   = path.map(_.charAt(0)).mkString("", ".", "." + name)
       val innerNames = name.split('$').flatMap(cases)
 
       Set(term, name, camel(name)) ++ innerNames ++ spacey(shortPkg)
@@ -44,12 +44,15 @@ object IndexService extends SLF4JLogging {
     def fqn: String
     def id = fqn
   }
-  final case class ClassIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
-  final case class MethodIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
-  final case class FieldIndex(fqn: String, file: Option[FileCheck]) extends FqnIndex
+  final case class ClassIndex(fqn: String, file: Option[FileCheck])
+      extends FqnIndex
+  final case class MethodIndex(fqn: String, file: Option[FileCheck])
+      extends FqnIndex
+  final case class FieldIndex(fqn: String, file: Option[FileCheck])
+      extends FqnIndex
   abstract class AFqnIndexS[T <: FqnIndex](
-      tpe: Typeable[T],
-      cons: (String, Option[FileCheck]) => T
+    tpe: Typeable[T],
+    cons: (String, Option[FileCheck]) => T
   ) extends EntityS(tpe) {
     def addFields(doc: Document, i: T): Unit = {
       doc.add(new TextField("file", i.file.get.filename, Store.NO))
@@ -57,42 +60,53 @@ object IndexService extends SLF4JLogging {
     }
     def toEntity(d: Document): T = cons(d.get("fqn"), None)
   }
-  implicit object ClassIndexS extends AFqnIndexS(Typeable[ClassIndex], ClassIndex)
-  implicit object MethodIndexS extends AFqnIndexS(Typeable[MethodIndex], MethodIndex)
-  implicit object FieldIndexS extends AFqnIndexS(Typeable[FieldIndex], FieldIndex)
+  implicit object ClassIndexS
+      extends AFqnIndexS(Typeable[ClassIndex], ClassIndex)
+  implicit object MethodIndexS
+      extends AFqnIndexS(Typeable[MethodIndex], MethodIndex)
+  implicit object FieldIndexS
+      extends AFqnIndexS(Typeable[FieldIndex], FieldIndex)
   implicit object FqnIndexS extends DocumentRecovery[FqnIndex] {
     def toEntity(d: Document) = d.get("TYPE") match {
-      case "ClassIndex" => ClassIndexS.toEntity(d)
+      case "ClassIndex"  => ClassIndexS.toEntity(d)
       case "MethodIndex" => MethodIndexS.toEntity(d)
-      case "FieldIndex" => FieldIndexS.toEntity(d)
-      case o => throw new IllegalStateException(o)
+      case "FieldIndex"  => FieldIndexS.toEntity(d)
+      case o             => throw new IllegalStateException(o)
     }
   }
-  private val ClassIndexT = new TermQuery(new Term("TYPE", classOf[ClassIndex].getSimpleName))
-  private val MethodIndexT = new TermQuery(new Term("TYPE", classOf[MethodIndex].getSimpleName))
-  private val FieldIndexT = new TermQuery(new Term("TYPE", classOf[FieldIndex].getSimpleName))
+  private val ClassIndexT = new TermQuery(
+    new Term("TYPE", classOf[ClassIndex].getSimpleName)
+  )
+  private val MethodIndexT = new TermQuery(
+    new Term("TYPE", classOf[MethodIndex].getSimpleName)
+  )
+  private val FieldIndexT = new TermQuery(
+    new Term("TYPE", classOf[FieldIndex].getSimpleName)
+  )
 
   /**
    * Like `PrefixQuery` but gives a higher value to exact matches.
    * [Stack Overflow](http://stackoverflow.com/questions/17723025)
    */
-  def boostedPrefixQuery(t: Term): Query = new BooleanQuery.Builder().
-    add(new PrefixQuery(t), Occur.SHOULD).
-    add(new TermQuery(t), Occur.SHOULD).
-    build()
+  def boostedPrefixQuery(t: Term): Query =
+    new BooleanQuery.Builder()
+      .add(new PrefixQuery(t), Occur.SHOULD)
+      .add(new TermQuery(t), Occur.SHOULD)
+      .build()
 
-  def boostedPrefixQuery(t: Term, camelCaseTerm: Term): Query = new BooleanQuery.Builder().
-    add(new PrefixQuery(t), Occur.SHOULD).
-    add(new TermQuery(t), Occur.SHOULD).
-    add(new WildcardQuery(camelCaseTerm), Occur.SHOULD).
-    build()
+  def boostedPrefixQuery(t: Term, camelCaseTerm: Term): Query =
+    new BooleanQuery.Builder()
+      .add(new PrefixQuery(t), Occur.SHOULD)
+      .add(new TermQuery(t), Occur.SHOULD)
+      .add(new WildcardQuery(camelCaseTerm), Occur.SHOULD)
+      .build()
 }
 
 class IndexService(path: Path)(implicit ec: ExecutionContext) {
   import org.ensime.indexer.IndexService._
 
   private val analyzers = Map(
-    "fqn" -> new FqnAnalyzer,
+    "fqn"  -> new FqnAnalyzer,
     "file" -> new KeywordAnalyzer
   )
 
@@ -103,19 +117,26 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
     1 - .25f * nonTrailing$s
   }
 
-  private def calculateCamelCaseTerm(q: String): Term = new Term("fqn", q.replaceAll("(?<!^)([A-Z])", "*$1") + "*")
+  private def calculateCamelCaseTerm(q: String): Term =
+    new Term("fqn", q.replaceAll("(?<!^)([A-Z])", "*$1") + "*")
 
-  def persist(symbols: List[SourceSymbolInfo], commit: Boolean, boost: Boolean): Future[Unit] = {
+  def persist(symbols: List[SourceSymbolInfo],
+              commit: Boolean,
+              boost: Boolean): Future[Unit] = {
     val fqns: List[Document] = symbols.collect {
-      case ClassSymbolInfo(f, _, _, _, classSymbol, scalap, _) if !classSymbol.isScala || scalap.isDefined =>
-        val fqn = classSymbol.name.fqnString
-        val penalty = calculatePenalty(fqn)
+      case ClassSymbolInfo(f, _, _, _, classSymbol, scalap, _)
+          if !classSymbol.isScala || scalap.isDefined =>
+        val fqn      = classSymbol.name.fqnString
+        val penalty  = calculatePenalty(fqn)
         val document = ClassIndex(fqn, Some(f)).toDocument
         document.boostText("fqn", penalty)
         document
-      case MethodSymbolInfo(f, _, _, methodSymbol, _) => MethodIndex(methodSymbol.name.fqnString, Some(f)).toDocument
-      case FieldSymbolInfo(f, _, _, fieldSymbol, _) => FieldIndex(fieldSymbol.name.fqnString, Some(f)).toDocument
-      case TypeAliasSymbolInfo(f, _, t) => FieldIndex(t.javaName.fqnString, Some(f)).toDocument
+      case MethodSymbolInfo(f, _, _, methodSymbol, _) =>
+        MethodIndex(methodSymbol.name.fqnString, Some(f)).toDocument
+      case FieldSymbolInfo(f, _, _, fieldSymbol, _) =>
+        FieldIndex(fieldSymbol.name.fqnString, Some(f)).toDocument
+      case TypeAliasSymbolInfo(f, _, t) =>
+        FieldIndex(t.javaName.fqnString, Some(f)).toDocument
     }(collection.breakOut)
 
     if (boost) {
@@ -128,7 +149,7 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
     lucene.create(fqns, commit)
   }
 
-  def commit(): Future[Unit] = {
+  def commit(): Future[Unit] =
     lucene.commit().recover {
       case e: FileNotFoundException =>
         // one of those useless exceptions that is either harmless
@@ -137,42 +158,48 @@ class IndexService(path: Path)(implicit ec: ExecutionContext) {
         log.error("the Lucene database was deleted: " + e.getMessage)
         ()
     }
-  }
 
   def remove(fs: List[FileObject]): Future[Unit] = {
-    val terms = fs.map { f => new TermQuery(new Term("file", f.uriString)) }
+    val terms = fs.map { f =>
+      new TermQuery(new Term("file", f.uriString))
+    }
     lucene.delete(terms, commit = false) // don't commit yet
   }
 
   def searchClasses(query: String, max: Int): Future[List[ClassIndex]] = {
-    val q = new BooleanQuery.Builder().
-      add(boostedPrefixQuery(new Term("fqn", query), calculateCamelCaseTerm(query)), Occur.MUST).
-      add(ClassIndexT, Occur.MUST).
-      build()
+    val q = new BooleanQuery.Builder()
+      .add(boostedPrefixQuery(new Term("fqn", query),
+                              calculateCamelCaseTerm(query)),
+           Occur.MUST)
+      .add(ClassIndexT, Occur.MUST)
+      .build()
 
     lucene.search(q, max).map(_.map(_.toEntity[ClassIndex]).distinct)
   }
 
-  def searchClassesMethods(terms: List[String], max: Int): Future[List[FqnIndex]] = {
+  def searchClassesMethods(terms: List[String],
+                           max: Int): Future[List[FqnIndex]] = {
     val query = new DisjunctionMaxQuery(
-      terms.map(buildTermClassMethodQuery).asJavaCollection, 0f
+      terms.map(buildTermClassMethodQuery).asJavaCollection,
+      0f
     )
     lucene.search(query, max).map(_.map(_.toEntity[ClassIndex]).distinct)
   }
 
-  def buildTermClassMethodQuery(query: String): Query = {
-    new BooleanQuery.Builder().
-      add(boostedPrefixQuery(new Term("fqn", query), calculateCamelCaseTerm(query)), Occur.MUST).
-      add(
-        new BooleanQuery.Builder().
-          add(ClassIndexT, Occur.SHOULD).
-          add(FieldIndexT, Occur.MUST_NOT).
-          add(MethodIndexT, Occur.SHOULD).
-          build(),
+  def buildTermClassMethodQuery(query: String): Query =
+    new BooleanQuery.Builder()
+      .add(boostedPrefixQuery(new Term("fqn", query),
+                              calculateCamelCaseTerm(query)),
+           Occur.MUST)
+      .add(
+        new BooleanQuery.Builder()
+          .add(ClassIndexT, Occur.SHOULD)
+          .add(FieldIndexT, Occur.MUST_NOT)
+          .add(MethodIndexT, Occur.SHOULD)
+          .build(),
         Occur.MUST
-      ).
-        build()
-  }
+      )
+      .build()
 
   def shutdown(): Future[Unit] = lucene.shutdown()
 }

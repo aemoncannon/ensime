@@ -4,6 +4,7 @@ package org.ensime.util
 
 package object option {
   implicit class RichOption[T](o: Option[T]) {
-    def getOrThrow(msg: String): T = o.getOrElse(throw new IllegalArgumentException(msg))
+    def getOrThrow(msg: String): T =
+      o.getOrElse(throw new IllegalArgumentException(msg))
   }
 }

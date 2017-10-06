@@ -45,12 +45,16 @@ class CompactPrinterSpec extends WordSpec {
       CompactPrinter(JsString("\uD834\uDD1E")) shouldEqual "\"\uD834\uDD1E\""
     }
     "properly print a simple JsObject" in (
-      CompactPrinter(JsObject("key" -> JsNumber(42), "key2" -> JsString("value")))
-      shouldEqual """{"key":42,"key2":"value"}"""
+      CompactPrinter(
+        JsObject("key" -> JsNumber(42), "key2" -> JsString("value"))
+      )
+        shouldEqual """{"key":42,"key2":"value"}"""
     )
     "properly print a simple JsArray" in (
-      CompactPrinter(JsArray(JsNull, JsNumber(1.23), JsObject("key" -> JsBoolean(true))))
-      shouldEqual """[null,1.23,{"key":true}]"""
+      CompactPrinter(
+        JsArray(JsNull, JsNumber(1.23), JsObject("key" -> JsBoolean(true)))
+      )
+        shouldEqual """[null,1.23,{"key":true}]"""
     )
     "properly print a JSON padding (JSONP) if requested" in {
       CompactPrinter(JsTrue, Some("customCallback")) shouldEqual ("customCallback(true)")

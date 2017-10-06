@@ -11,12 +11,14 @@ import org.ensime.util.ReportHandler
 import org.ensime.util.FileUtils
 
 class JavaAnalyzer(
-    broadcaster: ActorRef,
-    indexer: ActorRef,
-    search: SearchService,
-    implicit val config: EnsimeConfig,
-    implicit val vfs: EnsimeVFS
-) extends Actor with Stash with ActorLogging {
+  broadcaster: ActorRef,
+  indexer: ActorRef,
+  search: SearchService,
+  implicit val config: EnsimeConfig,
+  implicit val vfs: EnsimeVFS
+) extends Actor
+    with Stash
+    with ActorLogging {
 
   protected var javaCompiler: JavaCompiler = _
 
@@ -26,15 +28,12 @@ class JavaAnalyzer(
     javaCompiler = new JavaCompiler(
       config,
       new ReportHandler {
-        override def messageUser(str: String): Unit = {
+        override def messageUser(str: String): Unit =
           broadcaster ! SendBackgroundMessageEvent(str, 101)
-        }
-        override def clearAllJavaNotes(): Unit = {
+        override def clearAllJavaNotes(): Unit =
           broadcaster ! ClearAllJavaNotesEvent
-        }
-        override def reportJavaNotes(notes: List[Note]): Unit = {
+        override def reportJavaNotes(notes: List[Note]): Unit =
           broadcaster ! NewJavaNotesEvent(isFull = false, notes)
-        }
       },
       indexer,
       search,
@@ -60,20 +59,27 @@ class JavaAnalyzer(
       sender() ! VoidResponse
 
     case CompletionsReq(file, point, maxResults, caseSens, _) =>
-      sender() ! javaCompiler.askCompletionsAtPoint(file, point, maxResults, caseSens)
+      sender() ! javaCompiler.askCompletionsAtPoint(file,
+                                                    point,
+                                                    maxResults,
+                                                    caseSens)
 
     case DocUriAtPointReq(file, range) =>
       sender() ! javaCompiler.askDocSignatureAtPoint(file, range.from)
 
     case TypeAtPointReq(file, range) =>
-      sender() ! javaCompiler.askTypeAtPoint(file, range.from).getOrElse(FalseResponse)
+      sender() ! javaCompiler
+        .askTypeAtPoint(file, range.from)
+        .getOrElse(FalseResponse)
 
     case SymbolDesignationsReq(f, start, end, tpes) =>
       // NOT IMPLEMENTED YET
       sender ! SymbolDesignations(f.file, Nil)
 
     case SymbolAtPointReq(file, point) =>
-      sender() ! javaCompiler.askSymbolAtPoint(file, point).getOrElse(FalseResponse)
+      sender() ! javaCompiler
+        .askSymbolAtPoint(file, point)
+        .getOrElse(FalseResponse)
 
     case ImplicitInfoReq(file, range: OffsetRange) =>
       // Implicit type conversion information is not applicable for Java, so we

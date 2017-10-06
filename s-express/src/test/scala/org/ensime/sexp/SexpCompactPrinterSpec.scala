@@ -4,12 +4,11 @@ package org.ensime.sexp
 
 class SexpCompactPrinterSpec extends SexpSpec {
 
-  private val foo = SexpString("foo")
+  private val foo    = SexpString("foo")
   private val foosym = SexpSymbol("foo")
   private val barsym = SexpSymbol("bar")
-  private def assertPrinter(sexp: Sexp, expect: String): Unit = {
+  private def assertPrinter(sexp: Sexp, expect: String): Unit =
     SexpCompactPrinter(sexp) should ===(expect)
-  }
 
   "CompactPrinter" should "handle nil or empty lists/data" in {
     assertPrinter(SexpNil, "nil")
@@ -21,7 +20,8 @@ class SexpCompactPrinterSpec extends SexpSpec {
   }
 
   it should "output lists of lists" in {
-    assertPrinter(SexpList(SexpList(foo), SexpList(foo)), """(("foo") ("foo"))""")
+    assertPrinter(SexpList(SexpList(foo), SexpList(foo)),
+                  """(("foo") ("foo"))""")
   }
 
   it should "output cons" in {

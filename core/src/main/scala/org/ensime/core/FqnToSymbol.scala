@@ -17,35 +17,39 @@ trait FqnToSymbol { self: Global with SymbolToFqn =>
 
   private val primitiveSymbolByName: Map[String, Symbol] = Map(
     "boolean" -> definitions.BooleanClass,
-    "byte" -> definitions.ByteClass,
-    "char" -> definitions.CharClass,
-    "short" -> definitions.ShortClass,
-    "int" -> definitions.IntClass,
-    "long" -> definitions.LongClass,
-    "float" -> definitions.FloatClass,
-    "double" -> definitions.DoubleClass,
-    "void" -> definitions.UnitClass
+    "byte"    -> definitions.ByteClass,
+    "char"    -> definitions.CharClass,
+    "short"   -> definitions.ShortClass,
+    "int"     -> definitions.IntClass,
+    "long"    -> definitions.LongClass,
+    "float"   -> definitions.FloatClass,
+    "double"  -> definitions.DoubleClass,
+    "void"    -> definitions.UnitClass
   )
 
-  private def segToSym(seg: List[Name], root: Symbol): Symbol = seg.foldLeft(root) {
-    (sym, name) => resolveOverloaded(sym.info.member(name))
-  }
+  private def segToSym(seg: List[Name], root: Symbol): Symbol =
+    seg.foldLeft(root) { (sym, name) =>
+      resolveOverloaded(sym.info.member(name))
+    }
 
   private def resolveOverloaded(sym: Symbol): Symbol = sym match {
     case term: TermSymbol if term.isOverloaded =>
-      val OverloadedType(_, alternatives) = term.info.asInstanceOf[OverloadedType]
+      val OverloadedType(_, alternatives) =
+        term.info.asInstanceOf[OverloadedType]
       alternatives.find(_.isModule).getOrElse(term)
     case _ => sym
   }
 
-  def toSymbol(scalaName: String, declaredAs: Option[DeclaredAs] = None, rootSymbol: Symbol = RootClass): Symbol = {
+  def toSymbol(scalaName: String,
+               declaredAs: Option[DeclaredAs] = None,
+               rootSymbol: Symbol = RootClass): Symbol = {
     if (rootSymbol == RootClass) primitiveSymbolByName.get(scalaName)
     else None
   } getOrElse {
     declaredAs.map { decl =>
       val assumeTerm = decl match {
         case DeclaredAs.Class | DeclaredAs.Trait => false
-        case _ => true
+        case _                                   => true
       }
       segToSym(nme.segments(scalaName, assumeTerm = assumeTerm), rootSymbol)
     }
@@ -55,17 +59,19 @@ trait FqnToSymbol { self: Global with SymbolToFqn =>
     else segToSym(nme.segments(scalaName, assumeTerm = false), rootSymbol)
   }
 
-  private def traverseSymbolTree(sym: Symbol, name: Seq[String], isTermName: Boolean): Symbol = {
+  private def traverseSymbolTree(sym: Symbol,
+                                 name: Seq[String],
+                                 isTermName: Boolean): Symbol = {
     def chooseValid(termName: Symbol, typeName: Symbol): Symbol =
       if (termName != NoSymbol) termName
       else typeName
 
-    def traverseDepthFirst(sym: Symbol, names: Seq[String]): Symbol = {
+    def traverseDepthFirst(sym: Symbol, names: Seq[String]): Symbol =
       if (sym == NoSymbol) NoSymbol
       else {
         val currentNamePart = NameTransformer.encode(names.head)
-        val termName = sym.info.member(newTermName(currentNamePart))
-        val typeName = sym.info.member(newTypeName(currentNamePart))
+        val termName        = sym.info.member(newTermName(currentNamePart))
+        val typeName        = sym.info.member(newTypeName(currentNamePart))
         if (names.length == 1) {
           if (isTermName) termName else typeName
         } else {
@@ -75,25 +81,25 @@ trait FqnToSymbol { self: Global with SymbolToFqn =>
           )
         }
       }
-    }
     resolveOverloaded(traverseDepthFirst(sym, name))
   }
 
   def toSymbol(fqn: FullyQualifiedName): Symbol = fqn match {
     case p: PackageName =>
-      nme.segments(p.fqnString, assumeTerm = true).
-        foldLeft(RootClass: Symbol) {
-          (owner, name) => owner.info.member(name)
-        }
+      nme.segments(p.fqnString, assumeTerm = true).foldLeft(RootClass: Symbol) {
+        (owner, name) =>
+          owner.info.member(name)
+      }
 
     case ClassName(p, name) =>
       val symbolicName =
-        if (name.startsWith("$") || name.contains("$$")) NameTransformer.decode(name)
+        if (name.startsWith("$") || name.contains("$$"))
+          NameTransformer.decode(name)
         else name
       val names = symbolicName.split("\\$").toList
 
       val isTermName = name.endsWith("$")
-      val container = traverseSymbolTree(toSymbol(p), names, isTermName)
+      val container  = traverseSymbolTree(toSymbol(p), names, isTermName)
       container
 
     case f @ FieldName(c, name) =>

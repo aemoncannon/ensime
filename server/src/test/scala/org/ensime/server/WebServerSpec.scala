@@ -6,10 +6,14 @@ import java.io.File
 import java.nio.charset.Charset
 
 import io.netty.channel.embedded.EmbeddedChannel
-import io.netty.handler.codec.http.{ HttpMethod, DefaultFullHttpRequest, FullHttpResponse }
+import io.netty.handler.codec.http.{
+  DefaultFullHttpRequest,
+  FullHttpResponse,
+  HttpMethod
+}
 import io.netty.handler.codec.http.HttpVersion.HTTP_1_1
 import io.netty.handler.codec.http.HttpMethod.GET
-import io.netty.handler.codec.http.HttpResponseStatus.{ OK, NOT_FOUND }
+import io.netty.handler.codec.http.HttpResponseStatus.{ NOT_FOUND, OK }
 
 import org.ensime.core.DocJarReading
 import org.ensime.util.EnsimeSpec
@@ -21,13 +25,15 @@ class WebServerSpec extends EnsimeSpec {
       if (filename != "foo-1.0-javadoc.jar" || entry != "bar/Baz.html") None
       else Some("hello".getBytes)
 
-    def docJars(): Set[File] = Set(new File("foo-javadoc.jar"), new File("bar-javadoc.jar"))
+    def docJars(): Set[File] =
+      Set(new File("foo-javadoc.jar"), new File("bar-javadoc.jar"))
   }
 
   "WebServer" should "serve contents of documentation archives" in {
 
     val ch = channel()
-    val resp = request(ch, GET, "/docs/foo-1.0-javadoc.jar/bar/Baz.html#thingy()")
+    val resp =
+      request(ch, GET, "/docs/foo-1.0-javadoc.jar/bar/Baz.html#thingy()")
 
     resp should not be null
     resp.status shouldBe OK
@@ -40,7 +46,8 @@ class WebServerSpec extends EnsimeSpec {
   it should "respond with status NOT_FOUND for missing archive entries" in {
 
     val ch = channel()
-    val resp = request(ch, GET, "/docs/foo-1.0-javadoc.jar/bar/Bag.html#thingy()")
+    val resp =
+      request(ch, GET, "/docs/foo-1.0-javadoc.jar/bar/Bag.html#thingy()")
 
     resp should not be null
     resp.status shouldBe NOT_FOUND
@@ -50,8 +57,8 @@ class WebServerSpec extends EnsimeSpec {
 
   it should "provide a list of available documentation" in {
 
-    val ch = channel()
-    val resp = request(ch, GET, "/docs")
+    val ch    = channel()
+    val resp  = request(ch, GET, "/docs")
     val resp2 = request(ch, GET, "/docs/")
 
     resp shouldEqual resp2

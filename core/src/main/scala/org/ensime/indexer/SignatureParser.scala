@@ -15,7 +15,8 @@ object SignatureParser extends ClassParser {
 
   protected val GenericClassSigWithoutArgs: Parser[GenericClassName] =
     P(ClassNameSig ~ InnerClassSig.rep ~ ";").map {
-      case (className, innerClass) => GenericClassName(className, Seq.empty, innerClass)
+      case (className, innerClass) =>
+        GenericClassName(className, Seq.empty, innerClass)
     }
 
   protected val InnerClassSig: Parser[InnerClassName] =
@@ -83,16 +84,15 @@ object SignatureParser extends ClassParser {
   private val TypeVar: Parser[GenericVar] =
     P("T" ~ GenericNameCharPredicate.rep(1).! ~ ";").map(GenericVar)
 
-  def parseGeneric(desc: String): GenericClass = {
+  def parseGeneric(desc: String): GenericClass =
     Generic.parse(desc) match {
       case Parsed.Success(sig, _) => sig
       case f: Parsed.Failure =>
         throw new Exception(s"Failed to parse generic: ${f.msg}")
     }
-  }
 
   protected val GenericNameCharPredicate = CharPred(c => ":;/ ".forall(_ != c))
 
-  override val PackageNamePredicate = CharPred(c => "<;/ ".forall(_ != c))
+  override val PackageNamePredicate   = CharPred(c => "<;/ ".forall(_ != c))
   override val ClassNameCharPredicate = CharPred(c => "<;/ ".forall(_ != c))
 }

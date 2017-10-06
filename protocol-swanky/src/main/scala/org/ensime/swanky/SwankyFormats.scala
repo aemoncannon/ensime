@@ -19,37 +19,45 @@ private object SwankyConversions
   def dashify(field: String): String =
     field.replaceAll("([A-Z])", "-$1").toLowerCase.replaceAll("^-", "")
 
-  implicit override def coproductHint[T: Typeable]: CoproductHint[T] = new NestedCoproductHint[T] {
-    override def field(orig: String): SexpSymbol = SexpSymbol(":ensime-api-" + dashify(orig))
-  }
+  implicit override def coproductHint[T: Typeable]: CoproductHint[T] =
+    new NestedCoproductHint[T] {
+      override def field(orig: String): SexpSymbol =
+        SexpSymbol(":ensime-api-" + dashify(orig))
+    }
 
-  implicit override def productHint[T]: ProductHint[T] = new BasicProductHint[T] {
-    override def field[Key <: Symbol](key: Key): SexpSymbol = SexpSymbol(":" + dashify(key.name))
-  }
+  implicit override def productHint[T]: ProductHint[T] =
+    new BasicProductHint[T] {
+      override def field[Key <: Symbol](key: Key): SexpSymbol =
+        SexpSymbol(":" + dashify(key.name))
+    }
 
   implicit object DebugThreadIdFormat extends SexpFormat[DebugThreadId] {
-    override def read(s: Sexp): DebugThreadId = DebugThreadId(LongFormat.read(s))
+    override def read(s: Sexp): DebugThreadId =
+      DebugThreadId(LongFormat.read(s))
     override def write(t: DebugThreadId): Sexp = LongFormat.write(t.id)
   }
 
   implicit object DebugObjectIdFormat extends SexpFormat[DebugObjectId] {
-    override def read(s: Sexp): DebugObjectId = DebugObjectId(LongFormat.read(s))
+    override def read(s: Sexp): DebugObjectId =
+      DebugObjectId(LongFormat.read(s))
     override def write(t: DebugObjectId): Sexp = LongFormat.write(t.id)
   }
 
   implicit object EnsimeFileFormat extends SexpFormat[EnsimeFile] {
     def write(ef: EnsimeFile): Sexp = ef match {
-      case RawFile(path) => SexpString(path.toString)
+      case RawFile(path)  => SexpString(path.toString)
       case a: ArchiveFile => SexpString(a.uriString)
     }
     def read(sexp: Sexp): EnsimeFile = sexp match {
       case SexpString(uri) => EnsimeFile(uri)
-      case got => deserializationError(got)
+      case got             => deserializationError(got)
     }
   }
 
-  implicit val RpcRequestEnvelopeFormat: SexpFormat[RpcRequestEnvelope] = cachedImplicit
-  implicit val RpcResponseEnvelopeFormat: SexpFormat[RpcResponseEnvelope] = cachedImplicit
+  implicit val RpcRequestEnvelopeFormat: SexpFormat[RpcRequestEnvelope] =
+    cachedImplicit
+  implicit val RpcResponseEnvelopeFormat: SexpFormat[RpcResponseEnvelope] =
+    cachedImplicit
 
 }
 

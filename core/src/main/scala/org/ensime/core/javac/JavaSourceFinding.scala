@@ -15,42 +15,53 @@ import org.ensime.indexer.FullyQualifiedName
 
 trait JavaSourceFinding extends Helpers with SLF4JLogging {
 
-  def askLinkPos(fqn: FullyQualifiedName, file: SourceFileInfo): Option[SourcePosition]
+  def askLinkPos(fqn: FullyQualifiedName,
+                 file: SourceFileInfo): Option[SourcePosition]
   def search: SearchService
   def vfs: EnsimeVFS
   def config: EnsimeConfig
 
-  protected def findInCompiledUnit(c: Compilation, fqn: FullyQualifiedName): Option[SourcePosition] = {
-    Option(c.elements.getTypeElement(fqn.fqnString)).flatMap(elementPosition(c, _))
-  }
+  protected def findInCompiledUnit(
+    c: Compilation,
+    fqn: FullyQualifiedName
+  ): Option[SourcePosition] =
+    Option(c.elements.getTypeElement(fqn.fqnString))
+      .flatMap(elementPosition(c, _))
 
-  private def elementPosition(c: Compilation, el: Element): Option[SourcePosition] = {
+  private def elementPosition(c: Compilation,
+                              el: Element): Option[SourcePosition] =
     // if we can get a tree for the element, determining start position
     // is easy
     Option(c.trees.getPath(el)).map { path =>
       OffsetSourcePosition(
         EnsimeFile(path.getCompilationUnit.getSourceFile.getName),
         c.trees.getSourcePositions
-          .getStartPosition(path.getCompilationUnit, path.getLeaf).toInt
+          .getStartPosition(path.getCompilationUnit, path.getLeaf)
+          .toInt
       )
     }
-  }
 
-  protected def findDeclPos(c: Compilation, path: TreePath): Option[SourcePosition] = {
-    element(c, path).flatMap(elementPosition(c, _)).orElse(findInIndexer(c, path))
-  }
+  protected def findDeclPos(c: Compilation,
+                            path: TreePath): Option[SourcePosition] =
+    element(c, path)
+      .flatMap(elementPosition(c, _))
+      .orElse(findInIndexer(c, path))
 
-  private def findInIndexer(c: Compilation, path: TreePath): Option[SourcePosition] = {
+  private def findInIndexer(c: Compilation,
+                            path: TreePath): Option[SourcePosition] = {
     val javaFqn = fqn(c, path)
-    val query = javaFqn.map(_.fqnString).getOrElse("")
-    val hit = search.findUnique(query)
+    val query   = javaFqn.map(_.fqnString).getOrElse("")
+    val hit     = search.findUnique(query)
     if (log.isTraceEnabled())
       log.trace(s"search: '$query' = $hit")
-    hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)(vfs)).flatMap { sourcePos =>
-      if (sourcePos.file.isJava && sourcePos.file.exists())
-        javaFqn.flatMap(askLinkPos(_, SourceFileInfo(sourcePos.file, None, None))).orElse(Some(sourcePos))
-      else
-        Some(sourcePos)
+    hit.flatMap(LineSourcePositionHelper.fromFqnSymbol(_)(vfs)).flatMap {
+      sourcePos =>
+        if (sourcePos.file.isJava && sourcePos.file.exists())
+          javaFqn
+            .flatMap(askLinkPos(_, SourceFileInfo(sourcePos.file, None, None)))
+            .orElse(Some(sourcePos))
+        else
+          Some(sourcePos)
     }
   }
 }

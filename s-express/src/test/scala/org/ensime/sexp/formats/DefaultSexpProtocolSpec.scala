@@ -16,9 +16,9 @@ class DefaultSexpProtocolSpec extends FormatSpec {
   it should "round-trip Option[List[T]]" in {
     import DefaultSexpProtocol._
 
-    val none: Option[List[String]] = None
+    val none: Option[List[String]]  = None
     val empty: Option[List[String]] = Some(Nil)
-    val list: Option[List[String]] = Some(List("boo"))
+    val list: Option[List[String]]  = Some(List("boo"))
 
     assertFormat(none, SexpNil)
     assertFormat(empty, SexpList(SexpNil))
@@ -32,9 +32,9 @@ class DefaultSexpProtocolSpec extends FormatSpec {
   "DefaultSexpProtocol with OptionAltFormat" should "predictably fail to round-trip Option[List[T]]" in {
     import AlternativeProtocol._
 
-    val none: Option[List[String]] = None
+    val none: Option[List[String]]  = None
     val empty: Option[List[String]] = Some(Nil)
-    val list: Option[List[String]] = Some(List("boo"))
+    val list: Option[List[String]]  = Some(List("boo"))
 
     none.toSexp should ===(SexpNil)
     empty.toSexp should ===(SexpNil)

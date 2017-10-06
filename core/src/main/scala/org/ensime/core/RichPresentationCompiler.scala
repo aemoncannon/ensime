@@ -45,7 +45,11 @@ import java.nio.file.{ Path, Paths }
 import scala.collection.mutable
 import scala.collection.immutable.{ Set => SCISet }
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.reflect.internal.util.{ BatchSourceFile, RangePosition, SourceFile }
+import scala.reflect.internal.util.{
+  BatchSourceFile,
+  RangePosition,
+  SourceFile
+}
 import scala.reflect.io.{ PlainFile, VirtualFile }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
@@ -64,7 +68,11 @@ import org.ensime.util.sourcefile._
 import org.ensime.vfs._
 import org.slf4j.LoggerFactory
 
-trait RichCompilerControl extends CompilerControl with RefactoringControl with CompletionControl with DocFinding {
+trait RichCompilerControl
+    extends CompilerControl
+    with RefactoringControl
+    with CompletionControl
+    with DocFinding {
   self: RichPresentationCompiler =>
 
   implicit def charset: Charset = Charset.forName(settings.encoding.value)
@@ -90,7 +98,9 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def askDocSignatureAtPoint(p: Position): Option[DocSigPair] =
     askOption {
-      symbolAt(p).orElse(typeAt(p).flatMap(_.typeSymbol.toOption)).flatMap(docSignature(_, Some(p)))
+      symbolAt(p)
+        .orElse(typeAt(p).flatMap(_.typeSymbol.toOption))
+        .flatMap(docSignature(_, Some(p)))
     }.flatten
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -99,15 +109,22 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     askOption(symbolAt(p).map(toFqn)).flatten
   def askSymbolFqn(s: Symbol): Option[FullyQualifiedName] = askOption(toFqn(s))
   def askTypeFqn(p: Position): Option[FullyQualifiedName] =
-    askOption(typeAt(p).map { tpe => toFqn(tpe.typeSymbol) }).flatten
-  def askSymbolByScalaName(name: String, declaredAs: Option[DeclaredAs] = None): Option[Symbol] =
+    askOption(typeAt(p).map { tpe =>
+      toFqn(tpe.typeSymbol)
+    }).flatten
+  def askSymbolByScalaName(
+    name: String,
+    declaredAs: Option[DeclaredAs] = None
+  ): Option[Symbol] =
     askOption(toSymbol(name, declaredAs))
   def askSymbolByFqn(fqn: FullyQualifiedName): Option[Symbol] =
     askOption(toSymbol(fqn))
   def askSymbolAt(p: Position): Option[Symbol] =
     askOption(symbolAt(p)).flatten
   def askTypeSymbolAt(p: Position): Option[Symbol] =
-    askOption(typeAt(p).map { tpe => tpe.typeSymbol }).flatten
+    askOption(typeAt(p).map { tpe =>
+      tpe.typeSymbol
+    }).flatten
   ////////////////////////////////////////////////////////////////////////////////
 
   def askSymbolInfoAt(p: Position): Option[SymbolInfo] =
@@ -116,9 +133,8 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askTypeInfoAt(p: Position): Option[TypeInfo] =
     askOption(typeAt(p).map(TypeInfo(_, PosNeededYes))).flatten
 
-  def askReloadFile(f: SourceFile): Unit = {
+  def askReloadFile(f: SourceFile): Unit =
     askReloadFiles(List(f))
-  }
 
   def askReloadFiles(files: Iterable[SourceFile]): Either[Unit, Throwable] = {
     val x = new Response[Unit]()
@@ -139,7 +155,9 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def loadedFiles: List[SourceFile] = activeUnits().map(_.source)
 
-  def askCompletionsAt(p: Position, maxResults: Int, caseSens: Boolean): Future[CompletionInfoList] =
+  def askCompletionsAt(p: Position,
+                       maxResults: Int,
+                       caseSens: Boolean): Future[CompletionInfoList] =
     completionsAt(p, maxResults, caseSens)
 
   def askReloadAndTypeFiles(files: Iterable[SourceFile]) =
@@ -155,16 +173,21 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   ): RpcResponse = {
     val (existing, missingFiles) = files.partition(_.exists())
     if (missingFiles.nonEmpty) {
-      val missingFilePaths = missingFiles.map { f => "\"" + f.file + "\"" }.mkString(",")
+      val missingFilePaths = missingFiles.map { f =>
+        "\"" + f.file + "\""
+      }.mkString(",")
       EnsimeServerError(s"file(s): $missingFilePaths do not exist")
     } else {
-      val scalas = existing.collect { case sfi: SourceFileInfo if sfi.file.isScala => sfi }
-      val sourceFiles: List[SourceFile] = scalas.map(createSourceFile)(collection.breakOut)
+      val scalas = existing.collect {
+        case sfi: SourceFileInfo if sfi.file.isScala => sfi
+      }
+      val sourceFiles: List[SourceFile] =
+        scalas.map(createSourceFile)(collection.breakOut)
       f(sourceFiles)
     }
   }
 
-  def handleReloadFiles(files: SCISet[SourceFileInfo]): RpcResponse = {
+  def handleReloadFiles(files: SCISet[SourceFileInfo]): RpcResponse =
     withExistingScalaFiles(files) { scalas =>
       if (scalas.nonEmpty) {
         askReloadFiles(scalas)
@@ -172,9 +195,8 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
       }
       VoidResponse
     }
-  }
 
-  def handleReloadAndRetypeFiles(files: SCISet[SourceFileInfo]): RpcResponse = {
+  def handleReloadAndRetypeFiles(files: SCISet[SourceFileInfo]): RpcResponse =
     withExistingScalaFiles(files) { scalas =>
       if (scalas.nonEmpty) {
         askReloadFiles(scalas)
@@ -183,11 +205,12 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
       }
       VoidResponse
     }
-  }
 
   import org.ensime.util.file.File
 
-  def usesOfSym(sym: Symbol)(implicit ec: ExecutionContext): Future[SCISet[RawFile]] = {
+  def usesOfSym(
+    sym: Symbol
+  )(implicit ec: ExecutionContext): Future[SCISet[RawFile]] = {
     val noReverseLookups = search.noReverseLookups
     if (noReverseLookups) {
       Future.successful(Set.empty)
@@ -211,7 +234,10 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   }
 
   // force the full path of Set because nsc appears to have a conflicting Set....
-  def askSymbolDesignationsInRegion(p: RangePosition, tpes: List[SourceSymbol]): SymbolDesignations =
+  def askSymbolDesignationsInRegion(
+    p: RangePosition,
+    tpes: List[SourceSymbol]
+  ): SymbolDesignations =
     askOption(
       new SemanticHighlighting(this).symbolDesignationsInRegion(p, tpes)
     ).getOrElse(SymbolDesignations(RawFile(new File(".").toPath), List.empty))
@@ -242,24 +268,35 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def createSourceFile(file: AbstractFile): BatchSourceFile =
     createSourceFile(file.path)
   def createSourceFile(file: SourceFileInfo): BatchSourceFile = file match {
-    case SourceFileInfo(rf @ RawFile(f), None, None, _) => new BatchSourceFile(
-      new PlainFile(f.toFile), rf.readStringDirect().toCharArray
-    )
+    case SourceFileInfo(rf @ RawFile(f), None, None, _) =>
+      new BatchSourceFile(
+        new PlainFile(f.toFile),
+        rf.readStringDirect().toCharArray
+      )
     case SourceFileInfo(ac @ ArchiveFile(archive, entry), None, None, _) =>
       new BatchSourceFile(
-        new VirtualFile(ac.fullPath), ac.readStringDirect().toCharArray
+        new VirtualFile(ac.fullPath),
+        ac.readStringDirect().toCharArray
       )
     case SourceFileInfo(rf @ RawFile(f), Some(contents), None, _) =>
       new BatchSourceFile(new PlainFile(f.toFile), contents.toCharArray)
-    case SourceFileInfo(ac @ ArchiveFile(a, e), Some(contents), None, _) => new BatchSourceFile(
-      new VirtualFile(ac.fullPath), contents.toCharArray
-    )
+    case SourceFileInfo(ac @ ArchiveFile(a, e), Some(contents), None, _) =>
+      new BatchSourceFile(
+        new VirtualFile(ac.fullPath),
+        contents.toCharArray
+      )
     case SourceFileInfo(rf @ RawFile(f), None, Some(contentsIn), _) =>
-      new BatchSourceFile(new PlainFile(f.toFile), contentsIn.readString()(charset).toCharArray)
-    case SourceFileInfo(ac @ ArchiveFile(a, e), None, Some(contentsIn), _) => new BatchSourceFile(
-      new VirtualFile(ac.fullPath), contentsIn.readString()(charset).toCharArray
-    )
-    case _ => throw new IllegalArgumentException(s"Invalid contents of SourceFileInfo parameter: $file.")
+      new BatchSourceFile(new PlainFile(f.toFile),
+                          contentsIn.readString()(charset).toCharArray)
+    case SourceFileInfo(ac @ ArchiveFile(a, e), None, Some(contentsIn), _) =>
+      new BatchSourceFile(
+        new VirtualFile(ac.fullPath),
+        contentsIn.readString()(charset).toCharArray
+      )
+    case _ =>
+      throw new IllegalArgumentException(
+        s"Invalid contents of SourceFileInfo parameter: $file."
+      )
   }
 
   def askLinkPos(sym: Symbol, path: EnsimeFile): Option[Position] =
@@ -270,7 +307,11 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
       .getOrElse(List.empty)
 
   def askRaw(any: Any): String =
-    showRaw(any, printTypes = true, printIds = false, printKinds = true, printMirrors = true)
+    showRaw(any,
+            printTypes = true,
+            printIds = false,
+            printKinds = true,
+            printMirrors = true)
 
   /**
    * Returns the smallest `Tree`, which position `properlyIncludes` `p`
@@ -292,9 +333,12 @@ class RichPresentationCompiler(
   val serverConfig: EnsimeServerConfig,
   val ec: ExecutionContext
 ) extends Global(settings, richReporter)
-    with ModelBuilders with RichCompilerControl
-    with RefactoringImpl with Helpers
-    with PresentationCompilerBackCompat with PositionBackCompat
+    with ModelBuilders
+    with RichCompilerControl
+    with RefactoringImpl
+    with Helpers
+    with PresentationCompilerBackCompat
+    with PositionBackCompat
     with StructureViewBuilder
     with SymbolToFqn
     with FqnToSymbol
@@ -302,17 +346,20 @@ class RichPresentationCompiler(
 
   val logger = LoggerFactory.getLogger(this.getClass)
 
-  private val symsByFile = new mutable.HashMap[AbstractFile, mutable.LinkedHashSet[Symbol]] {
-    override def default(k: AbstractFile) = {
-      val v = new mutable.LinkedHashSet[Symbol]
-      put(k, v)
-      v
+  private val symsByFile =
+    new mutable.HashMap[AbstractFile, mutable.LinkedHashSet[Symbol]] {
+      override def default(k: AbstractFile) = {
+        val v = new mutable.LinkedHashSet[Symbol]
+        put(k, v)
+        v
+      }
     }
-  }
 
   def activeUnits(): List[CompilationUnit] = {
     val invalidSet = toBeRemoved.synchronized { toBeRemoved.toSet }
-    unitOfFile.filter { kv => !invalidSet.contains(kv._1) }.values.toList
+    unitOfFile.filter { kv =>
+      !invalidSet.contains(kv._1)
+    }.values.toList
   }
 
   /** Called from typechecker every time a top-level class or object is entered.*/
@@ -321,13 +368,13 @@ class RichPresentationCompiler(
     symsByFile(sym.sourceFile) += sym
   }
 
-  def unloadFiles(files: List[SourceFile], remove: Boolean): Unit = {
+  def unloadFiles(files: List[SourceFile], remove: Boolean): Unit =
     files.foreach { f =>
       removeUnitOf(f)
 
       // more aggressive, e.g. if the file was deleted/removed by the user
       if (remove) {
-        val af = f.file
+        val af   = f.file
         val syms = symsByFile(af)
         for (s <- syms) {
           s.owner.info.decls unlink s
@@ -336,11 +383,10 @@ class RichPresentationCompiler(
         unitOfFile.remove(af)
       }
     }
-  }
 
   private def typePublicMembers(tpe: Type): Iterable[TypeMember] = {
     val members = new mutable.LinkedHashMap[Symbol, TypeMember]
-    def addTypeMember(sym: Symbol, inherited: Boolean, viaView: Symbol): Unit = {
+    def addTypeMember(sym: Symbol, inherited: Boolean, viaView: Symbol): Unit =
       try {
         val m = TypeMember(
           sym,
@@ -354,7 +400,6 @@ class RichPresentationCompiler(
         case e: Throwable =>
           logger.error("Error: Omitting member " + sym + ": " + e)
       }
-    }
     for (sym <- tpe.decls) {
       addTypeMember(sym, inherited = false, NoSymbol)
     }
@@ -364,7 +409,7 @@ class RichPresentationCompiler(
     members.values
   }
 
-  protected def getMembersForTypeAt(tpe: Type, p: Position): Iterable[Member] = {
+  protected def getMembersForTypeAt(tpe: Type, p: Position): Iterable[Member] =
     if (isNoParamArrowType(tpe)) {
       typePublicMembers(typeOrArrowTypeResult(tpe))
     } else {
@@ -385,7 +430,6 @@ class RichPresentationCompiler(
       }
       bySym.values
     }
-  }
 
   private def typeOfTree(t: Tree): Option[Type] = {
     val tree = t match {
@@ -404,15 +448,18 @@ class RichPresentationCompiler(
     Option(tree.tpe)
   }
 
-  protected def typeAt(p: Position): Option[Type] = {
+  protected def typeAt(p: Position): Option[Type] =
     wrapTypedTreeAt(p) match {
       case Import(_, _) => symbolAt(p).map(_.tpe)
-      case tree => typeOfTree(tree)
+      case tree         => typeOfTree(tree)
     }
-  }
 
   private def noDefinitionFound(tree: Tree) = {
-    logger.warn("No definition found. Please report to https://github.com/ensime/ensime-server/issues/492 what you expected for " + tree.getClass + ": " + showRaw(tree))
+    logger.warn(
+      "No definition found. Please report to https://github.com/ensime/ensime-server/issues/492 what you expected for " + tree.getClass + ": " + showRaw(
+        tree
+      )
+    )
     Nil
   }
 
@@ -431,7 +478,10 @@ class RichPresentationCompiler(
             }
             List(locate(pos, expr))
           } else {
-            selectors.filter(_.namePos <= pos.point).sortBy(_.namePos).lastOption map { sel =>
+            selectors
+              .filter(_.namePos <= pos.point)
+              .sortBy(_.namePos)
+              .lastOption map { sel =>
               val tpe = stabilizedType(expr)
               List(tpe.member(sel.name), tpe.member(sel.name.toTypeName))
             } getOrElse Nil
@@ -460,24 +510,29 @@ class RichPresentationCompiler(
       case tree @ Select(qualifier, name) =>
         qualifier match {
           case t: ApplyImplicitView => t.args.headOption.map(_.tpe.typeSymbol)
-          case _ => Some(qualifier.tpe.typeSymbol)
+          case _                    => Some(qualifier.tpe.typeSymbol)
         }
       case _ => None
     }
   }
 
-  protected def linkPos(sym: Symbol, source: SourceFile): Position = {
+  protected def linkPos(sym: Symbol, source: SourceFile): Position =
     wrapLinkPos(sym, source)
-  }
 
-  protected def usesOfSymbol(pos: Position, files: collection.Set[Path]): Iterable[RangePosition] = {
+  protected def usesOfSymbol(
+    pos: Position,
+    files: collection.Set[Path]
+  ): Iterable[RangePosition] =
     symbolAt(pos) match {
       case Some(s) =>
         class CompilerGlobalIndexes extends GlobalIndexes {
           val global = RichPresentationCompiler.this
-          val sym = s.asInstanceOf[global.Symbol]
+          val sym    = s.asInstanceOf[global.Symbol]
           val cuIndexes = this.global.unitOfFile.collect {
-            case (file, unit) if search.noReverseLookups || files.contains(file.file.toPath) =>
+            case (file, unit)
+                if search.noReverseLookups || files.contains(
+                  file.file.toPath
+                ) =>
               CompilationUnitIndex(unit.body)
           }
           val index = GlobalIndex(cuIndexes.toList)
@@ -486,7 +541,10 @@ class RichPresentationCompiler(
               case p: RangePosition => p
               case p =>
                 new RangePosition(
-                  p.source, p.point, p.point, p.point
+                  p.source,
+                  p.point,
+                  p.point,
+                  p.point
                 )
             }
           }
@@ -495,7 +553,6 @@ class RichPresentationCompiler(
         gi.result
       case None => Nil
     }
-  }
 
   private var notifyWhenReady = false
 
@@ -507,9 +564,8 @@ class RichPresentationCompiler(
     super.isOutOfDate
   }
 
-  protected def setNotifyWhenReady(): Unit = {
+  protected def setNotifyWhenReady(): Unit =
     notifyWhenReady = true
-  }
 
   protected def reloadAndTypeFiles(sources: Iterable[SourceFile]) = {
     wrapReloadSources(sources.toList)
@@ -518,17 +574,16 @@ class RichPresentationCompiler(
     }
   }
 
-  override def askShutdown(): Unit = {
+  override def askShutdown(): Unit =
     super.askShutdown()
-  }
 
   /*
-    * The following functions wrap up operations that interact with
-    * the presentation compiler. The wrapping just helps with the
-    * create response / compute / get result pattern.
-    *
-    * These units of work should return `Future[T]`.
-    */
+   * The following functions wrap up operations that interact with
+   * the presentation compiler. The wrapping just helps with the
+   * create response / compute / get result pattern.
+   *
+   * These units of work should return `Future[T]`.
+   */
   def wrap[A](compute: Response[A] => Unit, handle: Throwable => A): A = {
     val result = new Response[A]
     compute(result)
@@ -544,14 +599,15 @@ class RichPresentationCompiler(
   def wrapReloadSources(sources: List[SourceFile]): Unit = {
     val superseded = scheduler.dequeueAll {
       case ri: ReloadItem if ri.sources == sources => Some(ri)
-      case _ => None
+      case _                                       => None
     }
     superseded.foreach(_.response.set(()))
     wrap[Unit](r => ReloadItem(sources, r).apply(), _ => ())
   }
 
   def wrapTypeMembers(p: Position): List[Member] =
-    wrap[List[Member]](r => AskTypeCompletionItem(p, r).apply(), _ => List.empty)
+    wrap[List[Member]](r => AskTypeCompletionItem(p, r).apply(),
+                       _ => List.empty)
 
   def wrapTypedTree(source: SourceFile, forceReload: Boolean): Tree =
     wrap[Tree](r => AskTypeItem(source, forceReload, r).apply(), t => throw t)

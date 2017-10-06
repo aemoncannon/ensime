@@ -7,7 +7,10 @@ import shapeless._
 package object json {
   type JsField = (String, JsValue)
 
-  def deserializationError(msg: String, cause: Throwable = null, fieldNames: List[String] = Nil) = throw new DeserializationException(msg, cause, fieldNames)
+  def deserializationError(msg: String,
+                           cause: Throwable = null,
+                           fieldNames: List[String] = Nil) =
+    throw new DeserializationException(msg, cause, fieldNames)
   def serializationError(msg: String) = throw new SerializationException(msg)
 
   implicit class EnrichedAny[T](val any: T) extends AnyVal {
@@ -21,7 +24,10 @@ package object json {
   // slightly better alternatives to the xError methods above
   @inline
   def deserError[T: Typeable](msg: String, cause: Throwable = null): Nothing =
-    throw new DeserializationException(s"deserialising ${Typeable[T].describe}: $msg", cause)
+    throw new DeserializationException(
+      s"deserialising ${Typeable[T].describe}: $msg",
+      cause
+    )
 
   @inline
   def unexpectedJson[T: Typeable](got: JsValue): Nothing =
@@ -29,11 +35,16 @@ package object json {
 
   @inline
   def serError[T: Typeable](msg: String): Nothing =
-    throw new SerializationException(s"serialising ${Typeable[T].describe}: $msg")
+    throw new SerializationException(
+      s"serialising ${Typeable[T].describe}: $msg"
+    )
 }
 
 package json {
 
-  case class DeserializationException(msg: String, cause: Throwable = null, fieldNames: List[String] = Nil) extends RuntimeException(msg, cause)
+  case class DeserializationException(msg: String,
+                                      cause: Throwable = null,
+                                      fieldNames: List[String] = Nil)
+      extends RuntimeException(msg, cause)
   class SerializationException(msg: String) extends RuntimeException(msg)
 }

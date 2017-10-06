@@ -13,9 +13,9 @@ import org.ensime.util.stringymap.impl._
 class StringyMapSpec extends FlatSpec with Matchers {
 
   sealed trait Foo
-  case class Bar(x: Int, s: String, l: Long) extends Foo
+  case class Bar(x: Int, s: String, l: Long)   extends Foo
   case class Baz(o: Option[Int], t: Timestamp) extends Foo
-  case object Qux extends Foo
+  case object Qux                              extends Foo
 
   class NotSupported
   case class FooBar(ns: NotSupported)
@@ -25,7 +25,7 @@ class StringyMapSpec extends FlatSpec with Matchers {
 
   "StringyMap" should "marshall case class with supported field types" in {
     val expected = Map("x" -> 123, "s" -> "bar", "l" -> 321l)
-    val map = bar.toProperties
+    val map      = bar.toProperties
 
     expected.foreach {
       case (k, v) =>
@@ -47,13 +47,15 @@ class StringyMapSpec extends FlatSpec with Matchers {
   it should "correctly fail to unmarshall case class" in {
     val props = new StringyMap()
     props.put("invalidFieldName", "123")
-    the[IllegalArgumentException] thrownBy props.as[Baz] should have message "Null encountered in non-optional field"
+    the[IllegalArgumentException] thrownBy props
+      .as[Baz] should have message "Null encountered in non-optional field"
 
     val props2 = new StringyMap()
     props2.put("x", new Integer(123))
     props2.put("s", "bar")
     props2.put("l", "notALong")
-    the[ClassCastException] thrownBy props2.as[Bar] should have message "java.lang.String cannot be cast to java.lang.Long"
+    the[ClassCastException] thrownBy props2
+      .as[Bar] should have message "java.lang.String cannot be cast to java.lang.Long"
   }
 
   it should "marshall sealed trait hierarchies" in {

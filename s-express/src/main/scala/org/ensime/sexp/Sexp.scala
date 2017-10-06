@@ -16,7 +16,7 @@ import scala.collection.immutable.ListMap
 sealed abstract class Sexp {
   //  override def toString = compactPrint
   def compactPrint = SexpCompactPrinter(this)
-  def prettyPrint = SexpPrettyPrinter(this)
+  def prettyPrint  = SexpPrettyPrinter(this)
 
   def convertTo[T](implicit reader: SexpReader[T]): T = reader.read(this)
 
@@ -27,29 +27,29 @@ final case class SexpCons(x: Sexp, y: Sexp) extends Sexp {
   private[sexp] override val isList = y.isList
 }
 
-sealed trait SexpAtom extends Sexp
-final case class SexpChar(value: Char) extends SexpAtom
-final case class SexpString(value: String) extends SexpAtom
+sealed trait SexpAtom                          extends Sexp
+final case class SexpChar(value: Char)         extends SexpAtom
+final case class SexpString(value: String)     extends SexpAtom
 final case class SexpNumber(value: BigDecimal) extends SexpAtom
-final case class SexpSymbol(value: String) extends SexpAtom
+final case class SexpSymbol(value: String)     extends SexpAtom
 case object SexpNil extends SexpAtom {
   private[sexp] override def isList = true
 }
 // https://www.gnu.org/software/emacs/manual/html_node/elisp/Float-Basics.html
 case object SexpPosInf extends SexpAtom
 case object SexpNegInf extends SexpAtom
-case object SexpNaN extends SexpAtom
+case object SexpNaN    extends SexpAtom
 
 object SexpNumber {
-  def apply(n: Int) = new SexpNumber(BigDecimal(n))
+  def apply(n: Int)  = new SexpNumber(BigDecimal(n))
   def apply(n: Long) = new SexpNumber(BigDecimal(n))
   def apply(n: Double) = n match {
-    case _ if n.isNaN => SexpNil
+    case _ if n.isNaN      => SexpNil
     case _ if n.isInfinity => SexpNil
-    case _ => new SexpNumber(BigDecimal(n))
+    case _                 => new SexpNumber(BigDecimal(n))
   }
-  def apply(n: BigInt) = new SexpNumber(BigDecimal(n))
-  def apply(n: String) = new SexpNumber(BigDecimal(n))
+  def apply(n: BigInt)      = new SexpNumber(BigDecimal(n))
+  def apply(n: String)      = new SexpNumber(BigDecimal(n))
   def apply(n: Array[Char]) = new SexpNumber(BigDecimal(n))
 }
 
@@ -65,9 +65,9 @@ object SexpList {
     if (!sexp.isList) None
     else {
       def rec(s: Sexp): List[Sexp] = s match {
-        case SexpNil => Nil
+        case SexpNil            => Nil
         case SexpCons(car, cdr) => car :: rec(cdr)
-        case _ => throw new IllegalStateException("Not a list: " + s)
+        case _                  => throw new IllegalStateException("Not a list: " + s)
       }
       val res = rec(sexp)
       if (res.isEmpty) None
@@ -89,9 +89,13 @@ object SexpData {
       SexpNil
     else {
       val mapped = ListMap(kvs: _*)
-      require(mapped.size == kvs.size, "duplicate keys not allowed: " + mapped.keys)
-      require(mapped.keys.forall(_.value.startsWith(":")), "keys must start with ':' " + mapped.keys)
-      SexpList(kvs.flatMap { case (k, v) => k :: v :: Nil }(breakOut): List[Sexp])
+      require(mapped.size == kvs.size,
+              "duplicate keys not allowed: " + mapped.keys)
+      require(mapped.keys.forall(_.value.startsWith(":")),
+              "keys must start with ':' " + mapped.keys)
+      SexpList(
+        kvs.flatMap { case (k, v) => k :: v :: Nil }(breakOut): List[Sexp]
+      )
     }
 
   def unapply(sexp: Sexp): Option[SexpData] = sexp match {

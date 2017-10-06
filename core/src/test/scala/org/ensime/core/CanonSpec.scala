@@ -17,7 +17,7 @@ import org.ensime.api._
 // shapeless more than our specific Poly1.
 class CanonSpec extends EnsimeSpec {
 
-  val file = new File(".")
+  val file  = new File(".")
   val canon = file.canon
   assert(file != canon)
 
@@ -32,14 +32,14 @@ class CanonSpec extends EnsimeSpec {
   class MyFile(name: String) extends File(name)
 
   it should "canon subtypes of File" in {
-    val mine = new MyFile(".")
+    val mine    = new MyFile(".")
     val myCanon = mine.canon
     assert(mine != myCanon)
     Canonised(mine) shouldBe myCanon
   }
 
   it should "canon an RpcRequest" in {
-    val request = TypeAtPointReq(Left(file), OffsetRange(100)): RpcRequest
+    val request  = TypeAtPointReq(Left(file), OffsetRange(100)): RpcRequest
     val expected = TypeAtPointReq(Left(canon), OffsetRange(100))
     Canonised(request) shouldBe expected
   }
@@ -51,14 +51,19 @@ class CanonSpec extends EnsimeSpec {
   }
 
   it should "canon a RawFile" in withTempDir { dir =>
-    val rawDir = RawFile(dir.toPath)
-    val ef = List(RawFile(file.toPath))
+    val rawDir   = RawFile(dir.toPath)
+    val ef       = List(RawFile(file.toPath))
     val expected = List(RawFile(canon.toPath))
 
     Canon.config = EnsimeConfig(
-      rawDir, rawDir, rawDir,
-      "config", "version",
-      Nil, Nil, Nil
+      rawDir,
+      rawDir,
+      rawDir,
+      "config",
+      "version",
+      Nil,
+      Nil,
+      Nil
     )
 
     Canonised(ef) shouldBe expected
@@ -66,18 +71,24 @@ class CanonSpec extends EnsimeSpec {
 
   it should "canon an ArchiveFile" in withTempDir { dir =>
     val rawDir = RawFile(dir.toPath)
-    val src = Paths.get(jdkHome) / "src.zip"
+    val src    = Paths.get(jdkHome) / "src.zip"
 
     val entry = EnsimeFile(s"$src!/java/lang/String.java")
-    val extracted = RawFile(dir.toPath / "dep-src/source-jars/java/lang/String.java")
+    val extracted =
+      RawFile(dir.toPath / "dep-src/source-jars/java/lang/String.java")
 
-    val ef = List(entry)
+    val ef       = List(entry)
     val expected = List(extracted.canon)
 
     Canon.config = EnsimeConfig(
-      rawDir, rawDir, rawDir,
-      "config", "version",
-      Nil, Nil, Nil
+      rawDir,
+      rawDir,
+      rawDir,
+      "config",
+      "version",
+      Nil,
+      Nil,
+      Nil
     )
 
     Canonised(ef) shouldBe expected

@@ -49,9 +49,10 @@ import org.ensime.indexer._
 trait DocFinding { self: RichPresentationCompiler with SymbolToFqn =>
 
   // companions don't exist in Java, and the $ are . in javadocs
-  private def cleanClass(n: String): String = n.replaceAll("\\$$", "").replace("$", ".")
+  private def cleanClass(n: String): String =
+    n.replaceAll("\\$$", "").replace("$", ".")
 
-  private def javaFqn(tpe: Type): DocFqn = {
+  private def javaFqn(tpe: Type): DocFqn =
     toFqn(tpe.typeSymbol) match {
       case PackageName(parts) =>
         DocFqn(parts.mkString("."), "package")
@@ -62,19 +63,31 @@ trait DocFinding { self: RichPresentationCompiler with SymbolToFqn =>
       case MethodName(ClassName(pkg, clazz), method, _) =>
         DocFqn(pkg.fqnString, s"${cleanClass(clazz)}.$method")
     }
-  }
 
-  private def isRoot(s: Symbol) = (s eq NoSymbol) || s.isRootSymbol || s.isEmptyPackage || s.isEmptyPackageClass
+  private def isRoot(s: Symbol) =
+    (s eq NoSymbol) || s.isRootSymbol || s.isEmptyPackage || s.isEmptyPackageClass
 
   private def fullPackage(sym: Symbol): String =
-    sym.ownerChain.reverse.filterNot(isRoot)
-      .takeWhile(_.hasPackageFlag).map(_.nameString).mkString(".")
+    sym.ownerChain.reverse
+      .filterNot(isRoot)
+      .takeWhile(_.hasPackageFlag)
+      .map(_.nameString)
+      .mkString(".")
 
-  private def fullTypeName(sym: Symbol, nestedTypeSep: String, nameString: (Symbol => String)): String =
-    sym.ownerChain.takeWhile(!_.hasPackageFlag).reverse.map(nameString).mkString(nestedTypeSep)
+  private def fullTypeName(sym: Symbol,
+                           nestedTypeSep: String,
+                           nameString: (Symbol => String)): String =
+    sym.ownerChain
+      .takeWhile(!_.hasPackageFlag)
+      .reverse
+      .map(nameString)
+      .mkString(nestedTypeSep)
 
   private def scalaFqn(sym: Symbol): DocFqn = {
-    def nameString(s: Symbol) = s.nameString + (if ((s.isModule || s.isModuleClass) && !s.hasPackageFlag) "$" else "")
+    def nameString(s: Symbol) =
+      s.nameString + (if ((s.isModule || s.isModuleClass) && !s.hasPackageFlag)
+                        "$"
+                      else "")
     if (sym.isPackageObjectOrClass) {
       DocFqn(fullPackage(sym.owner), "package")
     } else if (sym.hasPackageFlag) {
@@ -84,22 +97,23 @@ trait DocFinding { self: RichPresentationCompiler with SymbolToFqn =>
     }
   }
 
-  private def linkName(sym: Symbol, java: Boolean): DocFqn = {
+  private def linkName(sym: Symbol, java: Boolean): DocFqn =
     if (java) javaFqn(sym.tpe) else scalaFqn(sym)
-  }
 
   private def signatureString(sym: Symbol, java: Boolean): String =
     if (!java)
       sym.nameString + sym.signatureString.replaceAll("[\\s]", "")
-    else toFqn(sym) match {
-      case PackageName(parts) => ""
-      case ClassName(pkg, clazz) => ""
-      case FieldName(_, field) => field
-      case MethodName(_, method, desc) => method + desc.params.map {
-        case a: ArrayDescriptor => cleanClass(a.reifier.fqnString) + "[]"
-        case c: ClassName => cleanClass(c.fqnString)
-      }.mkString("(", ", ", ")")
-    }
+    else
+      toFqn(sym) match {
+        case PackageName(parts)    => ""
+        case ClassName(pkg, clazz) => ""
+        case FieldName(_, field)   => field
+        case MethodName(_, method, desc) =>
+          method + desc.params.map {
+            case a: ArrayDescriptor => cleanClass(a.reifier.fqnString) + "[]"
+            case c: ClassName       => cleanClass(c.fqnString)
+          }.mkString("(", ", ", ")")
+      }
 
   def docSignature(sym: Symbol, pos: Option[Position]): Option[DocSigPair] = {
     def docSig(java: Boolean) = {
@@ -110,13 +124,17 @@ trait DocFinding { self: RichPresentationCompiler with SymbolToFqn =>
         Some(DocSig(linkName(sym, java), None))
       else if (owner.isClass || owner.isModule || owner.isTrait || owner.hasPackageFlag) {
         val ownerAtSite = pos.flatMap(specificOwnerOfSymbolAt).getOrElse(owner)
-        Some(DocSig(linkName(ownerAtSite, java), Some(signatureString(sym, java))))
+        Some(
+          DocSig(linkName(ownerAtSite, java), Some(signatureString(sym, java)))
+        )
       } else
-        sym.tpe.typeSymbol.toOption.map(tsym => DocSig(linkName(tsym, java), None))
+        sym.tpe.typeSymbol.toOption
+          .map(tsym => DocSig(linkName(tsym, java), None))
     }
 
     (docSig(java = false), docSig(java = true)) match {
-      case (Some(scalaSig), Some(javaSig)) => Some(DocSigPair(scalaSig, javaSig))
+      case (Some(scalaSig), Some(javaSig)) =>
+        Some(DocSigPair(scalaSig, javaSig))
       case _ => None
     }
   }

@@ -21,7 +21,8 @@ class BasicFormatsSpec extends WordSpec with DefaultJsonProtocol {
       7563661897011259335L.toJson shouldEqual JsNumber(7563661897011259335L)
     }
     "convert a JsNumber to a Long" in {
-      JsNumber(7563661897011259335L).convertTo[Long] shouldEqual 7563661897011259335L
+      JsNumber(7563661897011259335L)
+        .convertTo[Long] shouldEqual 7563661897011259335L
     }
   }
 
@@ -93,7 +94,8 @@ class BasicFormatsSpec extends WordSpec with DefaultJsonProtocol {
       JsNumber(42).convertTo[BigDecimal] shouldEqual BigDecimal(42)
     }
     """convert a JsString to a BigDecimal (to allow the quoted-large-numbers pattern)""" in {
-      JsString("9223372036854775809").convertTo[BigDecimal] shouldEqual BigDecimal("9223372036854775809")
+      JsString("9223372036854775809")
+        .convertTo[BigDecimal] shouldEqual BigDecimal("9223372036854775809")
     }
   }
 
@@ -105,7 +107,9 @@ class BasicFormatsSpec extends WordSpec with DefaultJsonProtocol {
       JsNumber(42).convertTo[BigInt] shouldEqual BigInt(42)
     }
     """convert a JsString to a BigInt (to allow the quoted-large-numbers pattern)""" in {
-      JsString("9223372036854775809").convertTo[BigInt] shouldEqual BigInt("9223372036854775809")
+      JsString("9223372036854775809").convertTo[BigInt] shouldEqual BigInt(
+        "9223372036854775809"
+      )
     }
   }
 
@@ -122,7 +126,9 @@ class BasicFormatsSpec extends WordSpec with DefaultJsonProtocol {
     "convert true to a JsTrue" in { true.toJson shouldEqual JsTrue }
     "convert false to a JsFalse" in { false.toJson shouldEqual JsFalse }
     "convert a JsTrue to true" in { JsTrue.convertTo[Boolean] shouldEqual true }
-    "convert a JsFalse to false" in { JsFalse.convertTo[Boolean] shouldEqual false }
+    "convert a JsFalse to false" in {
+      JsFalse.convertTo[Boolean] shouldEqual false
+    }
   }
 
   "The CharJsonFormat" should {

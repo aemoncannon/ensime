@@ -22,15 +22,18 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
 
   import CompletionUtil._
 
-  def askCompletionsAtPoint(info: SourceFileInfo, offset: Int, maxResultsArg: Int, caseSens: Boolean): CompletionInfoList = {
+  def askCompletionsAtPoint(info: SourceFileInfo,
+                            offset: Int,
+                            maxResultsArg: Int,
+                            caseSens: Boolean): CompletionInfoList = {
     val maxResults = if (maxResultsArg == 0) Int.MaxValue else maxResultsArg
-    val s = createJavaFileObject(info).getCharContent(false).toString
+    val s          = createJavaFileObject(info).getCharContent(false).toString
 
     val preceding = s.slice(Math.max(0, offset - 100), offset)
 
     val defaultPrefix = JavaIdentRegexp.findFirstMatchIn(preceding) match {
       case Some(m) => m.group(1)
-      case _ => ""
+      case _       => ""
     }
 
     val constructing = ConstructingRegexp.findFirstMatchIn(preceding).isDefined
@@ -41,62 +44,81 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
 
     val isMemberAccess = precedingChar == '.'
 
-    val candidates: List[CompletionInfo] = (if (ImportSubtypeRegexp.findFirstMatchIn(preceding).isDefined) {
-      // Erase the trailing partial subtype (it breaks type resolution).
-      val patched = s.substring(0, indexAfterTarget) + " " + s.substring(indexAfterTarget + defaultPrefix.length + 1);
-      (pathToPoint(SourceFileInfo(info.file, Some(patched), None), indexAfterTarget - 1) map {
-        case (c: Compilation, path: TreePath) => {
-          memberCandidates(c, path.getLeaf, defaultPrefix, true, caseSens)
-        }
-      })
-    } else if (ImportRegexp.findFirstMatchIn(preceding).isDefined) {
-      (pathToPoint(info, indexAfterTarget) flatMap {
-        case (c: Compilation, path: TreePath) => {
-          getEnclosingMemberSelectTree(path).map { m =>
-            packageMemberCandidates(c, m, defaultPrefix, caseSens)
-          }
-        }
-      })
-    } else if (isMemberAccess) {
-      // Erase the trailing partial member (it breaks type resolution).
-      val patched = s.substring(0, indexAfterTarget) + ".wait()" + s.substring(indexAfterTarget + defaultPrefix.length + 1);
-      (pathToPoint(SourceFileInfo(info.file, Some(patched), None), indexAfterTarget + 1) flatMap {
-        case (c: Compilation, path: TreePath) => {
-          getEnclosingMemberSelectTree(path).map { m =>
-            memberCandidates(c, m.getExpression(), defaultPrefix, false, caseSens)
-          }
-        }
-      })
-    } else {
+    val candidates: List[CompletionInfo] =
+      (if (ImportSubtypeRegexp.findFirstMatchIn(preceding).isDefined) {
+         // Erase the trailing partial subtype (it breaks type resolution).
+         val patched = s.substring(0, indexAfterTarget) + " " + s.substring(
+           indexAfterTarget + defaultPrefix.length + 1
+         );
+         (pathToPoint(SourceFileInfo(info.file, Some(patched), None),
+                      indexAfterTarget - 1) map {
+           case (c: Compilation, path: TreePath) => {
+             memberCandidates(c, path.getLeaf, defaultPrefix, true, caseSens)
+           }
+         })
+       } else if (ImportRegexp.findFirstMatchIn(preceding).isDefined) {
+         (pathToPoint(info, indexAfterTarget) flatMap {
+           case (c: Compilation, path: TreePath) => {
+             getEnclosingMemberSelectTree(path).map { m =>
+               packageMemberCandidates(c, m, defaultPrefix, caseSens)
+             }
+           }
+         })
+       } else if (isMemberAccess) {
+         // Erase the trailing partial member (it breaks type resolution).
+         val patched = s.substring(0, indexAfterTarget) + ".wait()" + s
+           .substring(indexAfterTarget + defaultPrefix.length + 1);
+         (pathToPoint(SourceFileInfo(info.file, Some(patched), None),
+                      indexAfterTarget + 1) flatMap {
+           case (c: Compilation, path: TreePath) => {
+             getEnclosingMemberSelectTree(path).map { m =>
+               memberCandidates(c,
+                                m.getExpression(),
+                                defaultPrefix,
+                                false,
+                                caseSens)
+             }
+           }
+         })
+       } else {
 
-      // Kick off an index search if the name looks like a type.
-      val typeSearch = if (TypeNameRegex.findFirstMatchIn(defaultPrefix).isDefined) {
-        Some(fetchTypeSearchCompletions(defaultPrefix, maxResults, indexer))
-      } else None
+         // Kick off an index search if the name looks like a type.
+         val typeSearch =
+           if (TypeNameRegex.findFirstMatchIn(defaultPrefix).isDefined) {
+             Some(
+               fetchTypeSearchCompletions(defaultPrefix, maxResults, indexer)
+             )
+           } else None
 
-      (scopeForPoint(info, indexAfterTarget) map {
-        case (c: Compilation, s: Scope) => {
-          scopeMemberCandidates(c, s, defaultPrefix, caseSens, constructing)
-        }
-      }) map { scopeCandidates =>
-        val typeSearchResult = typeSearch.flatMap(Await.result(_, Duration.Inf)).getOrElse(Nil)
-        scopeCandidates ++ typeSearchResult
-      }
+         (scopeForPoint(info, indexAfterTarget) map {
+           case (c: Compilation, s: Scope) => {
+             scopeMemberCandidates(c, s, defaultPrefix, caseSens, constructing)
+           }
+         }) map { scopeCandidates =>
+           val typeSearchResult =
+             typeSearch.flatMap(Await.result(_, Duration.Inf)).getOrElse(Nil)
+           scopeCandidates ++ typeSearchResult
+         }
 
-    }).getOrElse(Nil)
-    CompletionInfoList(defaultPrefix, candidates.sortWith({ (c1, c2) =>
-      c1.relevance > c2.relevance ||
-        (c1.relevance == c2.relevance &&
-          c1.name.length < c2.name.length)
-    }).take(maxResults))
+       }).getOrElse(Nil)
+    CompletionInfoList(defaultPrefix,
+                       candidates
+                         .sortWith({ (c1, c2) =>
+                           c1.relevance > c2.relevance ||
+                           (c1.relevance == c2.relevance &&
+                           c1.name.length < c2.name.length)
+                         })
+                         .take(maxResults))
   }
 
-  private def getEnclosingMemberSelectTree(path: TreePath): Option[MemberSelectTree] = {
+  private def getEnclosingMemberSelectTree(
+    path: TreePath
+  ): Option[MemberSelectTree] = {
     var p = path
     while (p != null) {
       p.getLeaf match {
         case m: MemberSelectTree => return Some(m)
-        case _ => {}
+        case _                   => {}
       }
       p = p.getParentPath
     }
@@ -107,8 +129,8 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     val name = m.getIdentifier.toString
     m.getExpression match {
       case m: MemberSelectTree => selectedPackageName(m) + "." + name
-      case i: IdentifierTree => i.getName.toString() + "." + name
-      case _ => name
+      case i: IdentifierTree   => i.getName.toString() + "." + name
+      case _                   => name
     }
   }
 
@@ -119,26 +141,38 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     caseSense: Boolean
   ): List[CompletionInfo] = {
     val pkg = selectedPackageName(select)
-    val candidates = (Option(compilation.elements.getPackageElement(pkg)) map { p: PackageElement =>
-      p.getEnclosedElements().asScala.flatMap {
-        e => filterElement(compilation, e, prefix, caseSense, true, false)
-      }
+    val candidates = (Option(compilation.elements.getPackageElement(pkg)) map {
+      p: PackageElement =>
+        p.getEnclosedElements().asScala.flatMap { e =>
+          filterElement(compilation, e, prefix, caseSense, true, false)
+        }
     }).getOrElse(Nil)
     candidates.toList
   }
 
-  private def filterElement(c: Compilation, e: Element, prefix: String, caseSense: Boolean,
-    typesOnly: Boolean, constructors: Boolean, baseRelevance: Int = 0): List[CompletionInfo] = {
+  private def filterElement(c: Compilation,
+                            e: Element,
+                            prefix: String,
+                            caseSense: Boolean,
+                            typesOnly: Boolean,
+                            constructors: Boolean,
+                            baseRelevance: Int = 0): List[CompletionInfo] = {
     val s = e.getSimpleName.toString
 
     // reward case case-sensitive matches
-    val relevance = if (s.startsWith(prefix)) baseRelevance + 50 else baseRelevance
+    val relevance =
+      if (s.startsWith(prefix)) baseRelevance + 50 else baseRelevance
 
-    if (matchesPrefix(s, prefix, matchEntire = false, caseSens = caseSense) && !s.contains("$") && !s.contains("<init>")) {
+    if (matchesPrefix(s, prefix, matchEntire = false, caseSens = caseSense) && !s
+          .contains("$") && !s.contains("<init>")) {
       e match {
-        case e: ExecutableElement if !typesOnly => List(methodInfo(e, relevance + 5))
-        case e: VariableElement if !typesOnly => List(fieldInfo(e, relevance + 10))
-        case e: TypeElement => if (constructors) constructorInfos(c, e, relevance + 5) else List(typeInfo(e, relevance))
+        case e: ExecutableElement if !typesOnly =>
+          List(methodInfo(e, relevance + 5))
+        case e: VariableElement if !typesOnly =>
+          List(fieldInfo(e, relevance + 10))
+        case e: TypeElement =>
+          if (constructors) constructorInfos(c, e, relevance + 5)
+          else List(typeInfo(e, relevance))
         case _ => Nil
       }
     } else Nil
@@ -156,13 +190,18 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     // Note Scope#getLocalElements does not include fields / members of
     // enclosing classes. Need to add those manually.
     //
-    def addTypeMembers(tel: TypeElement, relevance: Int): Unit = {
+    def addTypeMembers(tel: TypeElement, relevance: Int): Unit =
       for (el <- compilation.elements.getAllMembers(tel).asScala) {
-        for (info <- filterElement(compilation, el, prefix, caseSense, false, constructing, relevance)) {
+        for (info <- filterElement(compilation,
+                                   el,
+                                   prefix,
+                                   caseSense,
+                                   false,
+                                   constructing,
+                                   relevance)) {
           candidates += info
         }
       }
-    }
 
     var relevance = 0
     for (tel <- Option(scope.getEnclosingClass())) {
@@ -171,7 +210,7 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
       while (t != null) {
         t match {
           case tel: TypeElement => addTypeMembers(tel, relevance)
-          case _ =>
+          case _                =>
         }
         t = t.getEnclosingElement()
         relevance -= 10
@@ -182,7 +221,13 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     var s = scope
     while (s != null) {
       for (el <- s.getLocalElements().asScala) {
-        for (info <- filterElement(compilation, el, prefix, caseSense, false, constructing, relevance)) {
+        for (info <- filterElement(compilation,
+                                   el,
+                                   prefix,
+                                   caseSense,
+                                   false,
+                                   constructing,
+                                   relevance)) {
           candidates += info
         }
       }
@@ -198,29 +243,32 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     prefix: String,
     importing: Boolean,
     caseSense: Boolean
-  ): List[CompletionInfo] = {
-
+  ): List[CompletionInfo] =
     typeElement(c, target).toList.flatMap {
 
       case tel: TypeElement =>
-
-        val path = c.trees.getPath(c.compilationUnit, target)
+        val path  = c.trees.getPath(c.compilationUnit, target)
         val scope = c.trees.getScope(path)
 
         val isAccessible: Element => Boolean = c.trees
           .isAccessible(scope, _, c.types.getDeclaredType(tel))
 
-        c.elements.getAllMembers(tel).asScala.filter(isAccessible).flatMap { el =>
-          filterElement(c, el, prefix, caseSense, importing, false)
-        }(breakOut)
+        c.elements
+          .getAllMembers(tel)
+          .asScala
+          .filter(isAccessible)
+          .flatMap { el =>
+            filterElement(c, el, prefix, caseSense, importing, false)
+          }(breakOut)
 
       case e =>
         log.warn("Unrecognized type element " + e)
         List.empty
     }
-  }
 
-  private def methodName(e: ExecutableElement)(formatType: TypeMirror => String): String = {
+  private def methodName(
+    e: ExecutableElement
+  )(formatType: TypeMirror => String): String = {
 
     val params = e.getParameters.asScala.map { param =>
       val paramType = formatType(param.asType())
@@ -228,19 +276,22 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
       s"$paramType $paramName"
     }.mkString("(", ", ", ")")
 
-    val returns = formatType(e.getReturnType)
+    val returns        = formatType(e.getReturnType)
     val identifierName = e.getSimpleName
 
     s"$returns $identifierName$params"
   }
 
-  private def fullMethodName(t: ExecutableElement): String = methodName(t)(_.toString())
-  private def shortMethodName(t: ExecutableElement): String = methodName(t)(_.toString.split("\\.").last)
+  private def fullMethodName(t: ExecutableElement): String =
+    methodName(t)(_.toString())
+  private def shortMethodName(t: ExecutableElement): String =
+    methodName(t)(_.toString.split("\\.").last)
 
   private def typeMirrorToTypeInfo(t: TypeMirror): TypeInfo =
     BasicTypeInfo(t.toString, DeclaredAs.Class, t.toString)
 
-  private def methodInfo(e: ExecutableElement, relevance: Int): CompletionInfo = {
+  private def methodInfo(e: ExecutableElement,
+                         relevance: Int): CompletionInfo = {
 
     val params = e.getParameters.asScala.map { param =>
       param.getSimpleName.toString ->
@@ -248,25 +299,31 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     }
 
     val typeInfo = ArrowTypeInfo(
-      shortMethodName(e), fullMethodName(e),
+      shortMethodName(e),
+      fullMethodName(e),
       typeMirrorToTypeInfo(e.getReturnType),
       ParamSectionInfo(
         params,
         isImplicit = false
-      ) :: Nil, Nil
+      ) :: Nil,
+      Nil
     )
 
     CompletionInfo(
       Some(typeInfo),
       e.getSimpleName.toString,
-      relevance, None
+      relevance,
+      None
     )
   }
 
   private def fieldInfo(e: VariableElement, relevance: Int): CompletionInfo = {
     val t = e.asType
     CompletionInfo(
-      Some(BasicTypeInfo(renderShortType(t), DeclaredAs.Field, t.toString)), e.getSimpleName.toString, relevance, None
+      Some(BasicTypeInfo(renderShortType(t), DeclaredAs.Field, t.toString)),
+      e.getSimpleName.toString,
+      relevance,
+      None
     )
   }
 
@@ -275,7 +332,7 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
     case t: DeclaredType =>
       t.asElement.getSimpleName + (t.getTypeArguments.asScala match {
         case Seq() => ""
-        case args => args.map(renderShortType).mkString("<", ",", ">")
+        case args  => args.map(renderShortType).mkString("<", ",", ">")
       })
     case _ => t.toString
   }
@@ -283,15 +340,25 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
   private def typeInfo(e: TypeElement, relevance: Int): CompletionInfo = {
     val s = e.getSimpleName.toString
     CompletionInfo(
-      None, s, relevance, None
+      None,
+      s,
+      relevance,
+      None
     )
   }
 
-  private def constructorInfos(compilation: Compilation, e: TypeElement, relevance: Int): List[CompletionInfo] = {
+  private def constructorInfos(compilation: Compilation,
+                               e: TypeElement,
+                               relevance: Int): List[CompletionInfo] = {
     val s = e.getSimpleName.toString
-    ElementFilter.constructorsIn(compilation.elements.getAllMembers(e)).asScala.map(methodInfo(_, relevance)).map { m =>
-      m.copy(name = s)
-    }.toList
+    ElementFilter
+      .constructorsIn(compilation.elements.getAllMembers(e))
+      .asScala
+      .map(methodInfo(_, relevance))
+      .map { m =>
+        m.copy(name = s)
+      }
+      .toList
   }
 
 }

@@ -14,10 +14,12 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
   import EscapingStringInterpolation._
 
   // copied from s-express:test to avoid a test->test dependency
-  def assertFormat[T](start: T, expect: Sexp)(implicit f: SexpFormat[T], p: Position): Unit = {
-    val sexp = start.toSexp
+  def assertFormat[T](start: T, expect: Sexp)(implicit f: SexpFormat[T],
+                                              p: Position): Unit = {
+    val sexp      = start.toSexp
     val converted = sexp == expect // reduces noise in scalatest reporting
-    assert(converted, s"\n${sexp.compactPrint}\nwas not\n${expect.compactPrint}")
+    assert(converted,
+           s"\n${sexp.compactPrint}\nwas not\n${expect.compactPrint}")
     expect.convertTo[T] should be(start)
   }
 
@@ -26,7 +28,8 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     assertFormat(enveloped, s"""(:req $via :call-id -1)""".parseSexp)
   }
 
-  def roundtrip(value: EnsimeServerMessage, via: String)(implicit p: Position): Unit = {
+  def roundtrip(value: EnsimeServerMessage,
+                via: String)(implicit p: Position): Unit = {
     val enveloped = RpcResponseEnvelope(None, value)
     assertFormat(enveloped, s"""(:payload $via)""".parseSexp)
   }
@@ -69,7 +72,10 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      TypecheckFilesReq(List(Right(SourceFileInfo(file1)), Right(SourceFileInfo(file2, Some("xxx"), None)))): RpcRequest,
+      TypecheckFilesReq(
+        List(Right(SourceFileInfo(file1)),
+             Right(SourceFileInfo(file2, Some("xxx"), None)))
+      ): RpcRequest,
       s"""(:ensime-api-typecheck-files-req (:files ((:file "$file1") (:file "$file2" :contents "xxx"))))"""
     )
 
@@ -84,7 +90,8 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      DocUriAtPointReq(Right(SourceFileInfo(file1, None, Some(file2))), OffsetRange(1, 10)): RpcRequest,
+      DocUriAtPointReq(Right(SourceFileInfo(file1, None, Some(file2))),
+                       OffsetRange(1, 10)): RpcRequest,
       s"""(:ensime-api-doc-uri-at-point-req (:file (:file "$file1" :contents-in "$file2") :point (:from 1 :to 10)))"""
     )
 
@@ -120,7 +127,9 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       SymbolDesignationsReq(
-        Left(file1), 1, 100,
+        Left(file1),
+        1,
+        100,
         List(ObjectSymbol, ValSymbol)
       ): RpcRequest,
       s"""(:ensime-api-symbol-designations-req (:file "$file1" :start 1 :end 100 :requested-types (:ensime-api-object-symbol :ensime-api-val-symbol)))"""
@@ -128,7 +137,9 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       SymbolDesignationsReq(
-        Right(SourceFileInfo(file1, None, None)), 1, 100,
+        Right(SourceFileInfo(file1, None, None)),
+        1,
+        100,
         List(ObjectSymbol, ValSymbol)
       ): RpcRequest,
       s"""(:ensime-api-symbol-designations-req (:file (:file "$file1") :start 1 :end 100 :requested-types (:ensime-api-object-symbol :ensime-api-val-symbol)))"""
@@ -285,12 +296,18 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      DebugStepEvent(DebugThreadId(207), "threadNameStr", sourcePos1.file, sourcePos1.line): EnsimeEvent,
+      DebugStepEvent(DebugThreadId(207),
+                     "threadNameStr",
+                     sourcePos1.file,
+                     sourcePos1.line): EnsimeEvent,
       s"""(:ensime-api-debug-step-event (:thread-id 207 :thread-name "threadNameStr" :file "$file1" :line 57))"""
     )
 
     roundtrip(
-      DebugBreakEvent(DebugThreadId(209), "threadNameStr", sourcePos1.file, sourcePos1.line): EnsimeEvent,
+      DebugBreakEvent(DebugThreadId(209),
+                      "threadNameStr",
+                      sourcePos1.file,
+                      sourcePos1.line): EnsimeEvent,
       s"""(:ensime-api-debug-break-event (:thread-id 209 :thread-name "threadNameStr" :file "$file1" :line 57))"""
     )
 
@@ -305,7 +322,11 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      DebugExceptionEvent(33L, dtid, "threadNameStr", Some(sourcePos1.file), Some(sourcePos1.line)): EnsimeEvent,
+      DebugExceptionEvent(33L,
+                          dtid,
+                          "threadNameStr",
+                          Some(sourcePos1.file),
+                          Some(sourcePos1.line)): EnsimeEvent,
       s"""(:ensime-api-debug-exception-event (:exception 33 :thread-id 13 :thread-name "threadNameStr" :file "$file1" :line 57))"""
     )
 
@@ -354,12 +375,18 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      DebugStringInstance("summaryStr", List(debugClassField), "typeNameStr", DebugObjectId(5L)): DebugValue,
+      DebugStringInstance("summaryStr",
+                          List(debugClassField),
+                          "typeNameStr",
+                          DebugObjectId(5L)): DebugValue,
       """(:ensime-api-debug-string-instance (:summary "summaryStr" :fields ((:index 19 :name "nameStr" :type-name "typeNameStr" :summary "summaryStr")) :type-name "typeNameStr" :object-id 5))"""
     )
 
     roundtrip(
-      DebugObjectInstance("summaryStr", List(debugClassField), "typeNameStr", DebugObjectId(5L)): DebugValue,
+      DebugObjectInstance("summaryStr",
+                          List(debugClassField),
+                          "typeNameStr",
+                          DebugObjectId(5L)): DebugValue,
       """(:ensime-api-debug-object-instance (:summary "summaryStr" :fields ((:index 19 :name "nameStr" :type-name "typeNameStr" :summary "summaryStr")) :type-name "typeNameStr" :object-id 5))"""
     )
 
@@ -518,7 +545,9 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      SourcePositions(PositionHint(sourcePos2, Some("{/* code here */}")) :: Nil),
+      SourcePositions(
+        PositionHint(sourcePos2, Some("{/* code here */}")) :: Nil
+      ),
       s"""(:ensime-api-source-positions (:positions ((:position (:ensime-api-line-source-position (:file "$file1" :line 59)) :preview "{/* code here */}")))))"""
     )
 
@@ -536,10 +565,11 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
     roundtrip(
       SymbolDesignations(
-        symFile, List(
-        SymbolDesignation(7, 9, VarFieldSymbol),
-        SymbolDesignation(11, 22, ClassSymbol)
-      )
+        symFile,
+        List(
+          SymbolDesignation(7, 9, VarFieldSymbol),
+          SymbolDesignation(11, 22, ClassSymbol)
+        )
       ): SymbolDesignations,
       s"""(:ensime-api-symbol-designations (:file "$symFile" :syms ((:start 7 :end 9 :sym-type :ensime-api-var-field-symbol) (:start 11 :end 22 :sym-type :ensime-api-class-symbol))))"""
     )
@@ -550,7 +580,15 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
     )
 
     roundtrip(
-      ImplicitInfos(List(ImplicitParamInfo(5, 6, symbolInfo, List(symbolInfo, symbolInfo), true))): ImplicitInfos,
+      ImplicitInfos(
+        List(
+          ImplicitParamInfo(5,
+                            6,
+                            symbolInfo,
+                            List(symbolInfo, symbolInfo),
+                            true)
+        )
+      ): ImplicitInfos,
       s"""(:ensime-api-implicit-infos (:infos ((:ensime-api-implicit-param-info (:start 5 :end 6 :fun (:name "name" :local-name "localName" :type (:ensime-api-basic-type-info (:name "type1" :decl-as :ensime-api-method :full-name "FOO.type1"))) :params ((:name "name" :local-name "localName" :type (:ensime-api-basic-type-info (:name "type1" :decl-as :ensime-api-method :full-name "FOO.type1"))) (:name "name" :local-name "localName" :type (:ensime-api-basic-type-info (:name "type1" :decl-as :ensime-api-method :full-name "FOO.type1")))) :fun-is-implicit t)))))"""
     )
   }

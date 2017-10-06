@@ -19,7 +19,7 @@ class IoSpec extends FlatSpec with Matchers {
   }
 
   it should "drain an output stream to an input stream" in {
-    val in = new ByteArrayInputStream(bytes)
+    val in  = new ByteArrayInputStream(bytes)
     val out = new ByteArrayOutputStream()
 
     out.drain(in)

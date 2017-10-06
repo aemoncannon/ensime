@@ -12,18 +12,23 @@ import org.ensime.AkkaBackCompat
 import org.ensime.indexer.SearchService
 import org.ensime.vfs._
 
-trait IsolatedSearchServiceFixture extends IsolatedSourceResolverFixture with AkkaBackCompat {
+trait IsolatedSearchServiceFixture
+    extends IsolatedSourceResolverFixture
+    with AkkaBackCompat {
 
-  def withSearchService(testCode: (EnsimeConfig, SearchService) => Any)(implicit actorSystem: ActorSystem, vfs: EnsimeVFS): Any = withSourceResolver { (config, resolver) =>
-    val searchService = new SearchService(config, resolver)
-    try {
-      testCode(config, searchService)
-    } finally {
-      Await.ready(searchService.shutdown(), Duration.Inf)
-      Try(actorSystem.terminate())
-      Try(Await.result(actorSystem.whenTerminated, 10.seconds))
+  def withSearchService(
+    testCode: (EnsimeConfig, SearchService) => Any
+  )(implicit actorSystem: ActorSystem, vfs: EnsimeVFS): Any =
+    withSourceResolver { (config, resolver) =>
+      val searchService = new SearchService(config, resolver)
+      try {
+        testCode(config, searchService)
+      } finally {
+        Await.ready(searchService.shutdown(), Duration.Inf)
+        Try(actorSystem.terminate())
+        Try(Await.result(actorSystem.whenTerminated, 10.seconds))
+      }
     }
-  }
 }
 
 trait SharedSearchServiceFixture
@@ -48,5 +53,6 @@ trait SharedSearchServiceFixture
     testCode: (EnsimeConfig, SearchService) => Any
   ): Unit = testCode(_config, _search)
 
-  def withSearchService(testCode: SearchService => Any): Unit = testCode(_search)
+  def withSearchService(testCode: SearchService => Any): Unit =
+    testCode(_search)
 }

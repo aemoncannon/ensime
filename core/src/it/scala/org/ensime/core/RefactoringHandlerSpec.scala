@@ -14,19 +14,22 @@ import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
 import org.scalatest.Assertions
 
-class RefactoringHandlerSpec extends EnsimeSpec
+class RefactoringHandlerSpec
+    extends EnsimeSpec
     with IsolatedAnalyzerFixture
     with RichPresentationCompilerTestUtils
     with RefactoringHandlerTestUtils {
 
   val encoding = "UTF-16"
   def original = {
-    val empty = EnsimeConfigFixture.EmptyTestProject
+    val empty             = EnsimeConfigFixture.EmptyTestProject
     val origScalacOptions = empty.projects.head.scalacOptions
     empty.copy(
-      projects = List(empty.projects.head.copy(
-        scalacOptions = origScalacOptions ::: List("-encoding", encoding)
-      ))
+      projects = List(
+        empty.projects.head.copy(
+          scalacOptions = origScalacOptions ::: List("-encoding", encoding)
+        )
+      )
     )
   }
 
@@ -36,61 +39,83 @@ class RefactoringHandlerSpec extends EnsimeSpec
   def ContentsInSourceFileInfo(file: File, contentsIn: File) =
     SourceFileInfo(RawFile(file.toPath), contentsIn = Some(contentsIn))
 
-  it should "add imports on the first line" in withAnalyzer { (dir, analyzerRef) =>
-    import org.ensime.util.file._
+  it should "add imports on the first line" in withAnalyzer {
+    (dir, analyzerRef) =>
+      import org.ensime.util.file._
 
-    val file = srcFile(dir, "tmp-contents", contents(
-      "import java.lang.Integer.toBinaryString",
-      "import java.lang.String.valueOf",
-      "",
-      "trait Temp {",
-      "  valueOf(5)",
-      "  vo(\"5\")",
-      "  toBinaryString(27)",
-      "}"
-    ), write = true, encoding = encoding)
-
-    val analyzer = analyzerRef.underlyingActor
-
-    val procId = 1
-    val result = analyzer.handleRefactorRequest(
-      new RefactorReq(
-        procId, AddImportRefactorDesc("java.lang.Integer.{valueOf => vo}", new File(file.path)), false
+      val file = srcFile(
+        dir,
+        "tmp-contents",
+        contents(
+          "import java.lang.Integer.toBinaryString",
+          "import java.lang.String.valueOf",
+          "",
+          "trait Temp {",
+          "  valueOf(5)",
+          "  vo(\"5\")",
+          "  toBinaryString(27)",
+          "}"
+        ),
+        write = true,
+        encoding = encoding
       )
-    ).futureValue
-    val diffContent = extractDiffFromResponse(result, analyzer.charset)
-
-    val relevantExpectedPart = s"""|@@ -2,2 +2,3 @@
-                                   | import java.lang.String.valueOf
-                                   |+import java.lang.Integer.{valueOf => vo}
-                                   | \n""".stripMargin
-
-    val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
-
-    diffContent should ===(expectedContents)
-  }
-
-  it should "add imports even if none exist" in {
-    withAnalyzer { (dir, analyzerRef) =>
-
-      val file = srcFile(dir, "tmp-contents", contents(
-        "package org.ensime.testing",
-        "",
-        "trait Temp {",
-        "  valueOf(5)",
-        "  vo(\"5\")",
-        "  toBinaryString(27)",
-        "}"
-      ), write = true, encoding = encoding)
 
       val analyzer = analyzerRef.underlyingActor
 
       val procId = 1
-      val result = analyzer.handleRefactorRequest(
-        new RefactorReq(
-          procId, AddImportRefactorDesc("java.lang.Integer", new File(file.path)), false
+      val result = analyzer
+        .handleRefactorRequest(
+          new RefactorReq(
+            procId,
+            AddImportRefactorDesc("java.lang.Integer.{valueOf => vo}",
+                                  new File(file.path)),
+            false
+          )
         )
-      ).futureValue
+        .futureValue
+      val diffContent = extractDiffFromResponse(result, analyzer.charset)
+
+      val relevantExpectedPart = s"""|@@ -2,2 +2,3 @@
+                                     | import java.lang.String.valueOf
+                                     |+import java.lang.Integer.{valueOf => vo}
+                                     | \n""".stripMargin
+
+      val expectedContents =
+        expectedDiffContent(file.path, relevantExpectedPart)
+
+      diffContent should ===(expectedContents)
+  }
+
+  it should "add imports even if none exist" in {
+    withAnalyzer { (dir, analyzerRef) =>
+      val file = srcFile(
+        dir,
+        "tmp-contents",
+        contents(
+          "package org.ensime.testing",
+          "",
+          "trait Temp {",
+          "  valueOf(5)",
+          "  vo(\"5\")",
+          "  toBinaryString(27)",
+          "}"
+        ),
+        write = true,
+        encoding = encoding
+      )
+
+      val analyzer = analyzerRef.underlyingActor
+
+      val procId = 1
+      val result = analyzer
+        .handleRefactorRequest(
+          new RefactorReq(
+            procId,
+            AddImportRefactorDesc("java.lang.Integer", new File(file.path)),
+            false
+          )
+        )
+        .futureValue
 
       val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
@@ -103,43 +128,53 @@ class RefactoringHandlerSpec extends EnsimeSpec
         ""
       )
 
-      val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
+      val expectedContents =
+        expectedDiffContent(file.path, relevantExpectedPart)
 
       diffContent should ===(expectedContents)
     }
   }
 
-  it should "rename a function id with params' opening/closing parenthesis on different lines" in withAnalyzer { (dir, analyzerRef) =>
+  it should "rename a function id with params' opening/closing parenthesis on different lines" in withAnalyzer {
+    (dir, analyzerRef) =>
+      val file = srcFile(dir,
+                         "tmp-contents",
+                         contents(
+                           "package org.ensime.testing",
+                           "trait Foo {",
+                           "def doIt(",
+                           ") = \"\"",
+                           "}",
+                           ""
+                         ),
+                         write = true,
+                         encoding = encoding)
 
-    val file = srcFile(dir, "tmp-contents", contents(
-      "package org.ensime.testing",
-      "trait Foo {",
-      "def doIt(",
-      ") = \"\"",
-      "}",
-      ""
-    ), write = true, encoding = encoding)
+      val analyzer = analyzerRef.underlyingActor
 
-    val analyzer = analyzerRef.underlyingActor
+      val procId = 1
+      val result = analyzer
+        .handleRefactorRequest(
+          new RefactorReq(
+            procId,
+            RenameRefactorDesc("doItNow", new File(file.path), 43, 47),
+            false
+          )
+        )
+        .futureValue
 
-    val procId = 1
-    val result = analyzer.handleRefactorRequest(
-      new RefactorReq(
-        procId, RenameRefactorDesc("doItNow", new File(file.path), 43, 47), false
-      )
-    ).futureValue
+      val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
-    val diffContent = extractDiffFromResponse(result, analyzer.charset)
+      val relevantExpectedPart = s"""|@@ -2,3 +2,3 @@
+                                     | trait Foo {
+                                     |-def doIt(
+                                     |+def doItNow(
+                                     | ) = ""
+                                     |""".stripMargin
+      val expectedContents =
+        expectedDiffContent(file.path, relevantExpectedPart)
 
-    val relevantExpectedPart = s"""|@@ -2,3 +2,3 @@
-                                   | trait Foo {
-                                   |-def doIt(
-                                   |+def doItNow(
-                                   | ) = ""
-                                   |""".stripMargin
-    val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
-
-    diffContent should ===(expectedContents)
+      diffContent should ===(expectedContents)
   }
 
   it should "organize imports when 3 imports exist" in {
@@ -147,26 +182,36 @@ class RefactoringHandlerSpec extends EnsimeSpec
       //when 3 imports exist
       // "produce a diff file in the unified output format"
 
-      val file = srcFile(dir, "tmp-contents", contents(
-        "import java.lang.Integer.{valueOf => vo}",
-        "import java.lang.Integer.toBinaryString",
-        "import java.lang.String.valueOf",
-        " ",
-        "trait Temp {",
-        "  valueOf(5)",
-        "  vo(\"5\")",
-        "  toBinaryString(27)",
-        "}"
-      ), write = true, encoding = encoding)
+      val file = srcFile(
+        dir,
+        "tmp-contents",
+        contents(
+          "import java.lang.Integer.{valueOf => vo}",
+          "import java.lang.Integer.toBinaryString",
+          "import java.lang.String.valueOf",
+          " ",
+          "trait Temp {",
+          "  valueOf(5)",
+          "  vo(\"5\")",
+          "  toBinaryString(27)",
+          "}"
+        ),
+        write = true,
+        encoding = encoding
+      )
 
       val analyzer = analyzerRef.underlyingActor
 
       val procId = 1
-      val result = analyzer.handleRefactorRequest(
-        new RefactorReq(
-          procId, OrganiseImportsRefactorDesc(new File(file.path)), false
+      val result = analyzer
+        .handleRefactorRequest(
+          new RefactorReq(
+            procId,
+            OrganiseImportsRefactorDesc(new File(file.path)),
+            false
+          )
         )
-      ).futureValue
+        .futureValue
 
       val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
@@ -176,7 +221,8 @@ class RefactoringHandlerSpec extends EnsimeSpec
                                      |+import java.lang.Integer.{toBinaryString, valueOf => vo}
                                      | import java.lang.String.valueOf
                                      |""".stripMargin
-      val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
+      val expectedContents =
+        expectedDiffContent(file.path, relevantExpectedPart)
 
       diffContent should ===(expectedContents)
     }
@@ -184,28 +230,37 @@ class RefactoringHandlerSpec extends EnsimeSpec
 
   it should "organize and group imports" in {
     withAnalyzer { (dir, analyzerRef) =>
-
-      val file = srcFile(dir, "tmp-contents", contents(
-        "import scala._",
-        "import java.lang.Integer",
-        "import scala.Int",
-        "import java._",
-        " ",
-        "trait Temp {",
-        "  def i(): Int",
-        "  def j(): Integer",
-        "}",
-        ""
-      ), write = true, encoding = encoding)
+      val file = srcFile(
+        dir,
+        "tmp-contents",
+        contents(
+          "import scala._",
+          "import java.lang.Integer",
+          "import scala.Int",
+          "import java._",
+          " ",
+          "trait Temp {",
+          "  def i(): Int",
+          "  def j(): Integer",
+          "}",
+          ""
+        ),
+        write = true,
+        encoding = encoding
+      )
 
       val analyzer = analyzerRef.underlyingActor
 
       val procId = 1
-      val result = analyzer.handleRefactorRequest(
-        new RefactorReq(
-          procId, OrganiseImportsRefactorDesc(new File(file.path)), false
+      val result = analyzer
+        .handleRefactorRequest(
+          new RefactorReq(
+            procId,
+            OrganiseImportsRefactorDesc(new File(file.path)),
+            false
+          )
         )
-      ).futureValue
+        .futureValue
 
       val diffContent = extractDiffFromResponse(result, analyzer.charset)
 
@@ -218,7 +273,8 @@ class RefactoringHandlerSpec extends EnsimeSpec
                                      |+
                                      |+import scala._
                                      |  \n""".stripMargin
-      val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
+      val expectedContents =
+        expectedDiffContent(file.path, relevantExpectedPart)
 
       diffContent should ===(expectedContents)
     }
@@ -252,38 +308,49 @@ class RefactoringHandlerSpec extends EnsimeSpec
           |
         """.stripMargin
 
-      val file = srcFile(dir, "tmp-contents", contents(
-        linesBefore,
-        targetLine,
-        linesAfter
-      ), write = true, encoding = encoding)
+      val file = srcFile(dir,
+                         "tmp-contents",
+                         contents(
+                           linesBefore,
+                           targetLine,
+                           linesAfter
+                         ),
+                         write = true,
+                         encoding = encoding)
 
       val analyzer = analyzerRef.underlyingActor
 
       val procId = 1
-      val result = analyzer.handleRefactorRequest(
-        new RefactorReq(
-          procId, ExpandMatchCasesDesc(new File(file.path), linesBefore.length, linesBefore.length + targetLine.length), false
+      val result = analyzer
+        .handleRefactorRequest(
+          new RefactorReq(
+            procId,
+            ExpandMatchCasesDesc(new File(file.path),
+                                 linesBefore.length,
+                                 linesBefore.length + targetLine.length),
+            false
+          )
         )
-      ).futureValue
+        .futureValue
 
-      val diffContent = extractDiffFromResponse(result, analyzer.charset)
+      val diffContent          = extractDiffFromResponse(result, analyzer.charset)
       val relevantExpectedPart = """@@ -15,6 +15,8 @@
-                |     f match {
-                |-        
-                |-
-                |-
-                |-    }
-                |+  case A(s, i) => ???
-                |+  case B(l) => ???
-                |+  case C(b) => ???
-                |+  case D => ???
-                |+  case E(l) => ???
-                |+}
-                |   }
-                |""".stripMargin
+                                   |     f match {
+                                   |-        
+                                   |-
+                                   |-
+                                   |-    }
+                                   |+  case A(s, i) => ???
+                                   |+  case B(l) => ???
+                                   |+  case C(b) => ???
+                                   |+  case D => ???
+                                   |+  case E(l) => ???
+                                   |+}
+                                   |   }
+                                   |""".stripMargin
 
-      val expectedContents = expectedDiffContent(file.path, relevantExpectedPart)
+      val expectedContents =
+        expectedDiffContent(file.path, relevantExpectedPart)
 
       diffContent should ===(expectedContents)
     }
@@ -291,21 +358,29 @@ class RefactoringHandlerSpec extends EnsimeSpec
 
   it should "support RenameSourceFileChange change" in {
     withAnalyzer { (dir, analyzerRef) =>
-      val file = srcFile(dir, "Foo.scala", contents(
-        "object Foo {}"
-      ), write = true, encoding = encoding)
+      val file = srcFile(dir,
+                         "Foo.scala",
+                         contents(
+                           "object Foo {}"
+                         ),
+                         write = true,
+                         encoding = encoding)
       val analyzer = analyzerRef.underlyingActor
 
       val procId = 1
 
-      val result = analyzer.handleRefactorRequest(
-        new RefactorReq(
-          procId, RenameRefactorDesc("Qux", new File(file.path), 8, 10), false
+      val result = analyzer
+        .handleRefactorRequest(
+          new RefactorReq(
+            procId,
+            RenameRefactorDesc("Qux", new File(file.path), 8, 10),
+            false
+          )
         )
-      ).futureValue
+        .futureValue
 
       val diffContent = extractDiffFromResponse(result, analyzer.charset)
-      val renamed = new File(file.path.replace("Foo.scala", "Qux.scala"))
+      val renamed     = new File(file.path.replace("Foo.scala", "Qux.scala"))
 
       val expectedChangesFoo = s"""|@@ -1,1 +0,0 @@
                                    |-object Foo {}
@@ -329,23 +404,25 @@ trait RefactoringHandlerTestUtils extends Assertions {
 
   import org.ensime.util.file._
   sealed trait FileChangeType
-  case object CreateFile extends FileChangeType
-  case object DeleteFile extends FileChangeType
+  case object CreateFile     extends FileChangeType
+  case object DeleteFile     extends FileChangeType
   case object ChangeContents extends FileChangeType
 
   private val epoch: String = "1970-01-01 12:00:00 +0000"
 
-  def expectedDiffContent(files: Seq[(String, FileChangeType, String)]): String = {
+  def expectedDiffContent(
+    files: Seq[(String, FileChangeType, String)]
+  ): String = {
     val sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss Z")
     files.map {
       case (filepath, fileChangeType, changes) =>
         val originalTime = fileChangeType match {
           case CreateFile => epoch
-          case _ => sdf.format(new Date(new File(filepath).lastModified()))
+          case _          => sdf.format(new Date(new File(filepath).lastModified()))
         }
         val modifiedTime = fileChangeType match {
           case DeleteFile => epoch
-          case _ => originalTime
+          case _          => originalTime
         }
         val filepathPart = s"""|--- ${filepath}	${originalTime}
                                |+++ ${filepath}	${modifiedTime}
@@ -357,15 +434,16 @@ trait RefactoringHandlerTestUtils extends Assertions {
   def expectedDiffContent(filepath: String, expectedContent: String): String =
     expectedDiffContent(Seq((filepath, ChangeContents, expectedContent)))
 
-  def extractDiffFromResponse(response: RpcResponse, charset: Charset) = response match {
-    case RefactorDiffEffect(_, _, f) =>
-      val diffFile = f.canon
-      val diffContent = diffFile.readString()(charset)
+  def extractDiffFromResponse(response: RpcResponse, charset: Charset) =
+    response match {
+      case RefactorDiffEffect(_, _, f) =>
+        val diffFile    = f.canon
+        val diffContent = diffFile.readString()(charset)
 
-      diffFile.delete()
-      diffContent
+        diffFile.delete()
+        diffContent
 
-    case default =>
-      fail("Not expected type of RpcResponse.")
-  }
+      case default =>
+        fail("Not expected type of RpcResponse.")
+    }
 }

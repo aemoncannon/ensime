@@ -15,7 +15,7 @@ class FloodGateSpec extends EnsimeSpec with SharedTestKitFixture {
   "FloodGate" should "not send messages to the target" in withTestKit { fix =>
     import fix._
     val target = TestProbe()
-    val delay = TestActorRef(FloodGate(target.ref))
+    val delay  = TestActorRef(FloodGate(target.ref))
 
     delay ! ping
     delay ! ping
@@ -27,7 +27,7 @@ class FloodGateSpec extends EnsimeSpec with SharedTestKitFixture {
   it should "send messages after activation" in withTestKit { fix =>
     import fix._
     val target = TestProbe()
-    val delay = TestActorRef(FloodGate(target.ref))
+    val delay  = TestActorRef(FloodGate(target.ref))
 
     delay ! ping
     delay ! ping

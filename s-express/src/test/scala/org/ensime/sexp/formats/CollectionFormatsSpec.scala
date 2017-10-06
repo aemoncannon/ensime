@@ -6,12 +6,15 @@ import collection.{ immutable => im }
 import org.ensime.sexp._
 
 // http://docs.scala-lang.org/overviews/collections/overview.html
-class CollectionFormatsSpec extends FormatSpec
-    with LegacyProductFormats with CollectionFormats with BasicFormats {
+class CollectionFormatsSpec
+    extends FormatSpec
+    with LegacyProductFormats
+    with CollectionFormats
+    with BasicFormats {
 
-  val foo = SexpString("foo")
+  val foo                = SexpString("foo")
   val foos: List[String] = List("foo", "foo")
-  val expect = SexpList(foo, foo)
+  val expect             = SexpList(foo, foo)
 
   "CollectionFormats traits" should "support Traversable" in {
     assertFormat(collection.Traversable[String](), SexpNil)
@@ -63,7 +66,8 @@ class CollectionFormatsSpec extends FormatSpec
 
   it should "support SortedMap" in {
     assertFormat(collection.SortedMap[String, String](), SexpNil)
-    assertFormat(collection.SortedMap("foo" -> "foo"), SexpList(SexpList(foo, foo)))
+    assertFormat(collection.SortedMap("foo" -> "foo"),
+                 SexpList(SexpList(foo, foo)))
   }
 
   "CollectionFormats immutable variants of the traits" should "support Traversable" in {
@@ -133,31 +137,38 @@ class CollectionFormatsSpec extends FormatSpec
     assertFormat(
       im.Range(-100, 100),
       SexpList(
-        SexpSymbol(":start"), SexpNumber(-100),
-        SexpSymbol(":end"), SexpNumber(100),
-        SexpSymbol(":step"), SexpNumber(1)
+        SexpSymbol(":start"),
+        SexpNumber(-100),
+        SexpSymbol(":end"),
+        SexpNumber(100),
+        SexpSymbol(":step"),
+        SexpNumber(1)
       )
     )
 
     assertFormat(
       im.Range(-100, 100, 2),
       SexpList(
-        SexpSymbol(":start"), SexpNumber(-100),
-        SexpSymbol(":end"), SexpNumber(100),
-        SexpSymbol(":step"), SexpNumber(2)
+        SexpSymbol(":start"),
+        SexpNumber(-100),
+        SexpSymbol(":end"),
+        SexpNumber(100),
+        SexpSymbol(":step"),
+        SexpNumber(2)
       )
     )
   }
 
   it should "support im.NumericRange" in {
-    implicit val DoubleIntegral: Numeric.DoubleAsIfIntegral.type = Numeric.DoubleAsIfIntegral
+    implicit val DoubleIntegral: Numeric.DoubleAsIfIntegral.type =
+      Numeric.DoubleAsIfIntegral
 
     assertFormat(
       -100.0 to 100.0 by 1.5,
       SexpData(
-        SexpSymbol(":start") -> SexpNumber(-100),
-        SexpSymbol(":end") -> SexpNumber(100),
-        SexpSymbol(":step") -> SexpNumber(1.5),
+        SexpSymbol(":start")     -> SexpNumber(-100),
+        SexpSymbol(":end")       -> SexpNumber(100),
+        SexpSymbol(":step")      -> SexpNumber(1.5),
         SexpSymbol(":inclusive") -> SexpSymbol("t")
       )
     )
@@ -165,9 +176,9 @@ class CollectionFormatsSpec extends FormatSpec
     assertFormat(
       -100.0 until 100.0 by 1.5,
       SexpData(
-        SexpSymbol(":start") -> SexpNumber(-100),
-        SexpSymbol(":end") -> SexpNumber(100),
-        SexpSymbol(":step") -> SexpNumber(1.5),
+        SexpSymbol(":start")     -> SexpNumber(-100),
+        SexpSymbol(":end")       -> SexpNumber(100),
+        SexpSymbol(":step")      -> SexpNumber(1.5),
         SexpSymbol(":inclusive") -> SexpNil
       )
     )

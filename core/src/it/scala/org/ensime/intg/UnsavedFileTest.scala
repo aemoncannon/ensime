@@ -11,7 +11,8 @@ import org.ensime.util.file._
 /**
  * Verifies common operations work correctly for unsaved files.
  */
-class UnsavedFileTest extends EnsimeSpec
+class UnsavedFileTest
+    extends EnsimeSpec
     with IsolatedProjectFixture
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture {
@@ -25,26 +26,34 @@ class UnsavedFileTest extends EnsimeSpec
           import testkit._
 
           val sourceRoot = scalaMain(config)
-          val missing = sourceRoot / "p1/Missing.scala"
+          val missing    = sourceRoot / "p1/Missing.scala"
 
           assert(!missing.exists)
 
           val inMemory = SourceFileInfo(
-            RawFile(missing.toPath), Some("class Foo { def main = { System.out.println(1) } }"), None
+            RawFile(missing.toPath),
+            Some("class Foo { def main = { System.out.println(1) } }"),
+            None
           )
 
           project ! TypecheckFileReq(inMemory)
           expectMsg(VoidResponse)
           asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
-          project ! SymbolDesignationsReq(Right(inMemory), 0, 50, SourceSymbol.allSymbols)
+          project ! SymbolDesignationsReq(Right(inMemory),
+                                          0,
+                                          50,
+                                          SourceSymbol.allSymbols)
           expectMsgPF() {
-            case SymbolDesignations(inMemory.file, syms: List[SymbolDesignation]) if syms.nonEmpty =>
+            case SymbolDesignations(inMemory.file,
+                                    syms: List[SymbolDesignation])
+                if syms.nonEmpty =>
           }
 
           project ! CompletionsReq(inMemory, 27, 0, false, false)
           expectMsgPF() {
-            case CompletionInfoList("Sy", candidates) if candidates.exists(_.name == "System") =>
+            case CompletionInfoList("Sy", candidates)
+                if candidates.exists(_.name == "System") =>
           }
         }
       }
@@ -57,7 +66,7 @@ class UnsavedFileTest extends EnsimeSpec
         withProject { (project, asyncHelper) =>
           import testkit._
 
-          val sourceRoot = scalaMain(config)
+          val sourceRoot   = scalaMain(config)
           val unsavedEmpty = sourceRoot / "p1/UnsavedEmpty.scala"
 
           assert(!unsavedEmpty.exists)
@@ -66,13 +75,19 @@ class UnsavedFileTest extends EnsimeSpec
           project ! TypecheckFileReq(unsaved)
           expectMsgPF() { case EnsimeServerError(e) => }
 
-          project ! SymbolDesignationsReq(Right(unsaved), 0, 0, SourceSymbol.allSymbols)
+          project ! SymbolDesignationsReq(Right(unsaved),
+                                          0,
+                                          0,
+                                          SourceSymbol.allSymbols)
           expectMsgPF() { case EnsimeServerError(e) => }
 
           project ! CompletionsReq(unsaved, 0, 0, false, false)
           expectMsgPF() { case EnsimeServerError(e) => }
 
-          project ! FqnOfSymbolAtPointReq(SourceFileInfo(EnsimeFile(unsavedEmpty), None, None), 0)
+          project ! FqnOfSymbolAtPointReq(
+            SourceFileInfo(EnsimeFile(unsavedEmpty), None, None),
+            0
+          )
           expectMsgPF() { case EnsimeServerError(e) => }
 
         }

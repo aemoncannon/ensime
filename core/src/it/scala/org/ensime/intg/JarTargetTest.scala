@@ -11,7 +11,8 @@ import scala.concurrent.duration._
 /**
  * Tests a project that uses jars instead of classfiles in the target.
  */
-class JarTargetTest extends EnsimeSpec
+class JarTargetTest
+    extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
     with IsolatedProjectFixture {
@@ -29,7 +30,10 @@ class JarTargetTest extends EnsimeSpec
           eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             project ! PublicSymbolSearchReq(List("Foo"), 5)
             atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
-              case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Object, Some(_)) =>
+              case TypeSearchResult("baz.Foo$",
+                                    "Foo$",
+                                    DeclaredAs.Object,
+                                    Some(_)) =>
             }
           }
         }
@@ -62,7 +66,8 @@ class JarTargetTest extends EnsimeSpec
 /**
  * Variant of JarTargetTest with jars missing on startup.
  */
-class MissingJarTargetTest extends EnsimeSpec
+class MissingJarTargetTest
+    extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
     with IsolatedProjectFixture {
@@ -96,7 +101,10 @@ class MissingJarTargetTest extends EnsimeSpec
           eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
             project ! PublicSymbolSearchReq(List("Foo"), 5)
             atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
-              case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Object, Some(_)) =>
+              case TypeSearchResult("baz.Foo$",
+                                    "Foo$",
+                                    DeclaredAs.Object,
+                                    Some(_)) =>
             }
           }
         }

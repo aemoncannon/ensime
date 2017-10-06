@@ -20,26 +20,24 @@ trait Helpers extends UnsafeHelpers with SLF4JLogging {
     def isOf(kinds: ElementKind*): Boolean = kinds.exists(_ == e.getKind)
   }
 
-  def typeMirror(c: Compilation, t: Tree): Option[TypeMirror] = {
+  def typeMirror(c: Compilation, t: Tree): Option[TypeMirror] =
     Option(c.trees.getTypeMirror(c.trees.getPath(c.compilationUnit, t)))
-  }
 
-  def typeElement(c: Compilation, t: Tree): Option[Element] = {
+  def typeElement(c: Compilation, t: Tree): Option[Element] =
     typeMirror(c, t).map(c.types.asElement)
-  }
 
-  def element(c: Compilation, path: TreePath): Option[Element] = {
+  def element(c: Compilation, path: TreePath): Option[Element] =
     Option(c.trees.getElement(path))
       .orElse(unsafeGetElement(path.getLeaf))
-      .orElse(Option(c.trees.getTypeMirror(path))
-        .flatMap(t => Option(c.types.asElement(t))))
-  }
+      .orElse(
+        Option(c.trees.getTypeMirror(path))
+          .flatMap(t => Option(c.types.asElement(t)))
+      )
 
   def toSymbolName(fqn: FullyQualifiedName): String = fqn match {
     case m: MethodName =>
-
       val owner = m.owner.fqnString
-      val name = m.name
+      val name  = m.name
 
       s"$owner.$name"
 
@@ -48,38 +46,38 @@ trait Helpers extends UnsafeHelpers with SLF4JLogging {
 
   private def showParam(d: DescriptorType): String = d match {
     case a: ArrayDescriptor => showParam(a.fqn)
-    case c: ClassName => c.fqnString
+    case c: ClassName       => c.fqnString
   }
 
   def fqn(el: Element): Option[FullyQualifiedName] = el match {
     case e: ExecutableElement =>
-
       descriptor(e).map { descriptor =>
-
         val name = e.getSimpleName.toString
         val params = descriptor.params
-          .map(showParam).mkString(",")
+          .map(showParam)
+          .mkString(",")
 
         MethodName(
           ClassName.fromFqn(e.getEnclosingElement.toString),
-          s"$name($params)", descriptor
+          s"$name($params)",
+          descriptor
         )
       }
 
     case e: VariableElement if e.isOf(PARAMETER, LOCAL_VARIABLE) =>
-
       Some(ClassName(PackageName(Nil), e.toString))
 
     case e: VariableElement if e.isOf(FIELD) =>
-
-      Some(FieldName(
-        ClassName.fromFqn(
-          e.getEnclosingElement.toString
-        ), e.getSimpleName.toString
-      ))
+      Some(
+        FieldName(
+          ClassName.fromFqn(
+            e.getEnclosingElement.toString
+          ),
+          e.getSimpleName.toString
+        )
+      )
 
     case e: VariableElement if e.isOf(ENUM_CONSTANT) =>
-
       fqn(e.asType()).map(
         FieldName(_, e.getSimpleName.toString)
       )
@@ -87,33 +85,30 @@ trait Helpers extends UnsafeHelpers with SLF4JLogging {
     case e => fqn(e.asType())
   }
 
-  private def descriptor(e: ExecutableElement): Option[Descriptor] = {
+  private def descriptor(e: ExecutableElement): Option[Descriptor] =
     fqn(e.getReturnType).map { returnType =>
-      val params: List[DescriptorType] = e.getParameters.asScala.flatMap(p => fqn(p.asType()))(breakOut)
+      val params: List[DescriptorType] =
+        e.getParameters.asScala.flatMap(p => fqn(p.asType()))(breakOut)
       Descriptor(params, returnType)
     }
-  }
 
-  def path(c: Compilation, t: Tree): Option[TreePath] = {
+  def path(c: Compilation, t: Tree): Option[TreePath] =
     Option(c.trees.getPath(c.compilationUnit, t))
-  }
 
-  def fqn(c: Compilation, t: Tree): Option[FullyQualifiedName] = {
+  def fqn(c: Compilation, t: Tree): Option[FullyQualifiedName] =
     path(c, t).flatMap(fqn(c, _))
-  }
 
-  def fqn(c: Compilation, p: TreePath): Option[FullyQualifiedName] = {
+  def fqn(c: Compilation, p: TreePath): Option[FullyQualifiedName] =
     element(c, p).flatMap(fqn(_))
-  }
 
-  def fqn(tm: TypeMirror): Option[ClassName] = {
+  def fqn(tm: TypeMirror): Option[ClassName] =
     Some(ClassName.fromFqn(tm.toString))
-  }
 
   def toDocSig(fqn: FullyQualifiedName): DocSig = fqn match {
     case p: PackageName => DocSig(DocFqn(p.parent.fqnString, p.path.last), None)
-    case c: ClassName => DocSig(DocFqn(c.pack.fqnString, c.name), None)
-    case m: MethodName => DocSig(DocFqn(m.owner.pack.fqnString, m.owner.name), Some(m.name))
+    case c: ClassName   => DocSig(DocFqn(c.pack.fqnString, c.name), None)
+    case m: MethodName =>
+      DocSig(DocFqn(m.owner.pack.fqnString, m.owner.name), Some(m.name))
     case f: FieldName => DocSig(DocFqn(f.owner.fqnString, f.name), Some(f.name))
   }
 }

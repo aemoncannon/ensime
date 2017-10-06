@@ -31,7 +31,10 @@ trait TestKitFixture {
     "IsolatedActorSystems are incompatible with TestKit. Instead, 'import sys._'"
   )
 
-  implicit protected val akkaTimeout: Timeout = ConfigFactory.load().getDuration("akka.test.default-timeout", TimeUnit.MILLISECONDS).milliseconds
+  implicit protected val akkaTimeout: Timeout = ConfigFactory
+    .load()
+    .getDuration("akka.test.default-timeout", TimeUnit.MILLISECONDS)
+    .milliseconds
 
   def withTestKit(testCode: TestKitFix => Any): Any
 }
@@ -52,7 +55,8 @@ trait IsolatedTestKitFixture extends TestKitFixture with AkkaBackCompat {
 
 // this seems redundant, because it mimics "extends TestKit" behaviour,
 // but it allows for easy swapping with the refreshing implementation
-trait SharedTestKitFixture extends TestKitFixture
+trait SharedTestKitFixture
+    extends TestKitFixture
     with BeforeAndAfterAll
     with AkkaBackCompat {
   this: Suite =>
@@ -74,6 +78,7 @@ trait SharedTestKitFixture extends TestKitFixture
     Try(Await.result(_testkit.system.whenTerminated, 10.seconds))
   }
 
-  override def withTestKit(testCode: TestKitFix => Any): Any = testCode(_testkit)
+  override def withTestKit(testCode: TestKitFix => Any): Any =
+    testCode(_testkit)
 
 }

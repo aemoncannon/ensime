@@ -22,24 +22,32 @@ class HtmlUtilsSpec extends EnsimeSpec {
 
   it should "unescape quotes" in {
     val originalEscaped = "&quot;Emacs&quot; &amp; Ensime"
-    HtmlUtil.unescapeHtml(originalEscaped) should ===(Some("\"Emacs\" & Ensime"))
+    HtmlUtil.unescapeHtml(originalEscaped) should ===(
+      Some("\"Emacs\" & Ensime")
+    )
 
   }
 
   it should "unescape first character only" in {
     val originalEscaped = "&lt; less than fun without Ensime"
-    HtmlUtil.unescapeHtml(originalEscaped) should ===(Some("< less than fun without Ensime"))
+    HtmlUtil.unescapeHtml(originalEscaped) should ===(
+      Some("< less than fun without Ensime")
+    )
   }
 
   it should "unescape last character only" in {
     val originalEscaped = "Ensime is greater than all &gt;"
-    HtmlUtil.unescapeHtml(originalEscaped) should ===(Some("Ensime is greater than all >"))
+    HtmlUtil.unescapeHtml(originalEscaped) should ===(
+      Some("Ensime is greater than all >")
+    )
 
   }
 
   it should "unescape apostrophes" in {
     val originalEscaped = "Emacs is Ensime&apos;s friend"
-    HtmlUtil.unescapeHtml(originalEscaped) should ===(Some("Emacs is Ensime's friend"))
+    HtmlUtil.unescapeHtml(originalEscaped) should ===(
+      Some("Emacs is Ensime's friend")
+    )
   }
 
   "HtmlUtil" should "handle unfinished unescape sequences nicely" in {

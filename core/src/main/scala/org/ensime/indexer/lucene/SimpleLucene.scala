@@ -17,7 +17,7 @@ import org.apache.lucene.util._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.concurrent.{ blocking, ExecutionContext, Future }
 
 object SimpleLucene {
   // from DirectDocValuesFormat.MAX_SORTED_SET_ORDS = 2147483391 but
@@ -28,7 +28,7 @@ object SimpleLucene {
   // our fallback analyzer
   class LowercaseAnalyzer extends Analyzer {
     override protected def createComponents(fieldName: String) = {
-      val source = new KeywordTokenizer()
+      val source   = new KeywordTokenizer()
       val filtered = new LowerCaseFilter(source)
       new Analyzer.TokenStreamComponents(source, filtered)
     }
@@ -53,7 +53,8 @@ object SimpleLucene {
  * representations of the same column, or for allowing allow/deny
  * filtering rules based on tags.
  */
-class SimpleLucene(path: Path, analyzers: Map[String, Analyzer]) extends SLF4JLogging {
+class SimpleLucene(path: Path, analyzers: Map[String, Analyzer])
+    extends SLF4JLogging {
   import SimpleLucene._
 
   Files.createDirectories(path)
@@ -71,7 +72,8 @@ class SimpleLucene(path: Path, analyzers: Map[String, Analyzer]) extends SLF4JLo
       }
     }
   )
-  private implicit val executionContext = ExecutionContext.fromExecutorService(executorService)
+  private implicit val executionContext =
+    ExecutionContext.fromExecutorService(executorService)
 
   // http://blog.thetaphi.de/2012/07/use-lucenes-mmapdirectory-on-64bit.html
   private val directory = FSDirectory.open(path)
@@ -131,7 +133,9 @@ class SimpleLucene(path: Path, analyzers: Map[String, Analyzer]) extends SLF4JLo
    * 10,000 deletes to take about 1 second and inserts about 100ms.
    * Each call to this method constitutes a batch UPDATE operation.
    */
-  def update(delete: Seq[Query], create: Seq[Document], commit: Boolean = true): Future[Unit] =
+  def update(delete: Seq[Query],
+             create: Seq[Document],
+             commit: Boolean = true): Future[Unit] =
     Future {
       blocking {
         if (delete.nonEmpty) {
@@ -148,22 +152,25 @@ class SimpleLucene(path: Path, analyzers: Map[String, Analyzer]) extends SLF4JLo
       }
     }
 
-  def create(docs: Seq[Document], commit: Boolean = true): Future[Unit] = update(Nil, docs, commit)
-  def delete(queries: Seq[Query], commit: Boolean = true): Future[Unit] = update(queries, Nil, commit)
+  def create(docs: Seq[Document], commit: Boolean = true): Future[Unit] =
+    update(Nil, docs, commit)
+  def delete(queries: Seq[Query], commit: Boolean = true): Future[Unit] =
+    update(queries, Nil, commit)
 
   // for manual committing after multiple insertions
   def commit(): Future[Unit] = Future(blocking(writer.commit()))
 
-  def shutdown(): Future[Unit] = Future {
-    blocking {
-      try {
-        executionContext.shutdownNow()
-        executorService.shutdownNow()
+  def shutdown(): Future[Unit] =
+    Future {
+      blocking {
+        try {
+          executionContext.shutdownNow()
+          executorService.shutdownNow()
 
-        executionContext.awaitTermination(30, TimeUnit.SECONDS)
-        executorService.awaitTermination(30, TimeUnit.SECONDS)
-      } finally writer.close()
-      ()
-    }
-  }(ExecutionContext.Implicits.global)
+          executionContext.awaitTermination(30, TimeUnit.SECONDS)
+          executorService.awaitTermination(30, TimeUnit.SECONDS)
+        } finally writer.close()
+        ()
+      }
+    }(ExecutionContext.Implicits.global)
 }

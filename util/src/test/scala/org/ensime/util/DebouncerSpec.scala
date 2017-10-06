@@ -8,14 +8,16 @@ import scala.concurrent.duration._
 
 class DebouncerSpec extends FlatSpec with Matchers {
   class TestScheduler(clock: Clock) extends Debouncer.SchedulerLike {
-    @volatile var action: () => Unit = _
+    @volatile var action: () => Unit   = _
     @volatile var nextInvocation: Long = Long.MaxValue
-    @volatile var currentTime: Long = 0L
-    override def scheduleOnce(delay: FiniteDuration)(body: () => Unit): Unit = synchronized {
-      require(nextInvocation == Long.MaxValue, "Error! Only one item can be scheduled at a time")
-      action = body
-      nextInvocation = currentTime + delay.toMillis
-    }
+    @volatile var currentTime: Long    = 0L
+    override def scheduleOnce(delay: FiniteDuration)(body: () => Unit): Unit =
+      synchronized {
+        require(nextInvocation == Long.MaxValue,
+                "Error! Only one item can be scheduled at a time")
+        action = body
+        nextInvocation = currentTime + delay.toMillis
+      }
 
     def poll(): Unit = synchronized {
       currentTime = clock.millis()
@@ -32,24 +34,26 @@ class DebouncerSpec extends FlatSpec with Matchers {
       currentTime += by
     }
 
-    override def instant(): Instant = Instant.ofEpochMilli(currentTime)
-    override def getZone(): ZoneId = java.time.ZoneOffset.UTC
+    override def instant(): Instant     = Instant.ofEpochMilli(currentTime)
+    override def getZone(): ZoneId      = java.time.ZoneOffset.UTC
     override def withZone(zone: ZoneId) = ???
   }
 
   case class DebouncerFixture(debounceFirst: Boolean = true) {
-    val clock = new TestClock
+    val clock     = new TestClock
     val scheduler = new TestScheduler(clock)
     def advanceTime(amount: FiniteDuration): Unit = {
       clock.advanceTime(amount.toMillis)
       scheduler.poll()
     }
-    var called = false
-    val delay = 5.seconds
+    var called   = false
+    val delay    = 5.seconds
     val maxDelay = 20.seconds
-    lazy val debouncer = Debouncer("test", scheduler, delay, maxDelay, debounceFirst, clock) { () =>
-      called = true
-    }
+    lazy val debouncer =
+      Debouncer("test", scheduler, delay, maxDelay, debounceFirst, clock) {
+        () =>
+          called = true
+      }
   }
 
   it should "call the action only after the delay has passed" in {

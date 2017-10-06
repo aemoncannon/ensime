@@ -24,7 +24,7 @@ sealed trait EnsimeEvent extends EnsimeServerMessage
 //////////////////////////////////////////////////////////////////////
 // Contents of the payload
 
-sealed trait RpcResponse extends EnsimeServerMessage
+sealed trait RpcResponse                                extends EnsimeServerMessage
 final case class EnsimeServerError(description: String) extends RpcResponse
 
 case object DebuggerShutdownEvent
@@ -42,7 +42,7 @@ final case class DebugVmError(
 ) extends DebugVmStatus
 
 sealed trait GeneralSwankEvent extends EnsimeEvent
-sealed trait DebugEvent extends EnsimeEvent
+sealed trait DebugEvent        extends EnsimeEvent
 
 final case class GreetingInfo(
   pid: Option[Int] = None,
@@ -132,10 +132,12 @@ final case class DebugExceptionEvent(
 ) extends DebugEvent
 
 /** A new thread has started. */
-final case class DebugThreadStartEvent(threadId: DebugThreadId) extends DebugEvent
+final case class DebugThreadStartEvent(threadId: DebugThreadId)
+    extends DebugEvent
 
 /** A thread has died. */
-final case class DebugThreadDeathEvent(threadId: DebugThreadId) extends DebugEvent
+final case class DebugThreadDeathEvent(threadId: DebugThreadId)
+    extends DebugEvent
 
 /** Communicates stdout/stderr of debugged VM to client. */
 final case class DebugOutputEvent(body: String) extends DebugEvent
@@ -157,26 +159,40 @@ final case class RefactorDiffEffect(
   procedureId: Int,
   refactorType: RefactorType,
   diff: File
-) extends RpcResponse with RefactorProcedure
+) extends RpcResponse
+    with RefactorProcedure
 
 sealed abstract class RefactorDesc(val refactorType: RefactorType)
 
-final case class InlineLocalRefactorDesc(file: File, start: Int, end: Int) extends RefactorDesc(RefactorType.InlineLocal)
+final case class InlineLocalRefactorDesc(file: File, start: Int, end: Int)
+    extends RefactorDesc(RefactorType.InlineLocal)
 
-final case class RenameRefactorDesc(newName: String, file: File, start: Int, end: Int) extends RefactorDesc(RefactorType.Rename)
+final case class RenameRefactorDesc(newName: String,
+                                    file: File,
+                                    start: Int,
+                                    end: Int)
+    extends RefactorDesc(RefactorType.Rename)
 
-final case class ExtractMethodRefactorDesc(methodName: String, file: File, start: Int, end: Int)
-  extends RefactorDesc(RefactorType.ExtractMethod)
+final case class ExtractMethodRefactorDesc(methodName: String,
+                                           file: File,
+                                           start: Int,
+                                           end: Int)
+    extends RefactorDesc(RefactorType.ExtractMethod)
 
-final case class ExtractLocalRefactorDesc(name: String, file: File, start: Int, end: Int)
-  extends RefactorDesc(RefactorType.ExtractLocal)
+final case class ExtractLocalRefactorDesc(name: String,
+                                          file: File,
+                                          start: Int,
+                                          end: Int)
+    extends RefactorDesc(RefactorType.ExtractLocal)
 
-final case class OrganiseImportsRefactorDesc(file: File) extends RefactorDesc(RefactorType.OrganizeImports)
+final case class OrganiseImportsRefactorDesc(file: File)
+    extends RefactorDesc(RefactorType.OrganizeImports)
 
 final case class AddImportRefactorDesc(qualifiedName: String, file: File)
-  extends RefactorDesc(RefactorType.AddImport)
+    extends RefactorDesc(RefactorType.AddImport)
 
-final case class ExpandMatchCasesDesc(file: File, start: Int, end: Int) extends RefactorDesc(RefactorType.ExpandMatchCases)
+final case class ExpandMatchCasesDesc(file: File, start: Int, end: Int)
+    extends RefactorDesc(RefactorType.ExpandMatchCases)
 
 sealed trait PatchOp {
   def start: Int
@@ -205,55 +221,77 @@ sealed trait EntityInfo extends RpcResponse {
 
 object SourceSymbol {
   val allSymbols: List[SourceSymbol] = List(
-    ObjectSymbol, ClassSymbol, TraitSymbol, PackageSymbol, ConstructorSymbol, ImportedNameSymbol, TypeParamSymbol,
-    ParamSymbol, VarFieldSymbol, ValFieldSymbol, OperatorFieldSymbol, VarSymbol, ValSymbol, FunctionCallSymbol,
-    ImplicitConversionSymbol, ImplicitParamsSymbol, DeprecatedSymbol
+    ObjectSymbol,
+    ClassSymbol,
+    TraitSymbol,
+    PackageSymbol,
+    ConstructorSymbol,
+    ImportedNameSymbol,
+    TypeParamSymbol,
+    ParamSymbol,
+    VarFieldSymbol,
+    ValFieldSymbol,
+    OperatorFieldSymbol,
+    VarSymbol,
+    ValSymbol,
+    FunctionCallSymbol,
+    ImplicitConversionSymbol,
+    ImplicitParamsSymbol,
+    DeprecatedSymbol
   )
 }
 
 sealed trait SourceSymbol
 
-case object ObjectSymbol extends SourceSymbol
-case object ClassSymbol extends SourceSymbol
-case object TraitSymbol extends SourceSymbol
-case object PackageSymbol extends SourceSymbol
-case object ConstructorSymbol extends SourceSymbol
-case object ImportedNameSymbol extends SourceSymbol
-case object TypeParamSymbol extends SourceSymbol
-case object ParamSymbol extends SourceSymbol
-case object VarFieldSymbol extends SourceSymbol
-case object ValFieldSymbol extends SourceSymbol
-case object OperatorFieldSymbol extends SourceSymbol
-case object VarSymbol extends SourceSymbol
-case object ValSymbol extends SourceSymbol
-case object FunctionCallSymbol extends SourceSymbol
+case object ObjectSymbol             extends SourceSymbol
+case object ClassSymbol              extends SourceSymbol
+case object TraitSymbol              extends SourceSymbol
+case object PackageSymbol            extends SourceSymbol
+case object ConstructorSymbol        extends SourceSymbol
+case object ImportedNameSymbol       extends SourceSymbol
+case object TypeParamSymbol          extends SourceSymbol
+case object ParamSymbol              extends SourceSymbol
+case object VarFieldSymbol           extends SourceSymbol
+case object ValFieldSymbol           extends SourceSymbol
+case object OperatorFieldSymbol      extends SourceSymbol
+case object VarSymbol                extends SourceSymbol
+case object ValSymbol                extends SourceSymbol
+case object FunctionCallSymbol       extends SourceSymbol
 case object ImplicitConversionSymbol extends SourceSymbol
-case object ImplicitParamsSymbol extends SourceSymbol
-case object DeprecatedSymbol extends SourceSymbol
+case object ImplicitParamsSymbol     extends SourceSymbol
+case object DeprecatedSymbol         extends SourceSymbol
 
 sealed trait PosNeeded
-case object PosNeededNo extends PosNeeded
+case object PosNeededNo    extends PosNeeded
 case object PosNeededAvail extends PosNeeded
-case object PosNeededYes extends PosNeeded
+case object PosNeededYes   extends PosNeeded
 
-sealed trait SourcePosition extends RpcResponse
+sealed trait SourcePosition            extends RpcResponse
 final case class EmptySourcePosition() extends SourcePosition
-final case class OffsetSourcePosition(file: EnsimeFile, offset: Int) extends SourcePosition
-final case class LineSourcePosition(file: EnsimeFile, line: Int) extends SourcePosition
+final case class OffsetSourcePosition(file: EnsimeFile, offset: Int)
+    extends SourcePosition
+final case class LineSourcePosition(file: EnsimeFile, line: Int)
+    extends SourcePosition
 
 final case class PositionHint(position: SourcePosition, preview: Option[String])
-final case class SourcePositions(positions: List[PositionHint]) extends RpcResponse
+final case class SourcePositions(positions: List[PositionHint])
+    extends RpcResponse
 
 // See if `TypeInfo` can be used instead
-final case class ClassInfo(scalaName: Option[String], fqn: String, declAs: DeclaredAs, sourcePosition: Option[SourcePosition])
+final case class ClassInfo(scalaName: Option[String],
+                           fqn: String,
+                           declAs: DeclaredAs,
+                           sourcePosition: Option[SourcePosition])
 
-final case class HierarchyInfo(ancestors: List[ClassInfo], inheritors: List[ClassInfo]) extends RpcResponse
+final case class HierarchyInfo(ancestors: List[ClassInfo],
+                               inheritors: List[ClassInfo])
+    extends RpcResponse
 
 final case class PackageInfo(
-    name: String,
-    fullName: String,
-    // n.b. members should be sorted by name for consistency
-    members: Seq[EntityInfo]
+  name: String,
+  fullName: String,
+  // n.b. members should be sorted by name for consistency
+  members: Seq[EntityInfo]
 ) extends EntityInfo {
   require(members == members.sortBy(_.name), "members should be sorted by name")
 }
@@ -281,8 +319,10 @@ final case class MethodSearchResult(
 ) extends SymbolSearchResult
 
 // what is the point of these types?
-final case class ImportSuggestions(symLists: List[List[SymbolSearchResult]]) extends RpcResponse
-final case class SymbolSearchResults(syms: List[SymbolSearchResult]) extends RpcResponse
+final case class ImportSuggestions(symLists: List[List[SymbolSearchResult]])
+    extends RpcResponse
+final case class SymbolSearchResults(syms: List[SymbolSearchResult])
+    extends RpcResponse
 
 final case class SymbolDesignations(
   file: EnsimeFile,
@@ -296,10 +336,10 @@ final case class SymbolDesignation(
 )
 
 final case class SymbolInfo(
-    name: String,
-    localName: String,
-    declPos: Option[SourcePosition],
-    `type`: TypeInfo
+  name: String,
+  localName: String,
+  declPos: Option[SourcePosition],
+  `type`: TypeInfo
 ) extends RpcResponse {
   def tpe = `type`
 }
@@ -332,7 +372,9 @@ final case class CompletionInfoList(
 ) extends RpcResponse
 
 final case class Breakpoint(file: EnsimeFile, line: Int) extends RpcResponse
-final case class BreakpointList(active: List[Breakpoint], pending: List[Breakpoint]) extends RpcResponse
+final case class BreakpointList(active: List[Breakpoint],
+                                pending: List[Breakpoint])
+    extends RpcResponse
 
 /**
  * A debugger thread id.
@@ -340,45 +382,52 @@ final case class BreakpointList(active: List[Breakpoint], pending: List[Breakpoi
 final case class DebugThreadId(id: Long)
 
 object DebugThreadId {
+
   /**
    * Create a ThreadId from a String representation
    * @param s A Long encoded as a string
    * @return A ThreadId
    */
   @deprecating("no code in the API")
-  def apply(s: String): DebugThreadId = {
+  def apply(s: String): DebugThreadId =
     new DebugThreadId(s.toLong)
-  }
 }
 
 final case class DebugObjectId(id: Long)
 
 object DebugObjectId {
+
   /**
    * Create a DebugObjectId from a String representation
    * @param s A Long encoded as a string
    * @return A DebugObjectId
    */
   @deprecating("no code in the API")
-  def apply(s: String): DebugObjectId = {
+  def apply(s: String): DebugObjectId =
     new DebugObjectId(s.toLong)
-  }
 }
 
 // these are used in the queries as well, shouldn't be raw response
 sealed trait DebugLocation extends RpcResponse
 
-final case class DebugObjectReference(objectId: DebugObjectId) extends DebugLocation
+final case class DebugObjectReference(objectId: DebugObjectId)
+    extends DebugLocation
 
 object DebugObjectReference {
-  def apply(objId: Long): DebugObjectReference = new DebugObjectReference(DebugObjectId(objId))
+  def apply(objId: Long): DebugObjectReference =
+    new DebugObjectReference(DebugObjectId(objId))
 }
 
-final case class DebugStackSlot(threadId: DebugThreadId, frame: Int, offset: Int) extends DebugLocation
+final case class DebugStackSlot(threadId: DebugThreadId,
+                                frame: Int,
+                                offset: Int)
+    extends DebugLocation
 
-final case class DebugArrayElement(objectId: DebugObjectId, index: Int) extends DebugLocation
+final case class DebugArrayElement(objectId: DebugObjectId, index: Int)
+    extends DebugLocation
 
-final case class DebugObjectField(objectId: DebugObjectId, field: String) extends DebugLocation
+final case class DebugObjectField(objectId: DebugObjectId, field: String)
+    extends DebugLocation
 
 sealed trait DebugValue extends RpcResponse {
   def typeName: String
@@ -445,14 +494,14 @@ final case class DebugBacktrace(
 ) extends RpcResponse
 
 final case class NamedTypeMemberInfo(
-    name: String,
-    `type`: TypeInfo,
-    pos: Option[SourcePosition],
-    signatureString: Option[String], // the FQN descriptor
-    declAs: DeclaredAs
+  name: String,
+  `type`: TypeInfo,
+  pos: Option[SourcePosition],
+  signatureString: Option[String], // the FQN descriptor
+  declAs: DeclaredAs
 ) extends EntityInfo {
   override def members = List.empty
-  def tpe = `type`
+  def tpe              = `type`
 }
 
 sealed trait TypeInfo extends EntityInfo {
@@ -465,7 +514,7 @@ sealed trait TypeInfo extends EntityInfo {
   def typeParams: List[TypeInfo]
 
   final def declaredAs = declAs
-  final def args = typeArgs
+  final def args       = typeArgs
 }
 
 final case class BasicTypeInfo(
@@ -479,16 +528,16 @@ final case class BasicTypeInfo(
 ) extends TypeInfo
 
 final case class ArrowTypeInfo(
-    name: String,
-    fullName: String,
-    resultType: TypeInfo,
-    paramSections: Iterable[ParamSectionInfo],
-    typeParams: List[TypeInfo]
+  name: String,
+  fullName: String,
+  resultType: TypeInfo,
+  paramSections: Iterable[ParamSectionInfo],
+  typeParams: List[TypeInfo]
 ) extends TypeInfo {
-  def declAs = DeclaredAs.Nil
+  def declAs   = DeclaredAs.Nil
   def typeArgs = List.empty
-  def members = List.empty
-  def pos = None
+  def members  = List.empty
+  def pos      = None
 }
 
 final case class ParamSectionInfo(
@@ -497,13 +546,14 @@ final case class ParamSectionInfo(
 )
 
 final case class InterfaceInfo(
-    `type`: TypeInfo,
-    viaView: Option[String]
+  `type`: TypeInfo,
+  viaView: Option[String]
 ) extends RpcResponse {
   def tpe = `type`
 }
 
-final case class FileRange(file: String, start: Int, end: Int) extends RpcResponse
+final case class FileRange(file: String, start: Int, end: Int)
+    extends RpcResponse
 
 final case class EnsimeImplementation(
   name: String
@@ -532,12 +582,13 @@ final case class ImplicitParamInfo(
 
 final case class ImplicitInfos(infos: List[ImplicitInfo]) extends RpcResponse
 
-sealed trait LegacyRawResponse extends RpcResponse
-case object FalseResponse extends LegacyRawResponse
-case object TrueResponse extends LegacyRawResponse
+sealed trait LegacyRawResponse                extends RpcResponse
+case object FalseResponse                     extends LegacyRawResponse
+case object TrueResponse                      extends LegacyRawResponse
 final case class StringResponse(text: String) extends LegacyRawResponse
 
-final case class StructureView(view: List[StructureViewMember]) extends RpcResponse
+final case class StructureView(view: List[StructureViewMember])
+    extends RpcResponse
 
 final case class StructureViewMember(
   keyword: String,

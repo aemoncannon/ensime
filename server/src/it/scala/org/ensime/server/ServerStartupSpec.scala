@@ -14,7 +14,8 @@ import org.ensime.util.EnsimeSpec
 import org.ensime.util.ensimefile.Implicits.DefaultCharset
 import org.ensime.util.path._
 
-class ServerStartupSpec extends EnsimeSpec
+class ServerStartupSpec
+    extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
     with AkkaBackCompat {
@@ -44,7 +45,7 @@ class ServerStartupSpec extends EnsimeSpec
 
         // this can fail randomly. No general solution.
         val preferredHttp = 10001
-        val preferredTcp = 10002
+        val preferredTcp  = 10002
 
         (config.cacheDir.file / "http").write(preferredHttp.toString)
         (config.cacheDir.file / "port").write(preferredTcp.toString)
@@ -54,7 +55,7 @@ class ServerStartupSpec extends EnsimeSpec
 
         eventually(timeout(scaled(10 seconds)), interval(scaled(1 second))) {
           val http = new Socket
-          val tcp = new Socket
+          val tcp  = new Socket
 
           try {
             http.connect(new InetSocketAddress("127.0.0.1", preferredHttp))
@@ -80,7 +81,8 @@ class ServerStartupSpec extends EnsimeSpec
         val socket = new ServerSocket()
 
         try {
-          val tcpHog = socket.bind(new InetSocketAddress("127.0.0.1", preferredTcp))
+          val tcpHog =
+            socket.bind(new InetSocketAddress("127.0.0.1", preferredTcp))
 
           eventually { assert(socket.isBound()) }
 
@@ -106,7 +108,8 @@ class ServerStartupSpec extends EnsimeSpec
         val socket = new ServerSocket()
 
         try {
-          val httpHog = socket.bind(new InetSocketAddress("127.0.0.1", preferredHttp))
+          val httpHog =
+            socket.bind(new InetSocketAddress("127.0.0.1", preferredHttp))
 
           eventually { assert(socket.isBound()) }
 

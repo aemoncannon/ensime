@@ -12,10 +12,11 @@ import org.ensime.indexer.FullyQualifiedName
  * Spawned to listen to the server's response to an RpcRequest.
  */
 class RequestHandler(
-    envelope: RpcRequestEnvelope,
-    project: ActorRef,
-    server: ActorRef
-) extends Actor with ActorLogging {
+  envelope: RpcRequestEnvelope,
+  project: ActorRef,
+  server: ActorRef
+) extends Actor
+    with ActorLogging {
 
   override def preStart(): Unit = {
     if (log.isDebugEnabled)
@@ -35,14 +36,15 @@ class RequestHandler(
     }
   }
 
-  def redirectToIndexer(req: String => RpcSearchRequest): Receive = LoggingReceive.withLabel("redirectToIndexer") {
-    case fqn: FullyQualifiedName =>
-      project ! req(fqn.fqnString)
-      context.unbecome()
-    case failure =>
-      self ! failure
-      context.unbecome()
-  }
+  def redirectToIndexer(req: String => RpcSearchRequest): Receive =
+    LoggingReceive.withLabel("redirectToIndexer") {
+      case fqn: FullyQualifiedName =>
+        project ! req(fqn.fqnString)
+        context.unbecome()
+      case failure =>
+        self ! failure
+        context.unbecome()
+    }
 
   def resolveDocSig: Receive = LoggingReceive.withLabel("resolveDocSig") {
     case None =>

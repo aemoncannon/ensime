@@ -9,10 +9,10 @@ import scala.collection.Set
 import scala.collection.immutable.Queue
 
 sealed trait Access
-case object Public extends Access
-case object Default extends Access
+case object Public    extends Access
+case object Default   extends Access
 case object Protected extends Access
-case object Private extends Access
+case object Private   extends Access
 
 object Access {
   def apply(code: Int): Access =
@@ -22,7 +22,8 @@ object Access {
     else Default
 }
 
-final case class FullyQualifiedReference(fqn: FullyQualifiedName, line: Option[Int])
+final case class FullyQualifiedReference(fqn: FullyQualifiedName,
+                                         line: Option[Int])
 
 sealed trait FullyQualifiedName {
   def contains(o: FullyQualifiedName): Boolean
@@ -31,25 +32,26 @@ sealed trait FullyQualifiedName {
 
 final case class PackageName(path: List[String]) extends FullyQualifiedName {
   def contains(o: FullyQualifiedName) = o match {
-    case PackageName(pn) => pn.startsWith(path)
-    case ClassName(p, _) => contains(p)
-    case FieldName(c, _) => contains(c)
+    case PackageName(pn)     => pn.startsWith(path)
+    case ClassName(p, _)     => contains(p)
+    case FieldName(c, _)     => contains(c)
     case MethodName(c, _, _) => contains(c)
   }
 
   def fqnString = path.mkString(".")
-  def parent = PackageName(path.init)
+  def parent    = PackageName(path.init)
 }
 
 final case class ClassName(pack: PackageName, name: String)
-    extends FullyQualifiedName with DescriptorType {
+    extends FullyQualifiedName
+    with DescriptorType {
 
   def contains(o: FullyQualifiedName) = o match {
     case ClassName(op, on) if pack == op && on.startsWith(name) =>
       (on == name) || on.startsWith(name + "$")
-    case FieldName(cn, _) => contains(cn)
+    case FieldName(cn, _)     => contains(cn)
     case MethodName(cn, _, _) => contains(cn)
-    case _ => false
+    case _                    => false
   }
 
   def fqnString =
@@ -59,23 +61,23 @@ final case class ClassName(pack: PackageName, name: String)
   def isPrimitive: Boolean = pack == ClassName.Root
 
   private def nonPrimitiveInternalString: String =
-    "L" + (if (pack.path.isEmpty) name else pack.path.mkString("/") + "/" + name) + ";"
+    "L" + (if (pack.path.isEmpty) name
+           else pack.path.mkString("/") + "/" + name) + ";"
 
   lazy val internalString: String = {
     if (pack.path.isEmpty)
       name match {
         case "boolean" => "Z"
-        case "byte" => "B"
-        case "char" => "C"
-        case "short" => "S"
-        case "int" => "I"
-        case "long" => "J"
-        case "float" => "F"
-        case "double" => "D"
-        case "void" => "V"
-        case _ => nonPrimitiveInternalString
-      }
-    else nonPrimitiveInternalString
+        case "byte"    => "B"
+        case "char"    => "C"
+        case "short"   => "S"
+        case "int"     => "I"
+        case "long"    => "J"
+        case "float"   => "F"
+        case "double"  => "D"
+        case "void"    => "V"
+        case _         => nonPrimitiveInternalString
+      } else nonPrimitiveInternalString
   }
 }
 
@@ -85,20 +87,20 @@ object ClassName {
   private def Primitive(name: String): ClassName = ClassName(Root, name)
 
   val PrimitiveBoolean = Primitive("boolean")
-  val PrimitiveByte = Primitive("byte")
-  val PrimitiveChar = Primitive("char")
-  val PrimitiveShort = Primitive("short")
-  val PrimitiveInt = Primitive("int")
-  val PrimitiveLong = Primitive("long")
-  val PrimitiveFloat = Primitive("float")
-  val PrimitiveDouble = Primitive("double")
-  val PrimitiveVoid = Primitive("void")
+  val PrimitiveByte    = Primitive("byte")
+  val PrimitiveChar    = Primitive("char")
+  val PrimitiveShort   = Primitive("short")
+  val PrimitiveInt     = Primitive("int")
+  val PrimitiveLong    = Primitive("long")
+  val PrimitiveFloat   = Primitive("float")
+  val PrimitiveDouble  = Primitive("double")
+  val PrimitiveVoid    = Primitive("void")
 
   // must be a single type descriptor
   // strips array reification
   def fromDescriptor(desc: String): ClassName =
     DescriptorParser.parseType(desc) match {
-      case c: ClassName => c
+      case c: ClassName       => c
       case a: ArrayDescriptor => a.reifier
     }
 
@@ -106,7 +108,7 @@ object ClassName {
   def fromInternal(internal: String): ClassName = fromFqn(internal, '/')
 
   def fromFqn(internal: String, splitter: Char = '.'): ClassName = {
-    val parts = internal.split(splitter)
+    val parts           = internal.split(splitter)
     val (before, after) = parts.splitAt(parts.length - 1)
     ClassName(PackageName(before.toList), after(0))
   }
@@ -118,8 +120,8 @@ sealed trait MemberName extends FullyQualifiedName {
 }
 
 case class FieldName(
-    owner: ClassName,
-    name: String
+  owner: ClassName,
+  name: String
 // not always available in the ASM parser
 //ret: DescriptorType
 ) extends MemberName {
@@ -129,9 +131,9 @@ case class FieldName(
 // FQNs are not really unique, because method overloading, so fudge
 // the descriptor into the FQN
 final case class MethodName(
-    owner: ClassName,
-    name: String,
-    descriptor: Descriptor
+  owner: ClassName,
+  name: String,
+  descriptor: Descriptor
 ) extends MemberName {
   def fqnString = owner.fqnString + "." + name + descriptor.descriptorString
 }
@@ -171,10 +173,9 @@ final case class GenericArg(
 )
 
 final case class GenericArray(className: GenericSignature)
-  extends GenericSignature
+    extends GenericSignature
 
-final case class GenericVar(name: String)
-  extends GenericSignature
+final case class GenericVar(name: String) extends GenericSignature
 
 // Descriptors
 
@@ -184,7 +185,7 @@ sealed trait DescriptorType {
 
 final case class ArrayDescriptor(fqn: DescriptorType) extends DescriptorType {
   def reifier: ClassName = fqn match {
-    case c: ClassName => c
+    case c: ClassName       => c
     case a: ArrayDescriptor => a.reifier
   }
   def internalString = "[" + fqn.internalString
@@ -200,18 +201,18 @@ sealed trait RawSymbol {
 }
 
 final case class RawClassfile(
-    name: ClassName,
-    generics: Option[GenericClass],
-    innerClasses: Set[ClassName],
-    superClass: Option[ClassName],
-    interfaces: List[ClassName],
-    access: Access,
-    deprecated: Boolean,
-    fields: List[RawField],
-    methods: Queue[RawMethod],
-    source: RawSource,
-    isScala: Boolean,
-    internalRefs: List[FullyQualifiedReference]
+  name: ClassName,
+  generics: Option[GenericClass],
+  innerClasses: Set[ClassName],
+  superClass: Option[ClassName],
+  interfaces: List[ClassName],
+  access: Access,
+  deprecated: Boolean,
+  fields: List[RawField],
+  methods: Queue[RawMethod],
+  source: RawSource,
+  isScala: Boolean,
+  internalRefs: List[FullyQualifiedReference]
 ) extends RawSymbol {
   override def fqn: String = name.fqnString
 }
@@ -222,21 +223,21 @@ final case class RawSource(
 )
 
 final case class RawField(
-    name: FieldName,
-    clazz: DescriptorType,
-    generics: Option[String],
-    access: Access,
-    internalRefs: List[FullyQualifiedReference]
+  name: FieldName,
+  clazz: DescriptorType,
+  generics: Option[String],
+  access: Access,
+  internalRefs: List[FullyQualifiedReference]
 ) extends RawSymbol {
   override def fqn: String = name.fqnString
 }
 
 final case class RawMethod(
-    name: MethodName,
-    access: Access,
-    generics: Option[String],
-    line: Option[Int],
-    internalRefs: List[FullyQualifiedReference]
+  name: MethodName,
+  access: Access,
+  generics: Option[String],
+  line: Option[Int],
+  internalRefs: List[FullyQualifiedReference]
 ) extends RawSymbol {
   override def fqn: String = name.fqnString
 }
@@ -260,29 +261,29 @@ final case class RawScalapClass(
 ) extends RawScalapSymbol
 
 final case class RawScalapField(
-    javaName: FieldName,
-    scalaName: String,
-    typeSignature: String,
-    access: Access
+  javaName: FieldName,
+  scalaName: String,
+  typeSignature: String,
+  access: Access
 ) extends RawScalapSymbol {
   override def declaredAs = DeclaredAs.Field
 }
 
 final case class RawScalapMethod(
-    simpleName: String, //name of a method symbol, used to identify a group of overloaded methods (e.g. `foo`)
-    scalaName: String, //full scala name of a method (e.g. `org.example.Foo#foo`)
-    typeSignature: String,
-    access: Access
+  simpleName: String, //name of a method symbol, used to identify a group of overloaded methods (e.g. `foo`)
+  scalaName: String, //full scala name of a method (e.g. `org.example.Foo#foo`)
+  typeSignature: String,
+  access: Access
 ) extends RawScalapSymbol {
   override def declaredAs = DeclaredAs.Method
 }
 
 final case class RawType(
-    owner: ClassName,
-    javaName: ClassName,
-    scalaName: String,
-    access: Access,
-    typeSignature: String
+  owner: ClassName,
+  javaName: ClassName,
+  scalaName: String,
+  access: Access,
+  typeSignature: String
 ) extends RawScalapSymbol {
   override def declaredAs = DeclaredAs.Field
 }

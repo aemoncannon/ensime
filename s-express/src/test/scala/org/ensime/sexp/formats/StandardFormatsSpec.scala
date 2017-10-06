@@ -9,7 +9,10 @@ import java.util.UUID
 
 import org.ensime.sexp._
 
-class StandardFormatsSpec extends FormatSpec with StandardFormats with BasicFormats {
+class StandardFormatsSpec
+    extends FormatSpec
+    with StandardFormats
+    with BasicFormats {
 
   "StandardFormats" should "support Option" in {
     val some = Some("thing")
@@ -18,7 +21,7 @@ class StandardFormatsSpec extends FormatSpec with StandardFormats with BasicForm
   }
 
   it should "support Either" in {
-    val left = Left(13)
+    val left  = Left(13)
     val right = Right("thirteen")
     assertFormat(
       left: Either[Int, String],
@@ -45,7 +48,7 @@ class StandardFormatsSpec extends FormatSpec with StandardFormats with BasicForm
 
   it should "support URI" in {
     val github = "http://github.com/ensime/"
-    val url = new URI(github)
+    val url    = new URI(github)
     assertFormat(url, SexpString(github))
   }
 
