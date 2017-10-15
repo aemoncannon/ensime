@@ -46,7 +46,15 @@ object JsonWriter {
  */
 trait JsonFormat[T] extends JsonReader[T] with JsonWriter[T]
 object JsonFormat {
-  def apply[T](implicit f: Strict[JsonFormat[T]]): JsonFormat[T] = f.value
+  @inline def apply[T](implicit f: Strict[JsonFormat[T]]): JsonFormat[T] =
+    f.value
+
+  @inline def instance[A](w: A => JsValue)(r: JsValue => A): JsonFormat[A] =
+    new JsonFormat[A] {
+      override def write(v: A): JsValue = w(v)
+      override def read(v: JsValue): A  = r(v)
+    }
+
 }
 
 /**
@@ -74,6 +82,15 @@ trait RootJsonFormat[T]
     with RootJsonReader[T]
     with RootJsonWriter[T]
 object RootJsonFormat {
-  def apply[T](implicit f: Strict[RootJsonFormat[T]]): RootJsonFormat[T] =
+  @inline def apply[T](
+    implicit f: Strict[RootJsonFormat[T]]
+  ): RootJsonFormat[T] =
     f.value
+
+  @inline def instance[A](w: A => JsValue)(r: JsValue => A): RootJsonFormat[A] =
+    new RootJsonFormat[A] {
+      override def write(v: A): JsValue = w(v)
+      override def read(v: JsValue): A  = r(v)
+    }
+
 }

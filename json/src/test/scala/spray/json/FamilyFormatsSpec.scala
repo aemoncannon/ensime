@@ -112,9 +112,9 @@ object ExamplesFormats
     with LowPriorityUserFormats {
   import examples._
 
-  // WORKAROUND caveat 2 (interestingly, adding type signatures breaks everything)
-  implicit val highPrioritySymbolFormat = SymbolJsonFormat
-  implicit val highPrioritySmashFormat  = SmashFormat
+  // WORKAROUND caveat 2
+  implicit val highPrioritySymbolFormat: JsonFormat[Symbol] = symbol
+  implicit val highPrioritySmashFormat: JsonFormat[Smash]   = SmashFormat
 
   ///////////////////////////////////////////////
   // Example of "explicit implicit" for performance
@@ -122,62 +122,62 @@ object ExamplesFormats
 
   ///////////////////////////////////////////////
   // user-defined hinting
-  implicit object SubTraitHint extends FlatCoproductHint[SubTrait]("hint")
-  implicit object SpielHint    extends NestedCoproductHint[Spiel]
+  implicit val SubTraitHint: FlatCoproductHint[SubTrait] =
+    new FlatCoproductHint[SubTrait]("hint")
+  implicit val SpielHint: NestedCoproductHint[Spiel] =
+    new NestedCoproductHint[Spiel]
 
   ///////////////////////////////////////////////
   // user-defined field naming rules
-  implicit object ClodaHint extends FlatCoproductHint[Cloda]("TYPE") {
-    override def fieldName(orig: String): String = orig.toUpperCase
-  }
-  implicit object PloobaHint extends ProductHint[Plooba] {
+  implicit val ClodaHint: FlatCoproductHint[Cloda] =
+    new FlatCoproductHint[Cloda]("TYPE") {
+      override def fieldName(orig: String): String = orig.toUpperCase
+    }
+  implicit val PloobaHint: ProductHint[Plooba] = new ProductHint[Plooba] {
     override def fieldName[K <: Symbol](k: K): String = k.name.toUpperCase
   }
   ///////////////////////////////////////////////
   // user-defined /missing value rules
-  implicit object HueyHint extends ProductHint[Huey] {
+  implicit val HueyHint: ProductHint[Huey] = new ProductHint[Huey] {
     override def nulls = AlwaysJsNull
   }
-  implicit object DeweyHint extends ProductHint[Dewey] {
+  implicit val DeweyHint: ProductHint[Dewey] = new ProductHint[Dewey] {
     override def nulls = JsNullNotNone
   }
-  implicit object LouieHint extends ProductHint[Louie] {
+  implicit val LouieHint: ProductHint[Louie] = new ProductHint[Louie] {
     override def nulls = NeverJsNull
   }
-  implicit object BlueyHint extends ProductHint[Bluey] {
+  implicit val BlueyHint: ProductHint[Bluey] = new ProductHint[Bluey] {
     override def nulls = AlwaysJsNullTolerateAbsent
   }
-  implicit object QuackFormat extends JsonFormat[Quack.type] {
-    // needed something that would serialise to JsNull for testing
-    def read(j: JsValue): Quack.type = j match {
+  implicit val QuackFormat: JsonFormat[Quack.type] =
+    JsonFormat.instance[Quack.type](_ => JsNull) {
+      // needed something that would serialise to JsNull for testing
       case JsNull => Quack
       case other  => deserializationError(s"unexpected $other")
     }
-    def write(q: Quack.type): JsValue = JsNull
-  }
-  implicit object TestHint extends ProductHint[Billy] {
+
+  implicit val TestHint: ProductHint[Billy] = new ProductHint[Billy] {
     override def nulls = UseDefaultJsNull
   }
-  implicit object MozzHint extends ProductHint[Mozz] {
+  implicit val MozzHint: ProductHint[Mozz] = new ProductHint[Mozz] {
     override def nulls = UseDefaultJsNull
   }
-  implicit object PafHint extends ProductHint[Paf] {
+  implicit val PafHint: ProductHint[Paf] = new ProductHint[Paf] {
     override def nulls = UseDefaultJsNull
   }
   ///////////////////////////////////////////////
   // user-defined JsonFormat
-  implicit object SchpugelFormat extends JsonFormat[Schpugel] {
-    def read(j: JsValue): Schpugel = j match {
+  implicit val SchpugelFormat: JsonFormat[Schpugel] =
+    JsonFormat.instance[Schpugel](s => JsString(s.v)) {
       case JsString(v) => Schpugel(v)
       case other       => deserializationError(s"unexpected $other")
     }
-    def write(s: Schpugel): JsValue = JsString(s.v)
-  }
 
   ///////////////////////////////////////////////
   // user-defined RootJsonFormat
-  implicit object SmimFormat extends RootJsonFormat[Smim] {
-    def read(j: JsValue): Smim = j match {
+  implicit val SmimFormat: RootJsonFormat[Smim] =
+    RootJsonFormat.instance[Smim](s => JsObject("smim" -> JsString(s.v))) {
       case JsObject(els) if els.contains("smim") =>
         els("smim") match {
           case JsString(v) => Smim(v)
@@ -185,8 +185,6 @@ object ExamplesFormats
         }
       case other => deserializationError(s"unexpected $other")
     }
-    def write(s: Smim): JsValue = JsObject("smim" -> JsString(s.v))
-  }
 }
 
 class FamilyFormatsSpec

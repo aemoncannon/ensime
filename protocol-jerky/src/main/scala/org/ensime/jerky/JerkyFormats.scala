@@ -15,38 +15,29 @@ private object JerkyConversions extends DefaultJsonProtocol with FamilyFormats {
   // Lack of definition in scalac's implicit resolution rules means
   // that we have to redefine some things here.
   implicit override def eitherFormat[A: JsonFormat, B: JsonFormat]
-    : JsonFormat[Either[A, B]] = super.eitherFormat[A, B]
-  // Note that its not possible to override an object in scala, so we
-  // just define a new one that wins the race.
-  implicit val symbolFormat: SymbolJsonFormat.type = SymbolJsonFormat
+    : JsonFormat[Either[A, B]]                              = super.eitherFormat[A, B]
+  implicit val highPrioritySymbolFormat: JsonFormat[Symbol] = symbol
 
-  // move to somewhere more general
-  implicit object FileFormat extends JsonFormat[File] {
-    def read(j: JsValue): File = j match {
+  implicit val FileFormat: JsonFormat[File] =
+    JsonFormat.instance[File](f => JsString(f.getPath)) {
       case JsString(path) => File(path)
       case other          => unexpectedJson[File](other)
     }
-    def write(f: File): JsValue = JsString(f.getPath)
-  }
   // clients appreciate a simpler format for files
-  implicit object EnsimeFileFormat extends JsonFormat[EnsimeFile] {
-    def write(ef: EnsimeFile): JsValue = ef match {
+  implicit val EnsimeFileFormat: JsonFormat[EnsimeFile] =
+    JsonFormat.instance[EnsimeFile] {
       case RawFile(path)  => JsString(path.toString)
       case a: ArchiveFile => JsString(a.uriString)
-    }
-    def read(js: JsValue): EnsimeFile = js match {
+    } {
       case JsString(uri) => EnsimeFile(uri)
       case got           => unexpectedJson[EnsimeFile](got)
     }
-  }
   // keeps the JSON a little bit cleaner
-  implicit object DebugThreadIdFormat extends JsonFormat[DebugThreadId] {
-    def read(j: JsValue): DebugThreadId = j match {
+  implicit val DebugThreadIdFormat: JsonFormat[DebugThreadId] =
+    JsonFormat.instance[DebugThreadId](d => JsNumber(d.id)) {
       case JsNumber(id) => new DebugThreadId(id.longValue)
       case other        => unexpectedJson[DebugThreadId](other)
     }
-    def write(dtid: DebugThreadId): JsValue = JsNumber(dtid.id)
-  }
 
   // some of the case classes use the keyword `type`, so we need a better default
   override implicit def coproductHint[T: Typeable]: CoproductHint[T] =
