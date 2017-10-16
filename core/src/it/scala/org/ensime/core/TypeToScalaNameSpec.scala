@@ -19,7 +19,7 @@ class TypeToScalaNameSpec
   val original = EnsimeConfigFixture.ShapelessTestProject
 
   // ignores the source information when performing equality
-  implicit object TypeInfoSimplifiedEquality extends Equality[TypeInfo] {
+  implicit val TypeInfoEquality: Equality[TypeInfo] = new Equality[TypeInfo] {
     def areEqual(a: TypeInfo, b: Any): Boolean = b match {
       case api.BasicTypeInfo(name, declAs, fullName, _, _, _, _) =>
         a.name === name &&

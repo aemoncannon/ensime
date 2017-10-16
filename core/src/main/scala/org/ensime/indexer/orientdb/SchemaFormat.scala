@@ -29,31 +29,32 @@ package api {
 
   // defining really basic implementations on the companion
   object OrientPropertyFormat {
-    implicit object StringOrientPropertyFormat
-        extends OrientPropertyFormat[String] {
-      def toOrientProperty: OrientProperty = OrientProperty(OType.STRING)
-    }
-    implicit object IntOrientPropertyFormat extends OrientPropertyFormat[Int] {
-      def toOrientProperty: OrientProperty = OrientProperty(OType.INTEGER)
-    }
-    implicit object LongOrientPropertyFormat
-        extends OrientPropertyFormat[Long] {
-      def toOrientProperty: OrientProperty = OrientProperty(OType.LONG)
-    }
-    implicit object TimeStampOrientPropertyFormat
-        extends OrientPropertyFormat[Timestamp] {
-      def toOrientProperty: OrientProperty = OrientProperty(OType.LONG)
-    }
+    implicit val string: OrientPropertyFormat[String] =
+      new OrientPropertyFormat[String] {
+        def toOrientProperty: OrientProperty = OrientProperty(OType.STRING)
+      }
+    implicit val int: OrientPropertyFormat[Int] =
+      new OrientPropertyFormat[Int] {
+        def toOrientProperty: OrientProperty = OrientProperty(OType.INTEGER)
+      }
+    implicit val long: OrientPropertyFormat[Long] =
+      new OrientPropertyFormat[Long] {
+        def toOrientProperty: OrientProperty = OrientProperty(OType.LONG)
+      }
+    implicit val timestamp: OrientPropertyFormat[Timestamp] =
+      new OrientPropertyFormat[Timestamp] {
+        def toOrientProperty: OrientProperty = OrientProperty(OType.LONG)
+      }
 
     // domain specific
-    implicit object AccessOrientPropertyFormat
-        extends OrientPropertyFormat[Access] {
-      def toOrientProperty: OrientProperty = OrientProperty(OType.INTEGER)
-    }
-    implicit object DeclaredAsPropertyFormat
-        extends OrientPropertyFormat[DeclaredAs] {
-      def toOrientProperty: OrientProperty = OrientProperty(OType.STRING)
-    }
+    implicit val access: OrientPropertyFormat[Access] =
+      new OrientPropertyFormat[Access] {
+        def toOrientProperty: OrientProperty = OrientProperty(OType.INTEGER)
+      }
+    implicit val declaredAs: OrientPropertyFormat[DeclaredAs] =
+      new OrientPropertyFormat[DeclaredAs] {
+        def toOrientProperty: OrientProperty = OrientProperty(OType.STRING)
+      }
 
     implicit def OptionOrientPropertyFormat[T](
       implicit

@@ -455,11 +455,10 @@ object GraphService {
   import org.ensime.util.stringymap.api._
   import org.ensime.util.stringymap.impl._
 
-  implicit object AccessSPrimitive extends SPrimitive[Access] {
+  implicit val access: SPrimitive[Access] = new SPrimitive[Access] {
     import org.objectweb.asm.Opcodes._
-    import SPrimitive.IntSPrimitive
 
-    def toValue(v: Access): java.lang.Integer =
+    def toValue(v: Access): AnyRef =
       if (v == null) null
       else {
         val code = v match {
@@ -468,22 +467,21 @@ object GraphService {
           case Protected => ACC_PROTECTED
           case Default   => 0
         }
-        IntSPrimitive.toValue(code)
+        SPrimitive.int.toValue(code)
       }
 
     def fromValue(v: AnyRef): Either[String, Access] =
-      IntSPrimitive.fromValue(v).right.map(Access(_))
+      SPrimitive.int.fromValue(v).right.map(Access(_))
   }
 
-  implicit object DeclaredAsSPrimitive extends SPrimitive[DeclaredAs] {
+  implicit val declaredAs: SPrimitive[DeclaredAs] = new SPrimitive[DeclaredAs] {
     import org.ensime.util.enums._
-    import SPrimitive.StringSPrimitive
     private val lookup: Map[String, DeclaredAs] =
       implicitly[AdtToMap[DeclaredAs]].lookup
-    def toValue(v: DeclaredAs): java.lang.String =
-      if (v == null) null else StringSPrimitive.toValue(v.toString)
+    def toValue(v: DeclaredAs): AnyRef =
+      if (v == null) null else SPrimitive.string.toValue(v.toString)
     def fromValue(v: AnyRef): Either[String, DeclaredAs] =
-      StringSPrimitive.fromValue(v).right.map(lookup)
+      SPrimitive.string.fromValue(v).right.map(lookup)
   }
 
   implicit val FileCheckBdf: BigDataFormat[FileCheck] = cachedImplicit

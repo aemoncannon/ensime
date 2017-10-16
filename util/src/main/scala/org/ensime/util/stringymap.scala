@@ -40,17 +40,17 @@ package api {
       if (v == null) Left("Null encountered in non-optional field")
       else Right(transform(v))
 
-    implicit object StringSPrimitive extends SPrimitive[String] {
+    implicit val string: SPrimitive[String] = new SPrimitive[String] {
       def toValue(v: String): String = v
       def fromValue(v: AnyRef): Either[String, String] =
         assertNotNull(v, _.asInstanceOf[String])
     }
-    implicit object IntSPrimitive extends SPrimitive[Int] {
+    implicit val int: SPrimitive[Int] = new SPrimitive[Int] {
       def toValue(v: Int): java.lang.Integer = v
       def fromValue(v: AnyRef): Either[String, Int] =
         assertNotNull(v, _.asInstanceOf[Int])
     }
-    implicit object LongSPrimitive extends SPrimitive[Long] {
+    implicit val long: SPrimitive[Long] = new SPrimitive[Long] {
       def toValue(v: Long): java.lang.Long = v
       def fromValue(v: AnyRef): Either[String, Long] =
         assertNotNull(v, _.asInstanceOf[Long])
@@ -67,11 +67,11 @@ package api {
         if (v == null) Right(None)
         else p.fromValue(v).right.map(Some(_))
     }
-    implicit object TimeStampSPrimitive extends SPrimitive[Timestamp] {
-      def toValue(v: Timestamp): java.lang.Long =
-        LongSPrimitive.toValue(v.getTime)
+    implicit val timestamp: SPrimitive[Timestamp] = new SPrimitive[Timestamp] {
+      def toValue(v: Timestamp): AnyRef =
+        long.toValue(v.getTime)
       def fromValue(v: AnyRef): Either[String, Timestamp] =
-        LongSPrimitive.fromValue(v).right.map(new Timestamp(_))
+        long.fromValue(v).right.map(new Timestamp(_))
     }
   }
 }

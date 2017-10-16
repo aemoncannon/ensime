@@ -60,20 +60,21 @@ object IndexService extends SLF4JLogging {
     }
     def toEntity(d: Document): T = cons(d.get("fqn"), None)
   }
-  implicit object ClassIndexS
-      extends AFqnIndexS(Typeable[ClassIndex], ClassIndex)
-  implicit object MethodIndexS
-      extends AFqnIndexS(Typeable[MethodIndex], MethodIndex)
-  implicit object FieldIndexS
-      extends AFqnIndexS(Typeable[FieldIndex], FieldIndex)
-  implicit object FqnIndexS extends DocumentRecovery[FqnIndex] {
-    def toEntity(d: Document) = d.get("TYPE") match {
-      case "ClassIndex"  => ClassIndexS.toEntity(d)
-      case "MethodIndex" => MethodIndexS.toEntity(d)
-      case "FieldIndex"  => FieldIndexS.toEntity(d)
-      case o             => throw new IllegalStateException(o)
+  implicit val ClassIndexS: AFqnIndexS[ClassIndex] =
+    new AFqnIndexS(Typeable[ClassIndex], ClassIndex) {}
+  implicit val MethodIndexS: AFqnIndexS[MethodIndex] =
+    new AFqnIndexS(Typeable[MethodIndex], MethodIndex) {}
+  implicit val FieldIndexS: AFqnIndexS[FieldIndex] =
+    new AFqnIndexS(Typeable[FieldIndex], FieldIndex) {}
+  implicit val fqnIndex: DocumentRecovery[FqnIndex] =
+    new DocumentRecovery[FqnIndex] {
+      def toEntity(d: Document) = d.get("TYPE") match {
+        case "ClassIndex"  => ClassIndexS.toEntity(d)
+        case "MethodIndex" => MethodIndexS.toEntity(d)
+        case "FieldIndex"  => FieldIndexS.toEntity(d)
+        case o             => throw new IllegalStateException(o)
+      }
     }
-  }
   private val ClassIndexT = new TermQuery(
     new Term("TYPE", classOf[ClassIndex].getSimpleName)
   )

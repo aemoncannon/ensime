@@ -129,37 +129,38 @@ trait CollectionFormats {
    *   (bitsetContains "16#10000000000000002" 64) ; t
    *   (bitsetContains "16#10000000000000002" 0) ; nil
    */
-  implicit object BitSetFormat extends SexpFormat[collection.BitSet] {
-    private val Radix    = 16
-    private val CalcEval = "(\\d+)#(\\d+)" r
+  implicit val bitSet: SexpFormat[collection.BitSet] =
+    new SexpFormat[collection.BitSet] {
+      private val Radix    = 16
+      private val CalcEval = "(\\d+)#(\\d+)" r
 
-    def write(bs: collection.BitSet) =
-      if (bs.isEmpty) SexpNil
-      else {
-        val bigInt = BigIntConvertor.fromBitSet(bs)
-        SexpString(Radix + "#" + bigInt.toString(Radix))
+      def write(bs: collection.BitSet) =
+        if (bs.isEmpty) SexpNil
+        else {
+          val bigInt = BigIntConvertor.fromBitSet(bs)
+          SexpString(Radix + "#" + bigInt.toString(Radix))
+        }
+
+      // NOTE: returns immutable BitSet
+      def read(m: Sexp): im.BitSet = m match {
+        case SexpNil => im.BitSet()
+        case SexpString(CalcEval(radix, num)) =>
+          val bigInt = BigInt(num, radix.toInt)
+          BigIntConvertor.toBitSet(bigInt)
+        case x => deserializationError(x)
       }
-
-    // NOTE: returns immutable BitSet
-    def read(m: Sexp): im.BitSet = m match {
-      case SexpNil => im.BitSet()
-      case SexpString(CalcEval(radix, num)) =>
-        val bigInt = BigInt(num, radix.toInt)
-        BigIntConvertor.toBitSet(bigInt)
-      case x => deserializationError(x)
     }
-  }
 
-  implicit object ImBitSetFormat extends SexpFormat[im.BitSet] {
-    def write(bs: im.BitSet) = BitSetFormat.write(bs)
-    def read(m: Sexp)        = BitSetFormat.read(m)
+  implicit val imBitSet: SexpFormat[im.BitSet] = new SexpFormat[im.BitSet] {
+    def write(bs: im.BitSet) = bitSet.write(bs)
+    def read(m: Sexp)        = bitSet.read(m).asInstanceOf[im.BitSet]
   }
 
   private val start     = SexpSymbol(":start")
   private val end       = SexpSymbol(":end")
   private val step      = SexpSymbol(":step")
   private val inclusive = SexpSymbol(":inclusive")
-  implicit object RangeFormat extends SexpFormat[im.Range] {
+  implicit val range: SexpFormat[im.Range] = new SexpFormat[im.Range] {
     def write(r: im.Range) = SexpData(
       start -> SexpNumber(r.start),
       end   -> SexpNumber(r.end),
@@ -189,13 +190,13 @@ trait CollectionFormats {
       start     -> r.start.toSexp,
       end       -> r.end.toSexp,
       step      -> r.step.toSexp,
-      inclusive -> BooleanFormat.write(r.isInclusive)
+      inclusive -> boolean.write(r.isInclusive)
     )
 
     def read(s: Sexp): im.NumericRange[E] = s match {
       case SexpData(data) =>
         (data(start), data(end), data(step), data(inclusive)) match {
-          case (s, e, st, incl) if BooleanFormat.read(incl) =>
+          case (s, e, st, incl) if boolean.read(incl) =>
             im.NumericRange.inclusive(
               s.convertTo[E],
               e.convertTo[E],

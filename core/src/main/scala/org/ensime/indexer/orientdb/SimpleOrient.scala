@@ -70,10 +70,10 @@ package api {
   }
 
   object Indexable {
-    implicit object VertexIndexable extends Indexable[Vertex] {
+    implicit val vertex: Indexable[Vertex] = new Indexable[Vertex] {
       override def aClass: Class[Vertex] = classOf[Vertex]
     }
-    implicit object EdgeIndexable extends Indexable[Edge] {
+    implicit val edge: Indexable[Edge] = new Indexable[Edge] {
       override def aClass: Class[Edge] = classOf[Edge]
     }
   }

@@ -7,12 +7,12 @@ import shapeless._
 
 trait BasicFormats {
 
-  implicit object UnitFormat extends SexpFormat[Unit] {
+  implicit val unit: SexpFormat[Unit] = new SexpFormat[Unit] {
     def write(x: Unit)    = SexpNil
     def read(value: Sexp) = ()
   }
 
-  implicit object BooleanFormat extends SexpFormat[Boolean] {
+  implicit val boolean: SexpFormat[Boolean] = new SexpFormat[Boolean] {
     // all non-nil Sexps are technically "true"
     private val SexpTrue  = SexpSymbol("t")
     def write(x: Boolean) = if (x) SexpTrue else SexpNil
@@ -22,7 +22,7 @@ trait BasicFormats {
     }
   }
 
-  implicit object CharFormat extends SexpFormat[Char] {
+  implicit val char: SexpFormat[Char] = new SexpFormat[Char] {
     def write(x: Char) = SexpChar(x)
     def read(value: Sexp) = value match {
       case SexpChar(x) => x
@@ -30,7 +30,7 @@ trait BasicFormats {
     }
   }
 
-  implicit object StringFormat extends SexpFormat[String] {
+  implicit val string: SexpFormat[String] = new SexpFormat[String] {
     def write(x: String) = SexpString(x)
     def read(value: Sexp) = value match {
       case SexpString(x) => x
@@ -39,7 +39,7 @@ trait BasicFormats {
   }
 
   // val allows override
-  implicit val SymbolFormat: SexpFormat[Symbol] = new SexpFormat[Symbol] {
+  implicit val symbol: SexpFormat[Symbol] = new SexpFormat[Symbol] {
     def write(x: Symbol): Sexp = SexpString(x.name)
     def read(value: Sexp): Symbol = value match {
       case SexpString(x) => Symbol(x)
@@ -62,7 +62,7 @@ trait BasicFormats {
    * numbers, override this implementation with one that adheres to
    * the arbitrary precision framework of your choice.
    */
-  implicit def ViaBigDecimalFormat[T](
+  implicit def viaBigDecimalFormat[T](
     implicit c: BigDecimalConvertor[T]
   ): SexpFormat[T] =
     new SexpFormat[T] {
@@ -94,7 +94,7 @@ trait BasicFormats {
 
 trait SymbolAltFormat {
   this: BasicFormats =>
-  override implicit val SymbolFormat: SexpFormat[Symbol] =
+  override implicit val symbol: SexpFormat[Symbol] =
     new SexpFormat[Symbol] {
       def write(x: Symbol): Sexp = SexpSymbol(x.name)
       def read(value: Sexp): Symbol = value match {

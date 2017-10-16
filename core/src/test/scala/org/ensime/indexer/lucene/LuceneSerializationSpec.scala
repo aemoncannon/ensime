@@ -17,13 +17,13 @@ class LuceneSerializationSpec extends EnsimeSpec {
   }
 
   case class SimpleThing(id: String, b: String) extends Entity
-  implicit object SimpleThingS
-      extends EntityS[SimpleThing](Typeable[SimpleThing]) {
-    def addFields(doc: Document, t: SimpleThing): Unit =
-      doc.add(new TextField("b", t.b, Store.YES))
-    def toEntity(doc: Document): SimpleThing =
-      SimpleThing(doc.get("ID"), doc.get("b"))
-  }
+  implicit val SimpleThingS: EntityS[SimpleThing] =
+    new EntityS[SimpleThing](Typeable[SimpleThing]) {
+      def addFields(doc: Document, t: SimpleThing): Unit =
+        doc.add(new TextField("b", t.b, Store.YES))
+      def toEntity(doc: Document): SimpleThing =
+        SimpleThing(doc.get("ID"), doc.get("b"))
+    }
 
   "Lucene Entity Serialisation" should "serialise and deserialise a simple type" in {
     val t = SimpleThing("hello", "world")

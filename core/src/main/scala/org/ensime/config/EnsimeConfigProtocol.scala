@@ -26,7 +26,7 @@ object EnsimeConfigProtocol {
 
   private def log = Logger(this.getClass.getName)
 
-  implicit object EnsimeFileFormat extends SexpFormat[RawFile] {
+  implicit val rawFile: SexpFormat[RawFile] = new SexpFormat[RawFile] {
     def write(f: RawFile): Sexp = SexpString(f.file.toString)
     def read(sexp: Sexp): RawFile = sexp match {
       case SexpString(file) => RawFile(Paths.get(file))
@@ -37,14 +37,16 @@ object EnsimeConfigProtocol {
   def camel(in: String): String =
     in.replaceAll("([A-Z])", "-$1").toLowerCase.replaceAll("^-", "")
 
-  implicit object EnsimeConfigHint extends BasicProductHint[EnsimeConfig] {
-    override def field[K <: Symbol](k: K): SexpSymbol =
-      SexpSymbol(s":${camel(k.name)}")
-  }
-  implicit object EnsimeProjectHint extends BasicProductHint[EnsimeProject] {
-    override def field[K <: Symbol](k: K): SexpSymbol =
-      SexpSymbol(s":${camel(k.name)}")
-  }
+  implicit val EnsimeConfigHint: BasicProductHint[EnsimeConfig] =
+    new BasicProductHint[EnsimeConfig] {
+      override def field[K <: Symbol](k: K): SexpSymbol =
+        SexpSymbol(s":${camel(k.name)}")
+    }
+  implicit val EnsimeProjectHint: BasicProductHint[EnsimeProject] =
+    new BasicProductHint[EnsimeProject] {
+      override def field[K <: Symbol](k: K): SexpSymbol =
+        SexpSymbol(s":${camel(k.name)}")
+    }
 
   private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit
 

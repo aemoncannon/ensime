@@ -72,45 +72,50 @@ package formats {
 
     ///////////////////////////////////////////////
     // user-defined hinting
-    implicit object SubTraitHint extends FlatCoproductHint[SubTrait]
-    implicit object SpielHint
-        extends FlatCoproductHint[Spiel](SexpSymbol(":hint"))
+    implicit val SubTraitHint: FlatCoproductHint[SubTrait] =
+      new FlatCoproductHint[SubTrait]
+    implicit val SpielHint: FlatCoproductHint[Spiel] =
+      new FlatCoproductHint[Spiel](SexpSymbol(":hint"))
 
     ///////////////////////////////////////////////
     // user-defined field naming rules
-    implicit object ClodaHint
-        extends FlatCoproductHint[Cloda](SexpSymbol(":TYPE")) {
-      override def field(orig: String): SexpSymbol =
-        SexpSymbol(orig.toUpperCase)
-    }
-    implicit object PloobaHint extends BasicProductHint[Plooba] {
-      override def field[K <: Symbol](k: K): SexpSymbol =
-        SexpSymbol(s":${k.name.toUpperCase}")
-    }
+    implicit val ClodaHint: FlatCoproductHint[Cloda] =
+      new FlatCoproductHint[Cloda](SexpSymbol(":TYPE")) {
+        override def field(orig: String): SexpSymbol =
+          SexpSymbol(orig.toUpperCase)
+      }
+    implicit val PloobaHint: BasicProductHint[Plooba] =
+      new BasicProductHint[Plooba] {
+        override def field[K <: Symbol](k: K): SexpSymbol =
+          SexpSymbol(s":${k.name.toUpperCase}")
+      }
 
     ///////////////////////////////////////////////
     // user-defined /missing value rules
-    implicit object DeweyHint extends BasicProductHint[Dewey] {
-      override def nulls = AlwaysSexpNil
-    }
-    implicit object QuackFormat extends SexpFormat[Quack.type] {
-      // needed something that would serialise to nil for testing
-      def read(j: Sexp): Quack.type = j match {
-        case SexpNil => Quack
-        case other   => deserializationError(other)
+    implicit val DeweyHint: BasicProductHint[Dewey] =
+      new BasicProductHint[Dewey] {
+        override def nulls = AlwaysSexpNil
       }
-      def write(q: Quack.type): Sexp = SexpNil
-    }
+    implicit val QuackFormat: SexpFormat[Quack.type] =
+      new SexpFormat[Quack.type] {
+        // needed something that would serialise to nil for testing
+        def read(j: Sexp): Quack.type = j match {
+          case SexpNil => Quack
+          case other   => deserializationError(other)
+        }
+        def write(q: Quack.type): Sexp = SexpNil
+      }
 
     ///////////////////////////////////////////////
     // user-defined SexpFormat
-    implicit object SchpugelFormat extends SexpFormat[Schpugel] {
-      def read(j: Sexp): Schpugel = j match {
-        case SexpString(v) => Schpugel(v)
-        case other         => deserializationError(other)
+    implicit val SchpugelFormat: SexpFormat[Schpugel] =
+      new SexpFormat[Schpugel] {
+        def read(j: Sexp): Schpugel = j match {
+          case SexpString(v) => Schpugel(v)
+          case other         => deserializationError(other)
+        }
+        def write(s: Schpugel): Sexp = SexpString(s.v)
       }
-      def write(s: Schpugel): Sexp = SexpString(s.v)
-    }
 
   }
 }

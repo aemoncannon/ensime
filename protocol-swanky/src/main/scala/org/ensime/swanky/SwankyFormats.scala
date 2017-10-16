@@ -31,19 +31,21 @@ private object SwankyConversions
         SexpSymbol(":" + dashify(key.name))
     }
 
-  implicit object DebugThreadIdFormat extends SexpFormat[DebugThreadId] {
-    override def read(s: Sexp): DebugThreadId =
-      DebugThreadId(LongFormat.read(s))
-    override def write(t: DebugThreadId): Sexp = LongFormat.write(t.id)
-  }
+  implicit val debugThreadId: SexpFormat[DebugThreadId] =
+    new SexpFormat[DebugThreadId] {
+      override def read(s: Sexp): DebugThreadId =
+        DebugThreadId(LongFormat.read(s))
+      override def write(t: DebugThreadId): Sexp = LongFormat.write(t.id)
+    }
 
-  implicit object DebugObjectIdFormat extends SexpFormat[DebugObjectId] {
-    override def read(s: Sexp): DebugObjectId =
-      DebugObjectId(LongFormat.read(s))
-    override def write(t: DebugObjectId): Sexp = LongFormat.write(t.id)
-  }
+  implicit val debugObjectId: SexpFormat[DebugObjectId] =
+    new SexpFormat[DebugObjectId] {
+      override def read(s: Sexp): DebugObjectId =
+        DebugObjectId(LongFormat.read(s))
+      override def write(t: DebugObjectId): Sexp = LongFormat.write(t.id)
+    }
 
-  implicit object EnsimeFileFormat extends SexpFormat[EnsimeFile] {
+  implicit val ensimeFile: SexpFormat[EnsimeFile] = new SexpFormat[EnsimeFile] {
     def write(ef: EnsimeFile): Sexp = ef match {
       case RawFile(path)  => SexpString(path.toString)
       case a: ArchiveFile => SexpString(a.uriString)
