@@ -108,10 +108,6 @@ import shapeless._, labelled.{ field, FieldType }
  */
 trait FamilyFormats extends MiddlePriorityFamilyFormats {
   this: BasicFormats with StandardFormats =>
-
-  // scala compiler doesn't like spray-json's use of a type alias in the sig
-  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
-    new OptionFormat[T]
 }
 object FamilyFormats extends DefaultJsonProtocol with FamilyFormats
 

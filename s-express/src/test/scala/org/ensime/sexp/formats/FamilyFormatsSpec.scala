@@ -239,12 +239,12 @@ package test {
 
       shapeless.test.illTyped(
         """roundtrip(Hominidae(UUID.randomUUID): Primates, "nil")""",
-        ".*Cannot find SexpFormat for org.ensime.sexp.formats.examples.Primates.*"
+        ".*org.ensime.sexp.formats.examples.Primates.*"
       )
 
       shapeless.test.illTyped(
         """roundtrip(Hominidae(UUID.randomUUID), "nil")""",
-        ".*Cannot find SexpFormat for org.ensime.sexp.formats.examples.Hominidae.*"
+        ".*org.ensime.sexp.formats.examples.Hominidae.*"
       )
     }
 

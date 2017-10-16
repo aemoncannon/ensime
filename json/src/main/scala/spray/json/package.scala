@@ -5,7 +5,8 @@ package spray
 import shapeless._
 
 package object json {
-  type JsField = (String, JsValue)
+  type JsField             = (String, JsValue)
+  private[json] type JF[T] = JsonFormat[T] // simple alias for reduced verbosity
 
   def deserializationError(msg: String,
                            cause: Throwable = null,

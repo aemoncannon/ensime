@@ -115,6 +115,8 @@ object ExamplesFormats
   // WORKAROUND caveat 2
   implicit val highPrioritySymbolFormat: JsonFormat[Symbol] = symbol
   implicit val highPrioritySmashFormat: JsonFormat[Smash]   = SmashFormat
+  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
+    super.optionFormat
 
   ///////////////////////////////////////////////
   // Example of "explicit implicit" for performance

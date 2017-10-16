@@ -2,42 +2,40 @@
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
 package spray.json
 
-import scala.reflect.ClassTag
+import scala.collection.generic.CanBuildFrom
+import scala.language.higherKinds
 
 trait CollectionFormats {
+
+  implicit def cbf[T[_], A: JsonFormat](
+    implicit CBF: CanBuildFrom[Nothing, A, T[A]],
+    E: T[A] <:< Traversable[A]
+  ): RootJsonFormat[T[A]] = vectorFormat[A].xmap(
+    _.to,
+    _.toVector
+  )
 
   /**
    * Supplies the JsonFormat for Lists.
    */
-  implicit def listFormat[T: JsonFormat] = new RootJsonFormat[List[T]] {
-    def write(list: List[T]) = JsArray(list.map(_.toJson).toVector)
-    def read(value: JsValue): List[T] = value match {
+  private[this] def vectorFormat[T: JsonFormat] =
+    RootJsonFormat.instance[Vector[T]] { vec =>
+      JsArray(vec.map(_.toJson))
+    } {
       case JsArray(elements) =>
-        elements.map(_.convertTo[T])(collection.breakOut)
+        elements.map(_.convertTo[T])
       case x => deserializationError("Expected List as JsArray, but got " + x)
-    }
-  }
-
-  /**
-   * Supplies the JsonFormat for Arrays.
-   */
-  implicit def arrayFormat[T: JsonFormat: ClassTag] =
-    new RootJsonFormat[Array[T]] {
-      def write(array: Array[T]) = JsArray(array.map(_.toJson).toVector)
-      def read(value: JsValue) = value match {
-        case JsArray(elements) => elements.map(_.convertTo[T]).toArray[T]
-        case x =>
-          deserializationError("Expected Array as JsArray, but got " + x)
-      }
     }
 
   /**
    * Supplies the JsonFormat for Maps. The implicitly available JsonFormat for the key type K must
    * always write JsStrings, otherwise a [[spray.json.SerializationException]] will be thrown.
+   *
+   * We could have type safety by introducing a JsStringFormat.
    */
   implicit def mapFormat[K: JsonFormat, V: JsonFormat] =
-    new RootJsonFormat[Map[K, V]] {
-      def write(m: Map[K, V]) = JsObject {
+    RootJsonFormat.instance[Map[K, V]] { m =>
+      JsObject {
         m.map { field =>
           field._1.toJson match {
             case JsString(x) => x -> field._2.toJson
@@ -48,53 +46,11 @@ trait CollectionFormats {
           }
         }
       }
-      def read(value: JsValue) = value match {
-        case x: JsObject =>
-          x.fields.map { field =>
-            (JsString(field._1).convertTo[K], field._2.convertTo[V])
-          }(collection.breakOut)
-        case x => deserializationError("Expected Map as JsObject, but got " + x)
-      }
+    } {
+      case x: JsObject =>
+        x.fields.map { field =>
+          (JsString(field._1).convertTo[K], field._2.convertTo[V])
+        }(collection.breakOut)
+      case x => deserializationError("Expected Map as JsObject, but got " + x)
     }
-
-  import collection.{ immutable => imm }
-
-  implicit def immIterableFormat[T: JsonFormat] =
-    viaSeq[imm.Iterable[T], T](seq => imm.Iterable(seq: _*))
-  implicit def immSeqFormat[T: JsonFormat] =
-    viaSeq[imm.Seq[T], T](seq => imm.Seq(seq: _*))
-  implicit def immIndexedSeqFormat[T: JsonFormat] =
-    viaSeq[imm.IndexedSeq[T], T](seq => imm.IndexedSeq(seq: _*))
-  implicit def immLinearSeqFormat[T: JsonFormat] =
-    viaSeq[imm.LinearSeq[T], T](seq => imm.LinearSeq(seq: _*))
-  implicit def immSetFormat[T: JsonFormat] =
-    viaSeq[imm.Set[T], T](seq => imm.Set(seq: _*))
-  implicit def vectorFormat[T: JsonFormat] =
-    viaSeq[Vector[T], T](seq => Vector(seq: _*))
-
-  import collection._
-
-  implicit def iterableFormat[T: JsonFormat] =
-    viaSeq[Iterable[T], T](seq => Iterable(seq: _*))
-  implicit def seqFormat[T: JsonFormat] = viaSeq[Seq[T], T](seq => Seq(seq: _*))
-  implicit def indexedSeqFormat[T: JsonFormat] =
-    viaSeq[IndexedSeq[T], T](seq => IndexedSeq(seq: _*))
-  implicit def linearSeqFormat[T: JsonFormat] =
-    viaSeq[LinearSeq[T], T](seq => LinearSeq(seq: _*))
-  implicit def setFormat[T: JsonFormat] = viaSeq[Set[T], T](seq => Set(seq: _*))
-
-  /**
-   * A JsonFormat construction helper that creates a JsonFormat for an Iterable type I from a builder function
-   * List => I.
-   */
-  def viaSeq[I <: Iterable[T], T: JsonFormat](
-    f: imm.Seq[T] => I
-  ): RootJsonFormat[I] = new RootJsonFormat[I] {
-    def write(iterable: I) = JsArray(iterable.map(_.toJson).toVector)
-    def read(value: JsValue) = value match {
-      case JsArray(elements) => f(elements.map(_.convertTo[T]))
-      case x =>
-        deserializationError("Expected Collection as JsArray, but got " + x)
-    }
-  }
 }

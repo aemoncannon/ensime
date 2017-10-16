@@ -30,20 +30,8 @@ class BasicFormatsSpec extends WordSpec with DefaultJsonProtocol {
     "convert a Float to a JsNumber" in {
       4.2f.toJson shouldEqual JsNumber(4.2f)
     }
-    "convert a Float.NaN to a JsNull" in {
-      Float.NaN.toJson shouldEqual JsNull
-    }
-    "convert a Float.PositiveInfinity to a JsNull" in {
-      Float.PositiveInfinity.toJson shouldEqual JsNull
-    }
-    "convert a Float.NegativeInfinity to a JsNull" in {
-      Float.NegativeInfinity.toJson shouldEqual JsNull
-    }
     "convert a JsNumber to a Float" in {
       JsNumber(4.2f).convertTo[Float] shouldEqual 4.2f
-    }
-    "convert a JsNull to a Float" in {
-      JsNull.convertTo[Float].isNaN shouldEqual Float.NaN.isNaN
     }
   }
 
@@ -51,20 +39,8 @@ class BasicFormatsSpec extends WordSpec with DefaultJsonProtocol {
     "convert a Double to a JsNumber" in {
       4.2.toJson shouldEqual JsNumber(4.2)
     }
-    "convert a Double.NaN to a JsNull" in {
-      Double.NaN.toJson shouldEqual JsNull
-    }
-    "convert a Double.PositiveInfinity to a JsNull" in {
-      Double.PositiveInfinity.toJson shouldEqual JsNull
-    }
-    "convert a Double.NegativeInfinity to a JsNull" in {
-      Double.NegativeInfinity.toJson shouldEqual JsNull
-    }
     "convert a JsNumber to a Double" in {
       JsNumber(4.2).convertTo[Double] shouldEqual 4.2
-    }
-    "convert a JsNull to a Double" in {
-      JsNull.convertTo[Double].isNaN shouldEqual Double.NaN.isNaN
     }
   }
 

@@ -2,10 +2,12 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.rpc
 
-import org.ensime.lsp.JsonUtils
-import org.ensime.lsp.rpc.messages._
-import shapeless._
+import scala.collection.immutable.Seq
+
 import spray.json._
+import shapeless._
+import messages._
+import JsonRpcMessages._
 
 import scala.util.{ Failure, Success, Try }
 
@@ -16,7 +18,10 @@ private object RpcConversions
 
   // see JerkyFormats for an explanation of this "accidental complexity"
   implicit override def eitherFormat[A: JsonFormat, B: JsonFormat]
-    : JsonFormat[Either[A, B]]                                = super.eitherFormat[A, B]
+    : JsonFormat[Either[A, B]] = super.eitherFormat
+  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
+    super.optionFormat
+
   implicit val highPriorityJsValue: JsonFormat[JsValue]       = jsValue
   implicit val highPriorityJsObject: RootJsonFormat[JsObject] = jsObject
   implicit val highPriorityJsArray: RootJsonFormat[JsArray]   = jsArray
@@ -82,13 +87,17 @@ private object RpcConversions
         )
     }
 
-  implicit val JsonRpcRequestMessageBatchFormat
-    : RootJsonFormat[JsonRpcRequestMessageBatch] =
-    rootFormat(JsonUtils.wrapperFormat(JsonRpcRequestMessageBatch, _.messages))
+  implicit val request: RootJsonFormat[JsonRpcRequestMessageBatch] =
+    RootJsonFormat[Seq[JsonRpcRequestOrNotificationMessage]].xmap(
+      JsonRpcRequestMessageBatch(_),
+      _.messages
+    )
 
-  implicit val JsonRpcResponseMessageBatchFormat
-    : RootJsonFormat[JsonRpcResponseMessageBatch] =
-    rootFormat(JsonUtils.wrapperFormat(JsonRpcResponseMessageBatch, _.messages))
+  implicit val response: RootJsonFormat[JsonRpcResponseMessageBatch] =
+    RootJsonFormat[Seq[JsonRpcResponseMessage]].xmap(
+      JsonRpcResponseMessageBatch(_),
+      _.messages
+    )
 
   implicit val JsonRpcMessageFormat: RootJsonFormat[JsonRpcMessage] =
     RootJsonFormat.instance[JsonRpcMessage] {
@@ -145,8 +154,8 @@ object RpcFormats {
 
   implicit val JsonRpcRequestMessageBatchFormat
     : RootJsonFormat[JsonRpcRequestMessageBatch] =
-    RpcConversions.JsonRpcRequestMessageBatchFormat
+    RpcConversions.request
   implicit val JsonRpcResponseMessageBatchFormat
     : RootJsonFormat[JsonRpcResponseMessageBatch] =
-    RpcConversions.JsonRpcResponseMessageBatchFormat
+    RpcConversions.response
 }

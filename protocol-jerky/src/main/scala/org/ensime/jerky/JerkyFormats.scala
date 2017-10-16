@@ -15,7 +15,21 @@ private object JerkyConversions extends DefaultJsonProtocol with FamilyFormats {
   // Lack of definition in scalac's implicit resolution rules means
   // that we have to redefine some things here.
   implicit override def eitherFormat[A: JsonFormat, B: JsonFormat]
-    : JsonFormat[Either[A, B]]                              = super.eitherFormat[A, B]
+    : JsonFormat[Either[A, B]] = super.eitherFormat
+  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
+    super.optionFormat
+
+  // legacy format for things with tuples in them...
+  // https://github.com/ensime/ensime-server/issues/1557
+  implicit def tuple2Format[A: JsonFormat, B: JsonFormat]
+    : RootJsonFormat[(A, B)] =
+    RootJsonFormat.instance[(A, B)] { t =>
+      JsArray(t._1.toJson, t._2.toJson)
+    } {
+      case JsArray(Seq(a, b)) => (a.convertTo[A], b.convertTo[B])
+      case x                  => deserializationError("Expected JsArray, got " + x)
+    }
+
   implicit val highPrioritySymbolFormat: JsonFormat[Symbol] = symbol
 
   implicit val FileFormat: JsonFormat[File] =

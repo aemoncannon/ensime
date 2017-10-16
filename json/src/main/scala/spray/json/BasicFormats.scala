@@ -7,58 +7,36 @@ package spray.json
  */
 trait BasicFormats {
 
-  implicit val int: JsonFormat[Int] = JsonFormat.instance[Int](JsNumber(_)) {
-    case JsNumber(x) => x.intValue
-    case x           => deserializationError("Expected Int as JsNumber, but got " + x)
-  }
-
-  implicit val long: JsonFormat[Long] = JsonFormat.instance[Long](JsNumber(_)) {
-    case JsNumber(x) => x.longValue
-    case x           => deserializationError("Expected Long as JsNumber, but got " + x)
-  }
-
-  implicit val float: JsonFormat[Float] =
-    JsonFormat.instance[Float](f => JsNumber(f.toDouble)) {
-      case JsNumber(x) => x.floatValue
-      case JsNull      => Float.NaN
-      case x           => deserializationError("Expected Float as JsNumber, but got " + x)
-    }
-
-  implicit val double: JsonFormat[Double] =
-    JsonFormat.instance[Double](JsNumber(_)) {
-      case JsNumber(x) => x.doubleValue
-      case JsNull      => Double.NaN
-      case x =>
-        deserializationError("Expected Double as JsNumber, but got " + x)
-    }
-
-  implicit val byte: JsonFormat[Byte] =
-    JsonFormat.instance[Byte](b => JsNumber(b.toInt)) {
-      case JsNumber(x) => x.byteValue
-      case x           => deserializationError("Expected Byte as JsNumber, but got " + x)
-    }
-
-  implicit val short: JsonFormat[Short] =
-    JsonFormat.instance[Short](s => JsNumber(s.toInt)) {
-      case JsNumber(x) => x.shortValue
-      case x           => deserializationError("Expected Short as JsNumber, but got " + x)
-    }
-
+  // prefer java.math.BigDecimal to scala.BigDecimal
   implicit val bigDecimal: JsonFormat[BigDecimal] =
     JsonFormat.instance[BigDecimal](JsNumber(_)) {
       case JsNumber(x) => x
       case JsString(x) => BigDecimal(x)
-      case x =>
-        deserializationError("Expected BigDecimal as JsNumber, but got " + x)
+      case x           => deserializationError("Expected JsNumber, got " + x)
     }
 
+  implicit val int: JsonFormat[Int] =
+    bigDecimal.xmap(_.intValue, BigDecimal(_))
+
+  implicit val long: JsonFormat[Long] =
+    bigDecimal.xmap(_.longValue, BigDecimal(_))
+
+  implicit val float: JsonFormat[Float] =
+    bigDecimal.xmap(_.floatValue, f => BigDecimal(f.toDouble))
+
+  implicit val double: JsonFormat[Double] =
+    bigDecimal.xmap(_.doubleValue, BigDecimal(_))
+
+  implicit val byte: JsonFormat[Byte] =
+    bigDecimal.xmap(_.byteValue, b => BigDecimal(b.toInt))
+
+  implicit val short: JsonFormat[Short] =
+    bigDecimal.xmap(_.shortValue, s => BigDecimal(s.toInt))
+
+  // new java.math.BigDecimal("1e2147483647").toBigInteger
+  // hangs forever... and we are susceptible.
   implicit val bigInt: JsonFormat[BigInt] =
-    JsonFormat.instance[BigInt](JsNumber(_)) {
-      case JsNumber(x) => x.toBigInt
-      case JsString(x) => BigInt(x)
-      case x =>
-        deserializationError("Expected BigInt as JsNumber, but got " + x)
-    }
+    bigDecimal.xmap(_.toBigInt, BigDecimal(_))
 
   implicit val unit: JsonFormat[Unit] =
     JsonFormat.instance[Unit](_ => JsNumber(1))(_ => ())
@@ -70,21 +48,17 @@ trait BasicFormats {
       case x       => deserializationError("Expected JsBoolean, but got " + x)
     }
 
-  implicit val char: JsonFormat[Char] =
-    JsonFormat.instance[Char](c => JsString(String.valueOf(c))) {
-      case JsString(x) if x.length == 1 => x.charAt(0)
-      case x =>
-        deserializationError(
-          "Expected Char as single-character JsString, but got " + x
-        )
-    }
-
   implicit val string: JsonFormat[String] =
     JsonFormat.instance[String](JsString(_)) {
       case JsString(x) => x
       case x =>
         deserializationError("Expected String as JsString, but got " + x)
     }
+
+  implicit val char: JsonFormat[Char] = string.xmap({ x =>
+    if (x.length == 1) x.charAt(0)
+    else deserializationError("Expected single-character, got " + x)
+  }, c => String.valueOf(c))
 
   implicit val symbol: JsonFormat[Symbol] =
     JsonFormat.instance[Symbol](s => JsString(s.name)) {
