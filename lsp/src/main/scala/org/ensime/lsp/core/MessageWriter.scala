@@ -42,7 +42,7 @@ class MessageWriter(out: OutputStream) extends SLF4JLogging {
       case (k, v) => s"$k: $v"
     }.mkString("", "\r\n", "\r\n\r\n")
 
-    log.debug(s"$headers\n\n$str")
+    log.debug(s"$headers\n$str")
     log.debug(s"payload: $str")
 
     val headerBytes = headers.getBytes(MessageReader.AsciiCharset)

@@ -221,7 +221,7 @@ object EnsimeBuild {
   val luceneVersion = "6.4.2" // 6.6 deprecates index time boosting
   val nettyVersion = "4.1.15.Final"
   lazy val server = Project("server", file("server")).dependsOn(
-    core, swanky, jerky,
+    core, swanky, jerky, lsp,
     s_express % "test->test",
     swanky % "test->test",
     // depend on "it" dependencies in Test or sbt adds them to the release deps!
