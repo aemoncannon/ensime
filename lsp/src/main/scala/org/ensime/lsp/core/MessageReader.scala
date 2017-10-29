@@ -8,6 +8,13 @@ import java.nio.charset.Charset
 import akka.event.slf4j.SLF4JLogging
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Try
+
+object MessageReader {
+  private[lsp] val BufferSize            = 8192
+  private[lsp] val AsciiCharset: Charset = Charset.forName("ASCII")
+  private[lsp] val Utf8Charset: Charset  = Charset.forName("UTF-8")
+}
 
 /**
  * A Language Server message Reader. It expects the following format:
@@ -23,9 +30,7 @@ import scala.collection.mutable.ArrayBuffer
  * @note The header part is defined to be ASCII encoded, while the content part is UTF8.
  */
 class MessageReader(in: InputStream) extends SLF4JLogging {
-  val BufferSize = 8192
-
-  private val buffer = new Array[Byte](BufferSize)
+  private val buffer = new Array[Byte](MessageReader.BufferSize)
   @volatile
   private var data = ArrayBuffer.empty[Byte]
   @volatile
@@ -55,6 +60,7 @@ class MessageReader(in: InputStream) extends SLF4JLogging {
 
   /**
    * Return headers, if any are available. It returns only full headers, after the
+   *
    * \r\n\r\n mark has been seen.
    *
    * @return A map of headers. If the map is empty it could be that the input stream
@@ -122,8 +128,9 @@ class MessageReader(in: InputStream) extends SLF4JLogging {
   private[core] def getContent(len: Int): Option[String] = lock.synchronized {
     while (data.size < len && !streamClosed) lock.wait()
 
-    if (streamClosed) None
-    else {
+    if (streamClosed) {
+      None
+    } else {
       assert(data.size >= len)
       val content = data.take(len).toArray
       data = data.drop(len)
@@ -140,30 +147,20 @@ class MessageReader(in: InputStream) extends SLF4JLogging {
       // blocks until headers are available
       val headers = getHeaders
 
-      if (headers.isEmpty && streamClosed)
+      if (headers.isEmpty && streamClosed) {
         None
-      else {
-        val length = headers.get("Content-Length") match {
-          case Some(len) =>
-            try len.toInt
-            catch { case e: NumberFormatException => -1 }
-          case _ => -1
-        }
-
-        if (length > 0) {
-          val content = getContent(length)
-          if (content.forall(_.isEmpty) && streamClosed) None else content
-        } else {
-          log.error(
-            "Input must have Content-Length header with a numeric value."
-          )
-          nextPayload()
-        }
+      } else {
+        headers
+          .get("Content-Length")
+          .flatMap(s => Try { s.toInt }.toOption)
+          .flatMap(getContent)
+          .orElse {
+            log.error(
+              "Input must have Content-Length header with a numeric value."
+            )
+            nextPayload()
+          }
       }
     }
-}
 
-object MessageReader {
-  val AsciiCharset: Charset = Charset.forName("ASCII")
-  val Utf8Charset: Charset  = Charset.forName("UTF-8")
 }

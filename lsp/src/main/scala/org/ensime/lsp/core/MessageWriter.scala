@@ -22,7 +22,6 @@ import spray.json.JsonFormat
  * @note The header part is defined to be ASCII encoded, while the content part is UTF8.
  */
 class MessageWriter(out: OutputStream) extends SLF4JLogging {
-  private val ContentLen = "Content-Length"
 
   /** Lock protecting the output stream, so multiple writes don't mix message chunks. */
   private val lock = new Object
@@ -31,19 +30,15 @@ class MessageWriter(out: OutputStream) extends SLF4JLogging {
    * Write a message to the output stream. This method can be called from multiple threads,
    * but it may block waiting for other threads to finish writing.
    */
-  def write[T](msg: T, h: Map[String, String] = Map.empty)(
-    implicit o: JsonFormat[T]
-  ): Unit = lock.synchronized {
-    require(h.get(ContentLen).isEmpty)
-
+  def write[T](msg: T)(implicit o: JsonFormat[T]): Unit = lock.synchronized {
     val str          = o.write(msg).compactPrint
     val contentBytes = str.getBytes(MessageReader.Utf8Charset)
-    val headers = (h + (ContentLen -> contentBytes.length)).map {
-      case (k, v) => s"$k: $v"
-    }.mkString("", "\r\n", "\r\n\r\n")
+    val headers =
+      s"""Content-Length: ${contentBytes.length}\r
+         |\r
+         |""".stripMargin
 
-    log.debug(s"$headers\n$str")
-    log.debug(s"payload: $str")
+    log.debug(s"$headers$str")
 
     val headerBytes = headers.getBytes(MessageReader.AsciiCharset)
 

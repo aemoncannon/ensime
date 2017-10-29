@@ -3,7 +3,6 @@
 package org.ensime.lsp.core
 
 import java.io.{ InputStream, OutputStream }
-import java.util.concurrent.Executors
 
 import akka.event.slf4j.SLF4JLogging
 import org.ensime.lsp.api.commands._
@@ -20,7 +19,6 @@ import org.ensime.lsp.rpc.messages.{
 }
 import spray.json._
 
-import scala.concurrent.ExecutionContext
 import scala.util.{ Failure, Success, Try }
 
 /**
@@ -43,10 +41,6 @@ class Connection(inStream: InputStream,
     extends SLF4JLogging {
   private val msgReader = new MessageReader(inStream)
   private val msgWriter = new MessageWriter(outStream)
-
-  // 4 threads should be enough for everyone
-  implicit private val commandExecutionContext =
-    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
 
   def notifySubscribers(n: Notification): Unit =
     notificationHandlers.foreach(

@@ -24,7 +24,7 @@ import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
 object EnsimeLanguageServer {
-  private val keywordToKind = Map(
+  private val KeywordToKind = Map(
     "class"   -> SymbolKind.Class,
     "trait"   -> SymbolKind.Interface,
     "type"    -> SymbolKind.Interface,
@@ -63,9 +63,9 @@ object EnsimeLanguageServer {
   }
 
   private def toDiagnostic(note: Note): Diagnostic = {
-    val start: Int = note.beg
-    val end: Int   = note.end
-    val length     = end - start
+    val start  = note.beg
+    val end    = note.end
+    val length = end - start
 
     val severity = note.severity match {
       case NoteError => DiagnosticSeverity.Error
@@ -128,7 +128,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
     ConfigFactory.load().withFallback(fallback)
   }
 
-  private def initializeEnsime(rootPath: String): Try[EnsimeConfig] = {
+  private def initializeEnsime(rootPath: String): Try[EnsimeConfig] = { // TODO rewrite initialization
     val ensimeFile = new File(s"$rootPath/.ensime")
 
     val configT = Try {
@@ -146,16 +146,16 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
         log.error(s"initializeEnsime Error: ${e.getMessage}")
         e.printStackTrace()
 
-        if (ensimeFile.exists)
+        if (ensimeFile.exists) {
           connection.showMessage(MessageType.Error,
                                  s"Error parsing .ensime: ${e.getMessage}")
-        else
+        } else {
           connection.showMessage(
             MessageType.Error,
             s"No .ensime file in directory. Run `sbt ensimeConfig` to create one."
           )
+        }
       case Success((config, serverConfig)) =>
-        //showMessage(MessageType.Info, s"Using configuration: $ensimeFile")
         log.info(s"Using configuration: $config")
         val t = Try {
           fileStore = new TempFileStore(config.cacheDir.file.toString)
@@ -166,7 +166,8 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
         }
         t.recover {
           case e =>
-            log.error(s"initializeEnsime: ${e.getMessage}"); e.printStackTrace()
+            log.error(s"initializeEnsime: ${e.getMessage}")
+            e.printStackTrace()
             connection.showMessage(MessageType.Error,
                                    s"Error creating storage: ${e.getMessage}")
         }
@@ -180,7 +181,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
     changes match {
       case FileEvent(uri, FileChangeType.Created | FileChangeType.Changed) +: _ =>
         val rootPath = Try(new File(new URI(uri).toURL.getPath).getParent)
-        rootPath.map { path =>
+        rootPath.foreach { path =>
           connection.showMessage(MessageType.Info,
                                  ".ensime file change detected. Reloading")
           if (ensimeActor ne null)
@@ -191,22 +192,22 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
       case _ => ()
     }
 
-  override def onOpenTextDocument(td: TextDocumentItem): Unit = {
-    if (ensimeActor eq null) return
-    val uri = new URI(td.uri)
-    if (uri.getScheme != "file") {
-      log.info(s"Non-file URI in openTextDocument: ${td.uri}")
-      return
+  override def onOpenTextDocument(td: TextDocumentItem): Unit =
+    if (!(ensimeActor eq null)) {
+      val uri = new URI(td.uri)
+      if (uri.getScheme == "file") {
+        val f = new File(uri)
+        if (f.getAbsolutePath.startsWith(fileStore.path)) {
+          log.debug(s"Not adding temporary file $f to Ensime")
+        } else {
+          ensimeActor ! TypecheckFileReq(
+            SourceFileInfo(RawFile(f.toPath), Some(td.text))
+          )
+        }
+      } else {
+        log.info(s"Non-file URI in openTextDocument: ${td.uri}")
+      }
     }
-    val f = new File(new URI(td.uri))
-    if (f.getAbsolutePath.startsWith(fileStore.path)) {
-      log.debug(s"Not adding temporary file $f to Ensime")
-    } else {
-      ensimeActor ! TypecheckFileReq(
-        SourceFileInfo(RawFile(f.toPath), Some(td.text))
-      )
-    }
-  }
 
   override def onChangeTextDocument(
     td: VersionedTextDocumentIdentifier,
@@ -224,7 +225,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
   }
 
   override def onSaveTextDocument(td: TextDocumentIdentifier): Unit =
-    log.debug(s"saveTextDocuemnt $td")
+    log.debug(s"saveTextDocument $td")
 
   override def onCloseTextDocument(td: TextDocumentIdentifier): Unit = {
     log.debug(s"Removing ${td.uri} from Ensime.")
@@ -242,7 +243,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
       path = Paths.get(new URI(doc.uri)).toString
     } connection.publishDiagnostics(
       doc.uri,
-      byFile.get(path).toList.flatten.map(EnsimeLanguageServer.toDiagnostic)
+      byFile.getOrElse(path, List.empty).map(EnsimeLanguageServer.toDiagnostic)
     )
   }
 
@@ -269,9 +270,10 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
           reload = false
         )
 
-        future.onComplete { f =>
-          log.debug(s"Completions future completed: succes? ${f.isSuccess}")
-        }
+        future.onComplete(
+          f =>
+            log.debug(s"Completions future completed: success? ${f.isSuccess}")
+        )
 
         future.map {
           case CompletionInfoList(prefix, completions) =>
@@ -284,11 +286,9 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
         }
       }
 
-    res.map(f => CompletionList(false, Await.result(f, 5 seconds))) getOrElse
-      CompletionList(
-        false,
-        Nil
-      )
+    res
+      .map(f => CompletionList(false, Await.result(f, 5 seconds)))
+      .getOrElse(CompletionList(false, Nil))
   }
 
   override def gotoDefinitionRequest(textDocument: TextDocumentIdentifier,
@@ -310,9 +310,12 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
           doc.positionToOffset(position)
         )
 
-        future.onComplete { f =>
-          log.debug(s"Goto Definition future completed: succes? ${f.isSuccess}")
-        }
+        future.onComplete(
+          f =>
+            log.debug(
+              s"Goto Definition future completed: succes? ${f.isSuccess}"
+          )
+        )
 
         future.map {
           case SymbolInfo(name, localName, declPos, typeInfo) =>
@@ -320,7 +323,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
               case OffsetSourcePosition(ensimeFile, offset) =>
                 fileStore
                   .getFile(ensimeFile)
-                  .map { path =>
+                  .map(path => {
                     val file = path.toFile
                     val uri  = file.toURI.toString
                     val doc = TextDocument(
@@ -334,7 +337,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
 
                     log.info(s"Found definition at $uri, line: ${start.line}")
                     Seq(Location(uri, Range(start, end)))
-                  }
+                  })
                   .recover {
                     case e =>
                       log.error(s"Couldn't retrieve hyperlink target file $e")
@@ -348,9 +351,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
         }
       }
 
-    val locs = res.map { f =>
-      Await.result(f, 5 seconds)
-    } getOrElse Vector.empty[Location]
+    val locs = res.map(f => Await.result(f, 5 seconds)).getOrElse(Vector.empty)
     DefinitionResult(locs)
   }
 
@@ -371,25 +372,22 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
           OffsetRange(doc.positionToOffset(position))
         )
 
-        future.onComplete { f =>
-          log.debug(
-            s"DocUriAtPointReq future completed: succes? ${f.isSuccess}"
+        future.onComplete(
+          f =>
+            log.debug(
+              s"DocUriAtPointReq future completed: succes? ${f.isSuccess}"
           )
-        }
+        )
 
         future.map {
-          case Some(
-              sigPair @ DocSigPair(DocSig(_, scalaSig), DocSig(_, javaSig))
-              ) =>
+          case Some(DocSigPair(DocSig(_, scalaSig), DocSig(_, javaSig))) =>
             val sig = scalaSig.orElse(javaSig).getOrElse("")
             log.info(s"Retrieved signature $sig from @sigPair")
             Hover(Seq(RawMarkedString("scala", sig)),
                   Some(Range(position, position)))
         }
       }
-    res.map { f =>
-      Await.result(f, 5 seconds)
-    } getOrElse Hover(Nil, None)
+    res.map(f => Await.result(f, 5 seconds)).getOrElse(Hover(Nil, None))
   }
 
   override def documentSymbols(
@@ -408,7 +406,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
           ): Seq[SymbolInformation] =
             structure match {
               case StructureViewMember(keyword, name, pos, members) =>
-                val kind = EnsimeLanguageServer.keywordToKind
+                val kind = EnsimeLanguageServer.KeywordToKind
                   .getOrElse(keyword, SymbolKind.Field)
                 val rest =
                   members.flatMap(m => toSymbolInformation(m, Some(name)))
@@ -443,18 +441,22 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
               .toSourceFileInfo(tdi.uri, Some(new String(doc.contents)))
           )
 
-          future.onComplete { f =>
-            log.debug(s"StructureView future completed: succes? ${f.isSuccess}")
-          }
+          future.onComplete(
+            f =>
+              log.debug(
+                s"StructureView future completed: succes? ${f.isSuccess}"
+            )
+          )
+
           future.map {
             case StructureView(members) =>
               log.debug(s"got back: $members")
               members.flatMap(m => toSymbolInformation(m, None))
           }
         }
-      res.map { f =>
-        Await.result(f, 5 seconds)
-      } getOrElse Seq.empty
-    } else Seq.empty
+      res.map(f => Await.result(f, 5 seconds)).getOrElse(Seq.empty)
+    } else {
+      Seq.empty
+    }
   }
 }
