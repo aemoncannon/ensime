@@ -83,7 +83,7 @@ class CommandsAndNotificationsSpec extends FreeSpec {
 
     import ServerCommands._
     serverCommandShouldReadAndWrite(shutdown, id, message)
-    
+
     s"should correctly read $messageWithNull" in {
       ServerCommand.read(messageWithNull) shouldEqual Right(shutdown)
     }
