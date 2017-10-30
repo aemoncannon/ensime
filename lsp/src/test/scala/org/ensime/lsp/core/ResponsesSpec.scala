@@ -14,7 +14,6 @@ import org.scalatest.Matchers._
 import org.scalatest._
 import shapeless.Typeable
 import spray.json._
-import org.ensime.lsp.api.methods.RpcResponseConversions
 
 class ResponsesSpec extends FreeSpec {
   def responseShouldReadAndWrite[T: JsonFormat: Typeable](

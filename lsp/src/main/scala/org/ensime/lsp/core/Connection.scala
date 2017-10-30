@@ -11,7 +11,6 @@ import org.ensime.lsp.api.methods._
 import org.ensime.lsp.api.types._
 import org.ensime.lsp.rpc.RpcFormats._
 import org.ensime.lsp.rpc.companions._
-import org.ensime.lsp.rpc.messages.JsonRpcMessages._
 import org.ensime.lsp.rpc.messages.{
   JsonRpcResponseErrorMessage => RpcError,
   JsonRpcResponseErrorMessages => RpcErrors,
