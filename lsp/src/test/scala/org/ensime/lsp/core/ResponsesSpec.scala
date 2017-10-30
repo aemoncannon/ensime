@@ -3,10 +3,13 @@
 package org.ensime.lsp.core
 
 import org.ensime.lsp.api.commands._
+import org.ensime.lsp.api.methods.RpcResponseConversions
 import org.ensime.lsp.api.types._
 import org.ensime.lsp.rpc.companions.RpcResponse
-import org.ensime.lsp.rpc.messages.JsonRpcMessages.CorrelationId
-import org.ensime.lsp.rpc.messages.JsonRpcResponseSuccessMessage
+import org.ensime.lsp.rpc.messages.{
+  CorrelationId,
+  JsonRpcResponseSuccessMessage
+}
 import org.scalatest.Matchers._
 import org.scalatest._
 import shapeless.Typeable

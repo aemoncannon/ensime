@@ -3,7 +3,6 @@
 package org.ensime.lsp.rpc
 
 import org.ensime.lsp.rpc.RpcFormats._
-import org.ensime.lsp.rpc.messages.JsonRpcMessages._
 import org.ensime.lsp.rpc.messages._
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers._
@@ -108,6 +107,22 @@ class JsonRpcMessageSpec extends FreeSpec {
                                         |{
                                         |  "jsonrpc":"2.0",
                                         |  "method":"testMethod",
+                                        |  "id":1
+                                        |}""".stripMargin.parseJson
+
+      willDecodeAndEncode(jsonRpcRequestMessage, jsonRpcRequestMessageJson)
+    }
+    "with null params" - {
+      val jsonRpcRequestMessage = JsonRpcRequestMessage(
+        "testMethod",
+        Some(NullParams),
+        CorrelationId(1)
+      )
+      val jsonRpcRequestMessageJson = """
+                                        |{
+                                        |  "jsonrpc":"2.0",
+                                        |  "method":"testMethod",
+                                        |  "params": null,
                                         |  "id":1
                                         |}""".stripMargin.parseJson
 
@@ -731,6 +746,20 @@ class JsonRpcMessageSpec extends FreeSpec {
       val jsonRpcNotificationMessageJson = """
                                              |{
                                              |  "jsonrpc":"2.0",
+                                             |  "method":"testMethod"
+                                             |}""".stripMargin.parseJson
+      willDecodeAndEncode(jsonRpcNotificationMessage,
+                          jsonRpcNotificationMessageJson)
+    }
+    "with null params" - {
+      val jsonRpcNotificationMessage = JsonRpcNotificationMessage(
+        method = "testMethod",
+        Some(NullParams)
+      )
+      val jsonRpcNotificationMessageJson = """
+                                             |{
+                                             |  "jsonrpc":"2.0",
+                                             |  "params": null,
                                              |  "method":"testMethod"
                                              |}""".stripMargin.parseJson
       willDecodeAndEncode(jsonRpcNotificationMessage,

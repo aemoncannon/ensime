@@ -128,7 +128,7 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
     ConfigFactory.load().withFallback(fallback)
   }
 
-  private def initializeEnsime(rootPath: String): Try[EnsimeConfig] = { // TODO rewrite initialization
+  private def initializeEnsime(rootPath: String): Try[EnsimeConfig] = { // rewrite initialization
     val ensimeFile = new File(s"$rootPath/.ensime")
 
     val configT = Try {

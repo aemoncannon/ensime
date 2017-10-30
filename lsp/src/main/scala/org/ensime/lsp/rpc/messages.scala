@@ -7,29 +7,30 @@ import spray.json._
 import scala.collection.immutable.Seq
 
 object JsonRpcMessages {
-
   final val Version = "2.0"
-
-  sealed trait CorrelationId
-  case object NullId                      extends CorrelationId
-  case class NumberId(number: BigDecimal) extends CorrelationId
-  case class StringId(str: String)        extends CorrelationId
-
-  object CorrelationId {
-    def apply(): CorrelationId                   = NullId
-    def apply(number: BigDecimal): CorrelationId = NumberId(number)
-    def apply(str: String): CorrelationId        = StringId(str)
-  }
-
-  type Params = Option[Either[JsObject, JsArray]]
-  object Params {
-    def apply(): Params              = None
-    def apply(obj: JsObject): Params = Some(Left(obj))
-    def apply(arr: JsArray): Params  = Some(Right(arr))
-  }
 }
 
-import JsonRpcMessages._
+sealed trait CorrelationId
+case object NullId                      extends CorrelationId
+case class NumberId(number: BigDecimal) extends CorrelationId
+case class StringId(str: String)        extends CorrelationId
+
+object CorrelationId {
+  def apply(): CorrelationId                   = NullId
+  def apply(number: BigDecimal): CorrelationId = NumberId(number)
+  def apply(str: String): CorrelationId        = StringId(str)
+}
+
+sealed trait Params
+case object NullParams                 extends Params
+case class ObjectParams(obj: JsObject) extends Params
+case class ArrayParams(arr: JsArray)   extends Params
+
+object Params {
+  def apply(): Option[Params]              = None
+  def apply(obj: JsObject): Option[Params] = Some(ObjectParams(obj))
+  def apply(arr: JsArray): Option[Params]  = Some(ArrayParams(arr))
+}
 
 sealed abstract class JsonRpcMessage
 
@@ -37,7 +38,7 @@ sealed trait JsonRpcRequestOrNotificationMessage
 
 final case class JsonRpcRequestMessage(jsonrpc: String,
                                        method: String,
-                                       params: Params,
+                                       params: Option[Params],
                                        id: CorrelationId)
     extends JsonRpcMessage
     with JsonRpcRequestOrNotificationMessage {
@@ -45,20 +46,21 @@ final case class JsonRpcRequestMessage(jsonrpc: String,
 }
 object JsonRpcRequestMessage {
   def apply(method: String,
-            params: Params,
+            params: Option[Params],
             id: CorrelationId): JsonRpcRequestMessage =
     apply(JsonRpcMessages.Version, method, params, id)
 }
 
 final case class JsonRpcNotificationMessage(jsonrpc: String,
                                             method: String,
-                                            params: Params)
+                                            params: Option[Params])
     extends JsonRpcMessage
     with JsonRpcRequestOrNotificationMessage {
   require(jsonrpc == JsonRpcMessages.Version)
 }
 object JsonRpcNotificationMessage {
-  def apply(method: String, params: Params): JsonRpcNotificationMessage =
+  def apply(method: String,
+            params: Option[Params]): JsonRpcNotificationMessage =
     apply(JsonRpcMessages.Version, method, params)
 }
 

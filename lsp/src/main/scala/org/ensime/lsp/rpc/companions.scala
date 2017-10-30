@@ -4,7 +4,6 @@ package org.ensime.lsp.rpc.companions
 
 import spray.json.{ JsObject, JsonFormat }
 import org.ensime.lsp.rpc.messages._
-import JsonRpcMessages._
 
 import scala.util.{ Failure, Success, Try }
 
@@ -37,22 +36,28 @@ trait CommandCompanion[A] {
 
   def read(
     jsonRpcRequestMessage: JsonRpcRequestMessage
-  ): Either[RpcCompanionError, _ <: A] =
+  ): Either[RpcCompanionError, _ <: A] = {
+
+    def readObj(command: RpcCommand[_ <: A],
+                obj: JsObject): Either[RpcCompanionError, _ <: A] =
+      Try(command.format.read(obj)) match {
+        case Failure(invalid) =>
+          Left(RpcCompanionError(invalid.getMessage))
+        case Success(valid) =>
+          Right(valid)
+      }
+
     commands.find(_.method == jsonRpcRequestMessage.method) match {
       case None => Left(UnknownMethod)
       case Some(command) =>
         jsonRpcRequestMessage.params match {
-          case None           => Left(NoParams)
-          case Some(Right(_)) => Left(NoNamedParams)
-          case Some(Left(obj)) =>
-            Try(command.format.read(obj)) match {
-              case Failure(invalid) =>
-                Left(RpcCompanionError(invalid.getMessage))
-              case Success(valid) =>
-                Right(valid)
-            }
+          case None                    => Left(NoParams)
+          case Some(ArrayParams(_))    => Left(NoNamedParams)
+          case Some(ObjectParams(obj)) => readObj(command, obj)
+          case Some(NullParams)        => readObj(command, JsObject.empty)
         }
     }
+  }
 
   def write[B <: A](obj: B, id: CorrelationId)(
     implicit command: RpcCommand[B]
@@ -100,22 +105,28 @@ trait NotificationCompanion[A] {
 
   def read(
     jsonRpcNotificationMessage: JsonRpcNotificationMessage
-  ): Either[RpcCompanionError, _ <: A] =
+  ): Either[RpcCompanionError, _ <: A] = {
+
+    def readObj(command: RpcNotification[_ <: A],
+                obj: JsObject): Either[RpcCompanionError, _ <: A] =
+      Try(command.format.read(obj)) match {
+        case Failure(invalid) =>
+          Left(RpcCompanionError(invalid.getMessage))
+        case Success(valid) =>
+          Right(valid)
+      }
+
     notifications.find(_.method == jsonRpcNotificationMessage.method) match {
       case None => Left(UnknownMethod)
       case Some(command) =>
         jsonRpcNotificationMessage.params match {
-          case None             => Left(NoParams)
-          case Some(Right(arr)) => Left(NoNamedParams)
-          case Some(Left(obj)) =>
-            Try(command.format.read(obj)) match {
-              case Failure(invalid) =>
-                Left(RpcCompanionError(invalid.getMessage))
-              case Success(valid) =>
-                Right(valid)
-            }
+          case None                    => Left(NoParams)
+          case Some(ArrayParams(_))    => Left(NoNamedParams)
+          case Some(ObjectParams(obj)) => readObj(command, obj)
+          case Some(NullParams)        => readObj(command, JsObject.empty)
         }
     }
+  }
 
   def write[B <: A](
     obj: B

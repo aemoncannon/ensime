@@ -8,8 +8,7 @@ import akka.event.slf4j.SLF4JLogging
 import org.ensime.lsp.api.commands._
 import org.ensime.lsp.api.types._
 import org.ensime.lsp.rpc.companions.RpcResponse
-import org.ensime.lsp.rpc.messages.JsonRpcMessages.CorrelationId
-import org.ensime.lsp.rpc.messages.JsonRpcResponseSuccessMessage
+import org.ensime.lsp.rpc.messages._
 
 object LanguageServer {
 

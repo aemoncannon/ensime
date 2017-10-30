@@ -7,10 +7,9 @@ import org.ensime.lsp.api.commands._
 import org.ensime.lsp.api.companions._
 import org.ensime.lsp.api.types._
 import org.ensime.lsp.rpc.companions._
-import org.ensime.lsp.rpc.messages.JsonRpcMessages._
 import org.ensime.lsp.rpc.messages._
-import org.scalatest._
 import org.scalatest.Matchers._
+import org.scalatest._
 import spray.json._
 
 class CommandsAndNotificationsSpec extends FreeSpec {
@@ -76,9 +75,18 @@ class CommandsAndNotificationsSpec extends FreeSpec {
       Params(JsObject.empty),
       NumberId(1)
     )
+    val messageWithNull = JsonRpcRequestMessage(
+      "shutdown",
+      Some(NullParams),
+      NumberId(1)
+    )
 
     import ServerCommands._
     serverCommandShouldReadAndWrite(shutdown, id, message)
+    
+    s"should correctly read $messageWithNull" in {
+      ServerCommand.read(messageWithNull) shouldEqual Right(shutdown)
+    }
   }
 
   "completion command" - {

@@ -2,11 +2,10 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.rpc
 
-import spray.json._
-import shapeless._
-import messages._
-import JsonRpcMessages._
 import org.ensime.lsp.JsonUtils
+import org.ensime.lsp.rpc.messages._
+import shapeless._
+import spray.json._
 
 import scala.util.{ Failure, Success, Try }
 
@@ -32,6 +31,19 @@ private object RpcConversions
       case JsNumber(num) => NumberId(num)
       case JsString(str) => StringId(str)
       case _             => deserError[CorrelationId]("Wrong CorrelationId format")
+    }
+
+  implicit val ParamsFormat: JsonFormat[Params] =
+    JsonFormat.instance[Params] {
+      case NullParams        => JsNull
+      case ObjectParams(obj) => obj
+      case ArrayParams(arr)  => arr
+    } {
+      case JsNull                             => NullParams
+      case JsObject(fields) if fields.isEmpty => NullParams
+      case obj @ JsObject(_)                  => ObjectParams(obj)
+      case arr @ JsArray(_)                   => ArrayParams(arr)
+      case _                                  => deserError[Params]("Wrong Params format")
     }
 
   implicit val JsonRpcResponseMessageFormat

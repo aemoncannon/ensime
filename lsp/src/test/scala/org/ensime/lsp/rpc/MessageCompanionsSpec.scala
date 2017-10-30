@@ -5,7 +5,6 @@ package org.ensime.lsp.rpc
 import org.ensime.lsp.JsonUtils
 import org.ensime.lsp.rpc.MessageCompanionsSpec._
 import org.ensime.lsp.rpc.companions._
-import org.ensime.lsp.rpc.messages.JsonRpcMessages._
 import org.ensime.lsp.rpc.messages._
 import org.scalatest.Matchers._
 import org.scalatest._
