@@ -3,14 +3,13 @@
 package org.ensime.indexer
 
 import java.net.URI
-import org.ensime.util.Debouncer
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.util.{ Failure, Properties, Success }
 import scala.collection.{ mutable, Map, Set }
+import scala.util.Properties
 
-import akka.actor._
 import akka.event.slf4j.SLF4JLogging
+import fs2.{ Strategy, Stream, Task }
 import org.apache.commons.vfs2._
 import org.ensime.api._
 import org.ensime.config.EnsimeConfigProtocol
@@ -35,11 +34,9 @@ class SearchService(
   resolver: SourceResolver
 )(
   implicit
-  actorSystem: ActorSystem,
   serverConfig: EnsimeServerConfig,
   val vfs: EnsimeVFS
-) extends FileChangeListener
-    with SLF4JLogging {
+) extends SLF4JLogging {
   import SearchService._
   import ExecutionContext.Implicits.global // not used for heavy lifting (indexing, graph or lucene)
 
@@ -113,7 +110,7 @@ class SearchService(
 
   private def scanGrouped(
     f: FileObject
-  ): Map[FileName, Set[FileObject]] = {
+  ): Task[Map[FileName, Set[FileObject]]] = Task.delay {
     val results = new mutable.HashMap[FileName, mutable.Set[FileObject]]
     with mutable.MultiMap[FileName, FileObject]
     f.findFiles(ClassfileSelector) match {
@@ -136,73 +133,98 @@ class SearchService(
    *
    * @return the number of rows (removed, indexed) from the database.
    */
-  def refresh(): Future[(Int, Int)] = {
+  def refresh()(implicit S: Strategy): Task[(Int, Int)] = {
     // it is much faster during startup to obtain the full list of
     // known files from the DB then and check against the disk, than
     // check each file against DatabaseService.outOfDate
-    def findStaleFileChecks(checks: Seq[FileCheck]): List[FileCheck] = {
-      log.debug("findStaleFileChecks")
-      for {
-        check <- checks
-        if !check.file.exists || check.changed
-      } yield check
-    }.toList
+    def findStaleFileChecks(checks: Seq[FileCheck]): Task[List[FileCheck]] =
+      Task.delay(
+        checks.filter(c => !c.file.exists || c.changed).toList
+      )
 
     // delete the stale data before adding anything new
     // returns number of rows deleted
-    def deleteReferences(checks: List[FileCheck]): Future[Int] = {
-      log.debug(s"removing ${checks.size} stale files from the index")
-      deleteInBatches(checks.map(_.file))
-    }
+    def deleteReferences(
+      checks: List[FileCheck],
+      batchSize: Int = 1000
+    )(implicit S: Strategy): Task[Int] =
+      for {
+        _ <- Task.delay(
+              log.debug(s"removing ${checks.size} stale files from the index")
+            )
+        deleted <- Stream
+                    .emits(checks)
+                    .map(_.file)
+                    .chunkN(batchSize)
+                    .evalMap(c => delete(c.flatMap(_.toList)))
+                    .runFold(0)(_ + _)
+      } yield deleted
 
     // a snapshot of everything that we want to index
-    def findBases(): (Set[FileObject], Map[FileName, Set[FileObject]]) = {
-      val (jarFiles, dirs) = config.projects.flatMap {
-        case m =>
-          m.targets
-            .map(_.file.toFile)
-            .filter(_.exists())
-            .toList ::: m.libraryJars.toList.map(_.file.toFile)
-      }.partition(_.isJar)
-      val grouped = dirs
-        .map(d => scanGrouped(vfs.vfile(d)))
-        .fold(Map.empty[FileName, Set[FileObject]])(_ merge _)
-      val jars: Set[FileObject] =
-        (jarFiles ++ EnsimeConfigProtocol.javaRunTime(config))
-          .map(vfs.vfile)(collection.breakOut)
-      (jars, grouped)
-    }
+    def findBases(): Task[(Set[FileObject], Map[FileName, Set[FileObject]])] =
+      for {
+        partitioned <- Task.delay {
+                        config.projects.flatMap {
+                          case m =>
+                            m.targets
+                              .map(_.file.toFile)
+                              .filter(_.exists())
+                              .toList ::: m.libraryJars.toList.map(
+                              _.file.toFile
+                            )
+                        }.partition(_.isJar)
+                      }
+
+        (jarFiles, dirs) = partitioned
+
+        grouped <- Task
+                    .traverse(dirs) { d =>
+                      scanGrouped(vfs.vfile(d))
+                    }
+                    .map(
+                      _.fold(Map.empty[FileName, Set[FileObject]])(_ merge _)
+                    )
+
+        jars <- Task.delay {
+                 (jarFiles ++ EnsimeConfigProtocol.javaRunTime(config))
+                   .map(vfs.vfile)(collection.breakOut)
+                   .toSet
+               }
+      } yield (jars, grouped)
 
     def indexBase(
       baseName: FileName,
       fileCheck: Option[FileCheck],
       grouped: Map[FileName, Set[FileObject]]
-    ): Future[Int] = {
-      val base      = vfs.vfile(baseName.uriString)
-      val outOfDate = fileCheck.forall(_.changed)
-      if (!outOfDate || !base.exists()) Future.successful(0)
-      else {
-        val boost = isUserFile(baseName)
-        val indexed = extractSymbolsFromClassOrJar(base, grouped).flatMap(
-          persist(_, commitIndex = false, boost = boost)
-        )
-        indexed.onComplete { _ =>
-          if (base.getName.getExtension == "jar") {
-            log.debug(s"finished indexing $base")
-          }
-        }
-        indexed
-      }
-    }
+    )(implicit S: Strategy): Task[Int] =
+      for {
+        base       <- Task.delay(vfs.vfile(baseName.uriString))
+        outOfDate  <- Task.delay(fileCheck.forall(_.changed))
+        irrelevant <- Task.delay(!outOfDate || !base.exists())
+        result <- if (irrelevant) Task.now(0)
+                 else
+                   for {
+                     symbols <- extractSymbolsFromClassOrJar(base, grouped)
+                     persisted <- persist(symbols,
+                                          commitIndex = false,
+                                          boost = isUserFile(baseName))
+                     _ <- Task.delay {
+                           if (base.getName.getExtension == "jar") {
+                             log.debug(s"finished indexing $base")
+                           }
+                         }
+                   } yield persisted
+      } yield result
 
     // index all the given bases and return number of rows written
-    def indexBases(files: (Set[FileObject], Map[FileName, Set[FileObject]]),
-                   checks: Seq[FileCheck]): Future[Int] = {
-      val (jars, classFiles) = files
+    def indexBases(jars: Set[FileObject],
+                   classFiles: Map[FileName, Set[FileObject]],
+                   checks: Seq[FileCheck]): Task[Int] = {
       log.debug("Indexing bases...")
 
       val checksLookup: Map[String, FileCheck] =
         checks.map(check => (check.filename -> check)).toMap
+
       val jarsWithChecks = jars.map { jar =>
         val name = jar.getName
         (name, checksLookup.get(jar.uriString))
@@ -213,28 +235,24 @@ class SearchService(
           (outerClassFile, checksLookup.get(outerClassFile.uriString))
       }(collection.breakOut)
 
-      (jarsWithChecks ++ basesWithChecks)
-        .grouped(serverConfig.indexBatchSize)
-        .foldLeft(Future.successful(0)) { (indexedCount, batch) =>
-          for {
-            c <- indexedCount
-            b <- Future.sequence {
-                  batch.map {
-                    case (file, check) => indexBase(file, check, classFiles)
-                  }
-                }.map(_.sum)
-          } yield c + b
+      val indexingTasks =
+        Stream.emits((jarsWithChecks ++ basesWithChecks).toSeq).map {
+          case (file, check) => Stream.eval(indexBase(file, check, classFiles))
         }
+
+      fs2.concurrent
+        .join(serverConfig.indexBatchSize)(indexingTasks)
+        .runFold(0)(_ + _)
     }
 
-    // chain together all the future tasks
     for {
-      checks  <- db.knownFiles()
-      stale   = findStaleFileChecks(checks)
-      deletes <- deleteReferences(stale)
-      bases   = findBases()
-      added   <- indexBases(bases, checks)
-      _       <- index.commit()
+      checks             <- Task.fromFuture(db.knownFiles())
+      stale              <- findStaleFileChecks(checks)
+      deletes            <- deleteReferences(stale)
+      bases              <- findBases()
+      (jars, classFiles) = bases
+      added              <- indexBases(jars, classFiles, checks)
+      _                  <- Task.fromFuture(index.commit())
     } yield (deletes, added)
   }
 
@@ -242,9 +260,9 @@ class SearchService(
 
   def persist(symbols: List[SourceSymbolInfo],
               commitIndex: Boolean,
-              boost: Boolean): Future[Int] = {
-    val iwork = index.persist(symbols, commitIndex, boost)
-    val dwork = db.persist(symbols)
+              boost: Boolean)(implicit S: Strategy): Task[Int] = {
+    val iwork = Task.fromFuture(index.persist(symbols, commitIndex, boost))
+    val dwork = Task.fromFuture(db.persist(symbols))
 
     for {
       _       <- iwork
@@ -255,31 +273,48 @@ class SearchService(
   def extractSymbolsFromClassOrJar(
     file: FileObject,
     grouped: Map[FileName, Set[FileObject]]
-  ): Future[List[SourceSymbolInfo]] = {
-    def global: ExecutionContext = null // detach the global implicit
-    val ec                       = actorSystem.dispatchers.lookup("akka.search-service-dispatcher")
+  ): Task[List[SourceSymbolInfo]] =
+    file match {
+      case classfile if classfile.getName.getExtension == "class" =>
+        Stream
+          .bracket(Task.delay((grouped(classfile.getName), classfile)))(
+            {
+              case (files, classfile) =>
+                Stream.eval(extractSymbols(classfile, files, classfile))
+            }, {
+              case (files, classfile) =>
+                Task.delay {
+                  files.foreach(_.close())
+                  classfile.close()
+                }
+            }
+          )
+          .runFold(List.empty[SourceSymbolInfo])(_ ++ _)
 
-    Future {
-      blocking {
-        file match {
-          case classfile if classfile.getName.getExtension == "class" =>
-            // too noisy to log
-            val files = grouped(classfile.getName)
-            try extractSymbols(classfile, files, classfile)
-            finally { files.foreach(_.close()); classfile.close() }
-          case jar =>
-            log.debug(s"indexing $jar")
-            val vJar = vfs.vjar(jar.asLocalFile)
-            try {
-              (scanGrouped(vJar) flatMap {
-                case (root, files) =>
-                  extractSymbols(jar, files, vfs.vfile(root.uriString))
-              }).toList
-            } finally { vfs.nuke(vJar) }
-        }
-      }
-    }(ec)
-  }
+      case jar =>
+        for {
+          _ <- Task.delay(log.debug(s"indexing $jar"))
+          symbols <- Stream
+                      .bracket(Task.delay(vfs.vjar(jar.asLocalFile)))(
+                        vJar =>
+                          Stream.eval {
+                            for {
+                              grouped <- scanGrouped(vJar)
+                              symbols <- Task.traverse(grouped.toSeq) {
+                                          case (root, files) =>
+                                            extractSymbols(
+                                              jar,
+                                              files,
+                                              vfs.vfile(root.uriString)
+                                            )
+                                        }
+                            } yield symbols.flatten.toList
+                        },
+                        vJar => Task.delay(vfs.nuke(vJar))
+                      )
+                      .runFold(List.empty[SourceSymbolInfo])(_ ++ _)
+        } yield symbols
+    }
 
   private val blacklist = Set("sun/", "sunw/", "com/sun/")
   private val ignore    = Set("$$", "$worker$")
@@ -288,7 +323,7 @@ class SearchService(
     container: FileObject,
     files: collection.Set[FileObject],
     rootClassFile: FileObject
-  ): List[SourceSymbolInfo] = {
+  ): Task[List[SourceSymbolInfo]] = Task.delay {
     def getInternalRefs(isUserFile: Boolean,
                         s: RawSymbol): List[FullyQualifiedReference] =
       if (isUserFile && !noReverseLookups) s.internalRefs else List.empty
@@ -399,83 +434,70 @@ class SearchService(
   }
 
   /** free-form search for classes */
-  def searchClasses(query: String, max: Int): List[FqnSymbol] = {
-    val fqns = Await.result(index.searchClasses(query, max), QUERY_TIMEOUT)
-    Await.result(db.find(fqns), QUERY_TIMEOUT) take max
-  }
+  def searchClasses(query: String,
+                    max: Int)(implicit S: Strategy): Task[List[FqnSymbol]] =
+    for {
+      fqns    <- Task.fromFuture(index.searchClasses(query, max))
+      results <- Task.fromFuture(db.find(fqns))
+    } yield results take max
 
   /** free-form search for classes and methods */
-  def searchClassesMethods(terms: List[String], max: Int): List[FqnSymbol] = {
-    val fqns =
-      Await.result(index.searchClassesMethods(terms, max), QUERY_TIMEOUT)
-    Await.result(db.find(fqns), QUERY_TIMEOUT) take max
-  }
+  def searchClassesMethods(terms: List[String], max: Int)(
+    implicit S: Strategy
+  ): Task[List[FqnSymbol]] =
+    for {
+      fqns    <- Task.fromFuture(index.searchClassesMethods(terms, max))
+      results <- Task.fromFuture(db.find(fqns))
+    } yield results take max
 
   /** only for exact fqns */
-  def findUnique(fqn: String): Option[FqnSymbol] =
-    Await.result(db.find(fqn), QUERY_TIMEOUT)
+  def findUnique(fqn: String)(implicit S: Strategy): Task[Option[FqnSymbol]] =
+    Task.fromFuture(db.find(fqn))
 
   /** returns hierarchy of a type identified by fqn */
-  def getTypeHierarchy(fqn: String,
-                       hierarchyType: Hierarchy.Direction,
-                       levels: Option[Int] = None): Future[Option[Hierarchy]] =
-    db.getClassHierarchy(fqn, hierarchyType, levels)
+  def getTypeHierarchy(
+    fqn: String,
+    hierarchyType: Hierarchy.Direction,
+    levels: Option[Int] = None
+  )(implicit S: Strategy): Task[Option[Hierarchy]] =
+    Task.fromFuture(db.getClassHierarchy(fqn, hierarchyType, levels))
 
   /** returns locations where given fqn is referred*/
-  def findUsageLocations(fqn: String): Future[Iterable[UsageLocation]] =
-    db.findUsageLocations(fqn)
+  def findUsageLocations(
+    fqn: String
+  )(implicit S: Strategy): Task[Iterable[UsageLocation]] =
+    Task.fromFuture(db.findUsageLocations(fqn))
 
   /** returns FqnSymbols where given fqn is referred*/
-  def findUsages(fqn: String): Future[Iterable[FqnSymbol]] = db.findUsages(fqn)
+  def findUsages(fqn: String)(implicit S: Strategy): Task[Iterable[FqnSymbol]] =
+    Task.fromFuture(db.findUsages(fqn))
 
   // blocking badness
-  def findClasses(file: EnsimeFile): Seq[ClassDef] =
-    Await.result(db.findClasses(file), QUERY_TIMEOUT)
-  def findClasses(jdi: String): Seq[ClassDef] =
-    Await.result(db.findClasses(jdi), QUERY_TIMEOUT)
-
-  /* DELETE then INSERT in H2 is ridiculously slow, so we put all modifications
-   * into a blocking queue and dedicate a thread to block on draining the queue.
-   * This has the effect that we always react to a single change on disc but we
-   * will work through backlogs in bulk.
-   *
-   * We always do a DELETE, even if the entries are new, but only INSERT if
-   * the list of symbols is non-empty.
-   */
-
-  val backlogActor =
-    actorSystem.actorOf(Props(new IndexingQueueActor(this)), "ClassfileIndexer")
-
-  // deletion in both Lucene and H2 is really slow, batching helps
-  def deleteInBatches(
-    files: List[FileObject],
-    batchSize: Int = 1000
-  ): Future[Int] = {
-    val removing = files.grouped(batchSize).map(delete)
-    Future.sequence(removing).map(_.sum)
-  }
+  def findClasses(file: EnsimeFile)(implicit S: Strategy): Task[Seq[ClassDef]] =
+    Task.fromFuture(db.findClasses(file))
+  def findClasses(jdi: String)(implicit S: Strategy): Task[Seq[ClassDef]] =
+    Task.fromFuture(db.findClasses(jdi))
 
   // returns number of rows removed
-  def delete(files: List[FileObject]): Future[Int] = {
+  def delete(files: List[FileObject])(implicit S: Strategy): Task[Int] = {
     // this doesn't speed up Lucene deletes, but it means that we
     // don't wait for Lucene before starting the H2 deletions.
-    val iwork = index.remove(files)
-    val dwork = db.removeFiles(files)
+    val iwork = Task.fromFuture(index.remove(files))
+    val dwork = Task.fromFuture(db.removeFiles(files))
 
     for {
+      iwork    <- Task.start(iwork)
+      dwork    <- Task.start(dwork)
       _        <- iwork
       removals <- dwork
     } yield removals
   }
 
-  def fileChanged(f: FileObject): Unit = backlogActor ! IndexFile(f)
-  def fileRemoved(f: FileObject): Unit = fileChanged(f)
-  def fileAdded(f: FileObject): Unit   = fileChanged(f)
-
-  def shutdown(): Future[Unit] =
-    Future.sequence {
-      List(db.shutdown(), index.shutdown())
-    } map (_ => ())
+  def shutdown()(implicit S: Strategy): Task[Unit] =
+    for {
+      _ <- Task.fromFuture(db.shutdown())
+      _ <- Task.fromFuture(index.shutdown())
+    } yield ()
 }
 
 object SearchService {
@@ -537,110 +559,128 @@ object SearchService {
   }
 }
 
-final case class IndexFile(f: FileObject)
+object IndexStream extends SLF4JLogging {
+  import fs2._
+  case class Control(inputQueue: async.mutable.Queue[Task, FileObject],
+                     shutdownSignal: async.mutable.Signal[Task, Boolean],
+                     streamCompletion: Task[Unit])
 
-class IndexingQueueActor(searchService: SearchService)
-    extends Actor
-    with ActorLogging {
-  import scala.concurrent.duration._
+  def fileListener(queue: async.mutable.Queue[Task, FileObject]) =
+    new FileChangeListener {
+      def fileChanged(f: FileObject): Unit = queue.enqueue1(f).unsafeRun()
+      def fileRemoved(f: FileObject): Unit = fileChanged(f)
+      def fileAdded(f: FileObject): Unit   = fileChanged(f)
+    }
 
-  case object Process
+  def updateTodoMap(searchService: SearchService,
+                    todo: Map[FileName, Set[FileObject]],
+                    indexFile: FileObject): Map[FileName, Set[FileObject]] = {
+    val topLevelClassFile = indexFile match {
+      case jar if jar.getName.getExtension == "jar" => jar
+      case classFile                                => searchService.getTopLevelClassFile(classFile)
+    }
 
-  // De-dupes files that have been updated since we were last told to
-  // index them. No need to aggregate values: the latest wins. Key is
-  // the URI because FileObject doesn't implement equals
-  private val todo = new mutable.HashMap[FileName, mutable.Set[FileObject]]
-  with mutable.MultiMap[FileName, FileObject]
-
-  private val advice =
-    "If the problem persists, you may need to restart ensime."
-
-  val processDebounce =
-    Debouncer.forActor(self, Process, delay = 5.seconds, maxDelay = 1.hour)
-
-  override def receive: Receive = {
-    case IndexFile(f) =>
-      val topLevelClassFile = f match {
-        case jar if jar.getName.getExtension == "jar" => jar
-        case classFile                                => searchService.getTopLevelClassFile(classFile)
-      }
-      todo.addBinding(topLevelClassFile.getName, topLevelClassFile)
-      processDebounce.call()
-
-    case Process if todo.isEmpty => // nothing to do
-
-    case Process =>
-      val batch = todo.take(250)
-      batch.keys.foreach(todo.remove)
-      if (todo.nonEmpty)
-        processDebounce.call()
-
-      import ExecutionContext.Implicits.global
-
-      log.debug(s"Indexing ${batch.size} groups of files")
-
-      def retry(): Unit =
-        batch.valuesIterator.foreach(_.foreach(self ! IndexFile(_)))
-
-      batch
-        .grouped(10)
-        .foreach(
-          chunk =>
-            Future
-              .sequence(chunk.map {
-                case (outerClassFile, _) =>
-                  val filename = outerClassFile.getPath
-                  // I don't trust VFS's f.exists()
-                  if (!File(filename).exists()) {
-                    Future.successful(outerClassFile -> Nil)
-                  } else
-                    searchService
-                      .extractSymbolsFromClassOrJar(
-                        searchService.vfs.vfile(outerClassFile.uriString),
-                        batch
-                      )
-                      .map(outerClassFile ->)
-              })
-              .onComplete {
-                case Failure(t) =>
-                  log.error(
-                    t,
-                    s"failed to index batch of ${batch.size} files. $advice"
-                  )
-                  retry()
-                case Success(indexed) =>
-                  searchService
-                    .delete(
-                      indexed.flatMap(f => batch(f._1))(collection.breakOut)
-                    )
-                    .onComplete {
-                      case Failure(t) =>
-                        log.error(
-                          t,
-                          s"failed to remove stale entries in ${batch.size} files. $advice"
-                        )
-                        retry()
-                      case Success(_) =>
-                        indexed.foreach {
-                          case (file, syms) =>
-                            val boost = searchService.isUserFile(file)
-                            val persisting = searchService
-                              .persist(syms, commitIndex = true, boost = boost)
-
-                            persisting.onComplete {
-                              case Failure(t) =>
-                                log.error(
-                                  t,
-                                  s"failed to persist entries in $file. $advice"
-                                )
-                                retry()
-                              case Success(_) =>
-                            }
-                        }
-                    }
-
-            }
-        )
+    todo + (topLevelClassFile.getName -> (todo.getOrElse(
+      topLevelClassFile.getName,
+      Set()
+    ) + topLevelClassFile))
   }
+
+  def updateIndices(searchService: SearchService,
+                    todo: Map[FileName, Set[FileObject]],
+                    concurrency: Int)(implicit S: Strategy): Task[Unit] = {
+    val symbolExtraction = concurrent.join(concurrency) {
+      Stream.emits {
+        todo.toSeq.map {
+          case (outerClassFile, _) =>
+            val filename = outerClassFile.getPath
+            Stream.eval {
+              for {
+                exists <- Task.delay(File(filename).exists())
+                res <- if (!exists) Task.now(outerClassFile -> Nil)
+                      else
+                        searchService
+                          .extractSymbolsFromClassOrJar(
+                            searchService.vfs.vfile(outerClassFile.uriString),
+                            todo
+                          )
+                          .map(outerClassFile -> _)
+              } yield res
+            }
+        }
+      }
+    }
+
+    val indexing = concurrent.join(concurrency) {
+
+      symbolExtraction
+        .chunkLimit(concurrency)
+        .evalMap { chunk =>
+          val staleFileObjects = for {
+            (fileName, _) <- chunk.toList
+            fileObjects   <- todo.get(fileName).toList
+            fileObject    <- fileObjects.toList
+          } yield fileObject
+
+          searchService.delete(staleFileObjects).map(_ => chunk)
+        }
+        .flatMap(Stream.chunk)
+        .map {
+          case (file, syms) =>
+            Stream.eval {
+              searchService.persist(syms,
+                                    commitIndex = true,
+                                    boost = searchService.isUserFile(file))
+            }
+        }
+    }
+
+    indexing.run
+  }
+
+  def apply(searchService: SearchService, concurrency: Int)(
+    implicit scheduler: Scheduler,
+    strategy: Strategy
+  ): Task[Control] =
+    for {
+      inputQueue       <- async.unboundedQueue[Task, FileObject]
+      interruptSignal  <- async.signalOf[Task, Boolean](false)
+      dequeueStream    = inputQueue.dequeue.map(Right(_))
+      debounceSchedule = time.awakeEvery[Task](5.seconds).map(_ => Left(()))
+      interleaved      = dequeueStream.merge(debounceSchedule)
+      streamCompletion <- Task.start {
+                           interleaved
+                             .mapAccumulate(Map[FileName, Set[FileObject]]()) {
+                               (state, msg) =>
+                                 msg match {
+                                   case Left(_) => (Map.empty, Some(state))
+                                   case Right(f) =>
+                                     (updateTodoMap(searchService, state, f),
+                                      None)
+                                 }
+                             }
+                             .map(_._2)
+                             .unNone
+                             .evalMap(
+                               updateIndices(searchService, _, concurrency)
+                             )
+                             .interruptWhen(interruptSignal)
+                             .onError { e =>
+                               Stream
+                                 .eval(
+                                   Task
+                                     .delay(
+                                       log.error(
+                                         "Error caught in indexing stream",
+                                         e
+                                       )
+                                     )
+                                     .flatMap(_ => Task.now(Stream.empty))
+                                 )
+                                 .flatMap(identity)
+                             }
+                             .run
+                         }
+    } yield Control(inputQueue, interruptSignal, streamCompletion)
 
 }
