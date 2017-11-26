@@ -9,7 +9,7 @@ import scala.util.{ Failure, Success, Try }
 
 private object TypesConversions extends DefaultJsonProtocol with FamilyFormats {
 
-  implicit object markedStringFormat extends JsonFormat[MarkedString] {
+  implicit val markedStringFormat: JsonFormat[MarkedString] = new JsonFormat[MarkedString] {
     def read(j: JsValue): MarkedString =
       (Try(j.convertTo[RawMarkedString]) orElse
         Try(j.convertTo[MarkdownString])) match {

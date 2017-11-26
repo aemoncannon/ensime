@@ -2,7 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.api.companions
 
-import org.ensime.lsp.JsonUtils
 import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.api.commands._
 import spray.json._
@@ -11,15 +10,15 @@ object ServerCommands extends DefaultJsonProtocol with FamilyFormats {
 
   implicit val textDocumentDefinitionRequestFormat
     : JsonFormat[TextDocumentDefinitionRequest] =
-    JsonUtils.wrapperFormat(TextDocumentDefinitionRequest.apply, _.params)
+    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentDefinitionRequest(_), _.params)
 
   implicit val textDocumentHoverRequestFormat
     : JsonFormat[TextDocumentHoverRequest] =
-    JsonUtils.wrapperFormat(TextDocumentHoverRequest.apply, _.params)
+    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentHoverRequest(_), _.params)
 
   implicit val textDocumentCompletionRequestFormat
     : JsonFormat[TextDocumentCompletionRequest] =
-    JsonUtils.wrapperFormat(TextDocumentCompletionRequest.apply, _.params)
+    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentCompletionRequest(_), _.params)
 
   implicit val initializeCommand: RpcCommand[InitializeParams] =
     RpcCommand[InitializeParams]("initialize")
@@ -61,6 +60,9 @@ object ClientCommand extends CommandCompanion[ClientCommand] {
 }
 
 object Notifications extends DefaultJsonProtocol with FamilyFormats {
+  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
+    super.optionFormat
+
   implicit val showMessageNotification: RpcNotification[ShowMessageParams] =
     RpcNotification[ShowMessageParams]("window/showMessage")
   implicit val logMessageNotification: RpcNotification[LogMessageParams] =

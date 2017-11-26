@@ -2,7 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.api.methods
 
-import org.ensime.lsp.JsonUtils
 import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.api.commands._
 import org.ensime.lsp.api.types.{
@@ -18,17 +17,20 @@ private[lsp] object ServerCommandConversions
     extends DefaultJsonProtocol
     with FamilyFormats {
 
+  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
+    super.optionFormat
+
   implicit val textDocumentDefinitionRequestFormat
     : JsonFormat[TextDocumentDefinitionRequest] =
-    JsonUtils.wrapperFormat(TextDocumentDefinitionRequest.apply, _.params)
+    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentDefinitionRequest(_), _.params)
 
   implicit val textDocumentHoverRequestFormat
     : JsonFormat[TextDocumentHoverRequest] =
-    JsonUtils.wrapperFormat(TextDocumentHoverRequest.apply, _.params)
+    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentHoverRequest(_), _.params)
 
   implicit val textDocumentCompletionRequestFormat
     : JsonFormat[TextDocumentCompletionRequest] =
-    JsonUtils.wrapperFormat(TextDocumentCompletionRequest.apply, _.params)
+    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentCompletionRequest(_), _.params)
 }
 
 object ServerCommands {
@@ -63,7 +65,7 @@ object ServerCommand extends CommandCompanion[ServerCommand] {
 }
 
 object ClientCommands {
-  import FamilyFormats._
+  import ServerCommandConversions._
 
   implicit val showMessageRequestCommand: RpcCommand[ShowMessageRequestParams] =
     RpcCommand[ShowMessageRequestParams]("showMessageRequest")
@@ -76,7 +78,7 @@ object ClientCommand extends CommandCompanion[ClientCommand] {
 }
 
 object Notifications {
-  import FamilyFormats._
+  import ServerCommandConversions._
 
   implicit val showMessageNotification: RpcNotification[ShowMessageParams] =
     RpcNotification[ShowMessageParams]("window/showMessage")
@@ -126,6 +128,9 @@ private[lsp] object RpcResponseConversions
     extends DefaultJsonProtocol
     with FamilyFormats {
 
+  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
+    super.optionFormat
+
   implicit val markedStringFormat: JsonFormat[MarkedString] =
     JsonFormat.instance[MarkedString]({
       case raw: RawMarkedString     => raw.toJson
@@ -138,8 +143,11 @@ private[lsp] object RpcResponseConversions
           case Success(x) => x
       }
     )
+
+  import org.ensime.lsp.api.types.{Location, SymbolInformation}
+
   implicit val definitionResultFormat: JsonFormat[DefinitionResult] =
-    JsonUtils.wrapperFormat(DefinitionResult, _.params)
+    JsonFormat[Seq[Location]].xmap(DefinitionResult(_), _.params)
   implicit val documentSymbolResultFormat: JsonFormat[DocumentSymbolResult] =
-    JsonUtils.wrapperFormat(DocumentSymbolResult, _.params)
+    JsonFormat[Seq[SymbolInformation]].xmap(DocumentSymbolResult(_), _.params)
 }

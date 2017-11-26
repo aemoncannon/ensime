@@ -2,7 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.rpc
 
-import com.dhpcs.jsonrpc.MessageCompanionsSpec._
 import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.rpc.messages._
 import org.scalatest.Matchers._
@@ -101,6 +100,7 @@ object MessageCompanionsSpec {
 }
 
 class MessageCompanionsSpec extends FreeSpec {
+  import org.ensime.lsp.rpc.MessageCompanionsSpec._
 
   "A Command" - {
     "with an invalid method" - {
