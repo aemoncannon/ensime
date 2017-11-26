@@ -21,7 +21,7 @@ pipeline:
       - sbt ++$SCALA_VERSION "fmt --test";
       - echo "ensimeServerJars := Nil" > ensime.sbt ;
         echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
-      - sbt ++$SCALA_VERSION ensimeConfig ";compile ;test:compile ;it:compile ;doc ;ensime/assembly";
+      - sbt ++$SCALA_VERSION ensimeConfig "all compile test:compile it:compile doc ensime/assembly";
       - if [ -n "$DRONE_PULL_REQUEST" ] ; then cd testing/cache && sbt ++$SCALA_VERSION ensimeConfig ensimeServerIndex && cd ../.. ; fi
       - if [ -n "$DRONE_PULL_REQUEST" ] ; then sbt ++$SCALA_VERSION "testOnly -- -l tags.IgnoreOnDrone" ; fi
       - if [ -n "$DRONE_PULL_REQUEST" ] ; then sbt ++$SCALA_VERSION "it:testOnly -- -l tags.IgnoreOnDrone" ; fi

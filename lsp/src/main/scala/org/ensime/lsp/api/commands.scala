@@ -4,6 +4,9 @@ package org.ensime.lsp.api.commands
 
 import org.ensime.lsp.api.types._
 
+import spray.json._
+import scalaz.deriving
+
 object TextDocumentSyncKind {
 
   /**
@@ -52,6 +55,7 @@ sealed trait Notification extends Message
 /**
  * Parameters and types used in the `initialize` message.
  */
+@deriving(JsReader, JsWriter)
 case class InitializeParams(
                             // The process Id of the parent process that started the server.
                             processId: Long,
@@ -63,8 +67,10 @@ case class InitializeParams(
 
 case class InitializeError(retry: Boolean)
 
+@deriving(JsReader, JsWriter)
 case class ClientCapabilities()
 
+@deriving(JsReader, JsWriter)
 case class ServerCapabilities(
   //Defines how text documents are synced.
   textDocumentSync: Int = TextDocumentSyncKind.Full,
@@ -99,26 +105,34 @@ case class ServerCapabilities(
   renameProvider: Boolean = false
 )
 
+@deriving(JsReader, JsWriter)
 case class CompletionOptions(resolveProvider: Boolean,
                              triggerCharacters: Seq[String])
 
+@deriving(JsReader, JsWriter)
 case class SignatureHelpOptions(triggerCharacters: Seq[String])
 
+@deriving(JsReader, JsWriter)
 case class CodeLensOptions(resolveProvider: Boolean = false)
 
+@deriving(JsReader, JsWriter)
 case class DocumentOnTypeFormattingOptions(firstTriggerCharacter: String,
                                            moreTriggerCharacters: Seq[String])
 
+@deriving(JsReader, JsWriter)
 case class CompletionList(isIncomplete: Boolean, items: Seq[CompletionItem])
     extends ResultResponse
 
+@deriving(JsReader, JsWriter)
 case class InitializeResult(capabilities: ServerCapabilities)
     extends ResultResponse
 
+@deriving(JsReader, JsWriter)
 case class Shutdown() extends ServerCommand
 
 case class ShutdownResult(dummy: Int) extends ResultResponse
 
+@deriving(JsReader, JsWriter)
 case class ShowMessageRequestParams(
                                     //The message type. @see MessageType
                                     tpe: Long,
@@ -131,22 +145,44 @@ case class ShowMessageRequestParams(
 /**
  * A short title like 'Retry', 'Open Log' etc.
  */
+@deriving(JsReader, JsWriter)
 case class MessageActionItem(title: String)
 
+@deriving(JsReader, JsWriter)
 case class TextDocumentPositionParams(textDocument: TextDocumentIdentifier,
                                       position: Position)
+@deriving(JsReader, JsWriter)
 case class DocumentSymbolParams(textDocument: TextDocumentIdentifier)
     extends ServerCommand
 
 case class TextDocumentCompletionRequest(params: TextDocumentPositionParams)
     extends ServerCommand
+object TextDocumentCompletionRequest {
+  implicit val jsWriter: JsWriter[TextDocumentCompletionRequest] =
+    JsWriter[TextDocumentPositionParams].contramap(_.params)
+  implicit val jsReader: JsReader[TextDocumentCompletionRequest] =
+    JsReader[TextDocumentPositionParams].map(TextDocumentCompletionRequest(_))
+}
 
 case class TextDocumentDefinitionRequest(params: TextDocumentPositionParams)
     extends ServerCommand
+object TextDocumentDefinitionRequest {
+  implicit val jsWriter: JsWriter[TextDocumentDefinitionRequest] =
+    JsWriter[TextDocumentPositionParams].contramap(_.params)
+  implicit val jsReader: JsReader[TextDocumentDefinitionRequest] =
+    JsReader[TextDocumentPositionParams].map(TextDocumentDefinitionRequest(_))
+}
 
 case class TextDocumentHoverRequest(params: TextDocumentPositionParams)
     extends ServerCommand
+object TextDocumentHoverRequest {
+  implicit val jsWriter: JsWriter[TextDocumentHoverRequest] =
+    JsWriter[TextDocumentPositionParams].contramap(_.params)
+  implicit val jsReader: JsReader[TextDocumentHoverRequest] =
+    JsReader[TextDocumentPositionParams].map(TextDocumentHoverRequest(_))
+}
 
+@deriving(JsReader, JsWriter)
 case class Hover(contents: Seq[MarkedString], range: Option[Range])
     extends ResultResponse
 
@@ -154,31 +190,40 @@ case class Hover(contents: Seq[MarkedString], range: Option[Range])
 
 // From server to client
 
+@deriving(JsReader, JsWriter)
 case class ShowMessageParams(tpe: Int, message: String) extends Notification
-case class LogMessageParams(tpe: Int, message: String)  extends Notification
+@deriving(JsReader, JsWriter)
+case class LogMessageParams(tpe: Int, message: String) extends Notification
+@deriving(JsReader, JsWriter)
 case class PublishDiagnostics(uri: String, diagnostics: Seq[Diagnostic])
     extends Notification
 
 // from client to server
 
 case class ExitNotification() extends Notification
+@deriving(JsReader, JsWriter)
 case class DidOpenTextDocumentParams(textDocument: TextDocumentItem)
     extends Notification
+@deriving(JsReader, JsWriter)
 case class DidChangeTextDocumentParams(
   textDocument: VersionedTextDocumentIdentifier,
   contentChanges: Seq[TextDocumentContentChangeEvent]
 ) extends Notification
 
+@deriving(JsReader, JsWriter)
 case class DidCloseTextDocumentParams(textDocument: TextDocumentIdentifier)
     extends Notification
+@deriving(JsReader, JsWriter)
 case class DidSaveTextDocumentParams(textDocument: TextDocumentIdentifier)
     extends Notification
+@deriving(JsReader, JsWriter)
 case class DidChangeWatchedFiles(changes: Seq[FileEvent]) extends Notification
-
+@deriving(JsReader, JsWriter)
 case class Initialized() extends Notification
-
+@deriving(JsReader, JsWriter)
 case class CancelRequest(id: Int) extends Notification
 
+@deriving(JsReader, JsWriter)
 case class FileEvent(uri: String, `type`: Int)
 
 object FileChangeType {
@@ -189,5 +234,17 @@ object FileChangeType {
 
 case class DocumentSymbolResult(params: Seq[SymbolInformation])
     extends ResultResponse
+object DocumentSymbolResult {
+  implicit val jsWriter: JsWriter[DocumentSymbolResult] =
+    JsWriter[Seq[SymbolInformation]].contramap(_.params)
+  implicit val jsReader: JsReader[DocumentSymbolResult] =
+    JsReader[Seq[SymbolInformation]].map(DocumentSymbolResult(_))
+}
 
 case class DefinitionResult(params: Seq[Location]) extends ResultResponse
+object DefinitionResult {
+  implicit val jsWriter: JsWriter[DefinitionResult] =
+    JsWriter[Seq[Location]].contramap(_.params)
+  implicit val jsReader: JsReader[DefinitionResult] =
+    JsReader[Seq[Location]].map(DefinitionResult(_))
+}

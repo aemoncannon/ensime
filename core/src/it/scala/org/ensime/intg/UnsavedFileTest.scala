@@ -5,7 +5,6 @@ package org.ensime.intg
 import org.ensime.api._
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
-import org.ensime.util.ensimefile.EnsimeFile
 import org.ensime.util.file._
 
 /**

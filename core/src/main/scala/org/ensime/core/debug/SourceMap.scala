@@ -17,7 +17,7 @@ object SourceMap {
   def fromJdi(jdi: String)(implicit s: SearchService): Option[EnsimeFile] =
     s.findClasses(jdi.replace('\\', '/'))
       .flatMap(_.source)
-      .map(EnsimeFile)
+      .map(EnsimeFile(_))
       .headOption
 
   // inverse of fromJdi, convert a user's file into the

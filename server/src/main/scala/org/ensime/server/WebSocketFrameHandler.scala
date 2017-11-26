@@ -107,12 +107,13 @@ trait SubprotocolEncoder {
 
 object JerkySubprotocolEncoder extends SubprotocolEncoder {
   import spray.json._
-  import org.ensime.jerky.JerkyFormats._
+  import JsWriter.ops._
+  import JsReader.ops._
 
   override def readFrame(request: String): RpcRequestEnvelope =
-    request.parseJson.convertTo[RpcRequestEnvelope]
+    JsParser(request).as[RpcRequestEnvelope]
   override def writeFrame(response: RpcResponseEnvelope): String =
-    response.toJson.prettyPrint
+    PrettyPrinter(response.toJson)
 }
 
 object SwankySubprotocolEncoder extends SubprotocolEncoder {

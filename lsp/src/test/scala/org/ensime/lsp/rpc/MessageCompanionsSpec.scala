@@ -9,12 +9,16 @@ import org.scalatest._
 import shapeless.cachedImplicit
 import spray.json._
 
+import scalaz.deriving
+
 object MessageCompanionsSpec {
 
   sealed abstract class Message
 
-  sealed abstract class Command                           extends Message
+  sealed abstract class Command extends Message
+  @deriving(JsReader, JsWriter)
   final case class UpdateAccountCommand(account: Account) extends Command
+  @deriving(JsReader, JsWriter)
   final case class AddTransactionCommand(
     from: Int,
     to: Int,
@@ -25,10 +29,7 @@ object MessageCompanionsSpec {
     require(value >= 0)
   }
 
-  object Commands extends DefaultJsonProtocol with FamilyFormats {
-    override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
-      super.optionFormat
-
+  object Commands {
     implicit val updateAccountCommand: RpcCommand[UpdateAccountCommand] =
       RpcCommand[UpdateAccountCommand]("updateAccount")
     implicit val addTransactionCommand: RpcCommand[AddTransactionCommand] =
@@ -47,27 +48,22 @@ object MessageCompanionsSpec {
   sealed abstract class Response                   extends Message
   case object UpdateAccountResponse                extends Response
   final case class AddTransactionResponse(id: Int) extends Response
-
-  object ResponsesFormats extends DefaultJsonProtocol with FamilyFormats {
-    override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
-      super.optionFormat
-
-    implicit val updateAccountCommand: RootJsonFormat[UpdateAccountCommand] =
-      cachedImplicit
-    implicit val addTransactionCommand: JsonFormat[AddTransactionResponse] =
-      int.xmap[AddTransactionResponse](AddTransactionResponse(_), _.id)
+  object AddTransactionResponse {
+    implicit val jsWriter: JsWriter[AddTransactionResponse] =
+      JsWriter[Int].contramap(_.id)
+    implicit val jsReader: JsReader[AddTransactionResponse] =
+      JsReader[Int].map(AddTransactionResponse(_))
   }
 
   sealed abstract class Notification extends Message
+  @deriving(JsReader, JsWriter)
   final case class AccountUpdatedNotification(account: Account)
       extends Notification
+  @deriving(JsReader, JsWriter)
   final case class TransactionAddedNotification(transaction: Transaction)
       extends Notification
 
-  object Notifications extends DefaultJsonProtocol with FamilyFormats {
-    override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
-      super.optionFormat
-
+  object Notifications {
     implicit val accountUpdatedNotification
       : RpcNotification[AccountUpdatedNotification] =
       RpcNotification[AccountUpdatedNotification]("accountUpdated")
@@ -85,10 +81,12 @@ object MessageCompanionsSpec {
     )
   }
 
+  @deriving(JsReader, JsWriter)
   final case class Account(id: Int,
                            name: Option[String] = None,
                            metadata: Option[JsObject] = None)
 
+  @deriving(JsReader, JsWriter)
   final case class Transaction(id: Int,
                                from: Int,
                                to: Int,
@@ -131,12 +129,9 @@ class MessageCompanionsSpec extends FreeSpec {
           CorrelationId(1)
         )
         s"will fail to read" in {
-          Command.read(jsonRpcRequestMessage) shouldEqual
-            Left(
-              OtherError(
-                "deserialising AddTransactionCommand: missing from, found "
-              )
-            )
+          Command.read(jsonRpcRequestMessage) should matchPattern {
+            case Left(OtherError(_)) =>
+          }
         }
       }
       val command = AddTransactionCommand(
@@ -187,14 +182,10 @@ class MessageCompanionsSpec extends FreeSpec {
     )
 
     s"will decode to $addTransactionResponse" in {
-      import ResponsesFormats._
-
       RpcResponse.read[AddTransactionResponse](jsonRpcResponseMessage) shouldEqual
         Right(addTransactionResponse)
     }
     s"will encode to $jsonRpcResponseMessage" in {
-      import ResponsesFormats._
-
       RpcResponse.write(addTransactionResponse, id) shouldEqual jsonRpcResponseMessage
     }
   }
@@ -227,12 +218,9 @@ class MessageCompanionsSpec extends FreeSpec {
           Params(JsObject.empty)
         )
         s"will fail to read" in {
-          Notification.read(jsonRpcNotificationMessage) shouldEqual
-            Left(
-              OtherError(
-                "deserialising TransactionAddedNotification: missing transaction, found "
-              )
-            )
+          Notification.read(jsonRpcNotificationMessage) should matchPattern {
+            case Left(OtherError(_)) =>
+          }
         }
       }
       val notification = TransactionAddedNotification(

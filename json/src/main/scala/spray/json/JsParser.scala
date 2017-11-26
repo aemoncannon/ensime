@@ -1,5 +1,6 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package spray.json
 
 import scala.annotation.{ switch, tailrec }
@@ -10,8 +11,8 @@ import java.nio.charset.Charset
 /**
  * Fast, no-dependency parser for JSON as defined by http://tools.ietf.org/html/rfc4627.
  */
-object JsonParser {
-  def apply(input: ParserInput): JsValue = new JsonParser(input).parseJsValue()
+object JsParser {
+  def apply(input: ParserInput): JsValue = new JsParser(input).parseJsValue()
 
   class ParsingException(val summary: String, val detail: String = "")
       extends RuntimeException(
@@ -21,8 +22,8 @@ object JsonParser {
       )
 }
 
-class JsonParser(input: ParserInput) {
-  import JsonParser.ParsingException
+class JsParser(input: ParserInput) {
+  import JsParser.ParsingException
 
   private[this] val sb               = new JStringBuilder
   private[this] var cursorChar: Char = input.nextChar()
@@ -45,9 +46,9 @@ class JsonParser(input: ParserInput) {
     def simpleValue(matched: Boolean, value: JsValue) =
       if (matched) jsValue = value else fail("JSON Value", mark)
     (cursorChar: @switch) match {
-      case 'f' => simpleValue(`false`(), JsFalse)
+      case 'f' => simpleValue(`false`(), JsBoolean(false))
       case 'n' => simpleValue(`null`(), JsNull)
-      case 't' => simpleValue(`true`(), JsTrue)
+      case 't' => simpleValue(`true`(), JsBoolean(true))
       case '{' =>
         advance(); `object`()
       case '[' =>

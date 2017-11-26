@@ -13,32 +13,7 @@ import spray.json._
 
 import scala.util.{ Failure, Success, Try }
 
-private[lsp] object ServerCommandConversions
-    extends DefaultJsonProtocol
-    with FamilyFormats {
-
-  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
-    super.optionFormat
-
-  implicit val textDocumentDefinitionRequestFormat
-    : JsonFormat[TextDocumentDefinitionRequest] =
-    JsonFormat[TextDocumentPositionParams]
-      .xmap(TextDocumentDefinitionRequest(_), _.params)
-
-  implicit val textDocumentHoverRequestFormat
-    : JsonFormat[TextDocumentHoverRequest] =
-    JsonFormat[TextDocumentPositionParams]
-      .xmap(TextDocumentHoverRequest(_), _.params)
-
-  implicit val textDocumentCompletionRequestFormat
-    : JsonFormat[TextDocumentCompletionRequest] =
-    JsonFormat[TextDocumentPositionParams]
-      .xmap(TextDocumentCompletionRequest(_), _.params)
-}
-
 object ServerCommands {
-  import ServerCommandConversions._
-
   implicit val initializeCommand: RpcCommand[InitializeParams] =
     RpcCommand[InitializeParams]("initialize")
   implicit val shutdownCommand: RpcCommand[Shutdown] =
@@ -68,8 +43,6 @@ object ServerCommand extends CommandCompanion[ServerCommand] {
 }
 
 object ClientCommands {
-  import ServerCommandConversions._
-
   implicit val showMessageRequestCommand: RpcCommand[ShowMessageRequestParams] =
     RpcCommand[ShowMessageRequestParams]("showMessageRequest")
 }
@@ -81,8 +54,6 @@ object ClientCommand extends CommandCompanion[ClientCommand] {
 }
 
 object Notifications {
-  import ServerCommandConversions._
-
   implicit val showMessageNotification: RpcNotification[ShowMessageParams] =
     RpcNotification[ShowMessageParams]("window/showMessage")
   implicit val logMessageNotification: RpcNotification[LogMessageParams] =
@@ -125,32 +96,4 @@ object Notification extends NotificationCompanion[Notification] {
     initializedNotification,
     cancelRequestNotification
   )
-}
-
-private[lsp] object RpcResponseConversions
-    extends DefaultJsonProtocol
-    with FamilyFormats {
-
-  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
-    super.optionFormat
-
-  implicit val markedStringFormat: JsonFormat[MarkedString] =
-    JsonFormat.instance[MarkedString]({
-      case raw: RawMarkedString     => raw.toJson
-      case markdown: MarkdownString => markdown.toJson
-    })(
-      j =>
-        Try(j.convertTo[RawMarkedString]) orElse
-          Try(j.convertTo[MarkdownString]) match {
-          case Failure(e) => sys.error(s"Wrong MarkedString format for $j")
-          case Success(x) => x
-      }
-    )
-
-  import org.ensime.lsp.api.types.{ Location, SymbolInformation }
-
-  implicit val definitionResultFormat: JsonFormat[DefinitionResult] =
-    JsonFormat[Seq[Location]].xmap(DefinitionResult(_), _.params)
-  implicit val documentSymbolResultFormat: JsonFormat[DocumentSymbolResult] =
-    JsonFormat[Seq[SymbolInformation]].xmap(DocumentSymbolResult(_), _.params)
 }

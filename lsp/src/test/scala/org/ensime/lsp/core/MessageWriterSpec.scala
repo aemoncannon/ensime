@@ -6,8 +6,9 @@ import java.io.{ PipedInputStream, PipedOutputStream }
 
 import org.scalatest.Matchers._
 import org.scalatest._
-import spray.json.DefaultJsonProtocol._
 import spray.json._
+import JsWriter.ops._
+import JsReader.ops._
 
 class MessageWriterSpec extends FreeSpec with BeforeAndAfter {
 
@@ -35,7 +36,7 @@ class MessageWriterSpec extends FreeSpec with BeforeAndAfter {
       msgWriter.write(obj)
 
       val Some(payload) = msgReader.nextPayload()
-      val resObj        = payload.parseJson.convertTo[Map[String, Seq[Int]]]
+      val resObj        = JsParser(payload).as[Map[String, Seq[Int]]]
       resObj shouldEqual obj
     }
   }
@@ -49,7 +50,7 @@ class MessageWriterSpec extends FreeSpec with BeforeAndAfter {
       msgWriter.write(obj)
 
       val Some(payload) = msgReader.nextPayload()
-      val resObj        = payload.parseJson.convertTo[Map[String, String]]
+      val resObj        = JsParser(payload).as[Map[String, String]]
       resObj shouldEqual obj
     }
   }

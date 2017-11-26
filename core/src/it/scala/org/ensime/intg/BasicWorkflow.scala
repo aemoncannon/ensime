@@ -5,14 +5,13 @@ package org.ensime.intg
 import scala.concurrent.duration._
 
 import org.ensime.api
-import org.ensime.api.{ BasicTypeInfo => _, EnsimeFile => _, _ }
+import org.ensime.api.{ BasicTypeInfo => _, _ }
 import org.ensime.core._
 import org.ensime.fixture._
 import org.ensime.indexer.FullyQualifiedName
 import org.ensime.model.BasicTypeInfo
 import org.ensime.util.EnsimeSpec
-import org.ensime.util.ensimefile.EnsimeFile
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
+import EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.file._
 
 class BasicWorkflow

@@ -1,49 +1,39 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package spray.json
 
-/**
- * The general type of a JSON AST node.
- */
-sealed abstract class JsValue {
-  override def toString                      = compactPrint
-  def toString(printer: (JsValue => String)) = printer(this)
-  def compactPrint                           = CompactPrinter(this)
-  def prettyPrint                            = PrettyPrinter(this)
-  def convertTo[T: JsonReader]: T            = JsonReader[T].read(this)
-}
+import scala.collection.immutable.{ ListMap, Seq }
 
-/**
- * A JSON object.
- */
+/** A JSON AST node. */
+sealed abstract class JsValue
+
 final case class JsObject(fields: Map[String, JsValue]) extends JsValue
 object JsObject {
-  val empty                    = JsObject(Map.empty[String, JsValue])
-  def apply(members: JsField*) = new JsObject(Map(members: _*))
+  def apply(members: (String, JsValue)*): JsObject = JsObject(Map(members: _*))
+  val empty: JsObject                              = JsObject(ListMap.empty[String, JsValue])
 }
 
-/**
- * A JSON array.
- */
-final case class JsArray(elements: Vector[JsValue]) extends JsValue
+final case class JsArray(elements: Seq[JsValue]) extends JsValue
 object JsArray {
-  val empty                     = JsArray(Vector.empty)
-  def apply(elements: JsValue*) = new JsArray(elements.toVector)
+  def apply(members: JsValue*): JsArray = JsArray(List(members: _*))
+  val empty: JsArray                    = JsArray(List.empty)
 }
 
-/**
- * A JSON string.
- */
-final case class JsString(value: String) extends JsValue
+case object JsNull extends JsValue
 
+final case class JsBoolean(value: Boolean) extends JsValue
+object JsBoolean {
+  val True: JsBoolean  = JsBoolean(true)
+  val False: JsBoolean = JsBoolean(false)
+}
+
+final case class JsString(value: String) extends JsValue
 object JsString {
   val empty                = JsString("")
   def apply(value: Symbol) = new JsString(value.name)
 }
 
-/**
- * A JSON number.
- */
 final case class JsNumber(value: BigDecimal) extends JsValue
 object JsNumber {
   val zero: JsNumber = apply(0)
@@ -58,25 +48,3 @@ object JsNumber {
   def apply(n: String)      = new JsNumber(BigDecimal(n))
   def apply(n: Array[Char]) = new JsNumber(BigDecimal(n))
 }
-
-/**
- * JSON Booleans.
- */
-sealed abstract class JsBoolean extends JsValue {
-  def value: Boolean
-}
-object JsBoolean {
-  def apply(x: Boolean): JsBoolean           = if (x) JsTrue else JsFalse
-  def unapply(x: JsBoolean): Option[Boolean] = Some(x.value)
-}
-case object JsTrue extends JsBoolean {
-  def value = true
-}
-case object JsFalse extends JsBoolean {
-  def value = false
-}
-
-/**
- * The representation for JSON null.
- */
-case object JsNull extends JsValue

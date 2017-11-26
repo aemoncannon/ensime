@@ -1,11 +1,15 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package spray.json
 
 import org.scalatest._
 import Matchers._
 
-class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
+import JsWriter.ops._
+import JsReader.ops._
+
+class CollectionFormatsSpec extends WordSpec {
 
   "The listFormat" should {
     val list = List(1, 2, 3)
@@ -14,7 +18,7 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
       list.toJson shouldEqual json
     }
     "convert a JsArray of JsNumbers to a List[Int]" in {
-      json.convertTo[List[Int]] shouldEqual list
+      json.as[List[Int]] shouldEqual list
     }
   }
 
@@ -27,7 +31,7 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
       array.toJson shouldEqual json
     }
     "convert a JsArray of JsNumbers to an Array[Int]" in {
-      Arrays.equals(json.convertTo[Array[Int]], array) shouldBe true
+      Arrays.equals(json.as[Array[Int]], array) shouldBe true
     }
   }*/
 
@@ -39,12 +43,7 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
       map.toJson shouldEqual json
     }
     "be able to convert a JsObject to a Map[String, Long]" in {
-      json.convertTo[Map[String, Long]] shouldEqual map
-    }
-    "throw an Exception when trying to serialize a map whose key are not serialized to JsStrings" in {
-      intercept[SerializationException] {
-        Map(1 -> "a").toJson
-      }.getMessage shouldEqual "Map key must be formatted as JsString, not '1'"
+      json.as[Map[String, Long]] shouldEqual map
     }
   }
 
@@ -55,7 +54,7 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
       set.toJson shouldEqual json
     }
     "convert a JsArray of JsNumbers to a Set[Int]" in {
-      json.convertTo[Set[Int]] shouldEqual set
+      json.as[Set[Int]] shouldEqual set
     }
   }
 
@@ -66,7 +65,7 @@ class CollectionFormatsSpec extends WordSpec with DefaultJsonProtocol {
       seq.toJson shouldEqual json
     }
     "convert a JsArray of JsNumbers to a IndexedSeq[Int]" in {
-      json.convertTo[collection.IndexedSeq[Int]] shouldEqual seq
+      json.as[collection.IndexedSeq[Int]] shouldEqual seq
     }
   }
 

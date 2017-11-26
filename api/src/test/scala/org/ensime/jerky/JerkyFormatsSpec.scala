@@ -4,15 +4,16 @@ package org.ensime.jerky
 
 import java.io.File
 
+import org.scalatest._
+
 import org.ensime.api._
-import org.ensime.util.{ EnsimeSpec, EscapingStringInterpolation }
 
 class JerkyFormatsSpec
-    extends EnsimeSpec
+    extends FlatSpec
+    with Matchers
     with SprayJsonTestSupport
     with EnsimeTestData {
 
-  import JerkyFormats._
   import EscapingStringInterpolation._
 
   "Jerk Formats" should "roundtrip request envelopes" in {

@@ -5,7 +5,7 @@ package org.ensime.server
 import java.nio.file.Path
 
 import akka.event.slf4j.SLF4JLogging
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
+import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.file._
 import org.ensime.util.path._
 

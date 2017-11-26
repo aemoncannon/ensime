@@ -42,7 +42,7 @@ class CommandsAndNotificationsSpec extends FreeSpec {
   }
 
   def parseJsObject(json: String): JsObject =
-    json.parseJson match {
+    JsParser(json) match {
       case obj: JsObject => obj
       case _             => throw new InvalidArgument("should be a json object")
     }
@@ -77,7 +77,7 @@ class CommandsAndNotificationsSpec extends FreeSpec {
     )
     val messageWithNull = JsonRpcRequestMessage(
       "shutdown",
-      Some(NullParams),
+      None,
       NumberId(1)
     )
 

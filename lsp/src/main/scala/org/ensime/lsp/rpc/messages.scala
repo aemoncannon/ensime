@@ -2,9 +2,16 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.rpc.messages
 
+import scala.util._
+
 import spray.json._
+import JsWriter.ops._
+import JsReader.ops._
+import DeserializationException._
 
 import scala.collection.immutable.Seq
+
+import scalaz.deriving
 
 object JsonRpcMessages {
   final val Version = "2.0"
@@ -19,10 +26,22 @@ object CorrelationId {
   def apply(): CorrelationId                   = NullId
   def apply(number: BigDecimal): CorrelationId = NumberId(number)
   def apply(str: String): CorrelationId        = StringId(str)
+
+  implicit val jsWriter: JsWriter[CorrelationId] = {
+    case NullId        => JsNull
+    case NumberId(num) => JsNumber(num)
+    case StringId(str) => JsString(str)
+  }
+  implicit val jsReader: JsReader[CorrelationId] = {
+    case JsNull        => NullId
+    case JsNumber(num) => NumberId(num)
+    case JsString(str) => StringId(str)
+    case _             => deserError[CorrelationId]("Wrong CorrelationId format")
+  }
+
 }
 
 sealed trait Params
-case object NullParams                 extends Params
 case class ObjectParams(obj: JsObject) extends Params
 case class ArrayParams(arr: JsArray)   extends Params
 
@@ -30,12 +49,67 @@ object Params {
   def apply(): Option[Params]              = None
   def apply(obj: JsObject): Option[Params] = Some(ObjectParams(obj))
   def apply(arr: JsArray): Option[Params]  = Some(ArrayParams(arr))
+
+  implicit val jsWriter: JsWriter[Params] = {
+    case ObjectParams(obj) => obj
+    case ArrayParams(arr)  => arr
+  }
+  implicit val jsReader: JsReader[Params] = {
+    case obj @ JsObject(_) => ObjectParams(obj)
+    case arr @ JsArray(_)  => ArrayParams(arr)
+    case _                 => deserError[Params]("Wrong Params format")
+  }
+
 }
 
 sealed abstract class JsonRpcMessage
+object JsonRpcMessage {
+  implicit val jsWriter: JsWriter[JsonRpcMessage] = {
+    case req: JsonRpcRequestMessage         => req.toJson
+    case n: JsonRpcNotificationMessage      => n.toJson
+    case suc: JsonRpcResponseSuccessMessage => suc.toJson
+    case e: JsonRpcResponseErrorMessage     => e.toJson
+    case breq: JsonRpcRequestMessageBatch   => breq.toJson
+    case bres: JsonRpcResponseMessageBatch  => bres.toJson
+  }
+
+  implicit val jsReader: JsReader[JsonRpcMessage] = { j =>
+    {
+      Try(j.as[JsonRpcRequestMessage]) orElse
+        Try(j.as[JsonRpcNotificationMessage]) orElse
+        Try(j.as[JsonRpcResponseSuccessMessage]) orElse
+        Try(j.as[JsonRpcResponseErrorMessage]) orElse
+        Try(j.as[JsonRpcRequestMessageBatch]) orElse
+        Try(j.as[JsonRpcResponseMessageBatch])
+    } match {
+      case Failure(_) =>
+        deserError[JsonRpcMessage]("Error during JsonRpcMessage parsing")
+      case Success(x) => x
+    }
+  }
+
+}
 
 sealed trait JsonRpcRequestOrNotificationMessage
+object JsonRpcRequestOrNotificationMessage {
+  implicit val jsWriter: JsWriter[JsonRpcRequestOrNotificationMessage] = {
+    case r: JsonRpcRequestMessage      => r.toJson
+    case n: JsonRpcNotificationMessage => n.toJson
+  }
+  implicit val jsReader: JsReader[JsonRpcRequestOrNotificationMessage] = {
+    case j @ JsObject(fields) =>
+      if (fields.contains("id"))
+        j.as[JsonRpcRequestMessage]
+      else
+        j.as[JsonRpcNotificationMessage]
+    case _ =>
+      deserError[JsonRpcRequestOrNotificationMessage](
+        "Response message should be an object"
+      )
+  }
+}
 
+@deriving(JsReader, JsWriter)
 final case class JsonRpcRequestMessage(jsonrpc: String,
                                        method: String,
                                        params: Option[Params],
@@ -51,10 +125,12 @@ object JsonRpcRequestMessage {
     apply(JsonRpcMessages.Version, method, params, id)
 }
 
-final case class JsonRpcNotificationMessage(jsonrpc: String,
-                                            method: String,
-                                            params: Option[Params])
-    extends JsonRpcMessage
+@deriving(JsReader, JsWriter)
+final case class JsonRpcNotificationMessage(
+  jsonrpc: String,
+  method: String,
+  params: Option[Params]
+) extends JsonRpcMessage
     with JsonRpcRequestOrNotificationMessage {
   require(jsonrpc == JsonRpcMessages.Version)
 }
@@ -69,11 +145,36 @@ final case class JsonRpcRequestMessageBatch(
 ) extends JsonRpcMessage {
   require(messages.nonEmpty)
 }
+object JsonRpcRequestMessageBatch {
+  implicit val jsWriter: JsWriter[JsonRpcRequestMessageBatch] =
+    JsWriter[Seq[JsonRpcRequestOrNotificationMessage]].contramap(_.messages)
+  implicit val jsReader: JsReader[JsonRpcRequestMessageBatch] =
+    JsReader[Seq[JsonRpcRequestOrNotificationMessage]]
+      .map(JsonRpcRequestMessageBatch(_))
+}
 
 sealed abstract class JsonRpcResponseMessage extends JsonRpcMessage {
   def id: CorrelationId
 }
+object JsonRpcResponseMessage {
 
+  implicit val jsWriter: JsWriter[JsonRpcResponseMessage] = {
+    case r: JsonRpcResponseSuccessMessage => r.toJson
+    case e: JsonRpcResponseErrorMessage   => e.toJson
+  }
+  implicit val jsReader: JsReader[JsonRpcResponseMessage] = {
+    case j @ JsObject(fields) =>
+      if (fields.contains("error"))
+        j.as[JsonRpcResponseErrorMessage]
+      else
+        j.as[JsonRpcResponseSuccessMessage]
+    case _ =>
+      deserError[JsonRpcResponseMessage]("Response message should be an object")
+  }
+
+}
+
+@deriving(JsReader, JsWriter)
 final case class JsonRpcResponseSuccessMessage(jsonrpc: String,
                                                result: JsValue,
                                                id: CorrelationId)
@@ -85,6 +186,7 @@ object JsonRpcResponseSuccessMessage {
     apply(JsonRpcMessages.Version, result, id)
 }
 
+@deriving(JsReader, JsWriter)
 final case class JsonRpcResponseErrorMessage(
   jsonrpc: String,
   error: JsonRpcResponseErrorMessage.Error,
@@ -93,6 +195,7 @@ final case class JsonRpcResponseErrorMessage(
   require(jsonrpc == JsonRpcMessages.Version)
 }
 object JsonRpcResponseErrorMessage {
+  @deriving(JsReader, JsWriter)
   case class Error(code: Int, message: String, data: Option[JsValue])
 
   def apply(code: Int,
@@ -106,6 +209,12 @@ final case class JsonRpcResponseMessageBatch(
   messages: Seq[JsonRpcResponseMessage]
 ) extends JsonRpcMessage {
   require(messages.nonEmpty)
+}
+object JsonRpcResponseMessageBatch {
+  implicit val jsWriter: JsWriter[JsonRpcResponseMessageBatch] =
+    JsWriter[Seq[JsonRpcResponseMessage]].contramap(_.messages)
+  implicit val jsReader: JsReader[JsonRpcResponseMessageBatch] =
+    JsReader[Seq[JsonRpcResponseMessage]].map(JsonRpcResponseMessageBatch(_))
 }
 
 object JsonRpcResponseErrorMessages {

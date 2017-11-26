@@ -7,7 +7,7 @@ import org.ensime.core.RefactoringHandlerTestUtils
 import org.ensime.fixture._
 import org.ensime.indexer.FullyQualifiedName
 import org.ensime.util.EnsimeSpec
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
+import EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.file._
 import org.ensime.util.ensimefile._
 

@@ -2,7 +2,7 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.rpc.companions
 
-import spray.json.{ JsObject, JsonFormat }
+import spray.json._
 import org.ensime.lsp.rpc.messages._
 
 import scala.util.{ Failure, Success, Try }
@@ -28,7 +28,8 @@ object RpcCompanionError {
   def apply(err: String): OtherError = OtherError(err)
 }
 
-case class RpcCommand[A](method: String)(implicit val format: JsonFormat[A])
+case class RpcCommand[A](method: String)(implicit val R: JsReader[A],
+                                         val W: JsWriter[A])
 
 trait CommandCompanion[A] {
 
@@ -40,7 +41,7 @@ trait CommandCompanion[A] {
 
     def readObj(command: RpcCommand[_ <: A],
                 obj: JsObject): Either[RpcCompanionError, _ <: A] =
-      Try(command.format.read(obj)) match {
+      Try(command.R.read(obj)) match {
         case Failure(invalid) =>
           Left(RpcCompanionError(invalid.getMessage))
         case Success(valid) =>
@@ -51,10 +52,9 @@ trait CommandCompanion[A] {
       case None => Left(UnknownMethod)
       case Some(command) =>
         jsonRpcRequestMessage.params match {
-          case None                    => Left(NoParams)
           case Some(ArrayParams(_))    => Left(NoNamedParams)
           case Some(ObjectParams(obj)) => readObj(command, obj)
-          case Some(NullParams)        => readObj(command, JsObject.empty)
+          case None                    => readObj(command, JsObject.empty)
         }
     }
   }
@@ -62,7 +62,7 @@ trait CommandCompanion[A] {
   def write[B <: A](obj: B, id: CorrelationId)(
     implicit command: RpcCommand[B]
   ): JsonRpcRequestMessage = {
-    val jsObj = command.format.write(obj) match {
+    val jsObj = command.W.write(obj) match {
       case o: JsObject => o
       case _ =>
         sys.error(s"Wrong format for command $obj. Should be a json object.")
@@ -80,14 +80,14 @@ object RpcResponse {
 
   def read[A](
     jsonRpcResponseSuccessMessage: JsonRpcResponseSuccessMessage
-  )(implicit format: JsonFormat[A]): Either[RpcCompanionError, A] =
+  )(implicit format: JsReader[A]): Either[RpcCompanionError, A] =
     Try(format.read(jsonRpcResponseSuccessMessage.result)) match {
       case Failure(invalid) => Left(RpcCompanionError(invalid.getMessage))
       case Success(valid)   => Right(valid)
     }
 
   def write[A](obj: A, id: CorrelationId)(
-    implicit format: JsonFormat[A]
+    implicit format: JsWriter[A]
   ): JsonRpcResponseSuccessMessage =
     JsonRpcResponseSuccessMessage(
       format.write(obj),
@@ -96,7 +96,8 @@ object RpcResponse {
 }
 
 case class RpcNotification[A](method: String)(
-  implicit val format: JsonFormat[A]
+  implicit val R: JsReader[A],
+  val W: JsWriter[A]
 )
 
 trait NotificationCompanion[A] {
@@ -109,7 +110,7 @@ trait NotificationCompanion[A] {
 
     def readObj(command: RpcNotification[_ <: A],
                 obj: JsObject): Either[RpcCompanionError, _ <: A] =
-      Try(command.format.read(obj)) match {
+      Try(command.R.read(obj)) match {
         case Failure(invalid) =>
           Left(RpcCompanionError(invalid.getMessage))
         case Success(valid) =>
@@ -123,7 +124,6 @@ trait NotificationCompanion[A] {
           case None                    => Left(NoParams)
           case Some(ArrayParams(_))    => Left(NoNamedParams)
           case Some(ObjectParams(obj)) => readObj(command, obj)
-          case Some(NullParams)        => readObj(command, JsObject.empty)
         }
     }
   }
@@ -131,7 +131,7 @@ trait NotificationCompanion[A] {
   def write[B <: A](
     obj: B
   )(implicit notification: RpcNotification[B]): JsonRpcNotificationMessage = {
-    val jsObj = notification.format.write(obj) match {
+    val jsObj = notification.W.write(obj) match {
       case o: JsObject => o
       case _ =>
         sys.error(s"Wrong format for command $obj. Should be a json object.")

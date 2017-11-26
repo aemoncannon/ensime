@@ -9,7 +9,7 @@ import java.nio.file._
 import scala.util.Properties.jdkHome
 
 import org.ensime.api._
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
+import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.path._
 import org.scalatest._
 

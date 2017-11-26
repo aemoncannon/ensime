@@ -1,136 +1,146 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package spray.json
 
 import org.scalatest._
 import Matchers._
 
-class BasicFormatsSpec extends WordSpec with DefaultJsonProtocol {
+import JsReader.ops._
+import JsWriter.ops._
 
-  "The IntJsonFormat" should {
+class BasicFormatsSpec extends WordSpec {
+
+  "The Int formats" should {
     "convert an Int to a JsNumber" in {
       42.toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to an Int" in {
-      JsNumber(42).convertTo[Int] shouldEqual 42
+      JsNumber(42).as[Int] shouldEqual 42
     }
   }
 
-  "The LongJsonFormat" should {
+  "The Long formats" should {
     "convert a Long to a JsNumber" in {
       7563661897011259335L.toJson shouldEqual JsNumber(7563661897011259335L)
     }
     "convert a JsNumber to a Long" in {
       JsNumber(7563661897011259335L)
-        .convertTo[Long] shouldEqual 7563661897011259335L
+        .as[Long] shouldEqual 7563661897011259335L
     }
   }
 
-  "The FloatJsonFormat" should {
+  "The Float formats" should {
     "convert a Float to a JsNumber" in {
       4.2f.toJson shouldEqual JsNumber(4.2f)
     }
     "convert a JsNumber to a Float" in {
-      JsNumber(4.2f).convertTo[Float] shouldEqual 4.2f
+      JsNumber(4.2f).as[Float] shouldEqual 4.2f
     }
   }
 
-  "The DoubleJsonFormat" should {
+  "The Double formats" should {
     "convert a Double to a JsNumber" in {
       4.2.toJson shouldEqual JsNumber(4.2)
     }
     "convert a JsNumber to a Double" in {
-      JsNumber(4.2).convertTo[Double] shouldEqual 4.2
+      JsNumber(4.2).as[Double] shouldEqual 4.2
     }
   }
 
-  "The ByteJsonFormat" should {
+  "The Byte formats" should {
     "convert a Byte to a JsNumber" in {
       42.asInstanceOf[Byte].toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to a Byte" in {
-      JsNumber(42).convertTo[Byte] shouldEqual 42
+      JsNumber(42).as[Byte] shouldEqual 42
     }
   }
 
-  "The ShortJsonFormat" should {
+  "The Short formats" should {
     "convert a Short to a JsNumber" in {
       42.asInstanceOf[Short].toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to a Short" in {
-      JsNumber(42).convertTo[Short] shouldEqual 42
+      JsNumber(42).as[Short] shouldEqual 42
     }
   }
 
-  "The BigDecimalJsonFormat" should {
+  "The BigDecimal formats" should {
     "convert a BigDecimal to a JsNumber" in {
       BigDecimal(42).toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to a BigDecimal" in {
-      JsNumber(42).convertTo[BigDecimal] shouldEqual BigDecimal(42)
+      JsNumber(42).as[BigDecimal] shouldEqual BigDecimal(42)
     }
     """convert a JsString to a BigDecimal (to allow the quoted-large-numbers pattern)""" in {
       JsString("9223372036854775809")
-        .convertTo[BigDecimal] shouldEqual BigDecimal("9223372036854775809")
+        .as[BigDecimal] shouldEqual BigDecimal("9223372036854775809")
     }
   }
 
-  "The BigIntJsonFormat" should {
+  "The BigInt formats" should {
     "convert a BigInt to a JsNumber" in {
       BigInt(42).toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to a BigInt" in {
-      JsNumber(42).convertTo[BigInt] shouldEqual BigInt(42)
+      JsNumber(42).as[BigInt] shouldEqual BigInt(42)
     }
     """convert a JsString to a BigInt (to allow the quoted-large-numbers pattern)""" in {
-      JsString("9223372036854775809").convertTo[BigInt] shouldEqual BigInt(
+      JsString("9223372036854775809").as[BigInt] shouldEqual BigInt(
         "9223372036854775809"
       )
     }
   }
 
-  "The UnitJsonFormat" should {
+  "The Unit formats" should {
     "convert Unit to a JsNumber(1)" in {
       ().toJson shouldEqual JsNumber(1)
     }
     "convert a JsNumber to Unit" in {
-      JsNumber(1).convertTo[Unit] shouldEqual (())
+      JsNumber(1).as[Unit] shouldEqual (())
     }
   }
 
-  "The BooleanJsonFormat" should {
-    "convert true to a JsTrue" in { true.toJson shouldEqual JsTrue }
-    "convert false to a JsFalse" in { false.toJson shouldEqual JsFalse }
-    "convert a JsTrue to true" in { JsTrue.convertTo[Boolean] shouldEqual true }
-    "convert a JsFalse to false" in {
-      JsFalse.convertTo[Boolean] shouldEqual false
+  "The Boolean formats" should {
+    "convert true to a JsBoolean.True" in {
+      true.toJson shouldEqual JsBoolean.True
+    }
+    "convert false to a JsBoolean.False" in {
+      false.toJson shouldEqual JsBoolean.False
+    }
+    "convert a JsBoolean.True to true" in {
+      JsBoolean.True.as[Boolean] shouldEqual true
+    }
+    "convert a JsBoolean.False to false" in {
+      JsBoolean.False.as[Boolean] shouldEqual false
     }
   }
 
-  "The CharJsonFormat" should {
+  "The Char formats" should {
     "convert a Char to a JsString" in {
       'c'.toJson shouldEqual JsString("c")
     }
     "convert a JsString to a Char" in {
-      JsString("c").convertTo[Char] shouldEqual 'c'
+      JsString("c").as[Char] shouldEqual 'c'
     }
   }
 
-  "The StringJsonFormat" should {
+  "The String formats" should {
     "convert a String to a JsString" in {
       "Hello".toJson shouldEqual JsString("Hello")
     }
     "convert a JsString to a String" in {
-      JsString("Hello").convertTo[String] shouldEqual "Hello"
+      JsString("Hello").as[String] shouldEqual "Hello"
     }
   }
 
-  "The SymbolJsonFormat" should {
+  "The Symbol formats" should {
     "convert a Symbol to a JsString" in {
       'Hello.toJson shouldEqual JsString("Hello")
     }
     "convert a JsString to a Symbol" in {
-      JsString("Hello").convertTo[Symbol] shouldEqual 'Hello
+      JsString("Hello").as[Symbol] shouldEqual 'Hello
     }
   }
 

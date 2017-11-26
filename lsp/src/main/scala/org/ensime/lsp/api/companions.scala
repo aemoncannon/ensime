@@ -6,23 +6,7 @@ import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.api.commands._
 import spray.json._
 
-object ServerCommands extends DefaultJsonProtocol with FamilyFormats {
-
-  implicit val textDocumentDefinitionRequestFormat
-    : JsonFormat[TextDocumentDefinitionRequest] =
-    JsonFormat[TextDocumentPositionParams]
-      .xmap(TextDocumentDefinitionRequest(_), _.params)
-
-  implicit val textDocumentHoverRequestFormat
-    : JsonFormat[TextDocumentHoverRequest] =
-    JsonFormat[TextDocumentPositionParams]
-      .xmap(TextDocumentHoverRequest(_), _.params)
-
-  implicit val textDocumentCompletionRequestFormat
-    : JsonFormat[TextDocumentCompletionRequest] =
-    JsonFormat[TextDocumentPositionParams]
-      .xmap(TextDocumentCompletionRequest(_), _.params)
-
+object ServerCommands extends {
   implicit val initializeCommand: RpcCommand[InitializeParams] =
     RpcCommand[InitializeParams]("initialize")
   implicit val shutdownCommand: RpcCommand[Shutdown] =
@@ -51,7 +35,7 @@ object ServerCommand extends CommandCompanion[ServerCommand] {
   )
 }
 
-object ClientCommands extends DefaultJsonProtocol with FamilyFormats {
+object ClientCommands {
   implicit val showMessageRequestCommand: RpcCommand[ShowMessageRequestParams] =
     RpcCommand[ShowMessageRequestParams]("showMessageRequest")
 }
@@ -62,10 +46,7 @@ object ClientCommand extends CommandCompanion[ClientCommand] {
   val commands = Seq(showMessageRequestCommand)
 }
 
-object Notifications extends DefaultJsonProtocol with FamilyFormats {
-  override implicit def optionFormat[T: JsonFormat]: JsonFormat[Option[T]] =
-    super.optionFormat
-
+object Notifications {
   implicit val showMessageNotification: RpcNotification[ShowMessageParams] =
     RpcNotification[ShowMessageParams]("window/showMessage")
   implicit val logMessageNotification: RpcNotification[LogMessageParams] =

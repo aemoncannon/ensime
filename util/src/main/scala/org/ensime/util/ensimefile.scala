@@ -29,35 +29,11 @@ package ensimefile {
     def readStringDirect()(implicit cs: Charset): String
     def readAllLines: List[String]
 
-    def uri(): URI
-    def uriString(): String = uri.toASCIIString
   }
 
 }
 
 package object ensimefile {
-
-  object Implicits {
-    implicit val DefaultCharset: Charset = Charset.defaultCharset()
-  }
-
-  private val ArchiveRegex = "(?:(?:jar:)?file:)?([^!]++)!(.++)".r
-  private val FileRegex    = "(?:(?:jar:)?file:)?(.++)".r
-  def EnsimeFile(path: String): EnsimeFile = path match {
-    case ArchiveRegex(file, entry) =>
-      ArchiveFile(Paths.get(cleanBadWindows(file)), entry)
-    case FileRegex(file) => RawFile(Paths.get(cleanBadWindows(file)))
-  }
-  def EnsimeFile(path: File): EnsimeFile = RawFile(path.toPath)
-  def EnsimeFile(url: URL): EnsimeFile =
-    EnsimeFile(URLDecoder.decode(url.toExternalForm(), "UTF-8"))
-
-  // URIs on Windows can look like /C:/path/to/file, which are malformed
-  private val BadWindowsRegex = "/+([^:]+:[^:]+)".r
-  private def cleanBadWindows(file: String): String = file match {
-    case BadWindowsRegex(clean) => clean
-    case other                  => other
-  }
 
   implicit class RichRawFile(val raw: RawFile) extends RichEnsimeFile {
     // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247
@@ -72,7 +48,6 @@ package object ensimefile {
     override def readStringDirect()(implicit cs: Charset): String =
       raw.file.readString()
     override def readAllLines: List[String] = raw.file.readLines()
-    override def uri: URI                   = raw.file.toUri()
     override def canon: RawFile             = RawFile(raw.file.canon)
   }
 
@@ -91,8 +66,6 @@ package object ensimefile {
     override def readStringDirect()(implicit cs: Charset): String =
       withEntry(_.readString())
     override def readAllLines: List[String] = withEntry(_.readLines())
-    override def uri: URI =
-      URI.create(s"jar:${archive.jar.toUri}!${archive.entry}") // path is null (opaque)
     override def canon: ArchiveFile =
       ArchiveFile(archive.jar.canon, archive.entry)
 

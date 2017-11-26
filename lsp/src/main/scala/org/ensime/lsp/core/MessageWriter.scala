@@ -5,7 +5,7 @@ package org.ensime.lsp.core
 import java.io.OutputStream
 
 import akka.event.slf4j.SLF4JLogging
-import spray.json.JsonFormat
+import spray.json._
 
 /**
  * A class to write Json RPC messages on an output stream, following the Language Server Protocol.
@@ -30,8 +30,8 @@ class MessageWriter(out: OutputStream) extends SLF4JLogging {
    * Write a message to the output stream. This method can be called from multiple threads,
    * but it may block waiting for other threads to finish writing.
    */
-  def write[T](msg: T)(implicit o: JsonFormat[T]): Unit = lock.synchronized {
-    val str          = o.write(msg).compactPrint
+  def write[T](msg: T)(implicit o: JsWriter[T]): Unit = lock.synchronized {
+    val str          = CompactPrinter(o.write(msg))
     val contentBytes = str.getBytes(MessageReader.Utf8Charset)
     val headers =
       s"""Content-Length: ${contentBytes.length}\r

@@ -1,5 +1,6 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package spray.json
 
 import org.scalacheck._
@@ -15,7 +16,7 @@ object JsValueGenerators {
   val parseableString: Gen[String] =
     Gen.someOf(('\u0020' to '\u007E').toVector).map(_.mkString)
   val genString: Gen[JsString]       = parseableString.map(JsString(_))
-  val genBoolean: Gen[JsBoolean]     = oneOf(JsFalse, JsTrue)
+  val genBoolean: Gen[JsBoolean]     = oneOf(JsBoolean.False, JsBoolean.True)
   val genLongNumber: Gen[JsNumber]   = arbitrary[Long].map(JsNumber(_))
   val genIntNumber: Gen[JsNumber]    = arbitrary[Long].map(JsNumber(_))
   val genDoubleNumber: Gen[JsNumber] = arbitrary[Long].map(JsNumber(_))
@@ -59,10 +60,10 @@ class RoundTripSpecs extends WordSpec with GeneratorDrivenPropertyChecks {
 
   "Parsing / Printing round-trip" should {
     "starting from JSON using compactPrint" in forAll { (json: JsValue) =>
-      json.compactPrint.parseJson shouldEqual json
+      JsParser(CompactPrinter(json)) shouldEqual json
     }
     "starting from JSON using prettyPrint" in forAll { (json: JsValue) =>
-      json.prettyPrint.parseJson shouldEqual json
+      JsParser(PrettyPrinter(json)) shouldEqual json
     }
   }
 }

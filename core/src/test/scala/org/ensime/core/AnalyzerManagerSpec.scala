@@ -8,7 +8,6 @@ import org.ensime.api._
 import org.ensime.fixture.SharedTestKitFixture
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.FileUtils.toSourceFileInfo
-import org.ensime.util.ensimefile.EnsimeFile
 import org.ensime.util.file._
 
 class AnalyzerManagerSpec extends EnsimeSpec with SharedTestKitFixture {

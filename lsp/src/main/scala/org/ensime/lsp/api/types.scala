@@ -2,20 +2,29 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.api.types
 
+import scala.util._
+
+import spray.json._
+
+import scalaz.deriving
+
 /**
  * Position in a text document expressed as zero-based line and character offset.
  */
+@deriving(JsReader, JsWriter)
 case class Position(line: Int, character: Int)
 
 /**
  * A range in a text document.
  */
+@deriving(JsReader, JsWriter)
 case class Range(start: Position, end: Position)
 
 /**
  * Represents a location inside a resource, such as a line
  * inside a text file.
  */
+@deriving(JsReader, JsWriter)
 case class Location(uri: String, range: Range)
 
 object DiagnosticSeverity {
@@ -25,6 +34,7 @@ object DiagnosticSeverity {
   final val Hint        = 4
 }
 
+@deriving(JsReader, JsWriter)
 case class Diagnostic(
   range: Range, // the range at which this diagnostic applies
   severity: Option[Int], // severity of this diagnostics (see above)
@@ -50,14 +60,17 @@ case class TextEdit(range: Range, newText: String)
  */
 case class WorkspaceEdit(changes: Map[String, Seq[TextEdit]]) // uri -> changes
 
+@deriving(JsReader, JsWriter)
 case class TextDocumentIdentifier(uri: String)
 
+@deriving(JsReader, JsWriter)
 case class VersionedTextDocumentIdentifier(uri: String, version: Long)
 
 /**
  * An item to transfer a text document from the client to the
  * server.
  */
+@deriving(JsReader, JsWriter)
 case class TextDocumentItem(uri: String,
                             languageId: String,
                             version: Long,
@@ -84,6 +97,7 @@ object CompletionItemKind {
   final val Reference   = 18
 }
 
+@deriving(JsReader, JsWriter)
 case class CompletionItem(
   label: String,
   kind: Option[Int] = None,
@@ -99,14 +113,26 @@ case class CompletionItem(
 //   (#CompletionResolveRequest)
 
 sealed trait MarkedString
+object MarkedString {
+  import JsReader.ops._
+  import JsWriter.ops._
+  implicit val jsReader: JsReader[MarkedString] = { j =>
+    (Try(j.as[RawMarkedString]) orElse Try(j.as[MarkdownString])).toOption.get
+  }
+  implicit val jsWriter: JsWriter[MarkedString] = {
+    case raw: RawMarkedString     => raw.toJson
+    case markdown: MarkdownString => markdown.toJson
+  }
+}
 
+@deriving(JsReader, JsWriter)
 case class RawMarkedString(language: String, value: String)
     extends MarkedString {
   def this(value: String) { // why not a factory constructor
     this("text", value)
   }
 }
-
+@deriving(JsReader, JsWriter)
 case class MarkdownString(contents: String) extends MarkedString
 
 case class ParameterInformation(label: String, documentation: Option[String])
@@ -187,6 +213,7 @@ object SymbolKind {
   final val Array       = 18
 }
 
+@deriving(JsReader, JsWriter)
 case class SymbolInformation(name: String,
                              kind: Int,
                              location: Location,
@@ -232,6 +259,7 @@ case class FormattingOptions(
  * An event describing a change to a text document. If range and rangeLength are omitted
  * the new text is considered to be the full content of the document.
  */
+@deriving(JsReader, JsWriter)
 case class TextDocumentContentChangeEvent(
   // The range of the document that changed.
   range: Option[Range],

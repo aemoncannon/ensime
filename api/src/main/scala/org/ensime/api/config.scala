@@ -2,6 +2,9 @@
 // License: http://www.apache.org/licenses/LICENSE-2.0
 package org.ensime.api
 
+import spray.json._
+import scalaz.deriving
+
 final case class EnsimeConfig(
   rootDir: RawFile,
   cacheDir: RawFile,
@@ -12,6 +15,7 @@ final case class EnsimeConfig(
   projects: List[EnsimeProject]
 )
 
+@deriving(JsReader, JsWriter)
 final case class EnsimeProjectId(
   project: String,
   config: String

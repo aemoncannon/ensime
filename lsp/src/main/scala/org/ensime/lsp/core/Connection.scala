@@ -9,7 +9,6 @@ import org.ensime.lsp.api.commands._
 import org.ensime.lsp.api.methods.Notifications._
 import org.ensime.lsp.api.methods._
 import org.ensime.lsp.api.types._
-import org.ensime.lsp.rpc.RpcFormats._
 import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.rpc.messages.{
   JsonRpcResponseErrorMessage => RpcError,
@@ -129,12 +128,12 @@ class Connection(inStream: InputStream,
     jsonString: String
   ): Either[RpcError, JsonRpcMessage] = {
     log.debug(s"Received $jsonString")
-    Try(JsonParser(jsonString)) match {
+    Try(JsParser(jsonString)) match {
       case Failure(e) =>
         Left(RpcErrors.parseError(e, CorrelationId()))
 
       case Success(json) =>
-        Try(JsonRpcMessageFormat.read(json)) match {
+        Try(JsReader[JsonRpcMessage].read(json)) match {
           case Failure(e) => Left(RpcErrors.invalidRequest(e, CorrelationId()))
           case Success(x) => Right(x)
         }

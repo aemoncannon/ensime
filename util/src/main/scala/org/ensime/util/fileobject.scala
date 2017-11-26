@@ -6,7 +6,7 @@ import java.io._
 import java.net._
 
 import org.apache.commons.vfs2._
-import org.ensime.api.deprecating
+import org.ensime.api._
 import org.ensime.util.ensimefile._
 
 /**

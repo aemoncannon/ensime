@@ -20,7 +20,7 @@ import org.ensime.config.richconfig._
 import org.ensime.core._
 import org.ensime.lsp.ensime.EnsimeLanguageServer
 import org.ensime.util.Slf4jSetup
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
+import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.path._
 import org.slf4j._
 

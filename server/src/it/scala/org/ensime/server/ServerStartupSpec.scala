@@ -11,7 +11,7 @@ import scala.util.Try
 import org.ensime.AkkaBackCompat
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
-import org.ensime.util.ensimefile.Implicits.DefaultCharset
+import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.path._
 
 class ServerStartupSpec

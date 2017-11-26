@@ -1,18 +1,22 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package spray.json
 
 import org.scalatest._
 import Matchers._
 
-class StandardFormatsSpec extends WordSpec with DefaultJsonProtocol {
+import JsWriter.ops._
+import JsReader.ops._
+
+class StandardFormatsSpec extends WordSpec {
 
   "The optionFormat" should {
     "convert None to JsNull" in {
       None.asInstanceOf[Option[Int]].toJson shouldEqual JsNull
     }
     "convert JsNull to None" in {
-      JsNull.convertTo[Option[Int]] shouldEqual None
+      JsNull.as[Option[Int]] shouldEqual None
     }
     "convert Some(Hello) to JsString(Hello)" in {
       Some("Hello").asInstanceOf[Option[String]].toJson shouldEqual JsString(
@@ -20,7 +24,7 @@ class StandardFormatsSpec extends WordSpec with DefaultJsonProtocol {
       )
     }
     "convert JsString(Hello) to Some(Hello)" in {
-      JsString("Hello").convertTo[Option[String]] shouldEqual Some("Hello")
+      JsString("Hello").as[Option[String]] shouldEqual Some("Hello")
     }
   }
 
@@ -35,10 +39,10 @@ class StandardFormatsSpec extends WordSpec with DefaultJsonProtocol {
       b.toJson shouldEqual JsString("Hello")
     }
     "convert the left side of an Either value from Json" in {
-      JsNumber(42).convertTo[Either[Int, String]] shouldEqual Left(42)
+      JsNumber(42).as[Either[Int, String]] shouldEqual Left(42)
     }
     "convert the right side of an Either value from Json" in {
-      JsString("Hello").convertTo[Either[Int, String]] shouldEqual Right(
+      JsString("Hello").as[Either[Int, String]] shouldEqual Right(
         "Hello"
       )
     }

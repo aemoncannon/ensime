@@ -1,5 +1,6 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package spray.json
 
 import scala.collection.immutable.ListMap
@@ -10,7 +11,7 @@ class PrettyPrinterSpec extends WordSpec {
 
   "The PrettyPrinter" should {
     "print a more complicated JsObject nicely aligned" in {
-      val JsObject(fields) = JsonParser {
+      val JsObject(fields) = JsParser {
         """{
           |  "Boolean no": false,
           |  "Boolean yes":true,

@@ -6,9 +6,7 @@ Copyright 2014 - 2016 Rory Graves
 Copyright 2016 - 2017 Andrey Sugak
 Copyright 2010 - 2017 https://github.com/ensime/ensime-server/graphs
 
-The `api` module is licensed under the Apache 2.0 permissive license.
-
-The `s-express` and `json` modules are licensed under the LGPLv3.
+The `api`, `s-express` and `json` modules are licensed under the LGPLv3.
 
 All remaining files are licensed under the GPLv3.
 

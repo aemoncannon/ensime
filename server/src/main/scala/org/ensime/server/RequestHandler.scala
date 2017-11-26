@@ -28,10 +28,10 @@ class RequestHandler(
         context.become(resolveDocSig, discardOld = false)
       case HierarchyOfTypeAtPointReq(file, point) =>
         project ! FqnOfTypeAtPointReq(file, point)
-        context.become(redirectToIndexer(FindHierarchy))
+        context.become(redirectToIndexer(FindHierarchy(_)))
       case UsesOfSymbolAtPointReq(file, point) =>
         project ! FqnOfSymbolAtPointReq(file, point)
-        context.become(redirectToIndexer(FindUsages))
+        context.become(redirectToIndexer(FindUsages(_)))
       case req => project ! req
     }
   }

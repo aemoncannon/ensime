@@ -1,5 +1,6 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package spray.json
 
 import org.scalatest._
@@ -11,11 +12,11 @@ class CompactPrinterSpec extends WordSpec {
     "print JsNull to 'null'" in {
       CompactPrinter(JsNull) shouldEqual "null"
     }
-    "print JsTrue to 'true'" in {
-      CompactPrinter(JsTrue) shouldEqual "true"
+    "print JsBoolean.True to 'true'" in {
+      CompactPrinter(JsBoolean.True) shouldEqual "true"
     }
-    "print JsFalse to 'false'" in {
-      CompactPrinter(JsFalse) shouldEqual "false"
+    "print JsBoolean.False to 'false'" in {
+      CompactPrinter(JsBoolean.False) shouldEqual "false"
     }
     "print JsNumber(0) to '0'" in {
       CompactPrinter(JsNumber(0)) shouldEqual "0"
@@ -57,7 +58,7 @@ class CompactPrinterSpec extends WordSpec {
         shouldEqual """[null,1.23,{"key":true}]"""
     )
     "properly print a JSON padding (JSONP) if requested" in {
-      CompactPrinter(JsTrue, Some("customCallback")) shouldEqual ("customCallback(true)")
+      CompactPrinter(JsBoolean.True, Some("customCallback")) shouldEqual ("customCallback(true)")
     }
   }
 

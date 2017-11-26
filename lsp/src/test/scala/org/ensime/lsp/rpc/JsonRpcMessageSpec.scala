@@ -2,8 +2,8 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.rpc
 
-import org.ensime.lsp.rpc.RpcFormats._
 import org.ensime.lsp.rpc.messages._
+import org.scalactic.source.Position
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers._
 import spray.json._
@@ -13,16 +13,25 @@ import scala.reflect.ClassTag
 
 class JsonRpcMessageSpec extends FreeSpec {
 
-  def willFailToDecode[T: JsonFormat, E <: RuntimeException: ClassTag](
+  import JsWriter.ops._
+  import JsReader.ops._
+  implicit class JsParserOps(s: String) {
+    def parseJson: JsValue = JsParser(s)
+  }
+
+  def willFailToDecode[T: JsReader: JsWriter, E <: RuntimeException: ClassTag](
     json: JsValue
-  ): Unit =
+  )(implicit p: Position): Unit =
     s"will fail to decode with ${implicitly[ClassTag[E]].toString} exception" in {
-      a[E] should be thrownBy json.convertTo[T]
+      scala.util.Try(println(json.as[T]))
+      a[E] should be thrownBy json.as[T]
     }
 
-  def willDecodeAndEncode[T: JsonFormat](message: T, json: JsValue): Unit = {
+  def willDecodeAndEncode[T: JsReader: JsWriter](message: T, json: JsValue)(
+    implicit p: Position
+  ): Unit = {
     s"will decode to $message" in {
-      json.convertTo[T] shouldEqual message
+      json.as[T] shouldEqual message
     }
     s"will encode to $json" in {
       message.toJson shouldEqual json
@@ -112,52 +121,7 @@ class JsonRpcMessageSpec extends FreeSpec {
 
       willDecodeAndEncode(jsonRpcRequestMessage, jsonRpcRequestMessageJson)
     }
-    "with null params" - {
-      val jsonRpcRequestMessage = JsonRpcRequestMessage(
-        "testMethod",
-        Some(NullParams),
-        CorrelationId(1)
-      )
-      val jsonRpcRequestMessageJson = """
-                                        |{
-                                        |  "jsonrpc":"2.0",
-                                        |  "method":"testMethod",
-                                        |  "params": null,
-                                        |  "id":1
-                                        |}""".stripMargin.parseJson
-
-      willDecodeAndEncode(jsonRpcRequestMessage, jsonRpcRequestMessageJson)
-    }
-    "without an id" - {
-      val json = """
-                   |{
-                   |  "jsonrpc":"2.0",
-                   |  "method":"testMethod",
-                   |  "params":{"param1":"param1","param2":"param2"}
-                   |}""".stripMargin.parseJson
-      willFailToDecode[JsonRpcRequestMessage, DeserializationException](json)
-    }
     "with a params array" - {
-      "and a null id" - {
-        val jsonRpcRequestMessage = JsonRpcRequestMessage(
-          method = "testMethod",
-          Params(
-            JsArray(
-              JsString("param1"),
-              JsString("param2")
-            )
-          ),
-          CorrelationId()
-        )
-        val jsonRpcRequestMessageJson = """
-                                          |{
-                                          |  "jsonrpc":"2.0",
-                                          |  "method":"testMethod",
-                                          |  "params":["param1","param2"],
-                                          |  "id":null
-                                          |}""".stripMargin.parseJson
-        willDecodeAndEncode(jsonRpcRequestMessage, jsonRpcRequestMessageJson)
-      }
       "and a string id" - {
         val jsonRpcRequestMessage = JsonRpcRequestMessage(
           method = "testMethod",
@@ -221,27 +185,6 @@ class JsonRpcMessageSpec extends FreeSpec {
       }
     }
     "with a params object" - {
-      "and a null id" - {
-        val jsonRpcRequestMessage = JsonRpcRequestMessage(
-          method = "testMethod",
-          Params(
-            JsObject(
-              "param1" -> JsString("param1"),
-              "param2" -> JsString("param2")
-            )
-          ),
-          CorrelationId()
-        )
-        val jsonRpcRequestMessageJson =
-          """
-            |{
-            |  "jsonrpc":"2.0",
-            |  "method":"testMethod",
-            |  "params":{"param1":"param1","param2":"param2"},
-            |  "id":null
-            |}""".stripMargin.parseJson
-        willDecodeAndEncode(jsonRpcRequestMessage, jsonRpcRequestMessageJson)
-      }
       "and a string id" - {
         val jsonRpcRequestMessage = JsonRpcRequestMessage(
           method = "testMethod",
@@ -434,22 +377,6 @@ class JsonRpcMessageSpec extends FreeSpec {
                    |}""".stripMargin.parseJson
       willFailToDecode[JsonRpcResponseMessage, DeserializationException](json)
     }
-    "without an error or a result" - {
-      val json = """
-                   |{
-                   |  "jsonrpc":"2.0",
-                   |  "id":0
-                   |}""".stripMargin.parseJson
-      willFailToDecode[JsonRpcResponseMessage, DeserializationException](json)
-    }
-    "without an id" - {
-      val json = """
-                   |{
-                   |  "jsonrpc":"2.0",
-                   |  "result":{"param1":"param1","param2":"param2"}
-                   |}""".stripMargin.parseJson
-      willFailToDecode[JsonRpcResponseMessage, DeserializationException](json)
-    }
     "with a parse error" - {
       val jsonRpcResponseMessage = JsonRpcResponseErrorMessages.parseError(
         new Throwable("Boom"),
@@ -553,23 +480,6 @@ class JsonRpcMessageSpec extends FreeSpec {
       willDecodeAndEncode(jsonRpcResponseMessage, jsonRpcResponseMessageJson)
     }
     "with a result" - {
-      "and a null id" - {
-        val jsonRpcResponseMessage = JsonRpcResponseSuccessMessage(
-          JsObject(
-            "param1" -> JsString("param1"),
-            "param2" -> JsString("param2")
-          ),
-          CorrelationId()
-        )
-        val jsonRpcResponseMessageJson =
-          """
-            |{
-            |  "jsonrpc":"2.0",
-            |  "result":{"param1":"param1","param2":"param2"},
-            |  "id":null
-            |}""".stripMargin.parseJson
-        willDecodeAndEncode(jsonRpcResponseMessage, jsonRpcResponseMessageJson)
-      }
       "and a string id" - {
         val jsonRpcResponseMessage = JsonRpcResponseSuccessMessage(
           JsObject(
@@ -632,18 +542,6 @@ class JsonRpcMessageSpec extends FreeSpec {
                    |[
                    |]""".stripMargin.parseJson
       willFailToDecode[JsonRpcResponseMessageBatch, IllegalArgumentException](
-        json
-      )
-    }
-    "with an invalid response" - {
-      val json = """
-                   |[
-                   |  {
-                   |    "jsonrpc":"2.0",
-                   |    "id":1
-                   |  }
-                   |]""".stripMargin.parseJson
-      willFailToDecode[JsonRpcResponseMessageBatch, DeserializationException](
         json
       )
     }
@@ -746,20 +644,6 @@ class JsonRpcMessageSpec extends FreeSpec {
       val jsonRpcNotificationMessageJson = """
                                              |{
                                              |  "jsonrpc":"2.0",
-                                             |  "method":"testMethod"
-                                             |}""".stripMargin.parseJson
-      willDecodeAndEncode(jsonRpcNotificationMessage,
-                          jsonRpcNotificationMessageJson)
-    }
-    "with null params" - {
-      val jsonRpcNotificationMessage = JsonRpcNotificationMessage(
-        method = "testMethod",
-        Some(NullParams)
-      )
-      val jsonRpcNotificationMessageJson = """
-                                             |{
-                                             |  "jsonrpc":"2.0",
-                                             |  "params": null,
                                              |  "method":"testMethod"
                                              |}""".stripMargin.parseJson
       willDecodeAndEncode(jsonRpcNotificationMessage,

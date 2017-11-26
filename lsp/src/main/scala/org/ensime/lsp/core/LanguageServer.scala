@@ -13,8 +13,6 @@ import org.ensime.lsp.rpc.messages._
 object LanguageServer {
 
   object ResponseHandler {
-    import org.ensime.lsp.api.methods.RpcResponseConversions._
-
     def buildHandler(
       l: LanguageServer
     ): PartialFunction[

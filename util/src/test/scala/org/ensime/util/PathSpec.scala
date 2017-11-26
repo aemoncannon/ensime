@@ -6,8 +6,9 @@ import java.nio.file.{ Files, Path }
 import org.scalatest._
 import org.scalatest.Matchers._
 
+import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
+
 class PathSpec extends FlatSpec {
-  import ensimefile.Implicits.DefaultCharset
   import path._
 
   val unix    = Array[Byte](0x61, 0x0a, 0x62, 0x0a, 0x63)

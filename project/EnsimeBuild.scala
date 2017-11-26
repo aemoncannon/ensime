@@ -41,6 +41,25 @@ object ProjectPlugin extends AutoPlugin {
 object EnsimeBuild {
   // common to the ensimeBuild, but not the testing projects
   lazy val commonSettings = Seq(
+    scalacOptions ++= Seq(
+      "-unchecked",
+      "-language:higherKinds",
+      "-Xexperimental" // SAM types in 2.11
+    ),
+    libraryDependencies ++= Seq(
+      "com.github.mpilquist" %% "simulacrum"     % "0.11.0",
+      "com.fommil"           %% "deriving-macro" % "0.9.0",
+    ),
+    scalacOptions ++= {
+      val dir = (baseDirectory in ThisBuild).value / "project"
+      Seq(
+        s"-Xmacro-settings:deriving.targets=$dir/deriving-targets.conf",
+        s"-Xmacro-settings:deriving.defaults=$dir/deriving-defaults.conf"
+      )
+    },
+    addCompilerPlugin(
+      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+    ),
     dependencyOverrides ++= Seq(
       "com.typesafe.akka" %% "akka-actor"   % akkaVersion,
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion
@@ -85,9 +104,10 @@ object EnsimeBuild {
     )
   )
 
-  lazy val api = Project("api", file("api")) settings (commonSettings) settings (
-    licenses := Seq(Apache2)
-  )
+  lazy val api = project
+    .dependsOn(json)
+    .settings(commonSettings)
+    .settings(licenses := Seq(Apache2))
 
   lazy val util = Project("util", file("util")) settings (commonSettings) dependsOn (
     api
@@ -100,14 +120,15 @@ object EnsimeBuild {
     ) ++ logback ++ shapeless.value
   )
 
-  lazy val testutil = Project("testutil", file("testutil")) settings (commonSettings) dependsOn (
-    util, api
-  ) settings (
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
-      "com.typesafe.akka" %% "akka-slf4j"   % akkaVersion
-    ) ++ sensibleTestLibs(Compile)
-  )
+  lazy val testutil = project
+    .dependsOn(util, monkeys)
+    .settings(commonSettings)
+    .settings(
+      libraryDependencies ++= Seq(
+        "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
+        "com.typesafe.akka" %% "akka-slf4j"   % akkaVersion
+      ) ++ sensibleTestLibs(Compile)
+    )
 
   lazy val json = project settings (commonSettings) settings (
     licenses := Seq(LGPL3),
@@ -122,19 +143,6 @@ object EnsimeBuild {
       "com.lihaoyi"    %% "fastparse"  % "0.4.4",
       "org.scalacheck" %% "scalacheck" % "1.13.5" % Test
     ) ++ shapeless.value ++ logback
-  )
-
-  // the JSON protocol
-  lazy val jerky = Project("jerky", file("protocol-jerky")) settings (commonSettings) dependsOn (
-    util,
-    json,
-    api,
-    testutil % Test,
-    api      % "test->test" // for the test data
-  ) settings (
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-    ) ++ shapeless.value
   )
 
   // the S-Exp protocol
@@ -219,7 +227,6 @@ object EnsimeBuild {
     .dependsOn(
       core,
       swanky,
-      jerky,
       lsp,
       s_express % "test->test",
       swanky    % "test->test",
@@ -241,11 +248,13 @@ object EnsimeBuild {
       ) ++ shapeless.value
     )
 
-  lazy val lsp = Project("lsp", file("lsp")).dependsOn(core, json)
+  lazy val lsp = Project("lsp", file("lsp"))
+    .settings(commonSettings)
+    .dependsOn(core, json)
 
   // manual root project so we can exclude the testing projects from publication
   lazy val root = Project(id = "ensime", base = file(".")) settings (commonSettings) aggregate (
-    api, monkeys, util, s_express, jerky, swanky, core, server, json, lsp
+    api, monkeys, util, s_express, swanky, core, server, json, lsp
   ) dependsOn (server) settings (
     // e.g. `sbt ++2.11.11 ensime/assembly`
     test in assembly := {},

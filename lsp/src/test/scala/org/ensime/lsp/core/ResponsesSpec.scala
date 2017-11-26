@@ -3,7 +3,6 @@
 package org.ensime.lsp.core
 
 import org.ensime.lsp.api.commands._
-import org.ensime.lsp.api.methods.RpcResponseConversions
 import org.ensime.lsp.api.types._
 import org.ensime.lsp.rpc.companions.RpcResponse
 import org.ensime.lsp.rpc.messages.{
@@ -16,7 +15,7 @@ import shapeless.Typeable
 import spray.json._
 
 class ResponsesSpec extends FreeSpec {
-  def responseShouldReadAndWrite[T: JsonFormat: Typeable](
+  def responseShouldReadAndWrite[T: JsReader: JsWriter: Typeable](
     obj: T,
     id: CorrelationId,
     message: JsonRpcResponseSuccessMessage
@@ -38,30 +37,31 @@ class ResponsesSpec extends FreeSpec {
     )
     val id = CorrelationId(1)
     val message = JsonRpcResponseSuccessMessage(
-      """
-        |{
-        |  "capabilities": {
-        |    "definitionProvider": false,
-        |    "hoverProvider": false,
-        |    "workspaceSymbolProvider": false,
-        |    "renameProvider": false,
-        |    "referencesProvider": false,
-        |    "completionProvider": {
-        |      "resolveProvider": true,
-        |      "triggerCharacters": ["a", "b", "c"]
-        |    },
-        |    "documentRangeFormattingProvider": false,
-        |    "documentHighlightProvider": false,
-        |    "textDocumentSync": 1,
-        |    "codeActionProvider": false,
-        |    "documentSymbolProvider": false,
-        |    "documentFormattingProvider": false
-        |  }
-        |}""".stripMargin.parseJson,
+      JsParser(
+        """
+          |{
+          |  "capabilities": {
+          |    "definitionProvider": false,
+          |    "hoverProvider": false,
+          |    "workspaceSymbolProvider": false,
+          |    "renameProvider": false,
+          |    "referencesProvider": false,
+          |    "completionProvider": {
+          |      "resolveProvider": true,
+          |      "triggerCharacters": ["a", "b", "c"]
+          |    },
+          |    "documentRangeFormattingProvider": false,
+          |    "documentHighlightProvider": false,
+          |    "textDocumentSync": 1,
+          |    "codeActionProvider": false,
+          |    "documentSymbolProvider": false,
+          |    "documentFormattingProvider": false
+          |  }
+          |}""".stripMargin
+      ),
       id
     )
 
-    import RpcResponseConversions._
     responseShouldReadAndWrite(initializeResult, id, message)
   }
 
@@ -70,15 +70,14 @@ class ResponsesSpec extends FreeSpec {
       CompletionList(true, Seq(CompletionItem(label = "label1")))
     val id = CorrelationId(1)
     val message = JsonRpcResponseSuccessMessage(
-      """
-        |{
-        |  "isIncomplete": true,
-        |  "items": [{"label": "label1"}]
-        |}""".stripMargin.parseJson,
+      JsParser("""
+                 |{
+                 |  "isIncomplete": true,
+                 |  "items": [{"label": "label1"}]
+                 |}""".stripMargin),
       id
     )
 
-    import RpcResponseConversions._
     responseShouldReadAndWrite(completionList, id, message)
   }
 
@@ -88,24 +87,23 @@ class ResponsesSpec extends FreeSpec {
     )
     val id = CorrelationId(1)
     val message = JsonRpcResponseSuccessMessage(
-      """
-        |[{
-        |  "uri": "uri1",
-        |  "range": {
-        |    "start": {
-        |      "line": 1,
-        |      "character": 0
-        |    },
-        |    "end": {
-        |      "line": 2,
-        |      "character": 3
-        |    }
-        |  }
-        |}]""".stripMargin.parseJson,
+      JsParser("""
+                 |[{
+                 |  "uri": "uri1",
+                 |  "range": {
+                 |    "start": {
+                 |      "line": 1,
+                 |      "character": 0
+                 |    },
+                 |    "end": {
+                 |      "line": 2,
+                 |      "character": 3
+                 |    }
+                 |  }
+                 |}]""".stripMargin),
       id
     )
 
-    import RpcResponseConversions._
     responseShouldReadAndWrite(definitionResult, id, message)
   }
 
@@ -117,21 +115,20 @@ class ResponsesSpec extends FreeSpec {
       )
     val id = CorrelationId(1)
     val message = JsonRpcResponseSuccessMessage(
-      """
-        |{
-        |  "contents": [
-        |  { 
-        |    "language": "lang1",
-        |    "value": "value1"
-        |  },
-        |  {
-        |    "contents": "some text"
-        |  }]
-        |}""".stripMargin.parseJson,
+      JsParser("""
+                 |{
+                 |  "contents": [
+                 |  {
+                 |    "language": "lang1",
+                 |    "value": "value1"
+                 |  },
+                 |  {
+                 |    "contents": "some text"
+                 |  }]
+                 |}""".stripMargin),
       id
     )
 
-    import RpcResponseConversions._
     responseShouldReadAndWrite(hover, id, message)
   }
 
@@ -148,31 +145,30 @@ class ResponsesSpec extends FreeSpec {
       )
     val id = CorrelationId(1)
     val message = JsonRpcResponseSuccessMessage(
-      """
-        |[
-        |  {
-        |    "name": "name1",
-        |    "kind": 2,
-        |    "location": {
-        |      "uri": "uri1",
-        |      "range": {
-        |        "start": {
-        |          "line": 1,
-        |          "character": 0
-        |        },
-        |        "end": {
-        |          "line": 4,
-        |          "character": 5
-        |        }
-        |      }
-        |    },
-        |    "containerName": "container1"
-        |  }
-        |]""".stripMargin.parseJson,
+      JsParser("""
+                 |[
+                 |  {
+                 |    "name": "name1",
+                 |    "kind": 2,
+                 |    "location": {
+                 |      "uri": "uri1",
+                 |      "range": {
+                 |        "start": {
+                 |          "line": 1,
+                 |          "character": 0
+                 |        },
+                 |        "end": {
+                 |          "line": 4,
+                 |          "character": 5
+                 |        }
+                 |      }
+                 |    },
+                 |    "containerName": "container1"
+                 |  }
+                 |]""".stripMargin),
       id
     )
 
-    import RpcResponseConversions._
     responseShouldReadAndWrite(documentSymbolResult, id, message)
   }
 }
