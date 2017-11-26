@@ -5,7 +5,7 @@ env:
   global:
     - AKKA_TEST_TIMEFACTOR=10
     - SBT_TASK_LIMIT=4
-    - SCALA_VERSION=2.12.3
+    - SCALA_VERSION=2.12.4
 script:
   - echo "ensimeServerJars := Nil" > ensime.sbt ;
     echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
