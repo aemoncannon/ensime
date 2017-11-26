@@ -9,17 +9,18 @@ import scala.util.{ Failure, Success, Try }
 
 private object TypesConversions extends DefaultJsonProtocol with FamilyFormats {
 
-  implicit val markedStringFormat: JsonFormat[MarkedString] = new JsonFormat[MarkedString] {
-    def read(j: JsValue): MarkedString =
-      (Try(j.convertTo[RawMarkedString]) orElse
-        Try(j.convertTo[MarkdownString])) match {
-        case Failure(e) => sys.error(s"Wrong MarkedString format for $j")
-        case Success(x) => x
-      }
+  implicit val markedStringFormat: JsonFormat[MarkedString] =
+    new JsonFormat[MarkedString] {
+      def read(j: JsValue): MarkedString =
+        (Try(j.convertTo[RawMarkedString]) orElse
+          Try(j.convertTo[MarkdownString])) match {
+          case Failure(e) => sys.error(s"Wrong MarkedString format for $j")
+          case Success(x) => x
+        }
 
-    override def write(obj: MarkedString): JsValue = obj match {
-      case raw: RawMarkedString     => raw.toJson
-      case markdown: MarkdownString => markdown.toJson
+      override def write(obj: MarkedString): JsValue = obj match {
+        case raw: RawMarkedString     => raw.toJson
+        case markdown: MarkdownString => markdown.toJson
+      }
     }
-  }
 }

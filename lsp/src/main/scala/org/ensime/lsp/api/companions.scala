@@ -10,15 +10,18 @@ object ServerCommands extends DefaultJsonProtocol with FamilyFormats {
 
   implicit val textDocumentDefinitionRequestFormat
     : JsonFormat[TextDocumentDefinitionRequest] =
-    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentDefinitionRequest(_), _.params)
+    JsonFormat[TextDocumentPositionParams]
+      .xmap(TextDocumentDefinitionRequest(_), _.params)
 
   implicit val textDocumentHoverRequestFormat
     : JsonFormat[TextDocumentHoverRequest] =
-    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentHoverRequest(_), _.params)
+    JsonFormat[TextDocumentPositionParams]
+      .xmap(TextDocumentHoverRequest(_), _.params)
 
   implicit val textDocumentCompletionRequestFormat
     : JsonFormat[TextDocumentCompletionRequest] =
-    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentCompletionRequest(_), _.params)
+    JsonFormat[TextDocumentPositionParams]
+      .xmap(TextDocumentCompletionRequest(_), _.params)
 
   implicit val initializeCommand: RpcCommand[InitializeParams] =
     RpcCommand[InitializeParams]("initialize")

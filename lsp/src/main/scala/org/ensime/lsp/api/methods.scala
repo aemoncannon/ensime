@@ -22,15 +22,18 @@ private[lsp] object ServerCommandConversions
 
   implicit val textDocumentDefinitionRequestFormat
     : JsonFormat[TextDocumentDefinitionRequest] =
-    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentDefinitionRequest(_), _.params)
+    JsonFormat[TextDocumentPositionParams]
+      .xmap(TextDocumentDefinitionRequest(_), _.params)
 
   implicit val textDocumentHoverRequestFormat
     : JsonFormat[TextDocumentHoverRequest] =
-    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentHoverRequest(_), _.params)
+    JsonFormat[TextDocumentPositionParams]
+      .xmap(TextDocumentHoverRequest(_), _.params)
 
   implicit val textDocumentCompletionRequestFormat
     : JsonFormat[TextDocumentCompletionRequest] =
-    JsonFormat[TextDocumentPositionParams].xmap(TextDocumentCompletionRequest(_), _.params)
+    JsonFormat[TextDocumentPositionParams]
+      .xmap(TextDocumentCompletionRequest(_), _.params)
 }
 
 object ServerCommands {
@@ -144,7 +147,7 @@ private[lsp] object RpcResponseConversions
       }
     )
 
-  import org.ensime.lsp.api.types.{Location, SymbolInformation}
+  import org.ensime.lsp.api.types.{ Location, SymbolInformation }
 
   implicit val definitionResultFormat: JsonFormat[DefinitionResult] =
     JsonFormat[Seq[Location]].xmap(DefinitionResult(_), _.params)
