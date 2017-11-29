@@ -27,12 +27,12 @@ install:
 build_script:
   - echo ensimeServerJars := Nil > ensime.sbt
   - echo ensimeServerProjectJars := Nil >> ensime.sbt
-  - sbt ++%SCALA_VERSION% ";ensimeConfig ;test:compile ;it:compile ;ensime/assembly"
-  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (cd testing\cache && sbt ++%SCALA_VERSION% ensimeConfig ensimeServerIndex && cd ..\..)
+  - sbt ++%SCALA_VERSION%! ";ensimeConfig ;test:compile ;it:compile ;ensime/assembly"
+  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (cd testing\cache && sbt ++%SCALA_VERSION%! ensimeConfig ensimeServerIndex && cd ..\..)
 test_script:
-  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "testOnly -- -l tags.IgnoreOnAppVeyor")
+  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION%! "testOnly -- -l tags.IgnoreOnAppVeyor")
   - SET SBT_TASK_LIMIT=2
-  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION% "it:testOnly -- -l tags.IgnoreOnAppVeyor")
+  - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION%! "it:testOnly -- -l tags.IgnoreOnAppVeyor")
 cache:
   - C:\Program Files\Java\jdk1.8.0\src.zip
   - C:\sbt -> appveyor.yml

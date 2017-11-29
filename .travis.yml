@@ -11,10 +11,10 @@ script:
     echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
   - export JAVA_HOME=$(/usr/libexec/java_home)
   - curl https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt -o sbt ; chmod 755 sbt
-  - ./sbt ++$SCALA_VERSION ";ensimeConfig ;test:compile ;it:compile ;ensime/assembly"
-  - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then cd testing/cache && ../../sbt ++$SCALA_VERSION ensimeConfig ensimeServerIndex && cd ../.. ; fi
-  - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then ./sbt ++$SCALA_VERSION "testOnly -- -l tags.IgnoreOnTravis" ; fi
-  - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then SBT_TASK_LIMIT=2 ./sbt ++$SCALA_VERSION "it:testOnly -- -l tags.IgnoreOnTravis" ; fi
+  - ./sbt ++$SCALA_VERSION! ";ensimeConfig ;test:compile ;it:compile ;ensime/assembly"
+  - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then cd testing/cache && ../../sbt ++$SCALA_VERSION! ensimeConfig ensimeServerIndex && cd ../.. ; fi
+  - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then ./sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis" ; fi
+  - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then SBT_TASK_LIMIT=2 ./sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis" ; fi
   - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
 cache:
   directories:
