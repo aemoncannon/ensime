@@ -6,7 +6,7 @@ import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.api.commands._
 import spray.json._
 
-object ServerCommands extends {
+object ServerCommands {
   implicit val initializeCommand: RpcCommand[InitializeParams] =
     RpcCommand[InitializeParams]("initialize")
   implicit val shutdownCommand: RpcCommand[Shutdown] =

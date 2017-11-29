@@ -23,7 +23,6 @@ class JsonRpcMessageSpec extends FreeSpec {
     json: JsValue
   )(implicit p: Position): Unit =
     s"will fail to decode with ${implicitly[ClassTag[E]].toString} exception" in {
-      scala.util.Try(println(json.as[T]))
       a[E] should be thrownBy json.as[T]
     }
 
