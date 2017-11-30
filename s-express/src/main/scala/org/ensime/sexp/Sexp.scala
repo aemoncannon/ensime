@@ -1,5 +1,6 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package org.ensime.sexp
 
 import collection.breakOut
@@ -13,45 +14,23 @@ import scala.collection.immutable.ListMap
  *
  * Everything else is just sugar.
  */
-sealed abstract class Sexp {
-  //  override def toString = compactPrint
-  def compactPrint = SexpCompactPrinter(this)
-  def prettyPrint  = SexpPrettyPrinter(this)
+sealed abstract class Sexp
 
-  def convertTo[T](implicit reader: SexpReader[T]): T = reader.read(this)
+sealed trait SexpList                       extends Sexp
+final case class SexpCons(x: Sexp, y: Sexp) extends SexpList
 
-  private[sexp] def isList: Boolean = false
-}
+sealed abstract class SexpAtom             extends Sexp
+final case class SexpChar(value: Char)     extends SexpAtom
+final case class SexpString(value: String) extends SexpAtom
 
-final case class SexpCons(x: Sexp, y: Sexp) extends Sexp {
-  private[sexp] override val isList = y.isList
-}
+// https://www.gnu.org/software/emacs/manual/html_node/elisp/Integer-Basics.html
+final case class SexpInteger(value: Long) extends SexpAtom
 
-sealed trait SexpAtom                          extends Sexp
-final case class SexpChar(value: Char)         extends SexpAtom
-final case class SexpString(value: String)     extends SexpAtom
-final case class SexpNumber(value: BigDecimal) extends SexpAtom
-final case class SexpSymbol(value: String)     extends SexpAtom
-case object SexpNil extends SexpAtom {
-  private[sexp] override def isList = true
-}
 // https://www.gnu.org/software/emacs/manual/html_node/elisp/Float-Basics.html
-case object SexpPosInf extends SexpAtom
-case object SexpNegInf extends SexpAtom
-case object SexpNaN    extends SexpAtom
+case class SexpFloat(value: Double) extends SexpAtom
 
-object SexpNumber {
-  def apply(n: Int)  = new SexpNumber(BigDecimal(n))
-  def apply(n: Long) = new SexpNumber(BigDecimal(n))
-  def apply(n: Double) = n match {
-    case _ if n.isNaN      => SexpNil
-    case _ if n.isInfinity => SexpNil
-    case _                 => new SexpNumber(BigDecimal(n))
-  }
-  def apply(n: BigInt)      = new SexpNumber(BigDecimal(n))
-  def apply(n: String)      = new SexpNumber(BigDecimal(n))
-  def apply(n: Array[Char]) = new SexpNumber(BigDecimal(n))
-}
+final case class SexpSymbol(value: String) extends SexpAtom
+case object SexpNil                        extends SexpAtom with SexpList
 
 /** Sugar for ("a" . ("b" . ("c" . nil))) */
 object SexpList {
@@ -61,29 +40,28 @@ object SexpList {
     case (head, tail) => SexpCons(head, tail)
   }
 
-  def unapply(sexp: Sexp): Option[List[Sexp]] =
-    if (!sexp.isList) None
-    else {
-      def rec(s: Sexp): List[Sexp] = s match {
-        case SexpNil            => Nil
-        case SexpCons(car, cdr) => car :: rec(cdr)
-        case _                  => throw new IllegalStateException("Not a list: " + s)
+  def unapply(sexp: Sexp): Option[List[Sexp]] = sexp match {
+    case list: SexpList =>
+      def rec(s: SexpList): Option[List[Sexp]] = s match {
+        case SexpNil                      => Some(Nil)
+        case SexpCons(car, cdr: SexpList) => rec(cdr).map(car :: _)
+        case _                            => None
       }
-      val res = rec(sexp)
-      if (res.isEmpty) None
-      else Some(res)
-    }
+      rec(list)
+    case _ => None
+  }
 }
 
 /**
  * Sugar for (:k1 v1 :k2 v2)
  * [keyword symbols](https://www.gnu.org/software/emacs/manual/html_node/elisp/Symbol-Type.html):
  *
- * `SexpData` is defined as a type alias in `package.scala`
+ * `SexpData` is shorthand for `ListMap[SexpSymbol, Sexp]`
  */
 object SexpData {
   def apply(kvs: (SexpSymbol, Sexp)*): Sexp = apply(kvs.toList)
 
+  // not total...
   def apply(kvs: List[(SexpSymbol, Sexp)]): Sexp =
     if (kvs.isEmpty)
       SexpNil
@@ -98,7 +76,7 @@ object SexpData {
       )
     }
 
-  def unapply(sexp: Sexp): Option[SexpData] = sexp match {
+  def unapply(sexp: Sexp): Option[ListMap[SexpSymbol, Sexp]] = sexp match {
     case SexpList(values) =>
       // order can be important in serialised forms
       val props = {
@@ -113,7 +91,7 @@ object SexpData {
       }
       // props.size counts unique keys. We only create data when keys
       // are not duplicated or we could introduce losses
-      if (values.isEmpty || 2 * props.size != values.size)
+      if (2 * props.size != values.size)
         None
       else
         Some(props)

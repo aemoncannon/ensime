@@ -1,5 +1,6 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package org.ensime.sexp
 
 class SexpPackageSpec extends SexpSpec {
@@ -33,8 +34,8 @@ class SexpPackageSpec extends SexpSpec {
       case _                                            => fail()
     }
     SexpNil match {
-      case SexpList(_) => fail()
-      case _           =>
+      case SexpList(_) =>
+      case _           => fail()
     }
   }
 
@@ -97,8 +98,8 @@ class SexpPackageSpec extends SexpSpec {
     }
 
     SexpNil match {
-      case SexpData(_) => fail()
-      case _           =>
+      case SexpData(_) =>
+      case _           => fail()
     }
   }
 

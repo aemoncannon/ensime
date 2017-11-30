@@ -2,8 +2,10 @@
 // License: http://www.apache.org/licenses/LICENSE-2.0
 package org.ensime.api
 
-import spray.json._
 import scalaz.deriving
+
+import spray.json.{ JsReader, JsWriter }
+import org.ensime.sexp.{ SexpReader, SexpWriter }
 
 final case class EnsimeConfig(
   rootDir: RawFile,
@@ -15,7 +17,7 @@ final case class EnsimeConfig(
   projects: List[EnsimeProject]
 )
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 final case class EnsimeProjectId(
   project: String,
   config: String

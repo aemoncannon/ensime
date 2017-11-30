@@ -1,5 +1,6 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package org.ensime.sexp
 
 class SexpPrettyPrinterSpec extends SexpSpec {
@@ -19,7 +20,7 @@ class SexpPrettyPrinterSpec extends SexpSpec {
 
   it should "output lists of atoms" in {
     assertPrinter(
-      SexpList(foo, SexpNumber(13), foosym),
+      SexpList(foo, SexpInteger(13), foosym),
       """("foo"
         |  13
         |  foo)""".stripMargin

@@ -5,15 +5,17 @@ package org.ensime.jerky
 import java.io.File
 
 import org.scalatest._
+import org.scalactic.source.Position
 
 import org.ensime.api._
+import org.ensime.util.EscapingStringInterpolation
 
 class JerkyFormatsSpec
     extends FlatSpec
     with Matchers
-    with SprayJsonTestSupport
-    with EnsimeTestData {
+    with SprayJsonTestSupport {
 
+  import EnsimeTestData._
   import EscapingStringInterpolation._
 
   "Jerk Formats" should "roundtrip request envelopes" in {
@@ -37,12 +39,13 @@ class JerkyFormatsSpec
     )
   }
 
-  def roundtrip(value: RpcRequest, via: String): Unit = {
+  def roundtrip(value: RpcRequest, via: String)(implicit p: Position): Unit = {
     val enveloped = RpcRequestEnvelope(value, -1)
     roundtrip(enveloped, s"""{"req":$via, "callId":-1}""")
   }
 
-  def roundtrip(value: EnsimeServerMessage, via: String): Unit = {
+  def roundtrip(value: EnsimeServerMessage,
+                via: String)(implicit p: Position): Unit = {
     val enveloped = RpcResponseEnvelope(None, value)
     roundtrip(enveloped, s"""{"payload":$via}""")
   }
@@ -233,17 +236,17 @@ class JerkyFormatsSpec
 
     roundtrip(
       DebugValueReq(debugLocationArray): RpcRequest,
-      """{"typehint":"DebugValueReq","loc":{"typehint":"DebugArrayElement","objectId":{"id":13},"index":14}}"""
+      """{"typehint":"DebugValueReq","loc":{"typehint":"DebugArrayElement","objectId":13,"index":14}}"""
     )
 
     roundtrip(
       DebugToStringReq(dtid, debugLocationArray): RpcRequest,
-      """{"typehint":"DebugToStringReq","threadId":13,"loc":{"typehint":"DebugArrayElement","objectId":{"id":13},"index":14}}"""
+      """{"typehint":"DebugToStringReq","threadId":13,"loc":{"typehint":"DebugArrayElement","objectId":13,"index":14}}"""
     )
 
     roundtrip(
       DebugSetValueReq(debugLocationArray, "bar"): RpcRequest,
-      """{"typehint":"DebugSetValueReq","loc":{"typehint":"DebugArrayElement","objectId":{"id":13},"index":14},"newValue":"bar"}"""
+      """{"typehint":"DebugSetValueReq","loc":{"typehint":"DebugArrayElement","objectId":13,"index":14},"newValue":"bar"}"""
     )
 
     roundtrip(
@@ -334,18 +337,18 @@ class JerkyFormatsSpec
 
   it should "roundtrip DebugLocation" in {
     roundtrip(
-      DebugObjectReference(57L): EnsimeServerMessage,
-      """{"typehint":"DebugObjectReference","objectId":{"id":57}}"""
+      DebugObjectReference(DebugObjectId(57L)): EnsimeServerMessage,
+      """{"typehint":"DebugObjectReference","objectId":57}"""
     )
 
     roundtrip(
       DebugArrayElement(DebugObjectId(58L), 2): EnsimeServerMessage,
-      """{"typehint":"DebugArrayElement","objectId":{"id":58},"index":2}"""
+      """{"typehint":"DebugArrayElement","objectId":58,"index":2}"""
     )
 
     roundtrip(
       DebugObjectField(DebugObjectId(58L), "fieldName"): EnsimeServerMessage,
-      """{"typehint":"DebugObjectField","objectId":{"id":58},"field":"fieldName"}"""
+      """{"typehint":"DebugObjectField","objectId":58,"field":"fieldName"}"""
     )
 
     roundtrip(
@@ -365,7 +368,7 @@ class JerkyFormatsSpec
                           List(debugClassField),
                           "typeNameStr",
                           DebugObjectId(5L)): EnsimeServerMessage,
-      """{"typehint":"DebugStringInstance","typeName":"typeNameStr","fields":[{"index":19,"name":"nameStr","typeName":"typeNameStr","summary":"summaryStr"}],"objectId":{"id":5},"summary":"summaryStr"}"""
+      """{"typehint":"DebugStringInstance","typeName":"typeNameStr","fields":[{"index":19,"name":"nameStr","typeName":"typeNameStr","summary":"summaryStr"}],"objectId":5,"summary":"summaryStr"}"""
     )
 
     roundtrip(
@@ -373,7 +376,7 @@ class JerkyFormatsSpec
                           List(debugClassField),
                           "typeNameStr",
                           DebugObjectId(5L)): EnsimeServerMessage,
-      """{"typehint":"DebugObjectInstance","typeName":"typeNameStr","fields":[{"index":19,"name":"nameStr","typeName":"typeNameStr","summary":"summaryStr"}],"objectId":{"id":5},"summary":"summaryStr"}"""
+      """{"typehint":"DebugObjectInstance","typeName":"typeNameStr","fields":[{"index":19,"name":"nameStr","typeName":"typeNameStr","summary":"summaryStr"}],"objectId":5,"summary":"summaryStr"}"""
     )
 
     roundtrip(
@@ -383,7 +386,7 @@ class JerkyFormatsSpec
 
     roundtrip(
       DebugArrayInstance(3, "typeName", "elementType", DebugObjectId(5L)): EnsimeServerMessage,
-      """{"elementTypeName":"elementType","typehint":"DebugArrayInstance","typeName":"typeName","length":3,"objectId":{"id":5}}"""
+      """{"elementTypeName":"elementType","typehint":"DebugArrayInstance","typeName":"typeName","length":3,"objectId":5}"""
     )
 
     roundtrip(
@@ -398,12 +401,12 @@ class JerkyFormatsSpec
 
     roundtrip(
       debugStackFrame: EnsimeServerMessage,
-      s"""{"typehint":"DebugStackFrame","thisObjectId":{"id":7},"methodName":"method1","locals":[{"index":3,"name":"name1","summary":"summary1","typeName":"type1"},{"index":4,"name":"name2","summary":"summary2","typeName":"type2"}],"pcLocation":{"file":"$file1","line":57},"className":"class1","numArgs":4,"index":7}"""
+      s"""{"typehint":"DebugStackFrame","thisObjectId":7,"methodName":"method1","locals":[{"index":3,"name":"name1","summary":"summary1","typeName":"type1"},{"index":4,"name":"name2","summary":"summary2","typeName":"type2"}],"pcLocation":{"file":"$file1","line":57},"className":"class1","numArgs":4,"index":7}"""
     )
 
     roundtrip(
       DebugBacktrace(List(debugStackFrame), dtid, "thread1"): EnsimeServerMessage,
-      s"""{"typehint":"DebugBacktrace","frames":[{"thisObjectId":{"id":7},"methodName":"method1","locals":[{"index":3,"name":"name1","summary":"summary1","typeName":"type1"},{"index":4,"name":"name2","summary":"summary2","typeName":"type2"}],"pcLocation":{"file":"$file1","line":57},"className":"class1","numArgs":4,"index":7}],"threadId":13,"threadName":"thread1"}"""
+      s"""{"typehint":"DebugBacktrace","frames":[{"thisObjectId":7,"methodName":"method1","locals":[{"index":3,"name":"name1","summary":"summary1","typeName":"type1"},{"index":4,"name":"name2","summary":"summary2","typeName":"type2"}],"pcLocation":{"file":"$file1","line":57},"className":"class1","numArgs":4,"index":7}],"threadId":13,"threadName":"thread1"}"""
     )
 
     roundtrip(

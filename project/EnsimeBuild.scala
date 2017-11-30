@@ -105,9 +105,9 @@ object EnsimeBuild {
   )
 
   lazy val api = project
-    .dependsOn(json)
+    .dependsOn(json, s_express)
     .settings(commonSettings)
-    .settings(licenses := Seq(Apache2))
+    .settings(licenses := Seq(LGPL3))
 
   lazy val util = Project("util", file("util")) settings (commonSettings) dependsOn (
     api
@@ -143,17 +143,6 @@ object EnsimeBuild {
       "com.lihaoyi"    %% "fastparse"  % "0.4.4",
       "org.scalacheck" %% "scalacheck" % "1.13.5" % Test
     ) ++ shapeless.value ++ logback
-  )
-
-  // the S-Exp protocol
-  lazy val swanky = Project("swanky", file("protocol-swanky")) settings (commonSettings) dependsOn (
-    api, s_express, util,
-    testutil % Test,
-    api      % "test->test" // for the test data
-  ) settings (
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-    ) ++ shapeless.value
   )
 
   import EnsimeTestingBuild._
@@ -226,10 +215,8 @@ object EnsimeBuild {
   lazy val server = Project("server", file("server"))
     .dependsOn(
       core,
-      swanky,
       lsp,
       s_express % "test->test",
-      swanky    % "test->test",
       // depend on "it" dependencies in Test or sbt adds them to the release deps!
       // https://github.com/sbt/sbt/issues/1888
       core        % "test->test",
@@ -254,7 +241,7 @@ object EnsimeBuild {
 
   // manual root project so we can exclude the testing projects from publication
   lazy val root = Project(id = "ensime", base = file(".")) settings (commonSettings) aggregate (
-    api, monkeys, util, s_express, swanky, core, server, json, lsp
+    api, monkeys, util, s_express, core, server, json, lsp
   ) dependsOn (server) settings (
     // e.g. `sbt ++2.11.11 ensime/assembly`
     test in assembly := {},

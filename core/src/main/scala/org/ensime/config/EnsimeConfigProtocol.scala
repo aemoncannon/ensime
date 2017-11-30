@@ -8,7 +8,6 @@ import akka.event.slf4j.Logger
 import shapeless._
 
 import org.ensime.sexp._
-import org.ensime.sexp.formats._
 import org.ensime.core.Canonised
 
 import org.ensime.util.file._

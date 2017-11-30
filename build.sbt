@@ -4,7 +4,6 @@ lazy val testutil  = EnsimeBuild.testutil
 lazy val json      = EnsimeBuild.json
 lazy val s_express = EnsimeBuild.s_express
 lazy val api       = EnsimeBuild.api
-lazy val swanky    = EnsimeBuild.swanky
 lazy val core      = EnsimeBuild.core
 lazy val server    = EnsimeBuild.server
 lazy val lsp       = EnsimeBuild.lsp

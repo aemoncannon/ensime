@@ -1,10 +1,11 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
-package org.ensime.sexp.formats
+
+package org.ensime.sexp
 
 import org.ensime.sexp._
 
-class SexpFormatsSpec extends FormatSpec with SexpFormats {
+class SexpFormatsSpec extends FormatSpec {
 
   val foo = SexpString("foo")
   val bar = SexpSymbol("bar")
@@ -13,10 +14,7 @@ class SexpFormatsSpec extends FormatSpec with SexpFormats {
 
   "SexpFormats" should "support SexpAtoms" in {
     assertFormat(SexpNil)
-    assertFormat(SexpPosInf)
-    assertFormat(SexpNegInf)
-    assertFormat(SexpNaN)
-    assertFormat(SexpNumber(1))
+    assertFormat(SexpInteger(1))
     assertFormat(SexpString("hello"))
     assertFormat(SexpSymbol("hello"))
   }

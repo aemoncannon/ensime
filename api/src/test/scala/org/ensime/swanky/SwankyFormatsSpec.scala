@@ -3,35 +3,44 @@
 package org.ensime.swanky
 
 import java.io.File
+
+import org.scalactic.source.Position
+import org.scalatest._
+
 import org.ensime.sexp._
 import org.ensime.api._
-import org.ensime.util.{ EnsimeSpec, EscapingStringInterpolation }
-import org.scalactic.source.Position
+import org.ensime.util.EscapingStringInterpolation
 
-class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
-  import SwankyFormats._
+class SwankyFormatsSpec extends FlatSpec with Matchers {
 
+  import EnsimeTestData._
   import EscapingStringInterpolation._
 
+  import SexpReader.ops._
+  import SexpWriter.ops._
+
   // copied from s-express:test to avoid a test->test dependency
-  def assertFormat[T](start: T, expect: Sexp)(implicit f: SexpFormat[T],
-                                              p: Position): Unit = {
+  def assertFormat[T: SexpReader: SexpWriter](start: T, expect: Sexp)(
+    implicit p: Position
+  ): Unit = {
     val sexp      = start.toSexp
     val converted = sexp == expect // reduces noise in scalatest reporting
-    assert(converted,
-           s"\n${sexp.compactPrint}\nwas not\n${expect.compactPrint}")
-    expect.convertTo[T] should be(start)
+    assert(
+      converted,
+      s"\n${SexpCompactPrinter(sexp)}\nwas not\n${SexpCompactPrinter(expect)}"
+    )
+    expect.as[T] should be(start)
   }
 
   def roundtrip(value: RpcRequest, via: String)(implicit p: Position): Unit = {
     val enveloped = RpcRequestEnvelope(value, -1)
-    assertFormat(enveloped, s"""(:req $via :call-id -1)""".parseSexp)
+    assertFormat(enveloped, SexpParser(s"""(:req $via :call-id -1)"""))
   }
 
   def roundtrip(value: EnsimeServerMessage,
                 via: String)(implicit p: Position): Unit = {
     val enveloped = RpcResponseEnvelope(None, value)
-    assertFormat(enveloped, s"""(:payload $via)""".parseSexp)
+    assertFormat(enveloped, SexpParser(s"""(:payload $via)"""))
   }
 
   implicit def toFile(raw: RawFile): File = raw.file.toFile
@@ -338,7 +347,7 @@ class SwankyFormatsSpec extends EnsimeSpec with EnsimeTestData {
 
   it should "roundtrip DebugLocation" in {
     roundtrip(
-      DebugObjectReference(57L): DebugLocation,
+      DebugObjectReference(DebugObjectId(57L)): DebugLocation,
       """(:ensime-api-debug-object-reference (:object-id 57))"""
     )
 

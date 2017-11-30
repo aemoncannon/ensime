@@ -1,5 +1,6 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package org.ensime.sexp
 
 import org.scalacheck._
@@ -10,8 +11,6 @@ class SexpParserCheck
     with GeneratorDrivenPropertyChecks
     with ArbitrarySexp {
 
-  import SexpParser.parse
-
   "SexpParser" should "round-trip Sexp <=> String" in {
     forAll { (sexp: Sexp) =>
       val compact = SexpCompactPrinter(sexp)
@@ -20,8 +19,8 @@ class SexpParserCheck
       // it might be worthwhile creating a test-only printer that adds
       // superfluous whitespace/comments
 
-      withClue(compact)(parse(compact) should ===(sexp))
-      withClue(pretty)(parse(pretty) should ===(sexp))
+      withClue(compact)(SexpParser(compact) shouldBe sexp)
+      withClue(pretty)(SexpParser(pretty) shouldBe sexp)
     }
   }
 }
@@ -45,9 +44,12 @@ trait ArbitrarySexp {
     alphaNumChar.map(SexpChar),
     alphaStr.map(SexpString),
     genSexpSymbol,
-    arbitrary[Double].map(SexpNumber(_)),
-    //arbitrary[BigDecimal].map(SexpNumber(_)),
-    oneOf(SexpNil, SexpPosInf, SexpNegInf, SexpNaN)
+    arbitrary[Double].map(SexpFloat(_)),
+    arbitrary[Long].map(SexpInteger(_)),
+    oneOf(SexpNil,
+          //SexpFloat(Double.NaN), // can't assert on equality
+          SexpFloat(Double.NegativeInfinity),
+          SexpFloat(Double.PositiveInfinity))
   )
 
   def genSexpCons(level: Int): Gen[SexpCons] =

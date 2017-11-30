@@ -1,15 +1,13 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
-package org.ensime.sexp.formats
+
+package org.ensime.sexp
 
 import collection.{ immutable => im }
 import org.ensime.sexp._
 
 // http://docs.scala-lang.org/overviews/collections/overview.html
-class CollectionFormatsSpec
-    extends FormatSpec
-    with CollectionFormats
-    with BasicFormats {
+class CollectionFormatsSpec extends FormatSpec {
 
   val foo                = SexpString("foo")
   val foos: List[String] = List("foo", "foo")
@@ -50,25 +48,6 @@ class CollectionFormatsSpec
     assertFormat(collection.SortedSet(foos: _*), SexpList(foo)) // dupes removed
   }
 
-  it should "support BitSet" in {
-    assertFormat(collection.BitSet(), SexpNil)
-    assertFormat(collection.BitSet(0, 1), SexpString("16#3"))
-    assertFormat(collection.BitSet(64), SexpString("16#10000000000000000"))
-    assertFormat(collection.BitSet(0, 64), SexpString("16#10000000000000001"))
-    assertFormat(collection.BitSet(1, 64), SexpString("16#10000000000000002"))
-  }
-
-  it should "support Map" in {
-    assertFormat(collection.Map[String, String](), SexpNil)
-    assertFormat(collection.Map("foo" -> "foo"), SexpList(SexpList(foo, foo)))
-  }
-
-  it should "support SortedMap" in {
-    assertFormat(collection.SortedMap[String, String](), SexpNil)
-    assertFormat(collection.SortedMap("foo" -> "foo"),
-                 SexpList(SexpList(foo, foo)))
-  }
-
   "CollectionFormats immutable variants of the traits" should "support Traversable" in {
     assertFormat(im.Traversable[String](), SexpNil)
     assertFormat(im.Traversable(foos: _*), expect)
@@ -104,22 +83,9 @@ class CollectionFormatsSpec
     assertFormat(im.SortedSet(foos: _*), SexpList(foo)) // dupes removed
   }
 
-  it should "support BitSet" in {
-    assertFormat(im.BitSet(), SexpNil)
-    assertFormat(im.BitSet(0, 1), SexpString("16#3"))
-    assertFormat(collection.BitSet(64), SexpString("16#10000000000000000"))
-    assertFormat(collection.BitSet(0, 64), SexpString("16#10000000000000001"))
-    assertFormat(collection.BitSet(1, 64), SexpString("16#10000000000000002"))
-  }
-
   it should "support Map" in {
     assertFormat(im.Map[String, String](), SexpNil)
     assertFormat(im.Map("foo" -> "foo"), SexpList(SexpList(foo, foo)))
-  }
-
-  it should "support SortedMap" in {
-    assertFormat(im.SortedMap[String, String](), SexpNil)
-    assertFormat(im.SortedMap("foo" -> "foo"), SexpList(SexpList(foo, foo)))
   }
 
   "CollectionFormats immutable specific implementations" should "support im.List" in {
@@ -130,57 +96,6 @@ class CollectionFormatsSpec
   it should "support im.Vector" in {
     assertFormat(im.Vector[String](), SexpNil)
     assertFormat(im.Vector(foos: _*), expect)
-  }
-
-  it should "support im.Range" in {
-    assertFormat(
-      im.Range(-100, 100),
-      SexpList(
-        SexpSymbol(":start"),
-        SexpNumber(-100),
-        SexpSymbol(":end"),
-        SexpNumber(100),
-        SexpSymbol(":step"),
-        SexpNumber(1)
-      )
-    )
-
-    assertFormat(
-      im.Range(-100, 100, 2),
-      SexpList(
-        SexpSymbol(":start"),
-        SexpNumber(-100),
-        SexpSymbol(":end"),
-        SexpNumber(100),
-        SexpSymbol(":step"),
-        SexpNumber(2)
-      )
-    )
-  }
-
-  it should "support im.NumericRange" in {
-    implicit val DoubleIntegral: Numeric.DoubleAsIfIntegral.type =
-      Numeric.DoubleAsIfIntegral
-
-    assertFormat(
-      -100.0 to 100.0 by 1.5,
-      SexpData(
-        SexpSymbol(":start")     -> SexpNumber(-100),
-        SexpSymbol(":end")       -> SexpNumber(100),
-        SexpSymbol(":step")      -> SexpNumber(1.5),
-        SexpSymbol(":inclusive") -> SexpSymbol("t")
-      )
-    )
-
-    assertFormat(
-      -100.0 until 100.0 by 1.5,
-      SexpData(
-        SexpSymbol(":start")     -> SexpNumber(-100),
-        SexpSymbol(":end")       -> SexpNumber(100),
-        SexpSymbol(":step")      -> SexpNumber(1.5),
-        SexpSymbol(":inclusive") -> SexpNil
-      )
-    )
   }
 
 }

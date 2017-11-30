@@ -1,8 +1,10 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package org.ensime.sexp
 
-//import org.parboiled2._
+import scala.util.Try
+
 import fastparse.all._
 
 /**
@@ -11,7 +13,7 @@ import fastparse.all._
  */
 object SexpParser {
 
-  def parse(desc: String): Sexp =
+  def apply(desc: String): Sexp =
     SexpP.parse(desc) match {
       case Parsed.Success(d, _) => d
       case f: Parsed.Failure =>
@@ -70,7 +72,9 @@ object SexpParser {
     }
 
   private val SexpAtomP: Parser[SexpAtom] =
-    P(SexpCharP | SexpStringP | SexpNaNP | SexpNumberP | SexpSymbolP)
+    P(
+      SexpCharP | SexpStringP | SexpNaNP | SexpNumberP | SexpSymbolP
+    )
 
   private val SexpCharP: Parser[SexpChar] =
     P("?" ~ NormalChar).map(SexpChar)
@@ -104,22 +108,24 @@ object SexpParser {
           | CharIn("d").map(_ => "\u007f")) // DEL
     )
 
-  val SexpNumberP = P((Integer ~ Frac.? ~ Exp.?).!)
-    .map(num => SexpNumber(BigDecimal(num)))
+  val SexpNumberP = P((Integer.! ~ (Frac.? ~ Exp.?).!)).map {
+    case (front, "")   => SexpInteger(front.toLong)
+    case (front, frac) => SexpFloat((front + frac).toDouble)
+  }
 
   val Integer = P("-".? ~ ((CharIn('1' to '9') ~ Digits) | CharIn('0' to '9')))
 
   val Digits = P(CharIn('0' to '9').rep(1))
 
-  val Frac = P("." ~ Digits)
+  val Frac = P("." ~ Digits.?)
 
   val Exp = P(ExpPredicate ~ PlusMinusPredicate.? ~ Digits)
 
   private val SexpNaNP: Parser[SexpAtom] =
     P(
-      StringIn("-1.0e+INF").map(_ => SexpNegInf) |
-        StringIn("1.0e+INF").map(_ => SexpPosInf) |
-        ("-".? ~ "0.0e+NaN").map(_ => SexpNaN)
+      StringIn("-1.0e+INF").map(_ => SexpFloat(Double.NegativeInfinity)) |
+        StringIn("1.0e+INF").map(_ => SexpFloat(Double.PositiveInfinity)) |
+        ("-".? ~ "0.0e+NaN").map(_ => SexpFloat(Double.NaN))
     )
 
   private val SexpQuotedP: Parser[Sexp] =

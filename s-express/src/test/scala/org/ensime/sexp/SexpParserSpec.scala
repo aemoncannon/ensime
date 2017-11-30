@@ -1,24 +1,21 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
 // License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
 package org.ensime.sexp
 
 class SexpParserSpec extends SexpSpec {
-  import SexpParser.parse
+  import SexpParser.{ apply => parse }
 
   val foo     = SexpString("foo")
   val bar     = SexpString("bar")
-  val one     = SexpNumber(1)
-  val negtwo  = SexpNumber(-2)
-  val pi      = SexpNumber("3.14")
-  val fourexp = SexpNumber("4e+16")
+  val one     = SexpInteger(1)
+  val negtwo  = SexpInteger(-2)
+  val pi      = SexpFloat(3.14)
+  val fourexp = SexpFloat(4e+16)
   val foosym  = SexpSymbol("foo")
   val barsym  = SexpSymbol("bar")
   val fookey  = SexpSymbol(":foo")
   val barkey  = SexpSymbol(":bar")
-
-  "EnrichedString" should "use the parser" in {
-    "nil".parseSexp shouldBe SexpNil
-  }
 
   "Sexp Parser" should "parse nil" in {
     parse("nil") shouldBe SexpNil
@@ -62,13 +59,17 @@ class SexpParserSpec extends SexpSpec {
   }
 
   it should "parse NaN" in {
-    parse("0.0e+NaN") shouldBe SexpNaN
-    parse("-0.0e+NaN") shouldBe SexpNaN
+    parse("0.0e+NaN") should matchPattern {
+      case SexpFloat(d) if d.isNaN =>
+    }
+    parse("-0.0e+NaN") should matchPattern {
+      case SexpFloat(d) if d.isNaN =>
+    }
   }
 
   it should "parse infinity" in {
-    parse("1.0e+INF") shouldBe SexpPosInf
-    parse("-1.0e+INF") shouldBe SexpNegInf
+    parse("1.0e+INF") shouldBe SexpFloat(Double.PositiveInfinity)
+    parse("-1.0e+INF") shouldBe SexpFloat(Double.NegativeInfinity)
   }
 
   it should "parse lists within lists" in {

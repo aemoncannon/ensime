@@ -7,7 +7,8 @@ import java.nio.file.Path
 
 import scala.annotation.StaticAnnotation
 
-import spray.json._
+import spray.json.{ JsReader, JsWriter }
+import org.ensime.sexp.{ SexpReader, SexpWriter }
 
 import scalaz.deriving
 
@@ -18,29 +19,29 @@ import scalaz.deriving
  */
 class deprecating(val detail: String = "") extends StaticAnnotation
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 sealed abstract class DeclaredAs(val symbol: scala.Symbol)
 
 object DeclaredAs {
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Method extends DeclaredAs('method)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Trait extends DeclaredAs('trait)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Interface extends DeclaredAs('interface)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Object extends DeclaredAs('object)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Class extends DeclaredAs('class)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Field extends DeclaredAs('field)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Nil extends DeclaredAs('nil)
 
   def allDeclarations = Seq(Method, Trait, Interface, Object, Class, Field, Nil)
 }
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 sealed trait FileEdit extends Ordered[FileEdit] {
   def file: File
   def text: String
@@ -56,12 +57,12 @@ sealed trait FileEdit extends Ordered[FileEdit] {
       .compare((that.file, that.from, that.to, that.text))
 }
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 final case class TextEdit(file: File, from: Int, to: Int, text: String)
     extends FileEdit
 
 // the next case classes have weird fields because we need the values in the protocol
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 final case class NewFile(file: File, from: Int, to: Int, text: String)
     extends FileEdit
 object NewFile {
@@ -69,7 +70,7 @@ object NewFile {
     new NewFile(file, 0, text.length - 1, text)
 }
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 final case class DeleteFile(file: File, from: Int, to: Int, text: String)
     extends FileEdit
 object DeleteFile {
@@ -77,13 +78,13 @@ object DeleteFile {
     new DeleteFile(file, 0, text.length - 1, text)
 }
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 sealed trait NoteSeverity
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 case object NoteError extends NoteSeverity
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 case object NoteWarn extends NoteSeverity
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 case object NoteInfo extends NoteSeverity
 object NoteSeverity {
   def apply(severity: Int) = severity match {
@@ -93,43 +94,43 @@ object NoteSeverity {
   }
 }
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 sealed abstract class RefactorLocation(val symbol: Symbol)
 
 object RefactorLocation {
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object QualifiedName extends RefactorLocation('qualifiedName)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object File extends RefactorLocation('file)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object NewName extends RefactorLocation('newName)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Name extends RefactorLocation('name)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Start extends RefactorLocation('start)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object End extends RefactorLocation('end)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object MethodName extends RefactorLocation('methodName)
 }
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 sealed abstract class RefactorType(val symbol: Symbol)
 
 object RefactorType {
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object Rename extends RefactorType('rename)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object ExtractMethod extends RefactorType('extractMethod)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object ExtractLocal extends RefactorType('extractLocal)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object InlineLocal extends RefactorType('inlineLocal)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object OrganizeImports extends RefactorType('organizeImports)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object AddImport extends RefactorType('addImport)
-  @deriving(JsReader, JsWriter)
+  @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
   case object ExpandMatchCases extends RefactorType('expandMatchCases)
 
   def allTypes =
@@ -157,7 +158,7 @@ object RefactorType {
  * Good clients provide the `id` field so the server doesn't have to
  * work it out all the time.
  */
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 final case class SourceFileInfo(
   file: EnsimeFile,
   contents: Option[String] = None,
@@ -169,7 +170,7 @@ final case class SourceFileInfo(
     s"SourceFileInfo($file,${contents.map(_ => "...")},$contentsIn)"
 }
 
-@deriving(JsReader, JsWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
 final case class OffsetRange(from: Int, to: Int)
 
 @deprecating("move all non-model code out of the api")
