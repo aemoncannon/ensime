@@ -27,6 +27,13 @@ sealed trait EnsimeFile {
 final case class RawFile(file: Path)                   extends EnsimeFile
 final case class ArchiveFile(jar: Path, entry: String) extends EnsimeFile
 
+object RawFile {
+  implicit val sexpWriter: SexpWriter[RawFile] =
+    SexpWriter[Path].contramap(_.file)
+  implicit val sexpReader: SexpReader[RawFile] =
+    SexpReader[Path].map(RawFile(_))
+}
+
 object EnsimeFile {
   def apply(path: String): EnsimeFile = path match {
     case ArchiveRegex(file, entry) =>

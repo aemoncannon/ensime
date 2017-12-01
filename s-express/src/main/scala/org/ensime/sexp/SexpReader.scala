@@ -5,6 +5,7 @@ package org.ensime.sexp
 
 import java.io.File
 import java.net.URI
+import java.nio.file._
 import java.util.UUID
 
 import scala.collection.generic.CanBuildFrom
@@ -64,6 +65,7 @@ object SexpReader {
   implicit val uuid: SexpReader[UUID] = string.map(UUID.fromString) // can fail
   implicit val uri: SexpReader[URI]   = string.map(s => new URI(s)) // can fail
   implicit val file: SexpReader[File] = string.map(f => new File(f))
+  implicit val path: SexpReader[Path] = string.map(p => Paths.get(p))
 
   implicit val sexp: SexpReader[Sexp] = identity
 

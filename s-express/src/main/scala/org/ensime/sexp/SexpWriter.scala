@@ -5,6 +5,7 @@ package org.ensime.sexp
 
 import java.io.File
 import java.net.URI
+import java.nio.file.Path
 import java.util.UUID
 
 import simulacrum._
@@ -45,6 +46,7 @@ object SexpWriter {
   implicit val uuid: SexpWriter[UUID] = string.contramap(_.toString)
   implicit val uri: SexpWriter[URI]   = string.contramap(_.toASCIIString)
   implicit val file: SexpWriter[File] = string.contramap(_.getPath)
+  implicit val path: SexpWriter[Path] = string.contramap(_.toString)
 
   implicit val sexp: SexpWriter[Sexp] = identity
 

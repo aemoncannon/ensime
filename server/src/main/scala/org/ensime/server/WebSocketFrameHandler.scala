@@ -118,10 +118,11 @@ object JerkySubprotocolEncoder extends SubprotocolEncoder {
 
 object SwankySubprotocolEncoder extends SubprotocolEncoder {
   import org.ensime.sexp._
-  import org.ensime.swanky.SwankyFormats._
+  import SexpReader.ops._
+  import SexpWriter.ops._
 
   override def readFrame(request: String): RpcRequestEnvelope =
-    request.parseSexp.convertTo[RpcRequestEnvelope]
+    SexpParser(request).as[RpcRequestEnvelope]
   override def writeFrame(response: RpcResponseEnvelope): String =
-    response.toSexp.prettyPrint
+    SexpPrettyPrinter(response.toSexp)
 }

@@ -15,47 +15,18 @@ import org.ensime.util.path._
 import org.ensime.util.ensimefile._
 
 import org.ensime.api._
+import SexpReader.ops._
 
 object EnsimeConfigProtocol {
-  object Protocol
-      extends DefaultSexpProtocol
-      with OptionAltFormat
-      with FamilyFormats
-  import org.ensime.config.EnsimeConfigProtocol.Protocol._
-
   private def log = Logger(this.getClass.getName)
 
-  implicit val rawFile: SexpFormat[RawFile] = new SexpFormat[RawFile] {
-    def write(f: RawFile): Sexp = SexpString(f.file.toString)
-    def read(sexp: Sexp): RawFile = sexp match {
-      case SexpString(file) => RawFile(Paths.get(file))
-      case got              => deserializationError(got)
-    }
-  }
-
-  def camel(in: String): String =
-    in.replaceAll("([A-Z])", "-$1").toLowerCase.replaceAll("^-", "")
-
-  implicit val EnsimeConfigHint: BasicProductHint[EnsimeConfig] =
-    new BasicProductHint[EnsimeConfig] {
-      override def field[K <: Symbol](k: K): SexpSymbol =
-        SexpSymbol(s":${camel(k.name)}")
-    }
-  implicit val EnsimeProjectHint: BasicProductHint[EnsimeProject] =
-    new BasicProductHint[EnsimeProject] {
-      override def field[K <: Symbol](k: K): SexpSymbol =
-        SexpSymbol(s":${camel(k.name)}")
-    }
-
-  private implicit val configFormat: SexpFormat[EnsimeConfig] = cachedImplicit
-
   def parse(config: String): EnsimeConfig = {
-    val raw = config.parseSexp.convertTo[EnsimeConfig]
+    val raw = SexpParser(config).as[EnsimeConfig]
     validated(raw)
   }
 
   def validated(c: EnsimeConfig): EnsimeConfig = {
-    // cats.data.Validated would be a cleaner way to do this
+    // scalaz.Validation would be a cleaner way to do this
     {
       import c._
       val files = (rootDir :: javaHome :: javaSources).map { _.file.toFile }

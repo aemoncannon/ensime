@@ -215,7 +215,8 @@ class DebugActor private (
                 .flatMap(_.tryThisObject)
                 .map(_.cache())
                 .map {
-                  case objRef => DebugObjectReference(objRef.uniqueId)
+                  case objRef =>
+                    DebugObjectReference(DebugObjectId(objRef.uniqueId))
                 }
                 .getOrElse(FalseResponse)
             } else {

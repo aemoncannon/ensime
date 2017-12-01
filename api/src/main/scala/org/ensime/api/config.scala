@@ -7,6 +7,7 @@ import scalaz.deriving
 import spray.json.{ JsReader, JsWriter }
 import org.ensime.sexp.{ SexpReader, SexpWriter }
 
+@deriving(SexpReader, SexpWriter)
 final case class EnsimeConfig(
   rootDir: RawFile,
   cacheDir: RawFile,
@@ -23,6 +24,7 @@ final case class EnsimeProjectId(
   config: String
 )
 
+@deriving(SexpReader, SexpWriter)
 final case class EnsimeProject(
   id: EnsimeProjectId,
   depends: List[EnsimeProjectId],
