@@ -120,9 +120,6 @@ object EnsimeConfigFixture {
     projects =
       EnsimeTestProject.projects.filter(_.id.project == "testing_shapeless")
   )
-  lazy val FqnsTestProject: EnsimeConfig = EnsimeTestProject.copy(
-    projects = EnsimeTestProject.projects.filter(_.id.project == "testing_fqns")
-  )
   lazy val DebugTestProject: EnsimeConfig = EnsimeTestProject.copy(
     projects =
       EnsimeTestProject.projects.filter(_.id.project == "testing_debug")

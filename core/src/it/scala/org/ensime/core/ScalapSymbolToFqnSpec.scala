@@ -14,7 +14,7 @@ class ScalapSymbolToFqnSpec
     with RichPresentationCompilerTestUtils
     with ReallyRichPresentationCompilerFixture {
 
-  override def original: EnsimeConfig = EnsimeConfigFixture.FqnsTestProject
+  override def original: EnsimeConfig = EnsimeConfigFixture.EmptyTestProject
 
   private def verify(javaName: FullyQualifiedName,
                      scalaName: String,
