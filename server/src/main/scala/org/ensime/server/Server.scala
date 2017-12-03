@@ -13,7 +13,6 @@ import akka.actor._
 import akka.actor.SupervisorStrategy.Stop
 import com.typesafe.config._
 import io.netty.channel.Channel
-import org.ensime.AkkaBackCompat
 import org.ensime.api._
 import org.ensime.config._
 import org.ensime.config.richconfig._
@@ -124,7 +123,7 @@ object ServerActor {
     Props(new ServerActor(ensimeConfig, serverConfig))
 }
 
-object Server extends AkkaBackCompat {
+object Server {
   Slf4jSetup.init()
 
   val log = LoggerFactory.getLogger("Server")

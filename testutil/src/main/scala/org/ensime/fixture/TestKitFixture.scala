@@ -12,7 +12,6 @@ import akka.actor.ActorSystem
 import akka.testkit._
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import org.ensime.AkkaBackCompat
 import org.scalatest._
 
 /**
@@ -41,7 +40,7 @@ trait TestKitFixture {
 
 class TestKitFix extends TestKit(ActorSystem()) with ImplicitSender
 
-trait IsolatedTestKitFixture extends TestKitFixture with AkkaBackCompat {
+trait IsolatedTestKitFixture extends TestKitFixture {
   override def withTestKit(testCode: TestKitFix => Any): Any = {
     val sys = new TestKitFix
     try {
@@ -55,10 +54,7 @@ trait IsolatedTestKitFixture extends TestKitFixture with AkkaBackCompat {
 
 // this seems redundant, because it mimics "extends TestKit" behaviour,
 // but it allows for easy swapping with the refreshing implementation
-trait SharedTestKitFixture
-    extends TestKitFixture
-    with BeforeAndAfterAll
-    with AkkaBackCompat {
+trait SharedTestKitFixture extends TestKitFixture with BeforeAndAfterAll {
   this: Suite =>
 
   var _testkit: TestKitFix = _

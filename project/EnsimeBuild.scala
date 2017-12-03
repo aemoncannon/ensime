@@ -315,13 +315,6 @@ object EnsimeTestingBuild {
     libraryDependencies ++= shapeless.value
   )
 
-  lazy val testingFqns = testingProject("testing/fqns").settings(
-    libraryDependencies ++= shapeless.value ++ Seq(
-      "org.typelevel"  %% "cats"  % "0.8.1"  % Test intransitive (),
-      "org.spire-math" %% "spire" % "0.13.0" % Test intransitive ()
-    )
-  )
-
   lazy val testingDebug = testingProject("testing/debug")
 
   lazy val testingDocs = testingProject("testing/docs").settings(

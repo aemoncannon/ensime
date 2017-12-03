@@ -8,13 +8,10 @@ import scala.util.Try
 
 import akka.actor.ActorSystem
 import org.ensime.api._
-import org.ensime.AkkaBackCompat
 import org.ensime.indexer.SearchService
 import org.ensime.vfs._
 
-trait IsolatedSearchServiceFixture
-    extends IsolatedSourceResolverFixture
-    with AkkaBackCompat {
+trait IsolatedSearchServiceFixture extends IsolatedSourceResolverFixture {
 
   def withSearchService(
     testCode: (EnsimeConfig, SearchService) => Any

@@ -15,7 +15,6 @@ lazy val testingImplicits = EnsimeTestingBuild.testingImplicits
 lazy val testingTiming    = EnsimeTestingBuild.testingTiming
 lazy val testingMacros    = EnsimeTestingBuild.testingMacros
 lazy val testingShapeless = EnsimeTestingBuild.testingShapeless
-lazy val testingFqns      = EnsimeTestingBuild.testingFqns
 lazy val testingDebug     = EnsimeTestingBuild.testingDebug
 lazy val testingDocs      = EnsimeTestingBuild.testingDocs
 lazy val testingJava      = EnsimeTestingBuild.testingJava

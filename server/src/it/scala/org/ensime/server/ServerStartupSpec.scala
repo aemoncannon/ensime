@@ -8,7 +8,6 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Try
 
-import org.ensime.AkkaBackCompat
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
 import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
@@ -17,8 +16,7 @@ import org.ensime.util.path._
 class ServerStartupSpec
     extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
-    with IsolatedTestKitFixture
-    with AkkaBackCompat {
+    with IsolatedTestKitFixture {
 
   val original = EnsimeConfigFixture.EmptyTestProject
 
