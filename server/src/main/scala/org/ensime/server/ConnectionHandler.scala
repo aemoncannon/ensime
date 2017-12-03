@@ -6,7 +6,8 @@ import akka.actor._
 import akka.event.LoggingReceive
 import org.ensime.api._
 import org.ensime.core._
-//import shapeless._
+import org.ensime.io.Canon
+import org.ensime.io.Canon.ops._
 
 /**
  * Accepts RpcRequestEnvelope and responds with an RpcResponseEnvelope to target.
@@ -33,16 +34,16 @@ class ConnectionHandler(
 
   def receiveRpc: Receive = {
     case req: RpcRequestEnvelope =>
-      val handler = RequestHandler(Canonised(req), project, self)
+      val handler = RequestHandler(req.canon.unsafePerformIO(), project, self)
       context.actorOf(handler, s"${req.callId}")
 
     case outgoing: RpcResponseEnvelope =>
-      target forward Canonised(outgoing)
+      target forward outgoing.canon.unsafePerformIO()
   }
 
   def receiveEvents: Receive = {
     case outgoing: EnsimeEvent =>
-      target forward RpcResponseEnvelope(None, Canonised(outgoing))
+      target forward RpcResponseEnvelope(None, outgoing.canon.unsafePerformIO())
   }
 
 }

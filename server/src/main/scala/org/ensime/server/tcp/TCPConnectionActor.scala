@@ -13,11 +13,14 @@ import org.ensime.api.{
   RpcRequestEnvelope,
   RpcResponseEnvelope
 }
-import org.ensime.core.{ Broadcaster, Canonised, Protocol }
+import org.ensime.core.{ Broadcaster, Protocol }
+import org.ensime.io.Canon
 import org.ensime.server.RequestHandler
 
 import scala.annotation.tailrec
 import scala.util.control.NonFatal
+
+import Canon.ops._
 
 class TCPConnectionActor(
   connection: ActorRef,
@@ -80,7 +83,7 @@ class TCPConnectionActor(
 
   def sendMessage(envelope: RpcResponseEnvelope): Unit = {
     val msg = try {
-      protocol.encode(Canonised(envelope))
+      protocol.encode(envelope.canon.unsafePerformIO())
     } catch {
       case NonFatal(t) =>
         log.error(t, s"Problem serialising $envelope")
@@ -115,7 +118,7 @@ class TCPConnectionActor(
     seen = remainder
     envelopeOpt match {
       case Some(rawEnvelope: RpcRequestEnvelope) =>
-        val envelope = Canonised(rawEnvelope)
+        val envelope = rawEnvelope.canon.unsafePerformIO()
         context.actorOf(RequestHandler(envelope, project, self),
                         s"${envelope.callId}")
         repeatedDecode()

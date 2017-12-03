@@ -96,13 +96,14 @@ package object richconfig {
       files ::: (dependencies.flatMap(_.classpath))
     }
 
-    def scalaSourceFiles: Set[RawFile] =
+    def scalaSourceFiles: Set[RawFile] = {
       for {
         root     <- p.sources
         filePath <- root.file.tree
         rawFile  = RawFile(filePath)
         if filePath.isFile && rawFile.isScala
       } yield rawFile
+    }.toSet
   }
 
   private def targetFiles(c: EnsimeConfig): List[File] =

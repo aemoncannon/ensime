@@ -164,7 +164,7 @@ trait ModelBuilders {
           declaredAs(typeSym),
           fullName(tpe, shouldDealias = shouldDealias).underlying,
           typeArgs.map(TypeInfo(_)),
-          members,
+          members.toList,
           symPos,
           Nil
         )
@@ -186,7 +186,7 @@ trait ModelBuilders {
       new ParamSectionInfo(
         params.map { s =>
           (s.nameString, TypeInfo(s.tpe))
-        },
+        }.toList,
         params.exists(_.isImplicit)
       )
   }

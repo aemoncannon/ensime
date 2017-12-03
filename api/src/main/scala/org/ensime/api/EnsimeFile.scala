@@ -11,11 +11,15 @@ import java.nio.file._
 import spray.json._
 import DeserializationException._
 import org.ensime.sexp._
+import org.ensime.io.Canon
+
+import scalaz.deriving
 
 // it would be good to expand this hierarchy and include information
 // such as files/dirs, existance, content hints
 // (java/scala/class/resource) in the type, validated at construction
 // (and can be revalidated at any time)
+@deriving(Canon)
 sealed trait EnsimeFile {
   def uri: URI = this match {
     case RawFile(file)           => file.toUri
@@ -24,7 +28,9 @@ sealed trait EnsimeFile {
   def uriString: String = uri.toASCIIString
 }
 
-final case class RawFile(file: Path)                   extends EnsimeFile
+@deriving(Canon)
+final case class RawFile(file: Path) extends EnsimeFile
+@deriving(Canon)
 final case class ArchiveFile(jar: Path, entry: String) extends EnsimeFile
 
 object RawFile {

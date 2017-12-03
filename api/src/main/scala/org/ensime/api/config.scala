@@ -4,8 +4,11 @@
 package org.ensime.api
 
 import scalaz.deriving
+import scalaz.std.list._
 
 import spray.json.{ JsReader, JsWriter }
+
+import org.ensime.io.Canon
 import org.ensime.sexp.{ SexpReader, SexpWriter }
 
 @deriving(SexpReader, SexpWriter)
@@ -19,18 +22,18 @@ final case class EnsimeConfig(
   projects: List[EnsimeProject]
 )
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class EnsimeProjectId(
   project: String,
   config: String
 )
 
-@deriving(SexpReader, SexpWriter)
+@deriving(SexpReader, SexpWriter, Canon)
 final case class EnsimeProject(
   id: EnsimeProjectId,
   depends: List[EnsimeProjectId],
-  sources: Set[RawFile],
-  targets: Set[RawFile],
+  sources: List[RawFile],
+  targets: List[RawFile],
   scalacOptions: List[String],
   javacOptions: List[String],
   libraryJars: List[RawFile],

@@ -1,25 +1,28 @@
-// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs
-// License: http://www.gnu.org/licenses/gpl-3.0.en.html
-package org.ensime.core
+// Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs/contributors
+// License: http://www.gnu.org/licenses/lgpl-3.0.en.html
+
+package org.ensime.io
 
 import java.io.File
 import java.nio.file._
 
 import scala.util.Properties.jdkHome
 
-import org.ensime.util.file._
-import org.ensime.util.path._
-import org.ensime.util.ensimefile._
-import org.ensime.util.EnsimeSpec
+import scalaz.std.list._
+
+import org.scalatest._
+import org.scalatest.Matchers._
+
 import org.ensime.api._
 
-// this test is mostly showing what Canon can do, we're testing
-// shapeless more than our specific Poly1.
-class CanonSpec extends EnsimeSpec {
+import Canon.ops._
 
-  val file  = new File(".")
-  val canon = file.canon
-  assert(file != canon)
+class CanonSpec extends FlatSpec {
+
+  lazy val file  = new File(".")
+  lazy val canon = file.canon.unsafePerformIO()
+
+  def Canonised[A: Canon](a: A): A = a.canon.unsafePerformIO()
 
   "Canon" should "canon File" in {
     Canonised(file) shouldBe canon
@@ -31,11 +34,9 @@ class CanonSpec extends EnsimeSpec {
 
   class MyFile(name: String) extends File(name)
 
-  it should "canon subtypes of File" in {
-    val mine    = new MyFile(".")
-    val myCanon = mine.canon
-    assert(mine != myCanon)
-    Canonised(mine) shouldBe myCanon
+  it should "canon subtypes of File when used in File position" in {
+    val mine: File = new MyFile(".")
+    Canonised(mine) should not be (mine)
   }
 
   it should "canon an RpcRequest" in {
@@ -50,6 +51,13 @@ class CanonSpec extends EnsimeSpec {
     Canonised(response) shouldBe expected
   }
 
+  // NOTE: doesn't delete contents
+  def withTempDir[T](a: File => T): T = {
+    val dir = Files.createTempDirectory("ensime").toFile
+    try a(dir)
+    finally dir.delete()
+  }
+
   it should "canon a RawFile" in withTempDir { dir =>
     val rawDir   = RawFile(dir.toPath)
     val ef       = List(RawFile(file.toPath))
@@ -60,10 +68,11 @@ class CanonSpec extends EnsimeSpec {
 
   it should "canon an ArchiveFile" in withTempDir { dir =>
     val rawDir = RawFile(dir.toPath)
-    val src    = Paths.get(jdkHome) / "src.zip"
+    val src    = Paths.get(s"$jdkHome/src.zip")
 
-    val entry    = EnsimeFile(s"$src!/java/lang/String.java")
-    val expected = ArchiveFile(src.canon, "/java/lang/String.java")
+    val entry = EnsimeFile(s"$src!/java/lang/String.java")
+    val expected =
+      ArchiveFile(src.canon.unsafePerformIO, "/java/lang/String.java")
 
     Canonised(List(entry)) shouldBe List(expected)
   }

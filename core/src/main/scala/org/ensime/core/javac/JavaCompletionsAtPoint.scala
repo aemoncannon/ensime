@@ -303,7 +303,7 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
       fullMethodName(e),
       typeMirrorToTypeInfo(e.getReturnType),
       ParamSectionInfo(
-        params,
+        params.toList,
         isImplicit = false
       ) :: Nil,
       Nil

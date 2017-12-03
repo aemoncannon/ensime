@@ -49,7 +49,7 @@ trait JavaTypeAtPoint { requires: JavaCompiler =>
         t.getParameterTypes.asScala.zipWithIndex.map {
           case (param, index) =>
             s"arg$index" -> typeMirrorToTypeInfo(param)
-        },
+        }.toList,
         isImplicit = false
       ) :: Nil,
       Nil

@@ -108,6 +108,7 @@ object EnsimeBuild {
     .dependsOn(json, s_express)
     .settings(commonSettings)
     .settings(licenses := Seq(LGPL3))
+    .settings(libraryDependencies += "org.scalaz" %% "scalaz-effect" % "7.2.17")
 
   lazy val util = Project("util", file("util")) settings (commonSettings) dependsOn (
     api

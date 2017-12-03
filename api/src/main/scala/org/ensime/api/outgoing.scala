@@ -6,62 +6,67 @@ package org.ensime.api
 import java.io.File
 
 import scalaz.deriving
+import scalaz.std.option._
+import scalaz.std.list._
+import scalaz.std.tuple._
 
 import spray.json.{ JsReader, JsWriter }
+
 import org.ensime.sexp.{ SexpReader, SexpWriter }
+import org.ensime.io.Canon
 
 /**
  * There should be exactly one `RpcResponseEnvelope` in response to an
  * `RpcRequestEnvelope`. If the `callId` is empty, the response is
  * an asynchronous event.
  */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class RpcResponseEnvelope(
   callId: Option[Int],
   payload: EnsimeServerMessage
 )
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait EnsimeServerMessage
 
 /**
  * A message that the server can send to the client at any time.
  */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon) // , Canon)
 sealed trait EnsimeEvent extends EnsimeServerMessage
 
 //////////////////////////////////////////////////////////////////////
 // Contents of the payload
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait RpcResponse extends EnsimeServerMessage
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class EnsimeServerError(description: String) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object DebuggerShutdownEvent
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait DebugVmStatus extends RpcResponse
 
 // must have redundant status: String to match legacy API
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugVmSuccess(
   status: String = "success"
 ) extends DebugVmStatus
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugVmError(
   errorCode: Int,
   details: String,
   status: String = "error"
 ) extends DebugVmStatus
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait GeneralSwankEvent extends EnsimeEvent
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait DebugEvent extends EnsimeEvent
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class GreetingInfo(
   pid: Option[Int] = None,
   implementation: EnsimeImplementation = EnsimeImplementation("ENSIME"),
@@ -71,32 +76,32 @@ final case class GreetingInfo(
 /**
  * Generic background notification.
  *
- * NOTE: codes will be deprecated, preferring @deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+ * NOTE: codes will be deprecated, preferring @deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
  sealed families.
  */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class SendBackgroundMessageEvent(
   detail: String,
   code: Int = 105
 ) extends GeneralSwankEvent
 
 /** Initial indexing has completed */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object IndexerReadyEvent extends GeneralSwankEvent
 
 /** The presentation compiler was restarted. Existing `:type-id`s are invalid. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object CompilerRestartedEvent extends GeneralSwankEvent
 
 /** The presentation compiler has invalidated all existing notes.  */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ClearAllScalaNotesEvent extends GeneralSwankEvent
 
 /** The presentation compiler has invalidated all existing notes.  */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ClearAllJavaNotesEvent extends GeneralSwankEvent
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class Note(
   file: String,
   msg: String,
@@ -108,21 +113,21 @@ final case class Note(
 ) extends RpcResponse
 
 /** The presentation compiler is providing notes: e.g. errors, warnings. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class NewScalaNotesEvent(
   isFull: Boolean,
   notes: List[Note]
 ) extends GeneralSwankEvent
 
 /** The presentation compiler is providing notes: e.g. errors, warnings. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class NewJavaNotesEvent(
   isFull: Boolean,
   notes: List[Note]
 ) extends GeneralSwankEvent
 
 /** The debugged VM has stepped to a new location and is now paused awaiting control. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugStepEvent(
   threadId: DebugThreadId,
   threadName: String,
@@ -131,7 +136,7 @@ final case class DebugStepEvent(
 ) extends DebugEvent
 
 /** The debugged VM has stopped at a breakpoint. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugBreakEvent(
   threadId: DebugThreadId,
   threadName: String,
@@ -140,15 +145,15 @@ final case class DebugBreakEvent(
 ) extends DebugEvent
 
 /** The debugged VM has started. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object DebugVmStartEvent extends DebugEvent
 
 /** The debugger has disconnected from the debugged VM. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object DebugVmDisconnectEvent extends DebugEvent
 
 /** The debugged VM has thrown an exception and is now paused waiting for control. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugExceptionEvent(
   exception: Long,
   threadId: DebugThreadId,
@@ -158,23 +163,23 @@ final case class DebugExceptionEvent(
 ) extends DebugEvent
 
 /** A new thread has started. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugThreadStartEvent(threadId: DebugThreadId)
     extends DebugEvent
 
 /** A thread has died. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugThreadDeathEvent(threadId: DebugThreadId)
     extends DebugEvent
 
 /** Communicates stdout/stderr of debugged VM to client. */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugOutputEvent(body: String) extends DebugEvent
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object VoidResponse extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class RefactorFailure(
   procedureId: Int,
   reason: String,
@@ -186,7 +191,7 @@ trait RefactorProcedure {
   def refactorType: RefactorType
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class RefactorDiffEffect(
   procedureId: Int,
   refactorType: RefactorType,
@@ -194,74 +199,74 @@ final case class RefactorDiffEffect(
 ) extends RpcResponse
     with RefactorProcedure
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed abstract class RefactorDesc(val refactorType: RefactorType)
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class InlineLocalRefactorDesc(file: File, start: Int, end: Int)
     extends RefactorDesc(RefactorType.InlineLocal)
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class RenameRefactorDesc(newName: String,
                                     file: File,
                                     start: Int,
                                     end: Int)
     extends RefactorDesc(RefactorType.Rename)
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ExtractMethodRefactorDesc(methodName: String,
                                            file: File,
                                            start: Int,
                                            end: Int)
     extends RefactorDesc(RefactorType.ExtractMethod)
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ExtractLocalRefactorDesc(name: String,
                                           file: File,
                                           start: Int,
                                           end: Int)
     extends RefactorDesc(RefactorType.ExtractLocal)
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class OrganiseImportsRefactorDesc(file: File)
     extends RefactorDesc(RefactorType.OrganizeImports)
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class AddImportRefactorDesc(qualifiedName: String, file: File)
     extends RefactorDesc(RefactorType.AddImport)
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ExpandMatchCasesDesc(file: File, start: Int, end: Int)
     extends RefactorDesc(RefactorType.ExpandMatchCases)
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait PatchOp {
   def start: Int
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class PatchInsert(
   start: Int,
   text: String
 ) extends PatchOp
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class PatchDelete(
   start: Int,
   end: Int
 ) extends PatchOp
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class PatchReplace(
   start: Int,
   end: Int,
   text: String
 ) extends PatchOp
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait EntityInfo extends RpcResponse {
   def name: String
-  def members: Iterable[EntityInfo]
+  def members: List[EntityInfo]
 }
 
 object SourceSymbol {
@@ -286,93 +291,93 @@ object SourceSymbol {
   )
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait SourceSymbol
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ObjectSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ClassSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object TraitSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object PackageSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ConstructorSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ImportedNameSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object TypeParamSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ParamSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object VarFieldSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ValFieldSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object OperatorFieldSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object VarSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ValSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object FunctionCallSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ImplicitConversionSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object ImplicitParamsSymbol extends SourceSymbol
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object DeprecatedSymbol extends SourceSymbol
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait PosNeeded
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object PosNeededNo extends PosNeeded
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object PosNeededAvail extends PosNeeded
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object PosNeededYes extends PosNeeded
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait SourcePosition extends RpcResponse
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class EmptySourcePosition() extends SourcePosition
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class OffsetSourcePosition(file: EnsimeFile, offset: Int)
     extends SourcePosition
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class LineSourcePosition(file: EnsimeFile, line: Int)
     extends SourcePosition
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class PositionHint(position: SourcePosition, preview: Option[String])
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class SourcePositions(positions: List[PositionHint])
     extends RpcResponse
 
 // See if `TypeInfo` can be used instead
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ClassInfo(scalaName: Option[String],
                            fqn: String,
                            declAs: DeclaredAs,
                            sourcePosition: Option[SourcePosition])
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class HierarchyInfo(ancestors: List[ClassInfo],
                                inheritors: List[ClassInfo])
     extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class PackageInfo(
   name: String,
   fullName: String,
   // n.b. members should be sorted by name for consistency
-  members: Seq[EntityInfo]
+  members: List[EntityInfo]
 ) extends EntityInfo {
   require(members == members.sortBy(_.name), "members should be sorted by name")
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait SymbolSearchResult extends RpcResponse {
   def name: String
   def localName: String
@@ -380,7 +385,7 @@ sealed trait SymbolSearchResult extends RpcResponse {
   def pos: Option[SourcePosition]
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class TypeSearchResult(
   name: String,
   localName: String,
@@ -388,7 +393,7 @@ final case class TypeSearchResult(
   pos: Option[SourcePosition]
 ) extends SymbolSearchResult
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class MethodSearchResult(
   name: String,
   localName: String,
@@ -398,27 +403,27 @@ final case class MethodSearchResult(
 ) extends SymbolSearchResult
 
 // what is the point of these types?
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ImportSuggestions(symLists: List[List[SymbolSearchResult]])
     extends RpcResponse
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class SymbolSearchResults(syms: List[SymbolSearchResult])
     extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class SymbolDesignations(
   file: EnsimeFile,
   syms: List[SymbolDesignation]
 ) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class SymbolDesignation(
   start: Int,
   end: Int,
   symType: SourceSymbol
 )
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class SymbolInfo(
   name: String,
   localName: String,
@@ -428,13 +433,13 @@ final case class SymbolInfo(
   def tpe = `type`
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class Op(
   op: String,
   description: String
 )
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class MethodBytecode(
   className: String,
   methodName: String,
@@ -444,7 +449,7 @@ final case class MethodBytecode(
   endLine: Int
 )
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class CompletionInfo(
   typeInfo: Option[TypeInfo],
   name: String,
@@ -453,15 +458,15 @@ final case class CompletionInfo(
   isInfix: Boolean = false
 ) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class CompletionInfoList(
   prefix: String,
   completions: List[CompletionInfo]
 ) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class Breakpoint(file: EnsimeFile, line: Int) extends RpcResponse
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class BreakpointList(active: List[Breakpoint],
                                 pending: List[Breakpoint])
     extends RpcResponse
@@ -469,7 +474,7 @@ final case class BreakpointList(active: List[Breakpoint],
 /**
  * A debugger thread id.
  */
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugThreadId(id: Long) extends AnyVal
 
 object DebugThreadId {
@@ -484,7 +489,7 @@ object DebugThreadId {
     new DebugThreadId(s.toLong)
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugObjectId(id: Long) extends AnyVal
 
 object DebugObjectId {
@@ -500,44 +505,44 @@ object DebugObjectId {
 }
 
 // these are used in the queries as well, shouldn't be raw response
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait DebugLocation extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugObjectReference(objectId: DebugObjectId)
     extends DebugLocation
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugStackSlot(threadId: DebugThreadId,
                                 frame: Int,
                                 offset: Int)
     extends DebugLocation
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugArrayElement(objectId: DebugObjectId, index: Int)
     extends DebugLocation
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugObjectField(objectId: DebugObjectId, field: String)
     extends DebugLocation
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait DebugValue extends RpcResponse {
   def typeName: String
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugNullValue(
   typeName: String
 ) extends DebugValue
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugPrimitiveValue(
   summary: String,
   typeName: String
 ) extends DebugValue
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugObjectInstance(
   summary: String,
   fields: List[DebugClassField],
@@ -545,7 +550,7 @@ final case class DebugObjectInstance(
   objectId: DebugObjectId
 ) extends DebugValue
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugStringInstance(
   summary: String,
   fields: List[DebugClassField],
@@ -553,7 +558,7 @@ final case class DebugStringInstance(
   objectId: DebugObjectId
 ) extends DebugValue
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugArrayInstance(
   length: Int,
   typeName: String,
@@ -561,7 +566,7 @@ final case class DebugArrayInstance(
   objectId: DebugObjectId
 ) extends DebugValue
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugClassField(
   index: Int,
   name: String,
@@ -569,7 +574,7 @@ final case class DebugClassField(
   summary: String
 ) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugStackLocal(
   index: Int,
   name: String,
@@ -577,7 +582,7 @@ final case class DebugStackLocal(
   typeName: String
 ) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugStackFrame(
   index: Int,
   locals: List[DebugStackLocal],
@@ -588,14 +593,14 @@ final case class DebugStackFrame(
   thisObjectId: DebugObjectId
 ) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class DebugBacktrace(
   frames: List[DebugStackFrame],
   threadId: DebugThreadId,
   threadName: String
 ) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class NamedTypeMemberInfo(
   name: String,
   `type`: TypeInfo,
@@ -607,13 +612,13 @@ final case class NamedTypeMemberInfo(
   def tpe              = `type`
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait TypeInfo extends EntityInfo {
   def name: String
   def declAs: DeclaredAs
   def fullName: String
-  def typeArgs: Iterable[TypeInfo]
-  def members: Iterable[EntityInfo]
+  def typeArgs: List[TypeInfo]
+  def members: List[EntityInfo]
   def pos: Option[SourcePosition]
   def typeParams: List[TypeInfo]
 
@@ -621,23 +626,23 @@ sealed trait TypeInfo extends EntityInfo {
   final def args       = typeArgs
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class BasicTypeInfo(
   name: String,
   declAs: DeclaredAs,
   fullName: String,
-  typeArgs: Iterable[TypeInfo],
-  members: Iterable[EntityInfo],
+  typeArgs: List[TypeInfo],
+  members: List[EntityInfo],
   pos: Option[SourcePosition],
   typeParams: List[TypeInfo]
 ) extends TypeInfo
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ArrowTypeInfo(
   name: String,
   fullName: String,
   resultType: TypeInfo,
-  paramSections: Iterable[ParamSectionInfo],
+  paramSections: List[ParamSectionInfo],
   typeParams: List[TypeInfo]
 ) extends TypeInfo {
   def declAs   = DeclaredAs.Nil
@@ -646,13 +651,13 @@ final case class ArrowTypeInfo(
   def pos      = None
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ParamSectionInfo(
-  params: Iterable[(String, TypeInfo)],
+  params: List[(String, TypeInfo)],
   isImplicit: Boolean
 )
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class InterfaceInfo(
   `type`: TypeInfo,
   viaView: Option[String]
@@ -660,32 +665,32 @@ final case class InterfaceInfo(
   def tpe = `type`
 }
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class FileRange(file: String, start: Int, end: Int)
     extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class EnsimeImplementation(
   name: String
 )
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ConnectionInfo(
   pid: Option[Int] = None,
   implementation: EnsimeImplementation = EnsimeImplementation("ENSIME"),
   version: String = "1.9.6"
 ) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait ImplicitInfo
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ImplicitConversionInfo(
   start: Int,
   end: Int,
   fun: SymbolInfo
 ) extends ImplicitInfo
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ImplicitParamInfo(
   start: Int,
   end: Int,
@@ -694,23 +699,23 @@ final case class ImplicitParamInfo(
   funIsImplicit: Boolean
 ) extends ImplicitInfo
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class ImplicitInfos(infos: List[ImplicitInfo]) extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 sealed trait LegacyRawResponse extends RpcResponse
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object FalseResponse extends LegacyRawResponse
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 case object TrueResponse extends LegacyRawResponse
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class StringResponse(text: String) extends LegacyRawResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class StructureView(view: List[StructureViewMember])
     extends RpcResponse
 
-@deriving(JsReader, JsWriter, SexpReader, SexpWriter)
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class StructureViewMember(
   keyword: String,
   name: String,

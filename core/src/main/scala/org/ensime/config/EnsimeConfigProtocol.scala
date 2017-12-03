@@ -8,11 +8,12 @@ import akka.event.slf4j.Logger
 import shapeless._
 
 import org.ensime.sexp._
-import org.ensime.core.Canonised
 
 import org.ensime.util.file._
 import org.ensime.util.path._
 import org.ensime.util.ensimefile._
+import org.ensime.io.Canon
+import org.ensime.io.Canon.ops._
 
 import org.ensime.api._
 import SexpReader.ops._
@@ -57,6 +58,6 @@ object EnsimeConfigProtocol {
         dir.file.mkdirs()
       }
     }
-    Canonised(p)
+    p.canon.unsafePerformIO()
   }
 }
