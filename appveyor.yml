@@ -27,7 +27,7 @@ install:
 build_script:
   - echo ensimeServerJars := Nil > ensime.sbt
   - echo ensimeServerProjectJars := Nil >> ensime.sbt
-  - sbt ++%SCALA_VERSION%! "all prep cpl"
+  - sbt ++%SCALA_VERSION%! ";prep ;cpl"
 test_script:
   - IF DEFINED APPVEYOR_PULL_REQUEST_NUMBER (sbt ++%SCALA_VERSION%! "testOnly -- -l tags.IgnoreOnAppVeyor")
   - SET SBT_TASK_LIMIT=2
