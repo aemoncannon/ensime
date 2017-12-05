@@ -204,9 +204,10 @@ TaskKey[Unit](
   "prewarm",
   "Uses this build to create a cache, speeding up integration tests"
 ) := {
+  val cmd = if (sys.env.get("APPVEYOR")) "sbt.cmd" else "sbt"
   sys.process
     .Process(
-      Seq("sbt", "ensimeConfig", "ensimeServerIndex"),
+      Seq(cmd, "ensimeConfig", "ensimeServerIndex"),
       file("testing/cache")
     )
     .!

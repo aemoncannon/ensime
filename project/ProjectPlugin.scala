@@ -22,6 +22,8 @@ object ProjectPlugin extends AutoPlugin {
   import autoImport._
 
   override def projectSettings = Seq(
+    // WORKAROUND https://issues.scala-lang.org/browse/SI-10157
+    scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
     scalacOptions in Compile -= "-Ywarn-value-discard",
     scalacOptions ++= Seq(
       "-language:_",
