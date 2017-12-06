@@ -22,6 +22,11 @@ object ProjectPlugin extends AutoPlugin {
   import autoImport._
 
   override def projectSettings = Seq(
+    transitiveClassifiers := {
+      // reduces the download burden when running in CI
+      val orig = transitiveClassifiers.value
+      if (sys.env.contains("CI")) Nil else orig
+    },
     // WORKAROUND https://issues.scala-lang.org/browse/SI-10157
     scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
     scalacOptions in Compile -= "-Ywarn-value-discard",
