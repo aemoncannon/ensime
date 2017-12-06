@@ -25,7 +25,7 @@ object TestingPlugin extends AutoPlugin {
 
   override def buildSettings = Seq()
   override def projectSettings = Seq(
-    testFrameworks := Nil,
+    testFrameworks in Test := Nil,
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in packageDoc := false,
     sources in (Compile, doc) := Nil,
