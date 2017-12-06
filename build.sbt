@@ -204,10 +204,13 @@ TaskKey[Unit](
   "prewarm",
   "Uses this build to create a cache, speeding up integration tests"
 ) := {
-  val cmd = if (sys.env.contains("APPVEYOR")) """C:\sbt\bin\sbt.bat""" else "sbt"
+  // would be good to be able to do this without exiting the JVM...
+  val sv = scalaVersion.value
+  val cmd =
+    if (sys.env.contains("APPVEYOR")) """C:\sbt\bin\sbt.bat""" else "sbt"
   sys.process
     .Process(
-      Seq(cmd, "ensimeConfig", "ensimeServerIndex"),
+      Seq(cmd, s"++$sv!", "ensimeConfig", "ensimeServerIndex"),
       file("testing/cache")
     )
     .!
