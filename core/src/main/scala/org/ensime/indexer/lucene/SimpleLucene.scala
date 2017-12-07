@@ -18,6 +18,7 @@ import org.apache.lucene.util._
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.{ blocking, ExecutionContext, Future }
+import scala.concurrent.ExecutionContextExecutorService
 
 object SimpleLucene {
   // from DirectDocValuesFormat.MAX_SORTED_SET_ORDS = 2147483391 but
@@ -72,7 +73,7 @@ class SimpleLucene(path: Path, analyzers: Map[String, Analyzer])
       }
     }
   )
-  private implicit val executionContext =
+  private implicit val executionContext: ExecutionContextExecutorService =
     ExecutionContext.fromExecutorService(executorService)
 
   // http://blog.thetaphi.de/2012/07/use-lucenes-mmapdirectory-on-64bit.html

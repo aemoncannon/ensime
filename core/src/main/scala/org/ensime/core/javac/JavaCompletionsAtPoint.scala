@@ -330,7 +330,7 @@ trait JavaCompletionsAtPoint { requires: JavaCompiler =>
   private def renderShortType(t: TypeMirror): String = t match {
     case t: ArrayType => renderShortType(t.getComponentType) + "[]"
     case t: DeclaredType =>
-      t.asElement.getSimpleName + (t.getTypeArguments.asScala match {
+      t.asElement.getSimpleName.toString + (t.getTypeArguments.asScala match {
         case Seq() => ""
         case args  => args.map(renderShortType).mkString("<", ",", ">")
       })

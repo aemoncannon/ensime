@@ -43,7 +43,7 @@ class JavaCompiler(
   private val cp         = config.classpath.mkString(JFile.pathSeparator)
   private val workingSet = new ConcurrentHashMap[String, JavaFileObject]()
 
-  private implicit def charset =
+  private implicit def charset: Charset =
     Charset.defaultCharset() // how can we infer this?
 
   lazy val compiler = ToolProvider.getSystemJavaCompiler()

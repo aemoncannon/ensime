@@ -7,6 +7,7 @@ import sbt.{ IntegrationTest => It, _ }
 import sbtassembly.AssemblyKeys._
 import sbtassembly.{ AssemblyKeys, MergeStrategy, PathList }
 import sbtbuildinfo.BuildInfoPlugin, BuildInfoPlugin.autoImport._
+import scalafix.sbt.ScalafixPlugin.autoImport._
 
 import org.ensime.EnsimePlugin.JdkDir
 import org.ensime.EnsimeKeys._
@@ -25,6 +26,10 @@ object TestingPlugin extends AutoPlugin {
 
   override def buildSettings = Seq()
   override def projectSettings = Seq(
+    // WORKAROUND https://github.com/scalacenter/scalafix/issues/489
+    scalafixEnabled := false,
+    scalafix := {},
+    scalafix in Test := {},
     testFrameworks in Test := Nil,
     publishArtifact in (Compile, packageDoc) := false,
     publishArtifact in packageDoc := false,

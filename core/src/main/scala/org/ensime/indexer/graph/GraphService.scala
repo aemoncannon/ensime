@@ -31,6 +31,7 @@ import org.ensime.util.fileobject._
 import org.ensime.util.stringymap.api.BigDataFormat
 import org.ensime.vfs._
 import shapeless.cachedImplicit
+import scala.concurrent.ExecutionContextExecutor
 
 // I'm not particularly keen on this kind of OOP modelling...
 sealed trait FqnSymbol {
@@ -159,7 +160,8 @@ class GraphService(dir: File) extends SLF4JLogging {
       }
     }
   )
-  private implicit val ec = ExecutionContext.fromExecutor(executor)
+  private implicit val ec: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(executor)
 
   private implicit lazy val db: OrientGraphFactory = {
     // http://orientdb.com/docs/2.1/Performance-Tuning.html

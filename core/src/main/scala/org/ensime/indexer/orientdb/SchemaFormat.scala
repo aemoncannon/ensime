@@ -9,6 +9,7 @@ import org.ensime.indexer.Access
 import org.ensime.indexer.orientdb.api.OrientProperty
 import shapeless._
 import shapeless.labelled._
+import org.ensime.indexer.orientdb.schema.api.OrientPropertyFormat
 
 package api {
 
@@ -59,10 +60,11 @@ package api {
     implicit def OptionOrientPropertyFormat[T](
       implicit
       p: OrientPropertyFormat[T]
-    ) = new OrientPropertyFormat[Option[T]] {
-      def toOrientProperty: OrientProperty =
-        OrientProperty(p.toOrientProperty.oType, isMandatory = false)
-    }
+    ): AnyRef with OrientPropertyFormat[Option[T]] {} =
+      new OrientPropertyFormat[Option[T]] {
+        def toOrientProperty: OrientProperty =
+          OrientProperty(p.toOrientProperty.oType, isMandatory = false)
+      }
   }
 }
 

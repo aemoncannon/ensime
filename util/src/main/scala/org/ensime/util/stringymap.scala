@@ -12,6 +12,7 @@ import java.sql.Timestamp
 
 import shapeless._
 import shapeless.labelled._
+import org.ensime.util.stringymap.api.SPrimitive
 
 package object api {
   type StringyMap   = java.util.HashMap[String, AnyRef]
@@ -58,7 +59,7 @@ package api {
     implicit def OptionSPrimitive[T](
       implicit
       p: SPrimitive[T]
-    ) = new SPrimitive[Option[T]] {
+    ): AnyRef with SPrimitive[Option[T]] {} = new SPrimitive[Option[T]] {
       def toValue(v: Option[T]): AnyRef = v match {
         case None    => null
         case Some(t) => p.toValue(t)
