@@ -59,7 +59,7 @@ package api {
     implicit def OptionSPrimitive[T](
       implicit
       p: SPrimitive[T]
-    ): AnyRef with SPrimitive[Option[T]] {} = new SPrimitive[Option[T]] {
+    ): SPrimitive[Option[T]] = new SPrimitive[Option[T]] {
       def toValue(v: Option[T]): AnyRef = v match {
         case None    => null
         case Some(t) => p.toValue(t)

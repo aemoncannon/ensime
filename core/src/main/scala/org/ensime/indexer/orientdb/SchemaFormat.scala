@@ -60,7 +60,7 @@ package api {
     implicit def OptionOrientPropertyFormat[T](
       implicit
       p: OrientPropertyFormat[T]
-    ): AnyRef with OrientPropertyFormat[Option[T]] {} =
+    ): OrientPropertyFormat[Option[T]] =
       new OrientPropertyFormat[Option[T]] {
         def toOrientProperty: OrientProperty =
           OrientProperty(p.toOrientProperty.oType, isMandatory = false)
