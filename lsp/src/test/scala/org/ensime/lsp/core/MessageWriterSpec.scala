@@ -7,7 +7,6 @@ import java.io.{ PipedInputStream, PipedOutputStream }
 import org.scalatest.Matchers._
 import org.scalatest._
 import spray.json._
-import JsWriter.ops._
 import JsReader.ops._
 
 class MessageWriterSpec extends FreeSpec with BeforeAndAfter {

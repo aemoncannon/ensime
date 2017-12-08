@@ -4,14 +4,6 @@ package org.ensime.lsp.api.methods
 
 import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.api.commands._
-import org.ensime.lsp.api.types.{
-  MarkdownString,
-  MarkedString,
-  RawMarkedString
-}
-import spray.json._
-
-import scala.util.{ Failure, Success, Try }
 
 object ServerCommands {
   implicit val initializeCommand: RpcCommand[InitializeParams] =

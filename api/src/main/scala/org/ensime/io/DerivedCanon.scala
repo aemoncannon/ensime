@@ -4,7 +4,6 @@
 package org.ensime.io
 
 import shapeless.{ :: => :*:, _ }
-import shapeless.labelled._
 import scalaz.effect.IO
 
 trait DerivedCanon[Repr] {

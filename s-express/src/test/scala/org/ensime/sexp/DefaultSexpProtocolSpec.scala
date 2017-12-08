@@ -3,8 +3,6 @@
 
 package org.ensime.sexp
 
-import org.ensime.sexp._
-
 // these are a sort of aggregated test, investigating behaviours of
 // interactions between the different formats.
 class DefaultSexpProtocolSpec extends FormatSpec {

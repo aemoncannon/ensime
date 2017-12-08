@@ -4,7 +4,6 @@
 package org.ensime.sexp
 
 import collection.{ immutable => im }
-import org.ensime.sexp._
 
 // http://docs.scala-lang.org/overviews/collections/overview.html
 class CollectionFormatsSpec extends FormatSpec {

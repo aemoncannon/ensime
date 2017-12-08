@@ -4,7 +4,6 @@
 package org.ensime.api
 
 import java.io.File
-import java.nio.file.Path
 
 import scala.annotation.StaticAnnotation
 

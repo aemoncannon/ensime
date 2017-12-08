@@ -5,8 +5,6 @@ package spray.json
 
 import java.io.File
 
-import scala.collection.immutable.Seq
-
 import simulacrum._
 
 /** JSON serialization. */

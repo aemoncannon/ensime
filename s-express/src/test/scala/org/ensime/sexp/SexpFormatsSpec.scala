@@ -3,8 +3,6 @@
 
 package org.ensime.sexp
 
-import org.ensime.sexp._
-
 class SexpFormatsSpec extends FormatSpec {
 
   val foo = SexpString("foo")

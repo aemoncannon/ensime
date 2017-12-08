@@ -7,7 +7,6 @@ import java.net._
 
 import org.apache.commons.vfs2._
 import org.ensime.api._
-import org.ensime.util.ensimefile._
 
 /**
  * Adds functionality to the Apache VFS FileObject.

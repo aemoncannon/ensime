@@ -3,8 +3,6 @@
 
 package org.ensime.sexp
 
-import org.ensime.sexp._
-
 class BasicFormatsSpec extends FormatSpec {
 
   "BasicFormats" should "support Int" in {

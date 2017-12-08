@@ -2,17 +2,13 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.config
 
-import java.nio.file.Paths
-
 import akka.event.slf4j.Logger
-import shapeless._
 
 import org.ensime.sexp._
 
 import org.ensime.util.file._
 import org.ensime.util.path._
 import org.ensime.util.ensimefile._
-import org.ensime.io.Canon
 import org.ensime.io.Canon.ops._
 
 import org.ensime.api._

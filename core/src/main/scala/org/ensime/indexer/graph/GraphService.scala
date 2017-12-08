@@ -13,7 +13,6 @@ import scala.util.Try
 import akka.event.slf4j.SLF4JLogging
 import com.orientechnologies.orient.core.Orient
 import com.orientechnologies.orient.core.config.OGlobalConfiguration
-import com.orientechnologies.orient.core.db.ODatabaseRecordThreadLocal
 import com.orientechnologies.orient.core.metadata.schema.OType
 import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory
@@ -25,7 +24,6 @@ import org.ensime.indexer.SearchService._
 import org.ensime.indexer.orientdb.api._
 import org.ensime.indexer.orientdb.schema.api._
 import org.ensime.indexer.orientdb.syntax._
-import org.ensime.util.ensimefile._
 import org.ensime.util.file._
 import org.ensime.util.fileobject._
 import org.ensime.util.stringymap.api.BigDataFormat

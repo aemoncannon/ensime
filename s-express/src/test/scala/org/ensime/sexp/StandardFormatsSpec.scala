@@ -5,10 +5,7 @@ package org.ensime.sexp
 
 import java.io.File
 import java.net.URI
-import java.util.Date
 import java.util.UUID
-
-import org.ensime.sexp._
 
 class StandardFormatsSpec extends FormatSpec {
 

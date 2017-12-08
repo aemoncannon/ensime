@@ -12,7 +12,6 @@ import scala.reflect.io.AbstractFile
 import scala.tools.nsc.symtab.Flags._
 import scala.tools.refactoring.common.{ CompilerAccess, EnrichedTrees }
 import org.ensime.api._
-import org.ensime.util.ensimefile._
 
 class SemanticHighlighting(val global: RichPresentationCompiler)
     extends CompilerAccess

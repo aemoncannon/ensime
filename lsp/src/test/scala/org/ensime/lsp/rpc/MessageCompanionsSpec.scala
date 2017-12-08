@@ -6,7 +6,6 @@ import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.rpc.messages._
 import org.scalatest.Matchers._
 import org.scalatest._
-import shapeless.cachedImplicit
 import spray.json._
 
 import scalaz.deriving

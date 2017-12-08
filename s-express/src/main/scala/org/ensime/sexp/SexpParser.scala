@@ -3,8 +3,6 @@
 
 package org.ensime.sexp
 
-import scala.util.Try
-
 import fastparse.all._
 
 /**

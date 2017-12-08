@@ -4,11 +4,6 @@
 package org.ensime.sexp
 
 import java.lang.String
-import java.math.{ BigDecimal => BD }
-
-import scala.Predef.ArrowAssoc
-import scala.collection.immutable._
-import scala.concurrent.duration._
 
 import org.scalatest._
 import org.scalatest.Matchers._

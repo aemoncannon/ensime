@@ -3,7 +3,6 @@
 
 package org.ensime.sexp
 
-import org.ensime.sexp._
 import org.scalactic.source.Position
 
 trait FormatSpec extends SexpSpec {

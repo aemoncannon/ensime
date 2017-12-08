@@ -9,7 +9,6 @@ import org.ensime.indexer.FullyQualifiedName
 import org.ensime.util.EnsimeSpec
 import EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.file._
-import org.ensime.util.ensimefile._
 
 class ReverseLookupsSpec
     extends EnsimeSpec

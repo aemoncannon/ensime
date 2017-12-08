@@ -3,8 +3,6 @@
 
 package org.ensime.sexp
 
-import scala.collection.immutable.ListMap
-
 import shapeless.{ :: => :*:, _ }
 import shapeless.labelled._
 

@@ -6,7 +6,6 @@ import akka.actor._
 import akka.event.LoggingReceive
 import org.ensime.api._
 import org.ensime.core._
-import org.ensime.io.Canon
 import org.ensime.io.Canon.ops._
 
 /**

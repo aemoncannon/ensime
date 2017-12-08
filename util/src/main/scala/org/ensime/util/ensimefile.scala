@@ -2,7 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.util
 
-import java.io.File
 import java.net._
 import java.nio.charset.Charset
 import java.nio.file._
