@@ -24,11 +24,8 @@ lazy val `s-express` = project
   )
 
 lazy val monkeys = project
+  .disablePlugins(ScalafixPlugin)
   .settings(
-    // WORKAROUND https://github.com/scalacenter/scalafix/issues/489
-    scalafixEnabled := false,
-    scalafix := {},
-    scalafix in Test := {},
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-vfs2" % "2.1"
     )
