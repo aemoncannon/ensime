@@ -5,47 +5,47 @@ package spray.json
 
 import org.scalatest._
 
-class JsParserSpec extends WordSpec {
+class JsParserSpec extends WordSpec with Matchers {
 
   "The JsParser" should {
     "parse 'null' to JsNull" in {
-      JsParser("null") === JsNull
+      JsParser("null") should === (JsNull)
     }
     "parse 'true' to JsBoolean.True" in {
-      JsParser("true") === JsBoolean.True
+      JsParser("true") should === (JsBoolean.True)
     }
     "parse 'false' to JsBoolean.False" in {
-      JsParser("false") === JsBoolean.False
+      JsParser("false") should === (JsBoolean.False)
     }
     "parse '0' to JsNumber" in {
-      JsParser("0") === JsNumber(0)
+      JsParser("0") should === (JsNumber(0))
     }
     "parse '1.23' to JsNumber" in {
-      JsParser("1.23") === JsNumber(1.23)
+      JsParser("1.23") should === (JsNumber(1.23))
     }
     "parse '-1E10' to JsNumber" in {
-      JsParser("-1E10") === JsNumber("-1E+10")
+      JsParser("-1E10") should === (JsNumber("-1E+10"))
     }
     "parse '12.34e-10' to JsNumber" in {
-      JsParser("12.34e-10") === JsNumber("1.234E-9")
+      JsParser("12.34e-10") should === (JsNumber("1.234E-9"))
     }
     "parse \"xyz\" to JsString" in {
-      JsParser("\"xyz\"") === JsString("xyz")
+      JsParser("\"xyz\"") should === (JsString("xyz"))
     }
     "parse escapes in a JsString" in {
-      JsParser(""""\"\\/\b\f\n\r\t"""") === JsString("\"\\/\b\f\n\r\t")
-      JsParser("\"L\\" + "u00e4nder\"") === JsString("Länder")
+      JsParser(""""\"\\/\b\f\n\r\t"""") should === (JsString("\"\\/\b\f\n\r\t"))
+      JsParser("\"L\\" + "u00e4nder\"") should === (JsString("Länder"))
     }
     "parse all representations of the slash (SOLIDUS) character in a JsString" in {
-      JsParser("\"" + "/\\/\\u002f" + "\"") === JsString("///")
+      JsParser("\"" + "/\\/\\u002f" + "\"") should === (JsString("///"))
     }
     "parse a simple JsObject" in (
-      JsParser(""" { "key" :42, "key2": "value" }""") ===
-        JsObject("key" -> JsNumber(42), "key2" -> JsString("value"))
+      JsParser(""" { "key" :42, "key2": "value" }""") should ===
+        (JsObject("key" -> JsNumber(42), "key2" -> JsString("value")))
     )
     "parse a simple JsArray" in (
-      JsParser("""[null, 1.23 ,{"key":true } ] """) ===
-        JsArray(JsNull, JsNumber(1.23), JsObject("key" -> JsBoolean.True))
+      JsParser("""[null, 1.23 ,{"key":true } ] """) should ===
+        (JsArray(JsNull, JsNumber(1.23), JsObject("key" -> JsBoolean.True)))
     )
     "parse directly from UTF-8 encoded bytes" in {
       val json = JsObject(
@@ -56,11 +56,11 @@ class JsParserSpec extends WordSpec {
           "4-byte UTF-8 chars like \uD801\uDC37, \uD852\uDF62 or \uD83D\uDE01."
         )
       )
-      JsParser(PrettyPrinter(json).getBytes("UTF-8")) === json
+      JsParser(PrettyPrinter(json).getBytes("UTF-8")) should === (json)
     }
     "parse directly from UTF-8 encoded bytes when string starts with a multi-byte character" in {
       val json = JsString("£0.99")
-      JsParser(PrettyPrinter(json).getBytes("UTF-8")) === json
+      JsParser(PrettyPrinter(json).getBytes("UTF-8")) should === (json)
     }
     "be reentrant" in {
       val largeJsonSource = scala.io.Source
@@ -73,7 +73,7 @@ class JsParserSpec extends WordSpec {
           .asInstanceOf[JsArray]
           .elements
           .size
-      } === List.fill(20)(100)
+      } should === (List.fill(20)(100))
     }
 
     "produce proper error messages" in {
@@ -81,29 +81,29 @@ class JsParserSpec extends WordSpec {
         try JsParser(input)
         catch { case e: JsParser.ParsingException => e.getMessage }
 
-      errorMessage("""[null, 1.23 {"key":true } ]""") ===
+      errorMessage("""[null, 1.23 {"key":true } ]""") should === (
         """Unexpected character '{' at input index 12 (line 1, position 13), expected ']':
           |[null, 1.23 {"key":true } ]
           |            ^
-          |""".stripMargin
+          |""".stripMargin)
 
-      errorMessage("""[null, 1.23, {  key":true } ]""") ===
+      errorMessage("""[null, 1.23, {  key":true } ]""") should === (
         """Unexpected character 'k' at input index 16 (line 1, position 17), expected '"':
           |[null, 1.23, {  key":true } ]
           |                ^
-          |""".stripMargin
+          |""".stripMargin)
 
-      errorMessage("""{"a}""") ===
+      errorMessage("""{"a}""") should === (
         """Unexpected end-of-input at input index 4 (line 1, position 5), expected '"':
           |{"a}
           |    ^
-          |""".stripMargin
+          |""".stripMargin)
 
-      errorMessage("""{}x""") ===
+      errorMessage("""{}x""") should === (
         """Unexpected character 'x' at input index 2 (line 1, position 3), expected end-of-input:
           |{}x
           |  ^
-          |""".stripMargin
+          |""".stripMargin)
     }
   }
 }
