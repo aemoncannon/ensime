@@ -6,7 +6,7 @@ import java.net.URI
 import org.ensime.util.Debouncer
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.util.{ Failure, Properties, Success }
+import scala.util.{ Failure, Properties, Success, Try }
 import scala.collection.{ mutable, Map, Set }
 
 import akka.actor._
@@ -307,89 +307,100 @@ class SearchService(
         val file = if (path.startsWith("jar") || path.startsWith("zip")) {
           FileCheck(container)
         } else FileCheck(f)
-        val indexer = new ClassfileIndexer(f)
-        val clazz   = indexer.indexClassfile()
 
-        val userFile = isUserFile(f.getName)
-        val source   = resolver.resolve(clazz.name.pack, clazz.source)
+        Try {
+          val indexer = new ClassfileIndexer(f)
+          val clazz   = indexer.indexClassfile()
 
-        val sourceUri = source.map(_.uriString)
+          val userFile = isUserFile(f.getName)
+          val source   = resolver.resolve(clazz.name.pack, clazz.source)
 
-        val jdi = source.map { src =>
-          val pkg = clazz.name.pack.path.mkString("/")
-          s"$pkg/${src.getName.getBaseName}"
-        }
+          val sourceUri = source.map(_.uriString)
 
-        val scalapClassInfo = scalapClasses.get(clazz.name.fqnString)
+          val jdi = source.map { src =>
+            val pkg = clazz.name.pack.path.mkString("/")
+            s"$pkg/${src.getName.getBaseName}"
+          }
 
-        scalapClassInfo match {
-          case _ if clazz.access != Public            => List(EmptySourceSymbolInfo(file))
-          case _ if ignore.exists(clazz.fqn.contains) => Nil
-          case Some(scalapSymbol) =>
-            val classInfo = ClassSymbolInfo(file,
-                                            path,
-                                            sourceUri,
-                                            getInternalRefs(userFile, clazz),
-                                            clazz,
-                                            Some(scalapSymbol),
-                                            jdi)
+          val scalapClassInfo = scalapClasses.get(clazz.name.fqnString)
 
-            val fields = clazz.fields.map(
-              f =>
-                FieldSymbolInfo(file,
-                                sourceUri,
-                                getInternalRefs(userFile, f),
-                                f,
-                                scalapSymbol.fields.get(f.fqn))
-            )
+          scalapClassInfo match {
+            case _ if clazz.access != Public =>
+              List(EmptySourceSymbolInfo(file))
+            case _ if ignore.exists(clazz.fqn.contains) => Nil
+            case Some(scalapSymbol) =>
+              val classInfo = ClassSymbolInfo(file,
+                                              path,
+                                              sourceUri,
+                                              getInternalRefs(userFile, clazz),
+                                              clazz,
+                                              Some(scalapSymbol),
+                                              jdi)
 
-            val methods = clazz.methods.groupBy(_.name.name).flatMap {
-              case (methodName, overloads) =>
-                val scalapMethods = scalapSymbol.methods.get(methodName)
-                overloads.iterator.zipWithIndex.map {
-                  case (m, i) =>
-                    val scalap = scalapMethods.fold(
-                      Option.empty[RawScalapMethod]
-                    )(seq => if (seq.length <= i) None else Some(seq(i)))
-                    MethodSymbolInfo(file,
-                                     sourceUri,
-                                     getInternalRefs(userFile, m),
-                                     m,
-                                     scalap)
-                }
-            }
+              val fields = clazz.fields.map(
+                f =>
+                  FieldSymbolInfo(file,
+                                  sourceUri,
+                                  getInternalRefs(userFile, f),
+                                  f,
+                                  scalapSymbol.fields.get(f.fqn))
+              )
 
-            val aliases = scalapSymbol.typeAliases.valuesIterator
-              .map(alias => TypeAliasSymbolInfo(file, sourceUri, alias))
-              .toList
+              val methods = clazz.methods.groupBy(_.name.name).flatMap {
+                case (methodName, overloads) =>
+                  val scalapMethods = scalapSymbol.methods.get(methodName)
+                  overloads.iterator.zipWithIndex.map {
+                    case (m, i) =>
+                      val scalap = scalapMethods.fold(
+                        Option.empty[RawScalapMethod]
+                      )(seq => if (seq.length <= i) None else Some(seq(i)))
+                      MethodSymbolInfo(file,
+                                       sourceUri,
+                                       getInternalRefs(userFile, m),
+                                       m,
+                                       scalap)
+                  }
+              }
 
-            classInfo :: fields ::: methods.toList ::: aliases
-          case None =>
-            val cl = ClassSymbolInfo(file,
-                                     path,
-                                     sourceUri,
-                                     getInternalRefs(userFile, clazz),
-                                     clazz,
-                                     None,
-                                     jdi)
-            val methods: List[MethodSymbolInfo] = clazz.methods.map(
-              m =>
-                MethodSymbolInfo(file,
-                                 sourceUri,
-                                 getInternalRefs(userFile, m),
-                                 m,
-                                 None)
-            )(collection.breakOut)
-            val fields = clazz.fields.map(
-              f =>
-                FieldSymbolInfo(file,
-                                sourceUri,
-                                getInternalRefs(userFile, f),
-                                f,
-                                None)
-            )
-            cl :: methods ::: fields
-        }
+              val aliases = scalapSymbol.typeAliases.valuesIterator
+                .map(alias => TypeAliasSymbolInfo(file, sourceUri, alias))
+                .toList
+
+              classInfo :: fields ::: methods.toList ::: aliases
+            case None =>
+              val cl = ClassSymbolInfo(file,
+                                       path,
+                                       sourceUri,
+                                       getInternalRefs(userFile, clazz),
+                                       clazz,
+                                       None,
+                                       jdi)
+              val methods: List[MethodSymbolInfo] = clazz.methods.map(
+                m =>
+                  MethodSymbolInfo(file,
+                                   sourceUri,
+                                   getInternalRefs(userFile, m),
+                                   m,
+                                   None)
+              )(collection.breakOut)
+              val fields = clazz.fields.map(
+                f =>
+                  FieldSymbolInfo(file,
+                                  sourceUri,
+                                  getInternalRefs(userFile, f),
+                                  f,
+                                  None)
+              )
+              cl :: methods ::: fields
+          }
+        } fold (
+          ex => {
+            log.warn(s"$file failed to index")
+            log.debug("Exception: \n", ex)
+            List(EmptySourceSymbolInfo(file))
+          },
+          identity(_)
+        )
     }(collection.breakOut)
     res.filterNot(sym => ignore.exists(sym.fqn.contains)).sortWith {
       case (cl1: ClassSymbolInfo, cl2: ClassSymbolInfo) => cl1.fqn < cl2.fqn
