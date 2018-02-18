@@ -143,11 +143,15 @@ class FileWatchService { self =>
         log.trace(s"delay ${dir} base registration")
       Thread.sleep(100)
     }
-    val observers =
-      (listeners map { maybeBuildWatchKeyObserver(dir, _) }).flatten
+
+    val observers = listeners flatMap {
+        maybeBuildWatchKeyObserver(dir, _)
+      }
+
     if (log.isTraceEnabled)
       log.trace(s"register ${dir} with WatchService")
-    if (!observers.isEmpty) {
+
+    if (observers.nonEmpty) {
       val key: WatchKey = try {
         dir.toPath.register(
           watchService,

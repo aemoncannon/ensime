@@ -121,41 +121,42 @@ object WatchKeyManager {
       case _                   => false
     }
 
+  private def observerOf(key: WatchKey)(observerCriteria: WatchKeyObserver => Boolean) = {
+    keymap getOrElse(key, Set()) filter observerCriteria
+  }
+
+  def listenerOf(key: WatchKey)(observerCriteria : WatchKeyObserver => Boolean) =
+    observerOf(key)(observerCriteria) map { _.watcherListener }
+
   def recListeners(key: WatchKey) =
     listeners(key) filter { _.recursive }
 
-  def baseListeners(key: WatchKey) =
-    keymap getOrElse (key, Set()) filter {
+  def baseListeners(key: WatchKey) = listenerOf(key){
       case _: BaseObserver => true
       case _               => false
-    } map { _.watcherListener }
+  }
 
-  def baseFileListeners(key: WatchKey) =
-    keymap getOrElse (key, Set()) filter {
+  def baseFileListeners(key: WatchKey) = listenerOf(key){
       case _: BaseFileObserver => true
       case _                   => false
-    } map { _.watcherListener }
+  }
 
-  def proxyListeners(key: WatchKey) =
-    keymap getOrElse (key, Set()) filter {
+  def proxyListeners(key: WatchKey) = listenerOf(key){
       case _: ProxyObserver => true
       case _                => false
-    } map { _.watcherListener }
+  }
 
-  def nonProxyListeners(key: WatchKey) =
-    keymap getOrElse (key, Set()) filter {
+  def nonProxyListeners(key: WatchKey) = listenerOf(key){
       case _: ProxyObserver => false
       case _                => true
-    } map { _.watcherListener }
+  }
 
-  def proxies(key: WatchKey) =
-    keymap getOrElse (key, Set()) filter {
+  def proxies(key: WatchKey) = observerOf(key){
       case _: ProxyObserver => true
       case _                => false
-    }
+  }
 
-  def listeners(key: WatchKey) =
-    keymap getOrElse (key, Set()) map { _.watcherListener }
+  def listeners(key: WatchKey) = listenerOf(key)(_=>true)
 
   def removeKey(key: WatchKey): Unit = {
     key.cancel()
