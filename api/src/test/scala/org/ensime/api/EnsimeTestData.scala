@@ -11,7 +11,7 @@ object EnsimeTestData {
     val file = new File(s)
     val canonised = try file.getCanonicalFile
     catch {
-      case t: Throwable => file.getAbsoluteFile
+      case t: Exception => file.getAbsoluteFile
     }
     RawFile(canonised.toPath)
   }

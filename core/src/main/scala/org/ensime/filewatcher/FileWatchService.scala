@@ -145,7 +145,7 @@ class FileWatchService { self =>
         }
       }
     } catch {
-      case e: Throwable =>
+      case e: Exception =>
         log.error(s"failed to watch ${file}")
     }
 
@@ -188,7 +188,7 @@ class FileWatchService { self =>
                             events,
                             SensitivityWatchEventModifier.HIGH)
       } catch {
-        case e: Throwable => {
+        case e: Exception => {
           if (retry < 0) {
             log.warn("can not register. retrying..." + dir + " " + e)
             Thread.sleep(50)
@@ -352,7 +352,7 @@ class FileWatchService { self =>
       shouldRun = false
       watchService.close();
     } catch {
-      case e: Throwable =>
+      case e: Exception =>
         log.error("failed to close WatchService {}", e);
     }
 

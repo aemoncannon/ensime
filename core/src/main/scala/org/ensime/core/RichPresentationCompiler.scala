@@ -91,7 +91,7 @@ trait RichCompilerControl
             logger.error("Error during askOption", e)
             None
         }
-      case e: Throwable =>
+      case e: Exception =>
         logger.error("Error during askOption", e)
         None
     }
@@ -397,7 +397,7 @@ class RichPresentationCompiler(
         )
         members(sym) = m
       } catch {
-        case e: Throwable =>
+        case e: Exception =>
           logger.error("Error: Omitting member " + sym + ": " + e)
       }
     for (sym <- tpe.decls) {
@@ -416,7 +416,7 @@ class RichPresentationCompiler(
       val members: Iterable[Member] = try {
         wrapTypeMembers(p)
       } catch {
-        case e: Throwable =>
+        case e: Exception =>
           logger.error("Error retrieving type members:", e)
           List.empty
       }

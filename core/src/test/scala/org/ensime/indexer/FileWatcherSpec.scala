@@ -448,7 +448,7 @@ class FileWatcherSpec
       }
       tk.fishForMessage(1 second)(baseCreated)
     } catch {
-      case e: Throwable => true
+      case e: Exception => true
     }
   def withClassWatcher[T](
     base: File
