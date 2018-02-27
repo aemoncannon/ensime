@@ -10,7 +10,6 @@ import com.sun.nio.file.SensitivityWatchEventModifier
 import java.util.UUID
 import org.slf4j.LoggerFactory
 
-import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Set
 import scala.language.implicitConversions
