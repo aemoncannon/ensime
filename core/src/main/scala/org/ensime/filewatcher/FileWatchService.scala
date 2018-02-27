@@ -3,12 +3,14 @@
 package org.ensime.filewatcher
 
 import java.io._
+import java.nio.file.{ FileSystems, Path, WatchKey, WatchEvent, WatchService }
 import java.nio.file.StandardWatchEventKinds._
-import java.nio.file.{FileSystems, Path, WatchKey, WatchService}
-import java.util.UUID
+import com.sun.nio.file.SensitivityWatchEventModifier
 
+import java.util.UUID
 import org.slf4j.LoggerFactory
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Set
 import scala.language.implicitConversions
@@ -153,12 +155,8 @@ class FileWatchService { self =>
 
     if (observers.nonEmpty) {
       val key: WatchKey = try {
-        dir.toPath.register(
-          watchService,
-          ENTRY_CREATE,
-          ENTRY_MODIFY,
-          ENTRY_DELETE
-        )
+        val events: Array[WatchEvent.Kind[_]] = Array(ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+        dir.toPath.register(watchService, events, SensitivityWatchEventModifier.HIGH)
       } catch {
         case e: Throwable => {
           if (retry < 0) {
