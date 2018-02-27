@@ -30,6 +30,6 @@ branches:
   include: [ 1.0, 2.0, 3.0 ]
   exclude: [ feature/* ]
 
-#cache:
-#  mount:
-#    - project/.sbt
+cache:
+  mount:
+    - project/.sbt
