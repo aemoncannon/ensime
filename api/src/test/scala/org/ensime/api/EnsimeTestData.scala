@@ -64,22 +64,6 @@ object EnsimeTestData {
 
   val breakpointList = BreakpointList(List(breakPoint1), List(breakPoint2))
 
-  val debugStackLocal1 = DebugStackLocal(3, "name1", "summary1", "type1")
-  val debugStackLocal2 = DebugStackLocal(4, "name2", "summary2", "type2")
-
-  val debugStackFrame = DebugStackFrame(
-    7,
-    List(debugStackLocal1, debugStackLocal2),
-    4,
-    "class1",
-    "method1",
-    sourcePos1,
-    DebugObjectId(7)
-  )
-
-  val debugBacktrace =
-    DebugBacktrace(List(debugStackFrame), DebugThreadId(17), "thread1")
-
   val analyzerFile = canon("Analyzer.scala")
   val fooFile      = canon("Foo.scala")
 
@@ -104,25 +88,6 @@ object EnsimeTestData {
   )
 
   val fileRange = FileRange("/abc", 7, 9)
-
-  val debugLocObjectRef: DebugLocation = DebugObjectReference(
-    DebugObjectId(57L)
-  )
-
-  val debugNullValue = DebugNullValue("typeNameStr")
-
-  val debugArrayInstValue =
-    DebugArrayInstance(3, "typeName", "elementType", DebugObjectId(5L))
-
-  val debugPrimitiveValue = DebugPrimitiveValue("summaryStr", "typeNameStr")
-
-  val debugClassField =
-    DebugClassField(19, "nameStr", "typeNameStr", "summaryStr")
-
-  val debugStringValue = DebugStringInstance("summaryStr",
-                                             List(debugClassField),
-                                             "typeNameStr",
-                                             DebugObjectId(6L))
 
   val note1 = new Note("file1", "note1", NoteError, 23, 33, 19, 8)
   val note2 = new Note("file1", "note2", NoteWarn, 23, 33, 19, 8)
@@ -156,9 +121,6 @@ object EnsimeTestData {
   val sourceFileInfo =
     SourceFileInfo(file1, Some("{/* code here */}"), Some(file2.file.toFile))
   val sourceFileInfo2 = SourceFileInfo(file1)
-
-  val dtid               = DebugThreadId(13)
-  val debugLocationArray = DebugArrayElement(DebugObjectId(13), 14)
 
   val structureView = StructureView(
     List(

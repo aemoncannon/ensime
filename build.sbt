@@ -66,9 +66,8 @@ lazy val core = project
     // test config needed to get the test jar
     testingSimpleJar % "test,it->test",
     testingTiming    % "test,it",
-    testingMacros    % "test, it",
+    testingMacros    % "test,it",
     testingShapeless % "test,it",
-    testingDebug     % "test,it",
     testingJava      % "test,it"
   )
   .enableIntegrationTests
@@ -93,8 +92,7 @@ lazy val core = project
         }
         "org.scala-refactoring" % s"org.scala-refactoring.library_${suffix}" % "0.13.0"
       },
-      "com.googlecode.java-diff-utils" % "diffutils"           % "1.3.0",
-      "org.scala-debugger"             %% "scala-debugger-api" % "1.1.0-M3"
+      "com.googlecode.java-diff-utils" % "diffutils"           % "1.3.0"
     ) ++ shapeless.value
   )
 
@@ -141,7 +139,6 @@ lazy val testingMacros = testingProject("testing/macros") settings (
 lazy val testingShapeless = testingProject("testing/shapeless").settings(
   libraryDependencies ++= shapeless.value
 )
-lazy val testingDebug = testingProject("testing/debug")
 lazy val testingDocs = testingProject("testing/docs").settings(
   dependencyOverrides ++= Seq("com.google.guava" % "guava" % "18.0"),
   libraryDependencies ++= Seq(

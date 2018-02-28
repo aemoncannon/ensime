@@ -40,11 +40,6 @@ object ProjectFixture extends Matchers {
     probe.ignoreMsg {
       // these are too noisy for tests
       case e: SendBackgroundMessageEvent => true
-      case e: DebugOutputEvent           => true
-      case e: DebugThreadStartEvent      => true
-      case e: DebugThreadDeathEvent      => true
-      case e: DebugVmError               => true
-      case DebugVmDisconnectEvent        => true
       case ClearAllScalaNotesEvent       => true
       case ClearAllJavaNotesEvent        => true
     }
