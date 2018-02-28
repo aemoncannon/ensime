@@ -11,6 +11,7 @@ script:
     echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
   - export JAVA_HOME=$(/usr/libexec/java_home)
   - curl https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt -o sbt ; chmod 755 sbt
+  - export PATH=$PWD:$PATH
   - ./sbt ++$SCALA_VERSION! ";prep ;cpl"
   - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then ./sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis" ; fi
   - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then SBT_TASK_LIMIT=2 ./sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis" ; fi
