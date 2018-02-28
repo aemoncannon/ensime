@@ -22,7 +22,7 @@ import simulacrum._
 }
 object SexpReader {
   object ops {
-    implicit class ExtraOps(val s: Sexp) extends AnyVal {
+    implicit class ExtraOps(private val s: Sexp) extends AnyVal {
       def as[A: SexpReader]: A = SexpReader[A].read(s)
     }
   }

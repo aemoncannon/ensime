@@ -304,7 +304,7 @@ object ParserInput {
   implicit def apply(bytes: Array[Byte]): ByteArrayBasedParserInput =
     new ByteArrayBasedParserInput(bytes)
 
-  case class Line(lineNr: Int, column: Int, text: String)
+  final case class Line(lineNr: Int, column: Int, text: String)
 
   abstract class DefaultParserInput extends ParserInput {
     protected var _cursor: Int = -1

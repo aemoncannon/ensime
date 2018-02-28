@@ -9,7 +9,7 @@ import java.io._
  */
 package object io {
 
-  implicit class RichInputStream(val is: InputStream) extends AnyVal {
+  implicit class RichInputStream(private val is: InputStream) extends AnyVal {
     def toByteArray(): Array[Byte] = {
       val baos = new ByteArrayOutputStream()
       val data = Array.ofDim[Byte](16384)
@@ -25,7 +25,7 @@ package object io {
     }
   }
 
-  implicit class RichOutputStream(val os: OutputStream) extends AnyVal {
+  implicit class RichOutputStream(private val os: OutputStream) extends AnyVal {
 
     /**
      * Copy the input stream to the output stream, making best

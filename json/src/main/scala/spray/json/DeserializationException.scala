@@ -9,9 +9,9 @@ import shapeless._
  * This file exists because the JsReader returns A rather than String \/ A. We
  * should fix this.
  */
-case class DeserializationException(msg: String,
-                                    cause: Throwable = null,
-                                    fieldNames: List[String] = Nil)
+final case class DeserializationException(msg: String,
+                                          cause: Throwable = null,
+                                          fieldNames: List[String] = Nil)
     extends RuntimeException(msg, cause)
 object DeserializationException {
   def deserializationError(msg: String,

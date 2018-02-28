@@ -33,7 +33,7 @@ package object path {
     finally Try(file.delete())
   }
 
-  implicit class RichPath(val path: Path) extends AnyVal {
+  implicit class RichPath(private val path: Path) extends AnyVal {
     def exists(): Boolean = Files.exists(path)
     def attrs(): BasicFileAttributes =
       Files.readAttributes(path, classOf[BasicFileAttributes])

@@ -71,7 +71,8 @@ object `package` {
   }
 
   @deprecating("https://github.com/ensime/ensime-server/issues/1437")
-  implicit class RichVFS(val vfs: DefaultFileSystemManager) extends AnyVal {
+  implicit class RichVFS(private val vfs: DefaultFileSystemManager)
+      extends AnyVal {
     implicit def toFileObject(f: File): FileObject = vfile(f)
 
     private def withContext[T](msg: String)(t: => T): T = try { t } catch {

@@ -92,7 +92,7 @@ lazy val core = project
         }
         "org.scala-refactoring" % s"org.scala-refactoring.library_${suffix}" % "0.13.0"
       },
-      "com.googlecode.java-diff-utils" % "diffutils"           % "1.3.0"
+      "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
     ) ++ shapeless.value
   )
 
@@ -179,25 +179,6 @@ assemblyExcludedJars in assembly := {
 }
 assemblyJarName in assembly := s"ensime_${scalaBinaryVersion.value}-${version.value}-assembly.jar"
 
-// WORKAROUND: until https://github.com/scalameta/scalafmt/issues/1081
-commands += Command.args("fmt", "scalafmt CLI") {
-  case (state, args) =>
-    val Right(scalafmt) =
-      org.scalafmt.bootstrap.ScalafmtBootstrap.fromVersion("1.3.0-16-49815ab4")
-    scalafmt.main(
-      List(
-        "--config",
-        "project/scalafmt.conf",
-        "--git",
-        "true",
-        "--exclude",
-        "testing",
-        "--non-interactive"
-      ) ++: args
-    )
-    state
-}
-
 TaskKey[Unit](
   "prewarm",
   "Uses this build to create a cache, speeding up integration tests"
@@ -216,7 +197,16 @@ TaskKey[Unit](
     .!
 }
 
-addCommandAlias("check", ";fmt --test")
+addCommandAlias("fmt",
+                "all scalafmtSbt compile:scalafmt test:scalafmt it:scalafmt")
+addCommandAlias("lint", "all compile:scalafixCli test:scalafixCli")
+
+addCommandAlias(
+  "check",
+  "all"
+    + " scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck"
+    + " compile:scalafixTest test:scalafixTest"
+)
 addCommandAlias("prep", ";ensimeConfig ;assembly ;prewarm")
 addCommandAlias("cpl", "all compile test:compile it:compile")
 addCommandAlias("tests", "all test it:test")

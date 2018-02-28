@@ -6,7 +6,7 @@ import scala.Predef.{ any2stringadd => _, _ }
 
 package object list {
 
-  implicit class RichList[T](val list: List[T]) extends AnyVal {
+  implicit class RichList[T](private val list: List[T]) extends AnyVal {
 
     // two list creations. Could be optimised to an array and a list creation
     /**
@@ -35,7 +35,8 @@ package object list {
     }
   }
 
-  implicit class RichListTuple2[K, V](val list: List[(K, V)]) extends AnyVal {
+  implicit class RichListTuple2[K, V](private val list: List[(K, V)])
+      extends AnyVal {
 
     /**
      * Whereas a list of tuples may often be treated as a `Map`, here

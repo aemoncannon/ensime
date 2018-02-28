@@ -14,7 +14,7 @@ import org.ensime.api._
 package object fileobject {
 
   @deprecating("https://github.com/ensime/ensime-server/issues/1437")
-  implicit class RichFileObject(val fo: FileObject) extends AnyVal {
+  implicit class RichFileObject(private val fo: FileObject) extends AnyVal {
     // None if the fo is not an entry in an archive
     def pathWithinArchive: Option[String] = {
       val uriS = uriString
@@ -29,7 +29,7 @@ package object fileobject {
   }
 
   @deprecating("https://github.com/ensime/ensime-server/issues/1437")
-  implicit class RichFileName(val fn: FileName) extends AnyVal {
+  implicit class RichFileName(private val fn: FileName) extends AnyVal {
     // assumes it is a local file
     def asLocalFile: File = new File(uri)
     def uri: URI          = EnsimeFile(fn.getURI).uri

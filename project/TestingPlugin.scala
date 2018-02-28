@@ -8,6 +8,7 @@ import sbtassembly.AssemblyKeys._
 import sbtassembly.{ AssemblyKeys, MergeStrategy, PathList }
 import sbtbuildinfo.BuildInfoPlugin, BuildInfoPlugin.autoImport._
 import scalafix.sbt.ScalafixPlugin, ScalafixPlugin.autoImport._
+import org.scalafmt.sbt.ScalafmtPlugin, ScalafmtPlugin.autoImport._
 
 import org.ensime.EnsimePlugin.JdkDir
 import org.ensime.EnsimeKeys._
@@ -46,4 +47,5 @@ object TestingPluginKeys {
       .enablePlugins(TestingPlugin)
       .disablePlugins(ProjectPlugin)
       .disablePlugins(ScalafixPlugin)
+      .disablePlugins(ScalafmtPlugin)
 }

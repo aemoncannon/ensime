@@ -173,7 +173,7 @@ package object impl {
 package object syntax {
   import org.ensime.util.stringymap.api._
 
-  implicit class RichBigResult[R](val e: BigResult[R]) extends AnyVal {
+  implicit class RichBigResult[R](private val e: BigResult[R]) extends AnyVal {
     def getOrThrowError: R = e match {
       case Left(error) => throw new IllegalArgumentException(error)
       case Right(r)    => r
@@ -181,13 +181,13 @@ package object syntax {
   }
 
   /** Syntactic helper for serialisables. */
-  implicit class RichBigDataFormat[T](val t: T) extends AnyVal {
+  implicit class RichBigDataFormat[T](private val t: T) extends AnyVal {
     def label(implicit s: BigDataFormat[T]): String = s.label
     def toProperties(implicit s: BigDataFormat[T]): StringyMap =
       s.toProperties(t)
   }
 
-  implicit class RichProperties(val props: StringyMap) extends AnyVal {
+  implicit class RichProperties(private val props: StringyMap) extends AnyVal {
     def as[T](implicit s: BigDataFormat[T]): T =
       s.fromProperties(props).getOrThrowError
   }

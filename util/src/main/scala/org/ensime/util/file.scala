@@ -48,7 +48,7 @@ package object file {
     finally Try(file.delete())
   }
 
-  implicit class RichFile(val file: File) extends AnyVal {
+  implicit class RichFile(private val file: File) extends AnyVal {
 
     def /(sub: String): File = new File(file, sub)
 

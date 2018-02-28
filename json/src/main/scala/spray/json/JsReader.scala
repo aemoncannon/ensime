@@ -23,7 +23,7 @@ import DeserializationException._
 }
 object JsReader {
   object ops {
-    implicit class ExtraOps(val j: JsValue) extends AnyVal {
+    implicit class ExtraOps(private val j: JsValue) extends AnyVal {
       def as[A: JsReader]: A = JsReader[A].read(j)
     }
   }

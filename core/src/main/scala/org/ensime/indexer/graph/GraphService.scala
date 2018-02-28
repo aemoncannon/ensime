@@ -368,13 +368,18 @@ class GraphService(dir: File) extends SLF4JLogging {
         case c: ClassSymbolInfo =>
           c.bytecodeSymbol.innerClasses.foreach { inner =>
             for {
-              innerClassV: VertexT[FqnSymbol] <- classes.get(inner.fqnString)
-              outerClassV                     <- classes.get(c.fqn)
+              innerClassV <- classes.get(inner.fqnString)
+              outerClassV <- classes.get(c.fqn)
             } yield {
-              RichGraph.insertE(innerClassV, outerClassV, EnclosingClass)
+              RichGraph.insertE(innerClassV: VertexT[FqnSymbol],
+                                outerClassV,
+                                EnclosingClass)
               classes
                 .get(s"${c.fqn}$$")
-                .foreach(RichGraph.insertE(innerClassV, _, EnclosingClass))
+                .foreach(
+                  RichGraph
+                    .insertE(innerClassV: VertexT[FqnSymbol], _, EnclosingClass)
+                )
             }
           }
       }

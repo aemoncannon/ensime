@@ -27,7 +27,7 @@ final case class SexpString(value: String) extends SexpAtom
 final case class SexpInteger(value: Long) extends SexpAtom
 
 // https://www.gnu.org/software/emacs/manual/html_node/elisp/Float-Basics.html
-case class SexpFloat(value: Double) extends SexpAtom
+final case class SexpFloat(value: Double) extends SexpAtom
 
 final case class SexpSymbol(value: String) extends SexpAtom
 case object SexpNil                        extends SexpAtom with SexpList

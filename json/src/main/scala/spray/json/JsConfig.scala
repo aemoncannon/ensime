@@ -11,7 +11,7 @@ package spray.json
  * JsObject. Note that reading such formats is slightly slower and corner cases
  * can exist where roundtripping may fail.
  */
-case class JsConfig[A](typehint: String, valuehint: String)
+final case class JsConfig[A](typehint: String, valuehint: String)
 object JsConfig {
   implicit def default[A]: JsConfig[A] = JsConfig("typehint", "value")
 }

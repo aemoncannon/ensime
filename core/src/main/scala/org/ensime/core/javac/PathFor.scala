@@ -10,7 +10,7 @@ import scala.util.Try
 import scala.util.Failure
 import scala.util.Success
 
-case class Hit(path: TreePath) extends Exception
+final case class Hit(path: TreePath) extends Exception
 
 class PathFor(private val sourcePositions: SourcePositions,
               private val position: Int)

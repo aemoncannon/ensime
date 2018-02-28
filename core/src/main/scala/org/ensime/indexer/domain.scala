@@ -119,7 +119,7 @@ sealed trait MemberName extends FullyQualifiedName {
   def contains(o: FullyQualifiedName) = this == o
 }
 
-case class FieldName(
+final case class FieldName(
   owner: ClassName,
   name: String
 // not always available in the ASM parser

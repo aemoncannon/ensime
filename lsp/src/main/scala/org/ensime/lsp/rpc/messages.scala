@@ -18,9 +18,9 @@ object JsonRpcMessages {
 }
 
 sealed trait CorrelationId
-case object NullId                      extends CorrelationId
-case class NumberId(number: BigDecimal) extends CorrelationId
-case class StringId(str: String)        extends CorrelationId
+case object NullId                            extends CorrelationId
+final case class NumberId(number: BigDecimal) extends CorrelationId
+final case class StringId(str: String)        extends CorrelationId
 
 object CorrelationId {
   def apply(): CorrelationId                   = NullId
@@ -42,8 +42,8 @@ object CorrelationId {
 }
 
 sealed trait Params
-case class ObjectParams(obj: JsObject) extends Params
-case class ArrayParams(arr: JsArray)   extends Params
+final case class ObjectParams(obj: JsObject) extends Params
+final case class ArrayParams(arr: JsArray)   extends Params
 
 object Params {
   def apply(): Option[Params]              = None
@@ -196,7 +196,7 @@ final case class JsonRpcResponseErrorMessage(
 }
 object JsonRpcResponseErrorMessage {
   @deriving(JsReader, JsWriter)
-  case class Error(code: Int, message: String, data: Option[JsValue])
+  final case class Error(code: Int, message: String, data: Option[JsValue])
 
   def apply(code: Int,
             message: String,
