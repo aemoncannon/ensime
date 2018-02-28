@@ -3,7 +3,7 @@
 package org.ensime.filewatcher
 
 import java.io._
-import java.nio.file.{ FileSystems, Path, WatchKey, WatchEvent }
+import java.nio.file.{ FileSystems, Path, WatchEvent, WatchKey }
 import java.nio.file.StandardWatchEventKinds._
 import java.nio.file.WatchService
 import java.util.UUID
@@ -182,8 +182,11 @@ class FileWatchService { self =>
       log.trace(s"register ${dir} with WatchService")
     if (!observers.isEmpty) {
       val key: WatchKey = try {
-        val events: Array[WatchEvent.Kind[_]] = Array(ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
-        dir.toPath.register(watchService, events, SensitivityWatchEventModifier.HIGH)
+        val events: Array[WatchEvent.Kind[_]] =
+          Array(ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+        dir.toPath.register(watchService,
+                            events,
+                            SensitivityWatchEventModifier.HIGH)
       } catch {
         case e: Throwable => {
           if (retry < 0) {
