@@ -40,7 +40,7 @@ package object richconfig {
       c.getStringList("collapseExclude").asScala.toSet
     )
 
-  implicit class RichEnsimeConfig(val c: EnsimeConfig) extends AnyVal {
+  implicit class RichEnsimeConfig(private val c: EnsimeConfig) extends AnyVal {
     // doesn't do the transitive lookups
     def classpath: List[File] =
       (targetFiles(c) ::: libraryJarFiles(c)).distinct
@@ -86,7 +86,8 @@ package object richconfig {
       findProject(file.file)
   }
 
-  implicit class RichEnsimeProject(val p: EnsimeProject) extends AnyVal {
+  implicit class RichEnsimeProject(private val p: EnsimeProject)
+      extends AnyVal {
     def dependencies(implicit config: EnsimeConfig): List[EnsimeProject] =
       p.depends.map(config.lookup)
 

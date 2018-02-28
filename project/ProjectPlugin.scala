@@ -8,6 +8,7 @@ import sbtassembly.AssemblyKeys._
 import sbtassembly.{ AssemblyKeys, MergeStrategy, PathList }
 import sbtbuildinfo.BuildInfoPlugin, BuildInfoPlugin.autoImport._
 import scalafix.sbt.ScalafixPlugin, ScalafixPlugin.autoImport._
+import org.scalafmt.sbt.ScalafmtPlugin, ScalafmtPlugin.autoImport._
 
 import org.ensime.EnsimePlugin.JdkDir
 import org.ensime.EnsimeKeys._
@@ -23,7 +24,8 @@ object ProjectPlugin extends AutoPlugin {
   import autoImport._
 
   override def projectSettings = Seq(
-    scalafixEnabled := !sys.env.contains("CI"),
+    scalafmtConfig := Some(file("project/scalafmt.conf")),
+    scalafixConfig := Some(file("project/scalafix.conf")),
     transitiveClassifiers := {
       // reduces the download burden when running in CI
       val orig = transitiveClassifiers.value

@@ -7,7 +7,7 @@ import java.net.URI
 
 import org.ensime.lsp.api.types._
 
-case class TextDocument(uri: String, contents: Array[Char]) {
+final case class TextDocument(uri: String, contents: Array[Char]) {
   def applyChanges(
     changes: Seq[TextDocumentContentChangeEvent]
   ): TextDocument = {

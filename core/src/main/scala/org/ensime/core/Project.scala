@@ -10,7 +10,6 @@ import akka.actor._
 import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 import org.ensime.config.richconfig._
-import org.ensime.core.debug.DebugActor
 import org.ensime.indexer._
 import org.ensime.util.{ Debouncer, Timing }
 import org.ensime.util.FileUtils._
@@ -33,9 +32,8 @@ class Project(
   import context.system
 
   /* The main components of the ENSIME server */
-  private var scalac: ActorRef   = _
-  private var javac: ActorRef    = _
-  private var debugger: ActorRef = _
+  private var scalac: ActorRef = _
+  private var javac: ActorRef  = _
 
   private var indexer: ActorRef = _
   private var docs: ActorRef    = _
@@ -114,8 +112,6 @@ class Project(
       javac = context.actorOf(JavaAnalyzer(broadcaster, indexer, searchService),
                               "javac")
     }
-    debugger =
-      context.actorOf(DebugActor.props(broadcaster, searchService), "debugging")
     docs = context.actorOf(DocResolver(), "docs")
 
     broadcaster ! Broadcaster.Persist(GreetingInfo())
@@ -149,7 +145,6 @@ class Project(
       if (scalas.nonEmpty) scalac forward TypecheckFilesReq(scalas)
 
     case m: RpcAnalyserRequest => scalac forward m
-    case m: RpcDebuggerRequest => debugger forward m
     case m: RpcSearchRequest   => indexer forward m
     case m: DocSigPair         => docs forward m
 

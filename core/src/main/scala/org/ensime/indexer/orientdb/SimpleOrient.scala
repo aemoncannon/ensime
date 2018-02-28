@@ -42,10 +42,10 @@ import shapeless.Typeable
 package api {
   import com.orientechnologies.orient.core.metadata.schema.OType
 
-  case class OrientProperty(oType: OType, isMandatory: Boolean = true)
+  final case class OrientProperty(oType: OType, isMandatory: Boolean = true)
 
   // assigns some type info to a vertex that we have just created
-  case class VertexT[+T](underlying: Vertex)
+  final case class VertexT[+T](underlying: Vertex)
 
   trait EdgeT[+Out, +In]
 
@@ -136,7 +136,7 @@ package object syntax {
   ): Parameter[String, String] =
     new Parameter(props._1, props._2)
 
-  implicit class RichVertex(val v: Vertex) extends AnyVal {
+  implicit class RichVertex(private val v: Vertex) extends AnyVal {
     def getPropertyMap: java.util.HashMap[String, AnyRef] = {
       val props = new java.util.HashMap[String, AnyRef]()
       v.getPropertyKeys().asScala.foreach { key =>
@@ -148,7 +148,7 @@ package object syntax {
       s.fromProperties(getPropertyMap).getOrThrowError
   }
 
-  implicit class RichVertexT[T](val v: VertexT[T]) extends AnyVal {
+  implicit class RichVertexT[T](private val v: VertexT[T]) extends AnyVal {
     def toDomain(implicit s: BigDataFormat[T]): T = v.underlying.to[T]
 
     def getProperty[P](key: String): P = v.underlying.getProperty[P](key)

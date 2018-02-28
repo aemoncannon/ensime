@@ -20,7 +20,7 @@ case object NoParams extends RpcCompanionError {
 case object NoNamedParams extends RpcCompanionError {
   override val describe = "named parameters must be given"
 }
-case class OtherError(err: String) extends RpcCompanionError {
+final case class OtherError(err: String) extends RpcCompanionError {
   override val describe = err
 }
 
@@ -28,8 +28,8 @@ object RpcCompanionError {
   def apply(err: String): OtherError = OtherError(err)
 }
 
-case class RpcCommand[A](method: String)(implicit val R: JsReader[A],
-                                         val W: JsWriter[A])
+final case class RpcCommand[A](method: String)(implicit val R: JsReader[A],
+                                               val W: JsWriter[A])
 
 trait CommandCompanion[A] {
 
@@ -95,7 +95,7 @@ object RpcResponse {
     )
 }
 
-case class RpcNotification[A](method: String)(
+final case class RpcNotification[A](method: String)(
   implicit val R: JsReader[A],
   val W: JsWriter[A]
 )

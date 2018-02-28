@@ -66,9 +66,8 @@ lazy val core = project
     // test config needed to get the test jar
     testingSimpleJar % "test,it->test",
     testingTiming    % "test,it",
-    testingMacros    % "test, it",
+    testingMacros    % "test,it",
     testingShapeless % "test,it",
-    testingDebug     % "test,it",
     testingJava      % "test,it"
   )
   .enableIntegrationTests
@@ -93,8 +92,7 @@ lazy val core = project
         }
         "org.scala-refactoring" % s"org.scala-refactoring.library_${suffix}" % "0.13.0"
       },
-      "com.googlecode.java-diff-utils" % "diffutils"           % "1.3.0",
-      "org.scala-debugger"             %% "scala-debugger-api" % "1.1.0-M3"
+      "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
     ) ++ shapeless.value
   )
 
@@ -141,7 +139,6 @@ lazy val testingMacros = testingProject("testing/macros") settings (
 lazy val testingShapeless = testingProject("testing/shapeless").settings(
   libraryDependencies ++= shapeless.value
 )
-lazy val testingDebug = testingProject("testing/debug")
 lazy val testingDocs = testingProject("testing/docs").settings(
   dependencyOverrides ++= Seq("com.google.guava" % "guava" % "18.0"),
   libraryDependencies ++= Seq(
@@ -182,25 +179,6 @@ assemblyExcludedJars in assembly := {
 }
 assemblyJarName in assembly := s"ensime_${scalaBinaryVersion.value}-${version.value}-assembly.jar"
 
-// WORKAROUND: until https://github.com/scalameta/scalafmt/issues/1081
-commands += Command.args("fmt", "scalafmt CLI") {
-  case (state, args) =>
-    val Right(scalafmt) =
-      org.scalafmt.bootstrap.ScalafmtBootstrap.fromVersion("1.3.0-16-49815ab4")
-    scalafmt.main(
-      List(
-        "--config",
-        "project/scalafmt.conf",
-        "--git",
-        "true",
-        "--exclude",
-        "testing",
-        "--non-interactive"
-      ) ++: args
-    )
-    state
-}
-
 TaskKey[Unit](
   "prewarm",
   "Uses this build to create a cache, speeding up integration tests"
@@ -208,7 +186,9 @@ TaskKey[Unit](
   // would be good to be able to do this without exiting the JVM...
   val sv = scalaVersion.value
   val cmd =
-    if (sys.env.contains("APPVEYOR")) """C:\sbt\bin\sbt.bat""" else "sbt"
+    if (sys.env.contains("APPVEYOR")) """C:\sbt\bin\sbt.bat"""
+    else if (sys.env.contains("TRAVIS")) "../../sbt"
+    else "sbt"
   sys.process
     .Process(
       Seq(cmd, s"++$sv!", "ensimeConfig", "ensimeServerIndex"),
@@ -217,9 +197,17 @@ TaskKey[Unit](
     .!
 }
 
-addCommandAlias("check", ";fmt --test")
+addCommandAlias("fmt",
+                "all scalafmtSbt compile:scalafmt test:scalafmt it:scalafmt")
+addCommandAlias("lint", "all compile:scalafixCli test:scalafixCli")
+
+addCommandAlias(
+  "check",
+  ";scalafmtSbtCheck ;compile:scalafmtCheck ;test:scalafmtCheck ;it:scalafmtCheck"
+    + " ;compile:scalafixCli --test ;test:scalafixCli --test"
+)
 addCommandAlias("prep", ";ensimeConfig ;assembly ;prewarm")
 addCommandAlias("cpl", "all compile test:compile it:compile")
 addCommandAlias("tests", "all test it:test")
 // not really what is used in CI, but close enough...
-addCommandAlias("ci", "all check prep cpl doc tests")
+addCommandAlias("ci", ";check ;prep ;cpl ;doc ;tests")

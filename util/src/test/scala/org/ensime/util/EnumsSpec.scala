@@ -36,9 +36,9 @@ class EnumsSpec extends FlatSpec with Matchers {
 
   it should "not be able to convert non-singleton types" in {
     sealed trait NotAllSingletons
-    case object Foo           extends NotAllSingletons
-    case object Bar           extends NotAllSingletons
-    case class FooBar(a: Int) extends NotAllSingletons
+    case object Foo                 extends NotAllSingletons
+    case object Bar                 extends NotAllSingletons
+    final case class FooBar(a: Int) extends NotAllSingletons
 
     "implicitly[AdtToMap[NotAllSingletons]]" shouldNot typeCheck
   }

@@ -56,22 +56,22 @@ sealed trait Notification extends Message
  * Parameters and types used in the `initialize` message.
  */
 @deriving(JsReader, JsWriter)
-case class InitializeParams(
-                            // The process Id of the parent process that started the server.
-                            processId: Long,
-                            //The rootPath of the workspace. Is null if no folder is open.
-                            rootPath: String,
-                            //The capabilities provided by the client (editor)
-                            capabilities: ClientCapabilities)
+final case class InitializeParams(
+                                  // The process Id of the parent process that started the server.
+                                  processId: Long,
+                                  //The rootPath of the workspace. Is null if no folder is open.
+                                  rootPath: String,
+                                  //The capabilities provided by the client (editor)
+                                  capabilities: ClientCapabilities)
     extends ServerCommand
 
-case class InitializeError(retry: Boolean)
+final case class InitializeError(retry: Boolean)
 
 @deriving(JsReader, JsWriter)
-case class ClientCapabilities()
+final case class ClientCapabilities()
 
 @deriving(JsReader, JsWriter)
-case class ServerCapabilities(
+final case class ServerCapabilities(
   //Defines how text documents are synced.
   textDocumentSync: Int = TextDocumentSyncKind.Full,
   //The server provides hover support.
@@ -106,57 +106,63 @@ case class ServerCapabilities(
 )
 
 @deriving(JsReader, JsWriter)
-case class CompletionOptions(resolveProvider: Boolean,
-                             triggerCharacters: Seq[String])
+final case class CompletionOptions(resolveProvider: Boolean,
+                                   triggerCharacters: Seq[String])
 
 @deriving(JsReader, JsWriter)
-case class SignatureHelpOptions(triggerCharacters: Seq[String])
+final case class SignatureHelpOptions(triggerCharacters: Seq[String])
 
 @deriving(JsReader, JsWriter)
-case class CodeLensOptions(resolveProvider: Boolean = false)
+final case class CodeLensOptions(resolveProvider: Boolean = false)
 
 @deriving(JsReader, JsWriter)
-case class DocumentOnTypeFormattingOptions(firstTriggerCharacter: String,
-                                           moreTriggerCharacters: Seq[String])
+final case class DocumentOnTypeFormattingOptions(
+  firstTriggerCharacter: String,
+  moreTriggerCharacters: Seq[String]
+)
 
 @deriving(JsReader, JsWriter)
-case class CompletionList(isIncomplete: Boolean, items: Seq[CompletionItem])
+final case class CompletionList(isIncomplete: Boolean,
+                                items: Seq[CompletionItem])
     extends ResultResponse
 
 @deriving(JsReader, JsWriter)
-case class InitializeResult(capabilities: ServerCapabilities)
+final case class InitializeResult(capabilities: ServerCapabilities)
     extends ResultResponse
 
 @deriving(JsReader, JsWriter)
-case class Shutdown() extends ServerCommand
+final case class Shutdown() extends ServerCommand
 
-case class ShutdownResult(dummy: Int) extends ResultResponse
+final case class ShutdownResult(dummy: Int) extends ResultResponse
 
 @deriving(JsReader, JsWriter)
-case class ShowMessageRequestParams(
-                                    //The message type. @see MessageType
-                                    tpe: Long,
-                                    //The actual message
-                                    message: String,
-                                    //The message action items to present.
-                                    actions: Seq[MessageActionItem])
+final case class ShowMessageRequestParams(
+                                          //The message type. @see MessageType
+                                          tpe: Long,
+                                          //The actual message
+                                          message: String,
+                                          //The message action items to present.
+                                          actions: Seq[MessageActionItem])
     extends ClientCommand
 
 /**
  * A short title like 'Retry', 'Open Log' etc.
  */
 @deriving(JsReader, JsWriter)
-case class MessageActionItem(title: String)
+final case class MessageActionItem(title: String)
 
 @deriving(JsReader, JsWriter)
-case class TextDocumentPositionParams(textDocument: TextDocumentIdentifier,
-                                      position: Position)
+final case class TextDocumentPositionParams(
+  textDocument: TextDocumentIdentifier,
+  position: Position
+)
 @deriving(JsReader, JsWriter)
-case class DocumentSymbolParams(textDocument: TextDocumentIdentifier)
+final case class DocumentSymbolParams(textDocument: TextDocumentIdentifier)
     extends ServerCommand
 
-case class TextDocumentCompletionRequest(params: TextDocumentPositionParams)
-    extends ServerCommand
+final case class TextDocumentCompletionRequest(
+  params: TextDocumentPositionParams
+) extends ServerCommand
 object TextDocumentCompletionRequest {
   implicit val jsWriter: JsWriter[TextDocumentCompletionRequest] =
     JsWriter[TextDocumentPositionParams].contramap(_.params)
@@ -164,8 +170,9 @@ object TextDocumentCompletionRequest {
     JsReader[TextDocumentPositionParams].map(TextDocumentCompletionRequest(_))
 }
 
-case class TextDocumentDefinitionRequest(params: TextDocumentPositionParams)
-    extends ServerCommand
+final case class TextDocumentDefinitionRequest(
+  params: TextDocumentPositionParams
+) extends ServerCommand
 object TextDocumentDefinitionRequest {
   implicit val jsWriter: JsWriter[TextDocumentDefinitionRequest] =
     JsWriter[TextDocumentPositionParams].contramap(_.params)
@@ -173,7 +180,7 @@ object TextDocumentDefinitionRequest {
     JsReader[TextDocumentPositionParams].map(TextDocumentDefinitionRequest(_))
 }
 
-case class TextDocumentHoverRequest(params: TextDocumentPositionParams)
+final case class TextDocumentHoverRequest(params: TextDocumentPositionParams)
     extends ServerCommand
 object TextDocumentHoverRequest {
   implicit val jsWriter: JsWriter[TextDocumentHoverRequest] =
@@ -183,7 +190,7 @@ object TextDocumentHoverRequest {
 }
 
 @deriving(JsReader, JsWriter)
-case class Hover(contents: Seq[MarkedString], range: Option[Range])
+final case class Hover(contents: Seq[MarkedString], range: Option[Range])
     extends ResultResponse
 
 ///////////////////////////// Notifications ///////////////////////////////
@@ -191,40 +198,44 @@ case class Hover(contents: Seq[MarkedString], range: Option[Range])
 // From server to client
 
 @deriving(JsReader, JsWriter)
-case class ShowMessageParams(tpe: Int, message: String) extends Notification
+final case class ShowMessageParams(tpe: Int, message: String)
+    extends Notification
 @deriving(JsReader, JsWriter)
-case class LogMessageParams(tpe: Int, message: String) extends Notification
+final case class LogMessageParams(tpe: Int, message: String)
+    extends Notification
 @deriving(JsReader, JsWriter)
-case class PublishDiagnostics(uri: String, diagnostics: Seq[Diagnostic])
+final case class PublishDiagnostics(uri: String, diagnostics: Seq[Diagnostic])
     extends Notification
 
 // from client to server
 
-case class ExitNotification() extends Notification
+final case class ExitNotification() extends Notification
 @deriving(JsReader, JsWriter)
-case class DidOpenTextDocumentParams(textDocument: TextDocumentItem)
+final case class DidOpenTextDocumentParams(textDocument: TextDocumentItem)
     extends Notification
 @deriving(JsReader, JsWriter)
-case class DidChangeTextDocumentParams(
+final case class DidChangeTextDocumentParams(
   textDocument: VersionedTextDocumentIdentifier,
   contentChanges: Seq[TextDocumentContentChangeEvent]
 ) extends Notification
 
 @deriving(JsReader, JsWriter)
-case class DidCloseTextDocumentParams(textDocument: TextDocumentIdentifier)
+final case class DidCloseTextDocumentParams(
+  textDocument: TextDocumentIdentifier
+) extends Notification
+@deriving(JsReader, JsWriter)
+final case class DidSaveTextDocumentParams(textDocument: TextDocumentIdentifier)
     extends Notification
 @deriving(JsReader, JsWriter)
-case class DidSaveTextDocumentParams(textDocument: TextDocumentIdentifier)
+final case class DidChangeWatchedFiles(changes: Seq[FileEvent])
     extends Notification
 @deriving(JsReader, JsWriter)
-case class DidChangeWatchedFiles(changes: Seq[FileEvent]) extends Notification
+final case class Initialized() extends Notification
 @deriving(JsReader, JsWriter)
-case class Initialized() extends Notification
-@deriving(JsReader, JsWriter)
-case class CancelRequest(id: Int) extends Notification
+final case class CancelRequest(id: Int) extends Notification
 
 @deriving(JsReader, JsWriter)
-case class FileEvent(uri: String, `type`: Int)
+final case class FileEvent(uri: String, `type`: Int)
 
 object FileChangeType {
   final val Created = 1
@@ -232,7 +243,7 @@ object FileChangeType {
   final val Deleted = 3
 }
 
-case class DocumentSymbolResult(params: Seq[SymbolInformation])
+final case class DocumentSymbolResult(params: Seq[SymbolInformation])
     extends ResultResponse
 object DocumentSymbolResult {
   implicit val jsWriter: JsWriter[DocumentSymbolResult] =
@@ -241,7 +252,7 @@ object DocumentSymbolResult {
     JsReader[Seq[SymbolInformation]].map(DocumentSymbolResult(_))
 }
 
-case class DefinitionResult(params: Seq[Location]) extends ResultResponse
+final case class DefinitionResult(params: Seq[Location]) extends ResultResponse
 object DefinitionResult {
   implicit val jsWriter: JsWriter[DefinitionResult] =
     JsWriter[Seq[Location]].contramap(_.params)

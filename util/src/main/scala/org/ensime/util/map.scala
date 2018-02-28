@@ -6,7 +6,7 @@ import Predef.{ any2stringadd => _, _ => _ }
 import scala.collection.{ Map, Set }
 
 package object map {
-  implicit class RichMap[K, V](val map: Map[K, V]) extends AnyVal {
+  implicit class RichMap[K, V](private val map: Map[K, V]) extends AnyVal {
 
     /**
      * Map.mapValues is notoriously inconsistent and returns a View
@@ -19,7 +19,8 @@ package object map {
   }
 
   // I'm sure CanBuildFrom could make this general to all value containers
-  implicit class RichMultiMapSet[K, V](val map: Map[K, Set[V]]) extends AnyVal {
+  implicit class RichMultiMapSet[K, V](private val map: Map[K, Set[V]])
+      extends AnyVal {
 
     /**
      * Treating `map` as a multimap, merge with another similarly

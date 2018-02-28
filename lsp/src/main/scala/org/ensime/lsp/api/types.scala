@@ -12,20 +12,20 @@ import scalaz.deriving
  * Position in a text document expressed as zero-based line and character offset.
  */
 @deriving(JsReader, JsWriter)
-case class Position(line: Int, character: Int)
+final case class Position(line: Int, character: Int)
 
 /**
  * A range in a text document.
  */
 @deriving(JsReader, JsWriter)
-case class Range(start: Position, end: Position)
+final case class Range(start: Position, end: Position)
 
 /**
  * Represents a location inside a resource, such as a line
  * inside a text file.
  */
 @deriving(JsReader, JsWriter)
-case class Location(uri: String, range: Range)
+final case class Location(uri: String, range: Range)
 
 object DiagnosticSeverity {
   final val Error       = 1
@@ -35,7 +35,7 @@ object DiagnosticSeverity {
 }
 
 @deriving(JsReader, JsWriter)
-case class Diagnostic(
+final case class Diagnostic(
   range: Range, // the range at which this diagnostic applies
   severity: Option[Int], // severity of this diagnostics (see above)
   code: Option[String], // a code for this diagnostic
@@ -50,31 +50,31 @@ case class Diagnostic(
  * @param command The identifier of the actual command handler
  * @param arguments The arugments this command may be invoked with
  */
-case class Command(title: String, command: String, arguments: Seq[Any])
+final case class Command(title: String, command: String, arguments: Seq[Any])
 
-case class TextEdit(range: Range, newText: String)
+final case class TextEdit(range: Range, newText: String)
 
 /**
  * A workspace edit represents changes to many resources managed
  * in the workspace.
  */
-case class WorkspaceEdit(changes: Map[String, Seq[TextEdit]]) // uri -> changes
+final case class WorkspaceEdit(changes: Map[String, Seq[TextEdit]]) // uri -> changes
 
 @deriving(JsReader, JsWriter)
-case class TextDocumentIdentifier(uri: String)
+final case class TextDocumentIdentifier(uri: String)
 
 @deriving(JsReader, JsWriter)
-case class VersionedTextDocumentIdentifier(uri: String, version: Long)
+final case class VersionedTextDocumentIdentifier(uri: String, version: Long)
 
 /**
  * An item to transfer a text document from the client to the
  * server.
  */
 @deriving(JsReader, JsWriter)
-case class TextDocumentItem(uri: String,
-                            languageId: String,
-                            version: Long,
-                            text: String)
+final case class TextDocumentItem(uri: String,
+                                  languageId: String,
+                                  version: Long,
+                                  text: String)
 
 object CompletionItemKind {
   final val Text        = 1
@@ -98,7 +98,7 @@ object CompletionItemKind {
 }
 
 @deriving(JsReader, JsWriter)
-case class CompletionItem(
+final case class CompletionItem(
   label: String,
   kind: Option[Int] = None,
   detail: Option[String] = None,
@@ -126,39 +126,40 @@ object MarkedString {
 }
 
 @deriving(JsReader, JsWriter)
-case class RawMarkedString(language: String, value: String)
+final case class RawMarkedString(language: String, value: String)
     extends MarkedString {
   def this(value: String) { // why not a factory constructor
     this("text", value)
   }
 }
 @deriving(JsReader, JsWriter)
-case class MarkdownString(contents: String) extends MarkedString
+final case class MarkdownString(contents: String) extends MarkedString
 
-case class ParameterInformation(label: String, documentation: Option[String])
+final case class ParameterInformation(label: String,
+                                      documentation: Option[String])
 
-case class SignatureInformation(label: String,
-                                documentation: Option[String],
-                                parameters: Seq[ParameterInformation])
+final case class SignatureInformation(label: String,
+                                      documentation: Option[String],
+                                      parameters: Seq[ParameterInformation])
 
 /**
  * Signature help represents the signature of something
  * callable. There can be multiple signature but only one
  * active and only one active parameter.
  */
-case class SignatureHelp(
-                         // One or more signatures.
-                         signatures: Seq[SignatureInformation],
-                         // The active signature.
-                         activeSignature: Option[Int],
-                         // The active parameter of the active signature.
-                         activeParameter: Option[Int])
+final case class SignatureHelp(
+                               // One or more signatures.
+                               signatures: Seq[SignatureInformation],
+                               // The active signature.
+                               activeSignature: Option[Int],
+                               // The active parameter of the active signature.
+                               activeParameter: Option[Int])
 
 /**
  * Value-object that contains additional information when
  * requesting references.
  */
-case class ReferenceContext(
+final case class ReferenceContext(
   // Include the declaration of the current symbol.
   includeDeclaration: Boolean
 )
@@ -186,11 +187,11 @@ object DocumentHighlightKind {
  * special attention. Usually a document highlight is visualized by changing
  * the background color of its range.
  */
-case class DocumentHighlight(
-                             // The range this highlight applies to.
-                             range: Range,
-                             // The highlight kind, default is [text](#DocumentHighlightKind.Text).
-                             kind: Int = DocumentHighlightKind.Text)
+final case class DocumentHighlight(
+                                   // The range this highlight applies to.
+                                   range: Range,
+                                   // The highlight kind, default is [text](#DocumentHighlightKind.Text).
+                                   kind: Int = DocumentHighlightKind.Text)
 
 object SymbolKind {
   final val File        = 1
@@ -214,17 +215,17 @@ object SymbolKind {
 }
 
 @deriving(JsReader, JsWriter)
-case class SymbolInformation(name: String,
-                             kind: Int,
-                             location: Location,
-                             containerName: Option[String])
+final case class SymbolInformation(name: String,
+                                   kind: Int,
+                                   location: Location,
+                                   containerName: Option[String])
 
 /**
  * The parameters of a [WorkspaceSymbolRequest](#WorkspaceSymbolRequest).
  */
-case class WorkspaceSymbolParams(query: String)
+final case class WorkspaceSymbolParams(query: String)
 
-case class CodeActionContext(diagnostics: Seq[Diagnostic])
+final case class CodeActionContext(diagnostics: Seq[Diagnostic])
 
 /**
  * A code lens represents a [command](#Command) that should be shown along with
@@ -233,20 +234,20 @@ case class CodeActionContext(diagnostics: Seq[Diagnostic])
  * A code lens is _unresolved_ when no command is associated to it. For performance
  * reasons the creation of a code lens and resolving should be done to two stages.
  */
-case class CodeLens(
-                    // The range in which this code lens is valid. Should only span a single line.
-                    range: Range,
-                    // The command this code lens represents.
-                    command: Option[Command],
-                    // An data entry field that is preserved on a code lens item between
-                    // a [CodeLensRequest](#CodeLensRequest) and a [CodeLensResolveRequest]
-                    // (#CodeLensResolveRequest)
-                    data: Option[Any])
+final case class CodeLens(
+                          // The range in which this code lens is valid. Should only span a single line.
+                          range: Range,
+                          // The command this code lens represents.
+                          command: Option[Command],
+                          // An data entry field that is preserved on a code lens item between
+                          // a [CodeLensRequest](#CodeLensRequest) and a [CodeLensResolveRequest]
+                          // (#CodeLensResolveRequest)
+                          data: Option[Any])
 
 /**
  * Value-object describing what options formatting should use.
  */
-case class FormattingOptions(
+final case class FormattingOptions(
   // Size of a tab in spaces.
   tabSize: Int,
   // Prefer spaces over tabs.
@@ -260,7 +261,7 @@ case class FormattingOptions(
  * the new text is considered to be the full content of the document.
  */
 @deriving(JsReader, JsWriter)
-case class TextDocumentContentChangeEvent(
+final case class TextDocumentContentChangeEvent(
   // The range of the document that changed.
   range: Option[Range],
   // The length of the range that got replaced.

@@ -10,7 +10,8 @@ import org.ensime.util.ensimefile._
  */
 package object sourcefile {
 
-  implicit class RichSourceFileInfo(val v: SourceFileInfo) extends AnyVal {
+  implicit class RichSourceFileInfo(private val v: SourceFileInfo)
+      extends AnyVal {
     def exists() = v match {
       case SourceFileInfo(f, _, _, _) if f.exists()       => true
       case SourceFileInfo(_, Some(c), _, _)               => true
