@@ -42,9 +42,10 @@ object ProjectPlugin extends AutoPlugin {
         "-Xexperimental" // SAM types in 2.11
       ),
       MacroParadise,
+      Deriving,
       libraryDependencies ++= Seq(
         "com.github.mpilquist" %% "simulacrum"     % "0.12.0",
-        "com.fommil"           %% "deriving-macro" % "0.10.0",
+        "com.fommil"           %% "deriving-macro" % derivingVersion
       ),
       excludeDependencies += ExclusionRule("stax", "stax-api"),
       dependencyOverrides ++= Seq(
@@ -92,6 +93,7 @@ object ProjectPluginKeys {
   val orientVersion    = "2.2.33"
   val shapelessVersion = "2.3.3"
   val scalazVersion    = "7.2.20"
+  val derivingVersion  = "0.11.1"
 
   def MacroParadise =
     addCompilerPlugin(
@@ -99,6 +101,8 @@ object ProjectPluginKeys {
     )
   def KindProjector =
     addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")
+  def Deriving =
+    addCompilerPlugin("com.fommil" %% "deriving-plugin" % derivingVersion)
 
   def extraScalacOptions(scalaVersion: String) =
     CrossVersion.partialVersion(scalaVersion) match {
