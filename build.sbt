@@ -169,6 +169,7 @@ assemblyMergeStrategy in assembly := {
   case PathList("LICENSE")         => MergeStrategy.concat
   case PathList("LICENSE.apache2") => MergeStrategy.first
   case PathList("NOTICE")          => MergeStrategy.concat
+  case PathList("deriving.conf")   => MergeStrategy.concat
   case other                       => MergeStrategy.defaultMergeStrategy(other)
 }
 assemblyExcludedJars in assembly := {
