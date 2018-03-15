@@ -2,6 +2,7 @@ lazy val api = project
   .dependsOn(json, `s-express`)
   .settings(
     licenses := Seq(LGPL3),
+    resourcesOnCompilerCp(Compile),
     libraryDependencies ++= Seq(
       "org.scalaz" %% "scalaz-effect" % scalazVersion
     )

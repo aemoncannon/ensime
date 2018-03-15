@@ -67,8 +67,8 @@ object ProjectPlugin extends AutoPlugin {
         "-XX:+UnlockExperimentalVMOptions",
         "-XX:SymbolTableSize=1000003"
       ),
-      libraryDependencies ++= sensibleTestLibs(Test),
-    ) ++ derivingResources(Compile)
+      libraryDependencies ++= sensibleTestLibs(Test)
+    )
 }
 
 object ProjectPluginKeys {
@@ -118,16 +118,12 @@ object ProjectPluginKeys {
       "org.scalatest"       %% "scalatest" % "3.0.5" % config
     ) ++ logback.map(_      % config)
 
-  // WORKAROUND https://github.com/sbt/sbt/issues/3934
-  def derivingResources(config: Configuration) =
-    Seq(
-      compileOptions in (config, compile) := {
-        val oldOptions = (compileOptions in (config, compile)).value
-        val resources = List(
-          (resourceDirectory in config).value,
-          (resourceDirectory in Compile).value
-        ).distinct
-        oldOptions.withClasspath(oldOptions.classpath ++ resources)
-      }
-    )
+  // WORKAROUND: https://github.com/sbt/sbt/issues/3934
+  def resourcesOnCompilerCp(config: Configuration): Setting[_] =
+    compileOptions in (config, compile) := {
+      val oldOptions = (compileOptions in (config, compile)).value
+      val resources  = (resourceDirectory in config).value
+      oldOptions.withClasspath(resources +: oldOptions.classpath)
+    }
+
 }
