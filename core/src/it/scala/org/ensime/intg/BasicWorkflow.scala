@@ -112,6 +112,9 @@ class BasicWorkflow
           val symbolDesignations = expectMsgType[SymbolDesignations]
           symbolDesignations.syms should not be empty
 
+          project ! SymbolAtPointReq(Left(fooFile), 691) // classOf[Bloo]
+          expectMsgType[SymbolInfo].name shouldBe "org.example.Bloo"
+
           //-----------------------------------------------------------------------------------------------
           // public symbol search - java.io.File
 

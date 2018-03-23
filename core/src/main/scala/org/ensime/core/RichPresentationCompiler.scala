@@ -495,6 +495,8 @@ class RichPresentationCompiler(
           List(qualifier.symbol)
         case st if st.symbol ne null =>
           List(st.symbol)
+        case Literal(Constant(TypeRef(_, sym, _))) =>
+          List(sym)
         case lit: Literal =>
           List(lit.tpe.typeSymbol)
 
