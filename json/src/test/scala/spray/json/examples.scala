@@ -6,9 +6,10 @@ package spray.json.examples
 import scalaz.deriving
 
 import spray.json._
+import scalaz.xderiving
 
-@deriving(JsWriter, JsReader)
-final case class Optimal(thing: String) extends AnyVal
+@xderiving(JsWriter, JsReader) final case class Optimal(thing: String)
+    extends AnyVal
 
 @deriving(JsWriter, JsReader) sealed trait SimpleTrait
 @deriving(JsWriter, JsReader) final case class Foo(s: String)

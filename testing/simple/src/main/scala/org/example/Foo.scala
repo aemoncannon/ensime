@@ -39,3 +39,7 @@ object WithPolyMethod {
   def poly[A, B](a: A, b: B): (A, B) = (a, b)
   val _ = poly(1, true)
 }
+
+object B {
+  val a = classOf[Bloo]
+}

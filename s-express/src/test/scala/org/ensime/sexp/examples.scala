@@ -6,9 +6,10 @@ package org.ensime.sexp.examples
 import scalaz.deriving
 
 import org.ensime.sexp._
+import scalaz.xderiving
 
-@deriving(SexpWriter, SexpReader)
-final case class Optimal(thing: String) extends AnyVal
+@xderiving(SexpWriter, SexpReader) final case class Optimal(thing: String)
+    extends AnyVal
 
 @deriving(SexpWriter, SexpReader) sealed trait SimpleTrait
 @deriving(SexpWriter, SexpReader) final case class Foo(s: String)

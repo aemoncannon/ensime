@@ -2,25 +2,28 @@ lazy val api = project
   .dependsOn(json, `s-express`)
   .settings(
     licenses := Seq(LGPL3),
+    resourcesOnCompilerCp(Compile),
     libraryDependencies ++= Seq(
-      "org.scalaz" %% "scalaz-effect" % "7.2.17"
+      "org.scalaz" %% "scalaz-effect" % scalazVersion
     )
   )
 
 lazy val json = project.settings(
   licenses := Seq(LGPL3),
   libraryDependencies ++= Seq(
+    "com.chuusai"    %% "shapeless"  % shapelessVersion,
     "org.scalacheck" %% "scalacheck" % "1.13.5" % Test
-  ) ++ shapeless.value
+  )
 )
 
 lazy val `s-express` = project
   .settings(
     licenses := Seq(LGPL3),
     libraryDependencies ++= Seq(
+      "com.chuusai"    %% "shapeless"  % shapelessVersion,
       "com.lihaoyi"    %% "fastparse"  % "0.4.4",
       "org.scalacheck" %% "scalacheck" % "1.13.5" % Test
-    ) ++ shapeless.value
+    )
   )
 
 lazy val monkeys = project
@@ -38,7 +41,7 @@ lazy val util = project
       "com.typesafe.akka"        %% "akka-actor"    % akkaVersion,
       "org.scala-lang"           % "scala-compiler" % scalaVersion.value,
       "com.google.code.findbugs" % "jsr305"         % "3.0.2" % "provided"
-    ) ++ logback ++ shapeless.value
+    ) ++ logback
   )
 
 lazy val testutil = project
@@ -93,7 +96,7 @@ lazy val core = project
         "org.scala-refactoring" % s"org.scala-refactoring.library_${suffix}" % "0.13.0"
       },
       "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
-    ) ++ shapeless.value
+    )
   )
 
 lazy val server = project
@@ -112,13 +115,13 @@ lazy val server = project
       "io.netty" % "netty-transport"  % nettyVersion,
       "io.netty" % "netty-handler"    % nettyVersion,
       "io.netty" % "netty-codec-http" % nettyVersion
-    ) ++ shapeless.value
+    )
   )
 
 // the projects used in integration tests
 lazy val testingEmpty = testingProject("testing/empty")
 lazy val testingSimple = testingProject("testing/simple") settings (
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % Test intransitive ()
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % Test intransitive ()
 )
 lazy val testingSimpleJar = testingProject("testing/simpleJar").settings(
   exportJars := true,
@@ -133,7 +136,7 @@ lazy val testingMacros = testingProject("testing/macros") settings (
   libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 )
 lazy val testingShapeless = testingProject("testing/shapeless").settings(
-  libraryDependencies ++= shapeless.value
+  libraryDependencies += "com.chuusai" %% "shapeless" % shapelessVersion
 )
 lazy val testingDocs = testingProject("testing/docs").settings(
   dependencyOverrides ++= Seq("com.google.guava" % "guava" % "18.0"),
@@ -163,6 +166,7 @@ assemblyMergeStrategy in assembly := {
   case PathList("LICENSE")         => MergeStrategy.concat
   case PathList("LICENSE.apache2") => MergeStrategy.first
   case PathList("NOTICE")          => MergeStrategy.concat
+  case PathList("deriving.conf")   => MergeStrategy.concat
   case other                       => MergeStrategy.defaultMergeStrategy(other)
 }
 assemblyExcludedJars in assembly := {

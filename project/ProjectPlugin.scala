@@ -23,56 +23,52 @@ object ProjectPlugin extends AutoPlugin {
   val autoImport = ProjectPluginKeys
   import autoImport._
 
-  override def projectSettings = Seq(
-    scalafmtConfig := Some(file("project/scalafmt.conf")),
-    scalafixConfig := Some(file("project/scalafix.conf")),
-    transitiveClassifiers := {
-      // reduces the download burden when running in CI
-      val orig = transitiveClassifiers.value
-      if (sys.env.contains("CI")) Nil else orig
-    },
-    scalacOptions ++= extraScalacOptions(scalaVersion.value),
-    // WORKAROUND https://issues.scala-lang.org/browse/SI-10157
-    scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
-    scalacOptions in Compile -= "-Ywarn-value-discard",
-    scalacOptions ++= Seq(
-      "-language:_",
-      "-unchecked",
-      "-Xexperimental" // SAM types in 2.11
-    ),
-    scalacOptions ++= {
-      val dir = (baseDirectory in ThisBuild).value / "project"
-      Seq(
-        s"-Xmacro-settings:deriving.targets=$dir/deriving-targets.conf",
-        s"-Xmacro-settings:deriving.defaults=$dir/deriving-defaults.conf"
-      )
-    },
-    MacroParadise,
-    libraryDependencies ++= Seq(
-      "com.github.mpilquist" %% "simulacrum"     % "0.11.0",
-      "com.fommil"           %% "deriving-macro" % "0.9.0",
-    ),
-    excludeDependencies += ExclusionRule("stax", "stax-api"),
-    dependencyOverrides ++= Seq(
-      "com.typesafe.akka" %% "akka-actor"   % akkaVersion,
-      "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
-      "org.apache.lucene" % "lucene-core"   % luceneVersion
-    ),
-    // disabling shared memory gives a small performance boost to
-    // tests but jvisualvm will no longer see the process.
-    javaOptions += "-XX:+PerfDisableSharedMem",
-    javaOptions ++= Seq("-Xms512m", "-Xmx512m"),
-    // only recognised by 2.12.2+
-    javaOptions += "-Dscala.classpath.closeZip=true",
-    // print the table to optimise your own apps. VFS (and OrientDB)
-    // are heavy on interning.
-    javaOptions ++= Seq(
-      //"-XX:+PrintStringTableStatistics",
-      "-XX:StringTableSize=1000003",
-      "-XX:+UnlockExperimentalVMOptions",
-      "-XX:SymbolTableSize=1000003"
+  override def projectSettings =
+    Seq(
+      scalafmtConfig := Some(file("project/scalafmt.conf")),
+      scalafixConfig := Some(file("project/scalafix.conf")),
+      transitiveClassifiers := {
+        // reduces the download burden when running in CI
+        val orig = transitiveClassifiers.value
+        if (sys.env.contains("CI")) Nil else orig
+      },
+      scalacOptions ++= extraScalacOptions(scalaVersion.value),
+      // WORKAROUND https://issues.scala-lang.org/browse/SI-10157
+      scalacOptions in (Compile, doc) -= "-Xfatal-warnings",
+      scalacOptions in Compile -= "-Ywarn-value-discard",
+      scalacOptions ++= Seq(
+        "-language:_",
+        "-unchecked",
+        "-Xexperimental" // SAM types in 2.11
+      ),
+      MacroParadise,
+      Deriving,
+      libraryDependencies ++= Seq(
+        "com.github.mpilquist" %% "simulacrum"     % "0.12.0",
+        "com.fommil"           %% "deriving-macro" % derivingVersion
+      ),
+      excludeDependencies += ExclusionRule("stax", "stax-api"),
+      dependencyOverrides ++= Seq(
+        "com.typesafe.akka" %% "akka-actor"   % akkaVersion,
+        "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
+        "org.apache.lucene" % "lucene-core"   % luceneVersion
+      ),
+      // disabling shared memory gives a small performance boost to
+      // tests but jvisualvm will no longer see the process.
+      javaOptions += "-XX:+PerfDisableSharedMem",
+      javaOptions ++= Seq("-Xms512m", "-Xmx512m"),
+      // only recognised by 2.12.2+
+      javaOptions += "-Dscala.classpath.closeZip=true",
+      // print the table to optimise your own apps. VFS (and OrientDB)
+      // are heavy on interning.
+      javaOptions ++= Seq(
+        //"-XX:+PrintStringTableStatistics",
+        "-XX:StringTableSize=1000003",
+        "-XX:+UnlockExperimentalVMOptions",
+        "-XX:SymbolTableSize=1000003"
+      ),
+      libraryDependencies ++= sensibleTestLibs(Test)
     )
-  )
 }
 
 object ProjectPluginKeys {
@@ -82,7 +78,8 @@ object ProjectPluginKeys {
         .settings(
           inConfig(It)(
             Defaults.testSettings ++ sensibleTestSettings ++ Seq(
-              javaOptions ++= Seq("-Xms1400m", "-Xmx1400m")
+              javaOptions ++= Seq("-Xms1400m", "-Xmx1400m"),
+              libraryDependencies ++= sensibleTestLibs(It)
             )
           )
         )
@@ -90,10 +87,13 @@ object ProjectPluginKeys {
 
   lazy val JavaTools: File = JdkDir / "lib/tools.jar"
 
-  val luceneVersion = "6.4.2" // 6.6 deprecates index time boosting
-  val nettyVersion  = "4.1.17.Final"
-  val akkaVersion   = "2.5.7"
-  val orientVersion = "2.2.30"
+  val luceneVersion    = "6.4.2" // 6.6 deprecates index time boosting
+  val nettyVersion     = "4.1.22.Final"
+  val akkaVersion      = "2.5.11"
+  val orientVersion    = "2.2.33"
+  val shapelessVersion = "2.3.3"
+  val scalazVersion    = "7.2.20"
+  val derivingVersion  = "0.11.1"
 
   def MacroParadise =
     addCompilerPlugin(
@@ -101,6 +101,8 @@ object ProjectPluginKeys {
     )
   def KindProjector =
     addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")
+  def Deriving =
+    addCompilerPlugin("com.fommil" %% "deriving-plugin" % derivingVersion)
 
   def extraScalacOptions(scalaVersion: String) =
     CrossVersion.partialVersion(scalaVersion) match {
@@ -108,4 +110,20 @@ object ProjectPluginKeys {
       //Seq("-Ywarn-unused:patvars,imports,privates,locals")
       case _ => Nil
     }
+
+  def sensibleTestLibs(config: Configuration) =
+    Seq(
+      // janino 3.0.6 is not compatible and causes http://www.slf4j.org/codes.html#replay
+      "org.codehaus.janino" % "janino" % "2.7.8" % config,
+      "org.scalatest"       %% "scalatest" % "3.0.5" % config
+    ) ++ logback.map(_      % config)
+
+  // WORKAROUND: https://github.com/sbt/sbt/issues/3934
+  def resourcesOnCompilerCp(config: Configuration): Setting[_] =
+    compileOptions in (config, compile) := {
+      val oldOptions = (compileOptions in (config, compile)).value
+      val resources  = (resourceDirectory in config).value
+      oldOptions.withClasspath(resources +: oldOptions.classpath)
+    }
+
 }
