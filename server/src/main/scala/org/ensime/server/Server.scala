@@ -86,7 +86,7 @@ class ServerActor(
               ch.localAddress().asInstanceOf[InetSocketAddress].getPort()
             PortUtil.writePort(config.cacheDir.file, port, "http")
           } catch {
-            case ex: Throwable =>
+            case ex: Exception =>
               log.error(ex,
                         s"Error initializing http endpoint ${ex.getMessage}")
               selfRef ! ShutdownRequest(
@@ -103,7 +103,7 @@ class ServerActor(
     try {
       initialiseChildren()
     } catch {
-      case t: Throwable =>
+      case t: Exception =>
         log.error(t, s"Error during startup - ${t.getMessage}")
         self ! ShutdownRequest(t.toString, isError = true)
     }

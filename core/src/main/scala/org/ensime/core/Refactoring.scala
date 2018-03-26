@@ -269,7 +269,7 @@ trait RefactoringImpl {
           try {
             op
           } catch {
-            case e: Throwable =>
+            case e: Exception =>
               logger.error("Error during refactor request: " + refactor, e)
               Left(RefactorFailure(procId, e.toString))
           }

@@ -83,7 +83,7 @@ class Debouncer(
           )
         try action()
         catch {
-          case ex: Throwable =>
+          case ex: Exception =>
             logger.error(s"Debouncer ${name} action resulted in error", ex)
         }
       } else

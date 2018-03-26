@@ -105,7 +105,7 @@ class TCPConnectionActor(
     try {
       repeatedDecode()
     } catch {
-      case e: Throwable =>
+      case e: Exception =>
         log.error(
           e,
           "Error seen during message processing, closing client connection"
