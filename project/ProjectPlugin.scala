@@ -23,6 +23,11 @@ object ProjectPlugin extends AutoPlugin {
   val autoImport = ProjectPluginKeys
   import autoImport._
 
+  override def buildSettings =
+    Seq(
+      ensimeServerFindUsages := true // for integration tests
+    )
+
   override def projectSettings =
     Seq(
       scalafmtConfig := Some(file("project/scalafmt.conf")),
