@@ -1,0 +1,55 @@
+image: fommil/docker-openjdk-sbt:latest
+cache:
+  key: default
+  paths:
+    - project/.sbt
+variables:
+  AKKA_TEST_TIMEFACTOR: 10
+  COURSIER_CACHE: "${CI_PROJECT_DIR}/project/.sbt/coursier"
+  SBT_TASK_LIMIT: 4
+  SCALA_VERSION: 2.12.4
+
+stages:
+  - test
+  - integration
+  - publish
+
+# Test tasks
+git:
+  cache: {}
+  script:
+    - if $(git grep -qE "TODO|FIXME" *) ; then
+        echo "Please remove TODO or FIXME." ;
+        exit 1 ;
+      fi
+
+format:
+  script:
+    - sbt scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck
+
+lint:
+  script:
+    - sbt compile test:compile
+    - sbt "compile:scalafixCli --test" "test:scalafixCli --test"
+
+test:
+  script:
+    - sbt compile test:compile
+    - sbt test
+
+it-test:
+  stage: integration
+  script:
+    - echo "ensimeServerJars := Nil" > ensime.sbt
+    - echo "ensimeServerProjectJars := Nil" >> ensime.sbt
+    - sbt compile it:compile ensimeConfig assembly
+    - sbt prewarm
+    - SBT_TASK_LIMIT=2 sbt it:test
+
+# Publication tasks
+publish:
+  stage: publish
+  script:
+    - sbt publish
+  only:
+    - master
