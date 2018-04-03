@@ -1,20 +1,75 @@
-language: java
-os:
-  - osx
+os: linux
+language: scala
 env:
   global:
     - AKKA_TEST_TIMEFACTOR=10
     - SBT_TASK_LIMIT=4
     - SCALA_VERSION=2.12.4
-script:
-  - echo "ensimeServerJars := Nil" > ensime.sbt ;
-    echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
-  - export JAVA_HOME=$(/usr/libexec/java_home)
-  - curl https://raw.githubusercontent.com/paulp/sbt-extras/master/sbt -o sbt ; chmod 755 sbt
-  - ./sbt ++$SCALA_VERSION! ";prep ;cpl"
-  - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then ./sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis" ; fi
-  - if [ -n "$TRAVIS_PULL_REQUEST" ] ; then SBT_TASK_LIMIT=2 ./sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis" ; fi
-  - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
+      brew update;
+      brew install sbt;
+      export JAVA_HOME=$(/usr/libexec/java_home);
+    fi
+stages:
+  - name: test
+  - name: integration
+  - name: publish
+    if: branch = master
+matrix:
+  include:
+    - env: TASK=GIT
+      script:
+      - if $(git grep -qE "TODO|FIXME" *) ; then
+          echo "Please remove TODO or FIXME." ;
+          exit 1 ;
+        fi
+
+    - env: TASK=FORMAT
+      script:
+      - sbt scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck
+
+    - env: TASK=LINT
+      script:
+      - sbt "compile:scalafixCli --test" "test:scalafixCli --test"
+
+    - env: TASK=TEST
+      script:
+      - sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis"
+
+    - env: TASK=TEST
+      os: osx
+      osx_image: xcode8.3
+      language: java
+      script:
+      - sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis"
+
+    - env: TASK=INTEGRATION
+      sudo: true
+      stage: integration
+      script:
+      - echo "ensimeServerJars := Nil" > ensime.sbt ;
+      - echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
+      - sbt ++$SCALA_VERSION! ";prep ;cpl"
+      - SBT_TASK_LIMIT=2 sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis"
+      - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
+
+    - env: TASK=INTEGRATION
+      os: osx
+      osx_image: xcode8.3
+      language: java
+      stage: integration
+      script:
+        - echo "ensimeServerJars := Nil" > ensime.sbt ;
+        - echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
+        - sbt ++$SCALA_VERSION! ";prep ;cpl"
+        - SBT_TASK_LIMIT=2 sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis"
+        - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
+
+    - env: TASK=PUBLISH
+      stage: publish
+      script:
+        - sbt publish
 cache:
   directories:
   - $HOME/.sbt

@@ -191,7 +191,6 @@ TaskKey[Unit](
   val sv = scalaVersion.value
   val cmd =
     if (sys.env.contains("APPVEYOR")) """C:\sbt\bin\sbt.bat"""
-    else if (sys.env.contains("TRAVIS")) "../../sbt"
     else "sbt"
   sys.process
     .Process(
