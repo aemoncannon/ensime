@@ -2,7 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.server
 
-import java.io.{ FileOutputStream, PrintStream }
 import java.net.InetSocketAddress
 import java.nio.file.Paths
 
@@ -17,7 +16,6 @@ import org.ensime.api._
 import org.ensime.config._
 import org.ensime.config.richconfig._
 import org.ensime.core._
-import org.ensime.lsp.ensime.EnsimeLanguageServer
 import org.ensime.util.Slf4jSetup
 import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.path._
@@ -162,38 +160,7 @@ object Server {
       .actorOf(ServerActor.props(), "ensime-main")
   }
 
-  def startLspServer(): Unit = {
-    val cwd    = Option(System.getProperty("lsp.workspace")).getOrElse(".")
-    val server = new EnsimeLanguageServer(System.in, System.out)
-
-    // route System.out somewhere else. The presentation compiler may spit out text
-    // and that confuses VScode, since stdout is used for the language server protocol
-    val origOut = System.out
-    try {
-      System.setOut(
-        new PrintStream(new FileOutputStream(s"$cwd/pc.stdout.log"))
-      )
-      System.setErr(
-        new PrintStream(new FileOutputStream(s"$cwd/pc.stdout.log"))
-      )
-      log.info("This file contains stdout from the presentation compiler.")
-      log.info(s"Starting server in $cwd")
-      log.info(s"Classpath: ${Properties.javaClassPath}")
-      server.start()
-    } finally {
-      System.setOut(origOut)
-    }
-
-    // make sure we actually exit
-    System.exit(0)
-  }
-
-  def main(args: Array[String]): Unit =
-    if (args.contains("--lsp")) {
-      startLspServer()
-    } else {
-      startRegularServer()
-    }
+  def main(args: Array[String]): Unit = startRegularServer()
 
   def shutdown(system: ActorSystem,
                channel: Channel,

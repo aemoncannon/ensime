@@ -102,7 +102,6 @@ lazy val core = project
 lazy val server = project
   .dependsOn(
     core,
-    lsp,
     `s-express` % "test->test",
     // depend on "it" dependencies in Test or sbt adds them to the release deps!
     // https://github.com/sbt/sbt/issues/1888
@@ -118,9 +117,6 @@ lazy val server = project
       "io.netty" % "netty-codec-http" % nettyVersion
     )
   )
-
-lazy val lsp = project
-  .dependsOn(core, json)
 
 // the projects used in integration tests
 lazy val testingEmpty = testingProject("testing/empty")
