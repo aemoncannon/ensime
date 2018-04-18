@@ -2,78 +2,69 @@ os: linux
 language: scala
 env:
   global:
-    - AKKA_TEST_TIMEFACTOR=10
-    - SBT_TASK_LIMIT=4
-    - SCALA_VERSION=2.12.4
+  - AKKA_TEST_TIMEFACTOR=10
+  - SBT_TASK_LIMIT=4
+  - SCALA_VERSION=2.12.4
+  matrix:
+  - secure: cOdXmYMqs8y1qVFjdLq68QAkLnU1+o4Cqjo7C63xMaj94bGgcc+fncRaVu/R+FTVymuFPGe2TyCmAkzEHn1EAWPRkvXftQgAdlBXYCYdZ7E+d7I6kX0gELZHubtipq8rCrookAtAnqz1jOBYrHbJjaDlvw6UI1WAS95y/hIZmHo=
+  - secure: N2ln4PPhdM+qTpL9FP158QUQaGiI+H1WtjmsNgsABJhmbT3NCyR+hcsVs+/gJDctFsUItATAsp9rDsVqhvNixQ7F0gcC45MkjzYLuez01K6YGjMNr8Rse7GlFxRsFYDhOboxRSgCML5LAVBQoh1LitYb4VxtHeQytqAr5MVrhXM=
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then
-      brew update;
-      brew install sbt;
-      export JAVA_HOME=$(/usr/libexec/java_home);
-    fi
+- if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then brew update; brew install sbt; export JAVA_HOME=$(/usr/libexec/java_home);
+  fi
 stages:
-  - name: test
-  - name: integration
-  - name: publish
-    if: branch = master
+- name: test
+- name: integration
+- name: publish
+  if: branch = master
 matrix:
   include:
-    - env: TASK=GIT
-      script:
-      - if $(git grep -qE "TODO|FIXME" *) ; then
-          echo "Please remove TODO or FIXME." ;
-          exit 1 ;
-        fi
-
-    - env: TASK=FORMAT
-      script:
-      - sbt scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck
-
-    - env: TASK=LINT
-      script:
-      - sbt "compile:scalafixCli --test" "test:scalafixCli --test"
-
-    - env: TASK=TEST
-      script:
-      - sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis"
-
-    - env: TASK=TEST
-      os: osx
-      osx_image: xcode8.3
-      language: java
-      script:
-      - sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis"
-
-    - env: TASK=INTEGRATION
-      sudo: true
-      stage: integration
-      script:
-      - echo "ensimeServerJars := Nil" > ensime.sbt ;
-      - echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
-      - sbt ++$SCALA_VERSION! ";prep ;cpl"
-      - SBT_TASK_LIMIT=2 sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis"
-      - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
-
-    - env: TASK=INTEGRATION
-      os: osx
-      osx_image: xcode8.3
-      language: java
-      stage: integration
-      script:
-        - echo "ensimeServerJars := Nil" > ensime.sbt ;
-        - echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
-        - sbt ++$SCALA_VERSION! ";prep ;cpl"
-        - SBT_TASK_LIMIT=2 sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis"
-        - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
-
-    - env: TASK=PUBLISH
-      stage: publish
-      script:
-        - sbt publish
+  - env: TASK=GIT
+    script:
+    - if $(git grep -qE "TODO|FIXME" *) ; then echo "Please remove TODO or FIXME."
+      ; exit 1 ; fi
+  - env: TASK=FORMAT
+    script:
+    - sbt check
+  - env: TASK=LINT
+    script:
+    - sbt lint
+  - env: TASK=TEST
+    script:
+    - sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis"
+  - env: TASK=TEST
+    os: osx
+    osx_image: xcode8.3
+    language: java
+    script:
+    - sbt ++$SCALA_VERSION! "testOnly -- -l tags.IgnoreOnTravis"
+  - env: TASK=INTEGRATION
+    sudo: true
+    stage: integration
+    script:
+    - echo "ensimeServerJars := Nil" > ensime.sbt ;
+    - echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
+    - sbt ++$SCALA_VERSION! ";prep ;cpl"
+    - SBT_TASK_LIMIT=2 sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis"
+    - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
+  - env: TASK=INTEGRATION
+    os: osx
+    osx_image: xcode8.3
+    language: java
+    stage: integration
+    script:
+    - echo "ensimeServerJars := Nil" > ensime.sbt ;
+    - echo "ensimeServerProjectJars := Nil" >> ensime.sbt ;
+    - sbt ++$SCALA_VERSION! ";prep ;cpl"
+    - SBT_TASK_LIMIT=2 sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis"
+    - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
+  - env: TASK=PUBLISH
+    stage: publish
+    script:
+    - sbt publish
 cache:
   directories:
-  - $HOME/.sbt
-  - $HOME/.ivy2
-  - $HOME/.coursier
+  - "$HOME/.sbt"
+  - "$HOME/.ivy2"
+  - "$HOME/.coursier"
 notifications:
   email: false

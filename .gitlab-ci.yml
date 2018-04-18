@@ -25,16 +25,14 @@ git:
 
 format:
   script:
-    - sbt scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck
+    - sbt check
 
 lint:
   script:
-    - sbt compile test:compile
-    - sbt "compile:scalafixCli --test" "test:scalafixCli --test"
+    - sbt cpl lint
 
 test:
   script:
-    - sbt compile test:compile
     - sbt test
 
 it-test:
@@ -42,9 +40,7 @@ it-test:
   script:
     - echo "ensimeServerJars := Nil" > ensime.sbt
     - echo "ensimeServerProjectJars := Nil" >> ensime.sbt
-    - sbt compile it:compile ensimeConfig assembly
-    - sbt prewarm
-    - SBT_TASK_LIMIT=2 sbt it:test
+    - SBT_TASK_LIMIT=2 sbt prep it:test
 
 # Publication tasks
 publish:
