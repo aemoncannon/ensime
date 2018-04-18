@@ -14,8 +14,8 @@ before_install:
 stages:
   - name: test
   - name: integration
-#  - name: publish
-#    if: branch = 3.0
+  - name: publish
+    if: type != pull_request AND branch = 3.0
 matrix:
   include:
     - env: TASK=GIT
@@ -66,10 +66,10 @@ matrix:
         - SBT_TASK_LIMIT=2 sbt ++$SCALA_VERSION! "it:testOnly -- -l tags.IgnoreOnTravis"
         - rm -rf $HOME/.coursier/cache/v1/https/oss.sonatype.org
 
-#    - env: TASK=PUBLISH
-#      stage: publish
-#      script:
-#        - sbt ++$SCALA_VERSION! publish
+    - env: TASK=PUBLISH
+      stage: publish
+      script:
+        - sbt ++$SCALA_VERSION! publish
 cache:
   directories:
   - $HOME/.sbt
