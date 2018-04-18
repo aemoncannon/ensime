@@ -163,6 +163,7 @@ publish := {}
 test in assembly := {}
 aggregate in assembly := false
 assemblyMergeStrategy in assembly := {
+  case p if p.startsWith("META-INF/semanticdb") => MergeStrategy.discard
   case PathList("org", "apache", "commons", "vfs2", xs @ _*) =>
     MergeStrategy.first
   case PathList("META-INF", "io.netty.versions.properties") =>
