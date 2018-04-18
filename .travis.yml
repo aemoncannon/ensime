@@ -15,7 +15,7 @@ stages:
 - name: test
 - name: integration
 - name: publish
-  if: branch = master
+  if: branch = 3.0
 matrix:
   include:
   - env: TASK=GIT
