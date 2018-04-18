@@ -7,6 +7,7 @@ import sbt.{ IntegrationTest => It, _ }
 import sbtassembly.AssemblyKeys._
 import sbtassembly.{ AssemblyKeys, MergeStrategy, PathList }
 import sbtbuildinfo.BuildInfoPlugin, BuildInfoPlugin.autoImport._
+import scalafix.sbt.ScalafixPlugin, ScalafixPlugin.autoImport._
 
 import org.ensime.EnsimePlugin.JdkDir
 import org.ensime.EnsimeKeys._
@@ -26,10 +27,14 @@ object CommonPlugin extends AutoPlugin {
     ensimeJavaFlags += "-Xmx4g",
     sonatypeGithost := (Github, "ensime", "ensime-server"),
     licenses := Seq(GPL3),
-    startYear := Some(2010)
+    startYear := Some(2010),
+    concurrentRestrictions += Tags.limit(Scalafix, 2),
+    scalafixParallel := true
   )
 
   override def projectSettings = Seq(
-    )
+    scalacOptions += "-Yrangepos",
+    addCompilerPlugin(scalafixSemanticdb)
+  )
 
 }

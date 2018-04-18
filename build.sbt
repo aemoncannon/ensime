@@ -212,7 +212,7 @@ addCommandAlias(
 addCommandAlias("prep", ";ensimeConfig ;assembly ;prewarm")
 addCommandAlias("cpl", "all compile test:compile it:compile")
 addCommandAlias("check", "all scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck")
-addCommandAlias("lint", ";compile:scalafixCli --test ;test:scalafixCli --test")
+addCommandAlias("lint", ";compile:scalafixTest ;test:scalafixTest")
 addCommandAlias("fix", "all compile:scalafixCli test:scalafixCli")
 addCommandAlias("tests", "all test it:test")
 // not really what is used in CI, but close enough...
