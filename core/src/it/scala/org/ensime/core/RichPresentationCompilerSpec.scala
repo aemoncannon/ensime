@@ -595,8 +595,14 @@ trait RichPresentationCompilerTestUtils {
 
   def clazz(pkg: Seq[String], clazz: String): ClassName =
     ClassName(PackageName(pkg.toList), clazz)
-  def method(pkg: Seq[String], cl: String, name: String, desc: String) =
-    MethodName(clazz(pkg, cl), name, DescriptorParser.parse(desc))
+  def method(pkg: Seq[String], cl: String, name: String, desc: Descriptor) =
+    MethodName(clazz(pkg, cl), name, desc)
+  def method(pkg: Seq[String], cl: String, name: String, from: List[String], to: String) =
+    MethodName(clazz(pkg, cl), name,  Descriptor(
+                 from.map(f => (ClassName.fromFqn(f))),
+                 ClassName.fromFqn(to)
+               ))
+
   def field(pkg: Seq[String], cl: String, name: String) =
     FieldName(clazz(pkg, cl), name)
 

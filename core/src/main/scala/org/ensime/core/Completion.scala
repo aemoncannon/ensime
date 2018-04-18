@@ -48,7 +48,6 @@ import akka.actor.ActorRef
 import akka.pattern.Patterns
 import akka.util.Timeout
 import org.ensime.api._
-import org.ensime.indexer.lucene.SimpleLucene
 import org.ensime.util.Timing.dilation
 
 trait CompletionControl {
@@ -89,8 +88,7 @@ trait CompletionControl {
       logger.warn("completionsAt request has point outside of file")
       Future.successful(CompletionInfoList("", List.empty))
     } else {
-      val maxResults =
-        if (maxResultsArg == 0) SimpleLucene.MaxResults else maxResultsArg
+      val maxResults = if (maxResultsArg == 0) 10000 else maxResultsArg
 
       val preceding = inputP.source.content.slice(
         Math.max(0, inputP.point - 100),

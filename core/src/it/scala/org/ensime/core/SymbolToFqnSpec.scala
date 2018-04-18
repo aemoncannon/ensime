@@ -78,90 +78,95 @@ class SymbolToFqnSpec
               method(Seq("scala"),
                      "Option",
                      "map",
-                     "(Lscala/Function1;)Lscala/Option;")
+                     List("scala.Function1"), "scala.Option")
             case "0.5" => ClassName.PrimitiveBoolean
-            case "1"   => method(Seq("scala"), "Option", "isDefined", "()Z")
+            case "1"   => method(Seq("scala"), "Option", "isDefined", Nil, "boolean")
             case "2" =>
               method(Seq("scala"),
                      "Option",
                      "flatMap",
-                     "(Lscala/Function1;)Lscala/Option;")
+                     List("scala.Function1"), "scala.Option")
             case "3" =>
               method(Seq("scala"),
                      "Option",
                      "flatten",
-                     "(Lscala/Predef$$less$colon$less;)Lscala/Option;")
+                     List("scala.Predef$$less$colon$less"), "scala.Option")
             case "4" =>
               method(Seq("scala"),
                      "Option",
                      "fold",
-                     "(Lscala/Function0;Lscala/Function1;)Ljava/lang/Object;")
+                     List("scala.Function0", "scala.Function1"), "java.lang.Object")
 
             case "5" =>
               method(
                 Seq("scala", "collection"),
                 "TraversableOnce",
                 "mkString",
-                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"
+                List("java.lang.String", "java.lang.String", "java.lang.String"), "java.lang.String"
               )
             case "6" =>
               method(Seq("scala", "collection"),
                      "TraversableOnce",
                      "mkString",
-                     "()Ljava/lang/String;")
+                     List(), "java.lang.String")
             case "7" =>
               method(Seq("scala", "collection"),
                      "TraversableOnce",
                      "mkString",
-                     "(Ljava/lang/String;)Ljava/lang/String;")
+                     List("java.lang.String"), "java.lang.String")
 
             case "8" =>
               method(Seq("scala"),
                      "Option",
                      "getOrElse",
-                     "(Lscala/Function0;)Ljava/lang/Object;")
+                     List("scala.Function0"), "java.lang.Object")
             case "9" =>
               method(Seq("scala", "collection"),
                      "IterableLike",
                      "grouped",
-                     "(I)Lscala/collection/Iterator;")
+                     List("int"), "scala.collection.Iterator")
             case "10" =>
               method(Seq("scala", "collection", "immutable"),
                      "List$",
                      "empty",
-                     "()Lscala/collection/immutable/List;")
+                     Nil, "scala.collection.immutable.List")
             case "10.5" => clazz(Seq("java", "io"), "File")
 
             case "11" =>
               method(Seq("com", "google", "common", "io"),
                      "Files$",
                      "move",
-                     "(Ljava/io/File;Ljava/io/File;)V")
+                     List("java.io.File", "java.io.File"), "void")
             case "12" =>
               method(Seq("com", "google", "common", "io"),
                      "Files$",
                      "asByteSource",
-                     "(Ljava/io/File;)Lcom/google/common/io/ByteSource;")
+                     List("java.io.File"), "com.google.common.io.ByteSource")
             case "13" =>
               method(
                 Seq("com", "google", "common", "io"),
                 "Files$",
                 "map",
-                "(Ljava/io/File;Ljava/nio/channels/FileChannel$MapMode;)Ljava/nio/MappedByteBuffer;"
+                List("java.io.File", "java.nio.channels.FileChannel$MapMode"),
+                "java.nio.MappedByteBuffer"
               )
             case "14" =>
               method(
                 Seq("com", "google", "common", "io"),
                 "Files$",
                 "map",
-                "(Ljava/io/File;Ljava/nio/channels/FileChannel$MapMode;J)Ljava/nio/MappedByteBuffer;"
+                List("java.io.File", "java.nio.channels.FileChannel$MapMode", "long"),
+                "java.nio.MappedByteBuffer"
               )
             case "14.5" => clazz(Seq("scala"), "Array$")
             case "15" =>
-              method(Seq("com", "google", "common", "io"),
-                     "Files$",
-                     "write",
-                     "([BLjava/io/File;)V")
+              fail
+              // the input array needs a manually created Descriptor
+              //
+              // method(Seq("com", "google", "common", "io"),
+              //        "Files$",
+              //        "write",
+              //        "([BLjava/io/File;)V")
             case "16" => clazz(Seq("scala"), "Some$")
 
             case "17" => clazz(Seq("java", "lang"), "String")
@@ -175,7 +180,8 @@ class SymbolToFqnSpec
               method(Seq("java", "lang"),
                      "Class",
                      "isInstance",
-                     "(Ljava/lang/Object;)Z")
+                     List("java.lang.Object"),
+                     "boolean")
             case "22" => clazz(Seq("scala"), "Predef$DummyImplicit$")
             case "23" => clazz(Seq("java", "util"), "HashMap")
 
@@ -183,37 +189,44 @@ class SymbolToFqnSpec
               method(Seq("java", "util"),
                      "HashMap",
                      "entrySet",
-                     "()Ljava/util/Set;")
+                     Nil,
+                     "java.util.Set")
 
             case "29" =>
               method(
                 Seq("scala", "collection"),
                 "TraversableLike",
                 "$plus$plus",
-                "(Lscala/collection/GenTraversableOnce;Lscala/collection/generic/CanBuildFrom;)Ljava/lang/Object;"
+                List("scala.collection.GenTraversableOnce", "scala.collection.generic.CanBuildFrom"),
+                "java.lang.Object"
               )
 
-            case "32" => method(Seq("scala"), "Int", "$plus", "(I)I")
+            case "32" => method(Seq("scala"), "Int", "$plus", List("int"), "int")
 
             case "a1" =>
-              method(Seq("com", "example"), "Thing", "arr1", "([B)[B")
+              fail // more manual needed
+              //method(Seq("com", "example"), "Thing", "arr1", "([B)[B")
             case "a2" =>
-              method(Seq("com", "example"), "Thing", "arr2", "([[B)[[B")
+              fail // more manual needed
+              //method(Seq("com", "example"), "Thing", "arr2", "([[B)[[B")
             case "a3" =>
-              method(Seq("com", "example"),
-                     "Thing",
-                     "arr3",
-                     "([Ljava/lang/Object;)[Ljava/lang/Object;")
+              fail // more manual needed
+              // method(Seq("com", "example"),
+              //        "Thing",
+              //        "arr3",
+              //        "([Ljava/lang/Object;)[Ljava/lang/Object;")
             case "a4" =>
-              method(Seq("com", "example"),
-                     "Thing",
-                     "arr4",
-                     "([Ljava/lang/Object;)[Ljava/lang/Object;")
+              fail
+              // method(Seq("com", "example"),
+              //        "Thing",
+              //        "arr4",
+              //        "([Ljava/lang/Object;)[Ljava/lang/Object;")
             case "a5" =>
-              method(Seq("com", "example"),
-                     "Thing",
-                     "arr5",
-                     "([[Ljava/lang/Object;)[[Ljava/lang/Object;")
+              fail
+              // method(Seq("com", "example"),
+              //        "Thing",
+              //        "arr5",
+              //        "([[Ljava/lang/Object;)[[Ljava/lang/Object;")
 
             case "po1" => clazz(Seq("com", "example"), "package$")
 

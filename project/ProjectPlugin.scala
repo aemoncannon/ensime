@@ -55,7 +55,6 @@ object ProjectPlugin extends AutoPlugin {
       dependencyOverrides ++= Seq(
         "com.typesafe.akka" %% "akka-actor"   % akkaVersion,
         "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
-        "org.apache.lucene" % "lucene-core"   % luceneVersion
       ),
       // disabling shared memory gives a small performance boost to
       // tests but jvisualvm will no longer see the process.
@@ -63,8 +62,6 @@ object ProjectPlugin extends AutoPlugin {
       javaOptions ++= Seq("-Xms512m", "-Xmx512m"),
       // only recognised by 2.12.2+
       javaOptions += "-Dscala.classpath.closeZip=true",
-      // print the table to optimise your own apps. VFS (and OrientDB)
-      // are heavy on interning.
       javaOptions ++= Seq(
         //"-XX:+PrintStringTableStatistics",
         "-XX:StringTableSize=1000003",
@@ -89,10 +86,8 @@ object ProjectPluginKeys {
         )
   }
 
-  val luceneVersion    = "6.4.2" // 6.6 deprecates index time boosting
   val nettyVersion     = "4.1.22.Final"
   val akkaVersion      = "2.5.11"
-  val orientVersion    = "2.2.33"
   val shapelessVersion = "2.3.3"
   val derivingVersion  = "0.13.1"
 

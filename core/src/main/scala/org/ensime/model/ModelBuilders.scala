@@ -5,8 +5,7 @@ package org.ensime.model
 import org.ensime.api
 import org.ensime.api._
 import org.ensime.core.{ FqnToSymbol, RichPresentationCompiler }
-import org.ensime.indexer.MethodName
-import org.ensime.indexer.graph._
+import org.ensime.indexer._
 import org.ensime.util.ensimefile._
 import org.ensime.util.fileobject._
 import org.ensime.vfs._
@@ -351,7 +350,7 @@ object LineSourcePositionHelper {
   def fromFqnSymbol(
     sym: FqnSymbol
   )(implicit vfs: EnsimeVFS): Option[LineSourcePosition] =
-    (sym.sourceFileObject, sym.line) match {
+    (sym.source.map(vfs.vfile), sym.line) match {
       case (None, _) => None
       case (Some(fo), lineOpt) =>
         val file = EnsimeFile(fo.uriString)

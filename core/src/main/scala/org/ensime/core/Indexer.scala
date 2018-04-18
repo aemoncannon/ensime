@@ -9,8 +9,7 @@ import akka.actor._
 import akka.event.LoggingReceive
 import akka.pattern.pipe
 import org.ensime.api._
-import org.ensime.indexer.SearchService
-import org.ensime.indexer.graph._
+import org.ensime.indexer._
 import org.ensime.model._
 import org.ensime.util.ensimefile._
 import org.ensime.vfs._
@@ -40,11 +39,7 @@ class Indexer(
 
     index
       .searchClasses(query, max)
-      .map {
-        case c: ClassDef => c.copy(fqn = strip(c.fqn))
-        case f: Field    => f.copy(fqn = strip(f.fqn))
-        case m: Method   => m.copy(fqn = strip(m.fqn))
-      }
+      .map(c => c.copy(fqn = strip(c.fqn)))
       .distinctBy(_.fqn)
       .map(typeResult)
   }
@@ -116,41 +111,7 @@ class Indexer(
     case FindHierarchy(fqn: String) =>
       import context.dispatcher
 
-      def toClassInfos(h: Hierarchy): List[ClassInfo] = {
-        def toClassInfo(c: ClassDef) =
-          ClassInfo(c.scalaName,
-                    c.fqn,
-                    c.declAs,
-                    LineSourcePositionHelper.fromFqnSymbol(c))
-        h match {
-          case TypeHierarchy(aClass, typeRefs) =>
-            typeRefs.foldLeft(toClassInfo(aClass) :: Nil)(
-              (listOfInfos, hierarchy) =>
-                toClassInfos(hierarchy) ::: listOfInfos
-            )
-          case classDef: ClassDef => toClassInfo(classDef) :: Nil
-        }
-      }
-
-      val ancestors = index
-        .getTypeHierarchy(fqn, Hierarchy.Supertypes, None)
-        .map(_.map {
-          case TypeHierarchy(_, typeRefs) =>
-            typeRefs.toList.flatMap(toClassInfos)
-          case _ => Nil
-        })
-      val inheritors = index
-        .getTypeHierarchy(fqn, Hierarchy.Subtypes, None)
-        .map(_.map {
-          case TypeHierarchy(_, typeRefs) =>
-            typeRefs.toList.flatMap(toClassInfos)
-          case _ => Nil
-        })
-      val symbolTreeInfo = for {
-        anc <- ancestors
-        inh <- inheritors
-      } yield HierarchyInfo(anc.getOrElse(Nil), inh.getOrElse(Nil))
-      pipe(symbolTreeInfo) to sender
+      pipe(index.getHierarchy(fqn)) to sender
   }
 }
 object Indexer {

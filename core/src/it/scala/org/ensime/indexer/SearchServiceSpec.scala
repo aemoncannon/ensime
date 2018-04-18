@@ -2,13 +2,10 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.indexer
 
-import org.apache.lucene.search.DisjunctionMaxQuery
-
 import scala.concurrent._
 import scala.concurrent.duration._
 import org.ensime.api._
 import org.ensime.fixture._
-import org.ensime.indexer.graph._
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
 import org.ensime.util.path._
@@ -264,20 +261,6 @@ class SearchServiceSpec
       anObject.value.toSearchResult should startWith("Object")
   }
 
-  it should "find scala names for scala symbols" in withSearchService {
-    implicit service =>
-      val hits = service.searchClassesMethods(List("TestSuite"), 10)
-      hits should be('nonEmpty)
-      all(hits.map(_.scalaName)) shouldBe defined
-  }
-
-  it should "not find scala names for java symbols" in withSearchService {
-    implicit service =>
-      val hits = service.searchClasses("java.lang", 10)
-      hits.length should ===(10)
-      all(hits.map(_.scalaName)) shouldBe empty
-  }
-
   "exact searches" should "find type aliases" in withSearchService {
     implicit service =>
       service.findUnique("org.scalatest.fixture.ConfigMapFixture$FixtureParam") shouldBe defined
@@ -285,42 +268,26 @@ class SearchServiceSpec
 
   "class hierarchy viewer" should "find all classes implementing a trait" in withSearchService {
     implicit service =>
-      val someTrait           = "org.hierarchy.SomeTrait"
-      val implementingClasses = getClassHierarchy(someTrait, Hierarchy.Subtypes)
-      inside(implementingClasses) {
-        case TypeHierarchy(classDef, refs) =>
-          classDef.fqn should ===(someTrait)
-          inside(refs) {
-            case Seq(ref1, ref2) =>
-              inside(ref1) {
-                case TypeHierarchy(aClass, Seq(subclass)) =>
-                  aClass.fqn should ===("org.hierarchy.ExtendsTrait")
-                  inside(subclass) {
-                    case cdef: ClassDef =>
-                      cdef.fqn should ===("org.hierarchy.Subclass")
-                  }
-              }
-              inside(ref2) {
-                case cdef: ClassDef =>
-                  cdef.fqn should ===("org.hierarchy.ExtendsTraitToo")
-              }
-          }
-      }
+      getHierarchy("org.hierarchy.SomeTrait")
+
+      fail("check this feature still works")
+      // "org.hierarchy.ExtendsTrait"
+      // "org.hierarchy.Subclass"
+      // "org.hierarchy.ExtendsTraitToo"
   }
 
   it should "find all superclasses of a class" in withSearchService {
     implicit service =>
-      val hierarchy =
-        getClassHierarchy("org.hierarchy.Qux", Hierarchy.Supertypes)
-      hierarchyToSet(hierarchy).map(_.fqn) should contain theSameElementsAs Set(
-        "org.hierarchy.Qux",
-        "scala.math.Ordered",
-        "org.hierarchy.Bar",
-        "org.hierarchy.NotBaz",
-        "java.lang.Runnable",
-        "java.lang.Comparable",
-        "java.lang.Object"
-      )
+    getHierarchy("org.hierarchy.Qux")
+
+    fail("check this feature still works")
+    // "org.hierarchy.Qux",
+    // "scala.math.Ordered",
+    // "org.hierarchy.Bar",
+    // "org.hierarchy.NotBaz",
+    // "java.lang.Runnable",
+    // "java.lang.Comparable",
+    // "java.lang.Object"
   }
 
   "reverse usage lookup" should "find usages of an annotation class" in withSearchService {
@@ -415,46 +382,6 @@ class SearchServiceSpec
       )
   }
 
-  "lucene index" should "not contain duplicates" in withSearchService {
-    implicit service =>
-      import scala.collection.JavaConverters._
-      val lucene = service.index.lucene
-      val terms  = List("org", "example", "bar")
-      val query = new DisjunctionMaxQuery(
-        terms.map(service.index.buildTermClassMethodQuery).asJavaCollection,
-        0f
-      )
-      val fqns = lucene.search(query, 10).futureValue.map(_.get("fqn"))
-      fqns.distinct should ===(fqns)
-  }
-
-  "findClasses" should "recover classes by source" in withSearchService {
-    (config, search) =>
-      import org.ensime.util.ensimefile._
-
-      val jdksrc = config.javaSources.head.file
-      val query  = ArchiveFile(jdksrc, "/java/lang/String.java").canon
-
-      val hits = search.findClasses(query)
-
-      hits.head.fqn shouldBe "java.lang.String"
-      hits.head.jdi.value shouldBe "java/lang/String.java"
-  }
-
-  "findClasses" should "recover classes by JDI" in withSearchService {
-    (config, search) =>
-      search
-        .findClasses("java/lang/String.java")
-        .head
-        .fqn shouldBe "java.lang.String"
-
-      search
-        .findClasses("bad/convention/bad-convention.scala")
-        .head
-        .source
-        .value should endWith("/src/main/scala/bad-convention.scala")
-  }
-
 }
 
 object SearchServiceTestUtils {
@@ -521,22 +448,11 @@ object SearchServiceTestUtils {
   )(implicit service: SearchService, p: Position) =
     (queries.toList).foreach(searchClassesAndMethods(expect, _))
 
-  def getClassHierarchy(
-    fqn: String,
-    hierarchyType: Hierarchy.Direction
-  )(implicit service: SearchService, p: Position): Hierarchy = {
-    val hierarchy =
-      Await.result(service.getTypeHierarchy(fqn, hierarchyType), Duration.Inf)
-    withClue(s"No class hierarchy found for fqn = $fqn")(
-      hierarchy shouldBe defined
-    )
-    hierarchy.get
-  }
-
-  def hierarchyToSet(hierarchy: Hierarchy): Set[ClassDef] = hierarchy match {
-    case cdef: ClassDef => Set(cdef)
-    case TypeHierarchy(cdef, typeRefs) =>
-      Set(cdef) ++ typeRefs.flatMap(hierarchyToSet)
+  // isn't this just futureValue?
+  def getHierarchy(
+    fqn: String
+  )(implicit service: SearchService, p: Position) = {
+    Await.result(service.getHierarchy(fqn), Duration.Inf)
   }
 
   def findUsages(
