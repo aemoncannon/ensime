@@ -163,7 +163,8 @@ publish := {}
 test in assembly := {}
 aggregate in assembly := false
 assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", "semanticdb", _*) => MergeStrategy.discard
+  case PathList("META-INF", "semanticdb.semanticidx") => MergeStrategy.discard
+  case PathList("META-INF", "semanticdb", _*)         => MergeStrategy.discard
   case PathList("org", "apache", "commons", "vfs2", xs @ _*) =>
     MergeStrategy.first
   case PathList("META-INF", "io.netty.versions.properties") =>
