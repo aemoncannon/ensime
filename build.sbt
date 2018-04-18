@@ -163,7 +163,7 @@ publish := {}
 test in assembly := {}
 aggregate in assembly := false
 assemblyMergeStrategy in assembly := {
-  case p if p.startsWith("META-INF/semanticdb") => MergeStrategy.discard
+  case PathList("META-INF", "semanticdb", _*) => MergeStrategy.discard
   case PathList("org", "apache", "commons", "vfs2", xs @ _*) =>
     MergeStrategy.first
   case PathList("META-INF", "io.netty.versions.properties") =>
@@ -212,7 +212,10 @@ addCommandAlias(
 )
 addCommandAlias("prep", ";ensimeConfig ;assembly ;prewarm")
 addCommandAlias("cpl", "all compile test:compile it:compile")
-addCommandAlias("check", "all scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck")
+addCommandAlias(
+  "check",
+  "all scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck"
+)
 addCommandAlias("lint", ";compile:scalafixTest ;test:scalafixTest")
 addCommandAlias("fix", "all compile:scalafixCli test:scalafixCli")
 addCommandAlias("tests", "all test it:test")
