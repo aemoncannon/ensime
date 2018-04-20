@@ -47,7 +47,6 @@ object ProjectPlugin extends AutoPlugin {
         "-Xexperimental" // SAM types in 2.11
       ),
       MacroParadise,
-      Deriving,
       libraryDependencies ++= Seq(
         "com.github.mpilquist" %% "simulacrum"     % "0.12.0",
         "com.fommil"           %% "deriving-macro" % derivingVersion
@@ -73,7 +72,7 @@ object ProjectPlugin extends AutoPlugin {
         "-XX:SymbolTableSize=1000003"
       ),
       libraryDependencies ++= sensibleTestLibs(Test)
-    )
+    ) ++ Deriving
 }
 
 object ProjectPluginKeys {
@@ -97,17 +96,18 @@ object ProjectPluginKeys {
   val akkaVersion      = "2.5.11"
   val orientVersion    = "2.2.33"
   val shapelessVersion = "2.3.3"
-  val scalazVersion    = "7.2.20"
-  val derivingVersion  = "0.11.1"
+  val derivingVersion  = "0.13.1"
 
   def MacroParadise =
     addCompilerPlugin(
       "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
     )
   def KindProjector =
-    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")
-  def Deriving =
-    addCompilerPlugin("com.fommil" %% "deriving-plugin" % derivingVersion)
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6")
+  def Deriving = Seq(
+    addCompilerPlugin("com.fommil" %% "deriving-plugin" % derivingVersion),
+    libraryDependencies += "com.fommil" %% "deriving-macro" % derivingVersion % "provided"
+  )
 
   def extraScalacOptions(scalaVersion: String) =
     CrossVersion.partialVersion(scalaVersion) match {

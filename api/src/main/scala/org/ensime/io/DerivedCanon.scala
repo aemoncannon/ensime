@@ -4,7 +4,7 @@
 package org.ensime.io
 
 import shapeless.{ :: => :*:, _ }
-import scalaz.effect.IO
+import scalaz.ioeffect.IO
 
 trait DerivedCanon[Repr] {
   def canon(a: Repr): IO[Repr]
@@ -16,7 +16,7 @@ object DerivedCanon {
     CR: Cached[Strict[DerivedCanon[Repr]]]
   ): Canon[A] = a => CR.value.value.canon(G.to(a)).map(G.from)
 
-  implicit val hnil: DerivedCanon[HNil] = _ => IO(HNil)
+  implicit val hnil: DerivedCanon[HNil] = _ => IO.now(HNil)
   implicit def hcons[Value, Remaining <: HList](
     implicit LV: Lazy[Canon[Value]],
     DR: DerivedCanon[Remaining]
@@ -28,7 +28,7 @@ object DerivedCanon {
       } yield h :: t
   }
 
-  implicit def cnil: DerivedCanon[CNil] = _ => IO(???)
+  implicit def cnil: DerivedCanon[CNil] = _ => IO.never
   implicit def ccons[Instance, Remaining <: Coproduct](
     implicit
     LI: Lazy[Canon[Instance]],

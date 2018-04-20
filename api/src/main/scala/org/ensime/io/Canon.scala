@@ -9,7 +9,7 @@ import java.nio.file._
 import simulacrum._
 
 import scalaz._
-import scalaz.effect.IO
+import scalaz.ioeffect.IO
 import Scalaz._
 
 /**
@@ -26,11 +26,11 @@ import Scalaz._
 object Canon extends LowPriorityCanon {
 
   implicit val file: Canon[File] =
-    f => IO(f.getCanonicalFile).except(_ => IO(f.getAbsoluteFile))
+    f => IO.sync(f.getCanonicalFile).catchAll(_ => IO.sync(f.getAbsoluteFile))
 
   implicit val path: Canon[Path] =
     p =>
-      IO {
+      IO.sync {
         val norm = p.normalize()
         val target =
           if (Files.isSymbolicLink(norm)) Files.readSymbolicLink(norm)
@@ -41,11 +41,11 @@ object Canon extends LowPriorityCanon {
         }
     }
 
-  implicit val string: Canon[String]   = IO(_)
-  implicit val symbol: Canon[Symbol]   = IO(_)
-  implicit val boolean: Canon[Boolean] = IO(_)
-  implicit val int: Canon[Int]         = IO(_)
-  implicit val long: Canon[Long]       = IO(_)
+  implicit val string: Canon[String]   = IO.now(_)
+  implicit val symbol: Canon[Symbol]   = IO.now(_)
+  implicit val boolean: Canon[Boolean] = IO.now(_)
+  implicit val int: Canon[Int]         = IO.now(_)
+  implicit val long: Canon[Long]       = IO.now(_)
 }
 
 trait LowPriorityCanon {
