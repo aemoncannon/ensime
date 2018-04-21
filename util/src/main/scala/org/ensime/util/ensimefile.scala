@@ -17,7 +17,6 @@ import org.ensime.util.path._
 package ensimefile {
 
   trait RichEnsimeFile {
-    def isJava: Boolean
     def isJar: Boolean
     def isScala: Boolean
     def exists(): Boolean
@@ -36,8 +35,6 @@ package object ensimefile {
 
   implicit class RichRawFile(val raw: RawFile) extends RichEnsimeFile {
     // PathMatcher is too complex, use http://stackoverflow.com/questions/20531247
-    override def isJava: Boolean =
-      raw.file.toString.toLowerCase.endsWith(".java")
     override def isJar: Boolean = raw.file.toString.toLowerCase.endsWith(".jar")
     override def isScala: Boolean =
       raw.file.toString.toLowerCase.endsWith(".scala")
@@ -55,7 +52,6 @@ package object ensimefile {
   // resource afterwards (which is slow for random access)
   implicit class RichArchiveFile(val archive: ArchiveFile)
       extends RichEnsimeFile {
-    override def isJava: Boolean  = archive.entry.toLowerCase.endsWith(".java")
     override def isJar: Boolean   = archive.entry.toLowerCase.endsWith(".jar")
     override def isScala: Boolean = archive.entry.toLowerCase.endsWith(".scala")
     override def exists(): Boolean =

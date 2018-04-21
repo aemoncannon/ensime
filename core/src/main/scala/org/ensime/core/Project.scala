@@ -12,8 +12,6 @@ import org.ensime.api._
 import org.ensime.config.richconfig._
 import org.ensime.indexer._
 import org.ensime.util.{ Debouncer, Timing }
-import org.ensime.util.FileUtils._
-import org.ensime.util.ensimefile._
 import org.ensime.vfs._
 
 final case class ShutdownRequest(reason: String, isError: Boolean = false)
@@ -32,9 +30,7 @@ class Project(
   import context.system
 
   /* The main components of the ENSIME server */
-  private var scalac: ActorRef = _
-  private var javac: ActorRef  = _
-
+  private var scalac: ActorRef  = _
   private var indexer: ActorRef = _
   private var docs: ActorRef    = _
 
@@ -102,15 +98,11 @@ class Project(
                         Analyzer(broadcaster, indexer, searchService, _)),
         "scalac"
       )
-      javac = context.actorOf(JavaAnalyzer(broadcaster, indexer, searchService),
-                              "javac")
     } else {
       log.warning(
         "Detected a pure Java project. Scala queries are not available."
       )
       scalac = system.deadLetters
-      javac = context.actorOf(JavaAnalyzer(broadcaster, indexer, searchService),
-                              "javac")
     }
     docs = context.actorOf(DocResolver(), "docs")
 
@@ -127,26 +119,11 @@ class Project(
   private var rechecking: Cancellable = _
 
   def receive: Receive = {
-    case ShutdownRequest                              => context.parent forward ShutdownRequest
-    case req @ RestartScalaCompilerReq(_, _)          => scalac forward req
-    case m @ TypecheckFileReq(sfi) if sfi.file.isJava => javac forward m
-    case m @ CompletionsReq(sfi, _, _, _, _) if sfi.file.isJava =>
-      javac forward m
-    case m @ DocUriAtPointReq(sfi, _) if sfi.file.isJava => javac forward m
-    case m @ TypeAtPointReq(sfi, _) if sfi.file.isJava   => javac forward m
-    case m @ SymbolDesignationsReq(sfi, _, _, _) if sfi.file.isJava =>
-      javac forward m
-    case m @ SymbolAtPointReq(sfi, _) if sfi.file.isJava => javac forward m
-
-    // mixed mode query
-    case TypecheckFilesReq(files) =>
-      val (javas, scalas) = files.partition(_.file.isJava)
-      if (javas.nonEmpty) javac forward TypecheckFilesReq(javas)
-      if (scalas.nonEmpty) scalac forward TypecheckFilesReq(scalas)
-
-    case m: RpcAnalyserRequest => scalac forward m
-    case m: RpcSearchRequest   => indexer forward m
-    case m: DocSigPair         => docs forward m
+    case ShutdownRequest                     => context.parent forward ShutdownRequest
+    case req @ RestartScalaCompilerReq(_, _) => scalac forward req
+    case m: RpcAnalyserRequest               => scalac forward m
+    case m: RpcSearchRequest                 => indexer forward m
+    case m: DocSigPair                       => docs forward m
 
     // added here to prevent errors when client sends this repeatedly (e.g. as a keepalive
     case ConnectionInfoReq => sender() ! ConnectionInfo()

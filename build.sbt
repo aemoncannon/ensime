@@ -75,8 +75,6 @@ lazy val core = project
   )
   .enableIntegrationTests
   .settings(
-    unmanagedJars in Compile += JavaTools,
-    ensimeUnmanagedSourceArchives += (baseDirectory in ThisBuild).value / "openjdk-langtools/openjdk8-langtools-src.zip",
     libraryDependencies ++= Seq(
       "com.orientechnologies" % "orientdb-graphdb" % orientVersion
         exclude ("commons-collections", "commons-collections")
@@ -181,7 +179,7 @@ assemblyExcludedJars in assembly := {
     val n = attr.data.getName
     n.startsWith("scala-library") | n.startsWith("scala-compiler") |
       n.startsWith("scala-reflect") | n.startsWith("scalap")
-  } :+ Attributed.blank(JavaTools)
+  }
 }
 assemblyJarName in assembly := s"ensime_${scalaBinaryVersion.value}-${version.value}-assembly.jar"
 

@@ -34,7 +34,7 @@ class SourceResolver(
 
   def relevant(f: FileObject): Boolean = f.getName.isFile && {
     val file = f.asLocalFile
-    (file.isScala || file.isJava) && !file.getPath.contains(".ensime_cache")
+    (file.isScala) && !file.getPath.contains(".ensime_cache")
   }
 
   def resolve(clazz: PackageName, source: RawSource): Option[FileObject] = {

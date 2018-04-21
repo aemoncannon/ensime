@@ -2,7 +2,6 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.api
 
-import com.sun.tools.corba.se.idl.InvalidArgument
 import org.ensime.lsp.api.commands._
 import org.ensime.lsp.api.companions._
 import org.ensime.lsp.api.types._
@@ -44,7 +43,7 @@ class CommandsAndNotificationsSpec extends FreeSpec {
   def parseJsObject(json: String): JsObject =
     JsParser(json) match {
       case obj: JsObject => obj
-      case _             => throw new InvalidArgument("should be a json object")
+      case _             => throw new IllegalArgumentException("should be a json object")
     }
 
   "initialize command" - {

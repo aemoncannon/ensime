@@ -89,8 +89,6 @@ object ProjectPluginKeys {
         )
   }
 
-  lazy val JavaTools: File = JdkDir / "lib/tools.jar"
-
   val luceneVersion    = "6.4.2" // 6.6 deprecates index time boosting
   val nettyVersion     = "4.1.22.Final"
   val akkaVersion      = "2.5.11"
