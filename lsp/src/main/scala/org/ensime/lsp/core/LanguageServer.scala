@@ -63,6 +63,7 @@ abstract class LanguageServer(inStream: InputStream, outStream: OutputStream)
   protected val documentManager = new TextDocumentManager
 
   private val notificationHandler: Notification => Unit = {
+    case Initialized() => ()
     case DidOpenTextDocumentParams(td) =>
       onOpenTextDocument(td)
     case DidChangeTextDocumentParams(td, changes) =>
