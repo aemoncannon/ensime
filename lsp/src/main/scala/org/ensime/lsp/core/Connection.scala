@@ -86,6 +86,7 @@ class Connection(inStream: InputStream,
       case Some(jsonString) =>
         readJsonRpcMessage(jsonString) match {
           case Left(e) =>
+            log.error(s"Invalid message: ${e} - ${jsonString}")
             msgWriter.write(e)
 
           case Right(message) =>
@@ -105,6 +106,7 @@ class Connection(inStream: InputStream,
               case request: JsonRpcRequestMessage =>
                 unpackRequest(request) match {
                   case Left(e) =>
+                    log.error(s"Invalid request: ${e} - ${request}")
                     msgWriter.write(e)
                   case Right(command) =>
                     msgWriter.write(
