@@ -10,7 +10,7 @@ object ServerCommands {
     RpcCommand[InitializeParams]("initialize")
   implicit val shutdownCommand: RpcCommand[Shutdown] =
     RpcCommand[Shutdown]("shutdown")
-  implicit val competitionCommand: RpcCommand[TextDocumentCompletionRequest] =
+  implicit val completionCommand: RpcCommand[TextDocumentCompletionRequest] =
     RpcCommand[TextDocumentCompletionRequest]("textDocument/completion")
   implicit val definitionCommand: RpcCommand[TextDocumentDefinitionRequest] =
     RpcCommand[TextDocumentDefinitionRequest]("textDocument/definition")
@@ -27,7 +27,7 @@ object ServerCommand extends CommandCompanion[ServerCommand] {
   val commands = Seq(
     initializeCommand,
     shutdownCommand,
-    competitionCommand,
+    completionCommand,
     definitionCommand,
     hoverCommand,
     documentSymbolCommand
