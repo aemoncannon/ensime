@@ -29,10 +29,8 @@ object DerivedJsReader {
     LV: Lazy[JsReader[Value]],
     DR: DerivedJsReader[A, Remaining]
   ): DerivedJsReader[A, FieldType[Key, Value] :*: Remaining] = { m =>
-    m.get(Key.value.name) match {
-      case Some(x) => field[Key](LV.value.read(x)) :: DR.readObject(m)
-      case _ => deserializationError(s"No field named ${Key.value.name}")
-    }
+    val read = LV.value.read(m.getOrElse(Key.value.name, JsAbsent))
+    field[Key](read) :: DR.readObject(m)
   }
 
   implicit def cnil[A]: DerivedJsReader[A, CNil] =

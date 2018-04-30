@@ -21,6 +21,7 @@ object JsArray {
 }
 
 case object JsNull extends JsValue
+case object JsAbsent extends JsValue
 
 final case class JsBoolean(value: Boolean) extends JsValue
 object JsBoolean {

@@ -59,6 +59,7 @@ object JsReader {
   }
 
   implicit def option[A: JsReader]: JsReader[Option[A]] = {
+    case JsAbsent => None
     case JsNull => None
     case a      => Some(JsReader[A].read(a))
   }
