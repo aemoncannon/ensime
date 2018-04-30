@@ -111,13 +111,12 @@ object JsonRpcRequestOrNotificationMessage {
 
 @deriving(JsReader, JsWriter)
 final case class JsonRpcRequestMessage(jsonrpc: String,
-  method: String,
-  params: Option[Params],
-  id: CorrelationId
-) extends JsonRpcMessage 
+                                       method: String,
+                                       params: Option[Params],
+                                       id: CorrelationId)
+    extends JsonRpcMessage
     with JsonRpcRequestOrNotificationMessage {
   require(jsonrpc == JsonRpcMessages.Version)
-  require(id != NullId)
 }
 object JsonRpcRequestMessage {
   def apply(method: String,
