@@ -3,7 +3,7 @@
 package org.ensime.lsp.api
 
 import org.ensime.lsp.api.commands._
-import org.ensime.lsp.api.companions._
+import org.ensime.lsp.api.methods._
 import org.ensime.lsp.api.types._
 import org.ensime.lsp.rpc.companions._
 import org.ensime.lsp.rpc.messages._

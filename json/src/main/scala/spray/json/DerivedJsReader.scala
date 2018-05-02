@@ -29,7 +29,7 @@ object DerivedJsReader {
     LV: Lazy[JsReader[Value]],
     DR: DerivedJsReader[A, Remaining]
   ): DerivedJsReader[A, FieldType[Key, Value] :*: Remaining] = { m =>
-    val read = LV.value.read(m.getOrElse(Key.value.name, JsNull))
+    val read = LV.value.read(m.getOrElse(Key.value.name, JsAbsent))
     field[Key](read) :: DR.readObject(m)
   }
 

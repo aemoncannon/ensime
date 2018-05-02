@@ -255,10 +255,12 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
 
   override def shutdown(): Unit = {
     log.info("Shutdown request")
-    system.terminate()
-    log.info("Shutting down actor system.")
-    Await.result(system.whenTerminated, Duration.Inf)
-    log.info("Actor system down.")
+    if (!(system eq null)) {
+      system.terminate()
+      log.info("Shutting down actor system.")
+      Await.result(system.whenTerminated, Duration.Inf)
+      log.info("Actor system down.")
+    }
   }
 
   override def completionRequest(textDocument: TextDocumentIdentifier,

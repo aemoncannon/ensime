@@ -117,7 +117,6 @@ final case class JsonRpcRequestMessage(jsonrpc: String,
     extends JsonRpcMessage
     with JsonRpcRequestOrNotificationMessage {
   require(jsonrpc == JsonRpcMessages.Version)
-  require(id != NullId)
 }
 object JsonRpcRequestMessage {
   def apply(method: String,

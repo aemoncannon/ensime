@@ -59,8 +59,8 @@ object JsReader {
   }
 
   implicit def option[A: JsReader]: JsReader[Option[A]] = {
-    case JsNull => None
-    case a      => Some(JsReader[A].read(a))
+    case JsAbsent | JsNull => None
+    case a                 => Some(JsReader[A].read(a))
   }
   implicit def either[A: JsReader, B: JsReader]: JsReader[Either[A, B]] = { v =>
     (Try(JsReader[A].read(v)), Try(JsReader[B].read(v))) match {
