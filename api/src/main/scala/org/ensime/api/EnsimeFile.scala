@@ -70,8 +70,8 @@ object EnsimeFile {
     case a: ArchiveFile => JsString(a.uriString)
   }
   implicit val jsReader: JsReader[EnsimeFile] = {
-    case JsString(uri) => EnsimeFile(uri)
-    case got           => unexpectedJson[EnsimeFile](got)
+    case JsString(uri) => Right(EnsimeFile(uri))
+    case got           => Left(unexpectedJson[EnsimeFile](got))
   }
   implicit val sexpWriter: SexpWriter[EnsimeFile] = {
     case RawFile(path)  => SexpString(path.toString)

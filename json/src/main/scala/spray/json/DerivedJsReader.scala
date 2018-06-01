@@ -6,10 +6,8 @@ package spray.json
 import shapeless.{ :: => :*:, _ }
 import shapeless.labelled._
 
-import DeserializationException._
-
 trait DerivedJsReader[Base, A] {
-  def readObject(t: Map[String, JsValue]): A
+  def readObject(t: Map[String, JsValue]): Either[DeserializationException, A]
 }
 object DerivedJsReader {
 
@@ -19,22 +17,24 @@ object DerivedJsReader {
     G: LabelledGeneric.Aux[A, Repr],
     CR: Cached[Strict[DerivedJsReader[A, Repr]]]
   ): JsReader[A] = {
-    case JsObject(m) => G.from(CR.value.value.readObject(m))
-    case x           => deserializationError(s"Expected JsObject, got $x")
+    case JsObject(m) => CR.value.value.readObject(m).map(G.from)
+    case x           => Left(DeserializationException(s"Expected JsObject, got $x"))
   }
 
-  implicit def hnil[A]: DerivedJsReader[A, HNil] = (_ => HNil)
+  implicit def hnil[A]: DerivedJsReader[A, HNil] = (_ => Right(HNil))
   implicit def hcons[A, Key <: Symbol, Value, Remaining <: HList](
     implicit Key: Witness.Aux[Key],
     LV: Lazy[JsReader[Value]],
     DR: DerivedJsReader[A, Remaining]
   ): DerivedJsReader[A, FieldType[Key, Value] :*: Remaining] = { m =>
-    val read = LV.value.read(m.getOrElse(Key.value.name, JsNull))
-    field[Key](read) :: DR.readObject(m)
+    for {
+      head <- LV.value.read(m.getOrElse(Key.value.name, JsNull))
+      tail <- DR.readObject(m)
+    } yield field[Key](head) :: tail
   }
 
   implicit def cnil[A]: DerivedJsReader[A, CNil] =
-    (_ => deserializationError("unknown typehint"))
+    (_ => Left(DeserializationException("unknown typehint")))
   implicit def ccons[A, Name <: Symbol, Instance, Remaining <: Coproduct](
     implicit
     C: JsConfig[A],
@@ -45,18 +45,17 @@ object DerivedJsReader {
     val key = Name.value.name
     obj.get(C.typehint) match {
       case Some(JsString(`key`)) =>
-        val got = try {
-          LI.value.read(JsObject(obj))
-        } catch {
-          case d: DeserializationException =>
+        val got = LI.value.read(JsObject(obj)) match {
+          case r @ Right(_) => r
+          case ex @ Left(_) =>
             obj.get(C.valuehint) match {
-              case None    => throw d
+              case None    => ex
               case Some(v) => LI.value.read(v)
             }
         }
-        Inl(field[Name](got))
+        got.map(v => Inl(field[Name](v)))
       case _ =>
-        Inr(DR.readObject(obj))
+        DR.readObject(obj).map(Inr.apply)
     }
   }
 
