@@ -19,6 +19,12 @@ import DeserializationException._
   final def map[B](f: A => B): JsReader[B] =
     (v: JsValue) => self.read(v).map(f)
 
+  final def filter(f: A => Boolean, error: => String): JsReader[A] =
+    (v: JsValue) =>
+      self.read(v).flatMap { a =>
+        if (f(a)) Right(a) else Left(DeserializationException(error))
+    }
+
   def xmap[B](f: A => B, g: B => A): JsReader[B] = map(f)
 }
 object JsReader {

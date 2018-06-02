@@ -117,7 +117,12 @@ object MarkedString {
   import JsReader.ops._
   import JsWriter.ops._
   implicit val jsReader: JsReader[MarkedString] = { j =>
-    (Try(j.as[RawMarkedString]) orElse Try(j.as[MarkdownString])).toOption.get
+    j.as[RawMarkedString].toOption orElse
+      j.as[MarkdownString].toOption match {
+      case Some(v) => Right(v)
+      case None =>
+        Left(DeserializationException("Unable to deseralize MarkedString"))
+    }
   }
   implicit val jsWriter: JsWriter[MarkedString] = {
     case raw: RawMarkedString     => raw.toJson

@@ -25,6 +25,7 @@ class ResponsesSpec extends FreeSpec {
     }
 
     s"should correctly read $message to ${Typeable[T].describe}" in {
+      System.err.println(message.result)
       RpcResponse.read[T](message) shouldEqual Right(obj)
     }
   }

@@ -23,14 +23,14 @@ class JsonRpcMessageSpec extends FreeSpec {
     json: JsValue
   )(implicit p: Position): Unit =
     s"will fail to decode with ${implicitly[ClassTag[E]].toString} exception" in {
-      a[E] should be thrownBy json.as[T]
+      json.as[T] should be('left)
     }
 
   def willDecodeAndEncode[T: JsReader: JsWriter](message: T, json: JsValue)(
     implicit p: Position
   ): Unit = {
     s"will decode to $message" in {
-      json.as[T] shouldEqual message
+      json.as[T] shouldEqual Right(message)
     }
     s"will encode to $json" in {
       message.toJson shouldEqual json

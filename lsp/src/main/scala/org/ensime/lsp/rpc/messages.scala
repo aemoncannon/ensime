@@ -14,7 +14,17 @@ import scala.collection.immutable.Seq
 import scalaz.deriving
 
 object JsonRpcMessages {
-  final val Version = "2.0"
+  sealed trait Version
+  object Version {
+    case object `2.0` extends Version
+    implicit val jsReader: JsReader[Version] =
+      JsReader[String]
+        .filter(_ == "2.0", "Version should be 2.0")
+        .map(_ => `2.0`)
+    implicit val jsWriter: JsWriter[Version] = {
+      case `2.0` => JsString("2.0")
+    }
+  }
 }
 
 sealed trait CorrelationId
@@ -33,10 +43,10 @@ object CorrelationId {
     case StringId(str) => JsString(str)
   }
   implicit val jsReader: JsReader[CorrelationId] = {
-    case JsNull        => NullId
-    case JsNumber(num) => NumberId(num)
-    case JsString(str) => StringId(str)
-    case _             => deserError[CorrelationId]("Wrong CorrelationId format")
+    case JsNull        => Right(NullId)
+    case JsNumber(num) => Right(NumberId(num))
+    case JsString(str) => Right(StringId(str))
+    case _             => Left(deserError[CorrelationId]("Wrong CorrelationId format"))
   }
 
 }
@@ -55,9 +65,9 @@ object Params {
     case ArrayParams(arr)  => arr
   }
   implicit val jsReader: JsReader[Params] = {
-    case obj @ JsObject(_) => ObjectParams(obj)
-    case arr @ JsArray(_)  => ArrayParams(arr)
-    case _                 => deserError[Params]("Wrong Params format")
+    case obj @ JsObject(_) => Right(ObjectParams(obj))
+    case arr @ JsArray(_)  => Right(ArrayParams(arr))
+    case _                 => Left(deserError[Params]("Wrong Params format"))
   }
 
 }
@@ -75,19 +85,18 @@ object JsonRpcMessage {
 
   implicit val jsReader: JsReader[JsonRpcMessage] = { j =>
     {
-      Try(j.as[JsonRpcRequestMessage]) orElse
-        Try(j.as[JsonRpcNotificationMessage]) orElse
-        Try(j.as[JsonRpcResponseSuccessMessage]) orElse
-        Try(j.as[JsonRpcResponseErrorMessage]) orElse
-        Try(j.as[JsonRpcRequestMessageBatch]) orElse
-        Try(j.as[JsonRpcResponseMessageBatch])
+      j.as[JsonRpcRequestMessage].toOption orElse
+        j.as[JsonRpcNotificationMessage].toOption orElse
+        j.as[JsonRpcResponseSuccessMessage].toOption orElse
+        j.as[JsonRpcResponseErrorMessage].toOption orElse
+        j.as[JsonRpcRequestMessageBatch].toOption orElse
+        j.as[JsonRpcResponseMessageBatch].toOption
     } match {
-      case Failure(_) =>
-        deserError[JsonRpcMessage]("Error during JsonRpcMessage parsing")
-      case Success(x) => x
+      case None =>
+        Left(deserError[JsonRpcMessage]("Error during JsonRpcMessage parsing"))
+      case Some(x) => Right(x)
     }
   }
-
 }
 
 sealed trait JsonRpcRequestOrNotificationMessage
@@ -103,54 +112,54 @@ object JsonRpcRequestOrNotificationMessage {
       else
         j.as[JsonRpcNotificationMessage]
     case _ =>
-      deserError[JsonRpcRequestOrNotificationMessage](
-        "Response message should be an object"
+      Left(
+        deserError[JsonRpcRequestOrNotificationMessage](
+          "Response message should be an object"
+        )
       )
   }
 }
 
 @deriving(JsReader, JsWriter)
-final case class JsonRpcRequestMessage(jsonrpc: String,
+final case class JsonRpcRequestMessage(jsonrpc: JsonRpcMessages.Version,
                                        method: String,
                                        params: Option[Params],
                                        id: CorrelationId)
     extends JsonRpcMessage
     with JsonRpcRequestOrNotificationMessage {
-  require(jsonrpc == JsonRpcMessages.Version)
-  require(id != NullId)
+  require(id != NullId, "Request message id cannot be null")
 }
 object JsonRpcRequestMessage {
   def apply(method: String,
             params: Option[Params],
             id: CorrelationId): JsonRpcRequestMessage =
-    apply(JsonRpcMessages.Version, method, params, id)
+    apply(JsonRpcMessages.Version.`2.0`, method, params, id)
 }
 
 @deriving(JsReader, JsWriter)
 final case class JsonRpcNotificationMessage(
-  jsonrpc: String,
+  jsonrpc: JsonRpcMessages.Version,
   method: String,
   params: Option[Params]
 ) extends JsonRpcMessage
-    with JsonRpcRequestOrNotificationMessage {
-  require(jsonrpc == JsonRpcMessages.Version)
-}
+    with JsonRpcRequestOrNotificationMessage
 object JsonRpcNotificationMessage {
   def apply(method: String,
             params: Option[Params]): JsonRpcNotificationMessage =
-    apply(JsonRpcMessages.Version, method, params)
+    apply(JsonRpcMessages.Version.`2.0`, method, params)
 }
 
 final case class JsonRpcRequestMessageBatch(
   messages: Seq[JsonRpcRequestOrNotificationMessage]
 ) extends JsonRpcMessage {
-  require(messages.nonEmpty)
+  require(messages.nonEmpty, "Request batch messages cannot be empty")
 }
 object JsonRpcRequestMessageBatch {
   implicit val jsWriter: JsWriter[JsonRpcRequestMessageBatch] =
     JsWriter[Seq[JsonRpcRequestOrNotificationMessage]].contramap(_.messages)
   implicit val jsReader: JsReader[JsonRpcRequestMessageBatch] =
     JsReader[Seq[JsonRpcRequestOrNotificationMessage]]
+      .filter(_.nonEmpty, "Request batch should not be empty")
       .map(JsonRpcRequestMessageBatch(_))
 }
 
@@ -170,31 +179,31 @@ object JsonRpcResponseMessage {
       else
         j.as[JsonRpcResponseSuccessMessage]
     case _ =>
-      deserError[JsonRpcResponseMessage]("Response message should be an object")
+      Left(
+        deserError[JsonRpcResponseMessage](
+          "Response message should be an object"
+        )
+      )
   }
 
 }
 
 @deriving(JsReader, JsWriter)
-final case class JsonRpcResponseSuccessMessage(jsonrpc: String,
+final case class JsonRpcResponseSuccessMessage(jsonrpc: JsonRpcMessages.Version,
                                                result: JsValue,
                                                id: CorrelationId)
-    extends JsonRpcResponseMessage {
-  require(jsonrpc == JsonRpcMessages.Version)
-}
+    extends JsonRpcResponseMessage
 object JsonRpcResponseSuccessMessage {
   def apply(result: JsValue, id: CorrelationId): JsonRpcResponseSuccessMessage =
-    apply(JsonRpcMessages.Version, result, id)
+    apply(JsonRpcMessages.Version.`2.0`, result, id)
 }
 
 @deriving(JsReader, JsWriter)
 final case class JsonRpcResponseErrorMessage(
-  jsonrpc: String,
+  jsonrpc: JsonRpcMessages.Version,
   error: JsonRpcResponseErrorMessage.Error,
   id: CorrelationId
-) extends JsonRpcResponseMessage {
-  require(jsonrpc == JsonRpcMessages.Version)
-}
+) extends JsonRpcResponseMessage
 object JsonRpcResponseErrorMessage {
   @deriving(JsReader, JsWriter)
   final case class Error(code: Int, message: String, data: Option[JsValue])
@@ -203,19 +212,21 @@ object JsonRpcResponseErrorMessage {
             message: String,
             data: Option[JsValue],
             id: CorrelationId): JsonRpcResponseErrorMessage =
-    apply(JsonRpcMessages.Version, Error(code, message, data), id)
+    apply(JsonRpcMessages.Version.`2.0`, Error(code, message, data), id)
 }
 
 final case class JsonRpcResponseMessageBatch(
   messages: Seq[JsonRpcResponseMessage]
 ) extends JsonRpcMessage {
-  require(messages.nonEmpty)
+  require(messages.nonEmpty, "Request batch messages cannot be empty")
 }
 object JsonRpcResponseMessageBatch {
   implicit val jsWriter: JsWriter[JsonRpcResponseMessageBatch] =
     JsWriter[Seq[JsonRpcResponseMessage]].contramap(_.messages)
   implicit val jsReader: JsReader[JsonRpcResponseMessageBatch] =
-    JsReader[Seq[JsonRpcResponseMessage]].map(JsonRpcResponseMessageBatch(_))
+    JsReader[Seq[JsonRpcResponseMessage]]
+      .filter(_.nonEmpty, "Request batch messages cannot be empty")
+      .map(JsonRpcResponseMessageBatch(_))
 }
 
 object JsonRpcResponseErrorMessages {

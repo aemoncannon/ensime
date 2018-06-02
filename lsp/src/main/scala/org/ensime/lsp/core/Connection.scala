@@ -135,9 +135,9 @@ class Connection(inStream: InputStream,
         Left(RpcErrors.parseError(e, CorrelationId()))
 
       case Success(json) =>
-        Try(JsReader[JsonRpcMessage].read(json)) match {
-          case Failure(e) => Left(RpcErrors.invalidRequest(e, CorrelationId()))
-          case Success(x) => Right(x)
+        JsReader[JsonRpcMessage].read(json) match {
+          case Left(e)  => Left(RpcErrors.invalidRequest(e, CorrelationId()))
+          case Right(x) => Right(x)
         }
     }
   }

@@ -2,10 +2,8 @@
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
 package org.ensime.lsp.rpc.companions
 
-import spray.json._
 import org.ensime.lsp.rpc.messages._
-
-import scala.util.{ Failure, Success, Try }
+import spray.json._
 
 sealed trait RpcCompanionError {
   val describe: String
@@ -41,11 +39,9 @@ trait CommandCompanion[A] {
 
     def readObj(command: RpcCommand[_ <: A],
                 obj: JsObject): Either[RpcCompanionError, _ <: A] =
-      Try(command.R.read(obj)) match {
-        case Failure(invalid) =>
-          Left(RpcCompanionError(invalid.getMessage))
-        case Success(valid) =>
-          Right(valid)
+      command.R.read(obj) match {
+        case Left(invalid) => Left(RpcCompanionError(invalid.getMessage))
+        case Right(valid)  => Right(valid)
       }
 
     commands.find(_.method == jsonRpcRequestMessage.method) match {
@@ -81,9 +77,9 @@ object RpcResponse {
   def read[A](
     jsonRpcResponseSuccessMessage: JsonRpcResponseSuccessMessage
   )(implicit format: JsReader[A]): Either[RpcCompanionError, A] =
-    Try(format.read(jsonRpcResponseSuccessMessage.result)) match {
-      case Failure(invalid) => Left(RpcCompanionError(invalid.getMessage))
-      case Success(valid)   => Right(valid)
+    format.read(jsonRpcResponseSuccessMessage.result) match {
+      case Left(invalid) => Left(RpcCompanionError(invalid.getMessage))
+      case Right(valid)  => Right(valid)
     }
 
   def write[A](obj: A, id: CorrelationId)(
@@ -110,11 +106,9 @@ trait NotificationCompanion[A] {
 
     def readObj(command: RpcNotification[_ <: A],
                 obj: JsObject): Either[RpcCompanionError, _ <: A] =
-      Try(command.R.read(obj)) match {
-        case Failure(invalid) =>
-          Left(RpcCompanionError(invalid.getMessage))
-        case Success(valid) =>
-          Right(valid)
+      command.R.read(obj) match {
+        case Left(invalid) => Left(RpcCompanionError(invalid.getMessage))
+        case Right(valid)  => Right(valid)
       }
 
     notifications.find(_.method == jsonRpcNotificationMessage.method) match {
