@@ -101,7 +101,7 @@ class WebSocketFrameHandler(
 }
 
 trait SubprotocolEncoder {
-  def readFrame(request: String): RpcRequestEnvelope
+  def readFrame(request: String): Either[RpcRequestInvalid, RpcRequestEnvelope]
   def writeFrame(response: RpcResponseEnvelope): String
 }
 
@@ -110,8 +110,13 @@ object JerkySubprotocolEncoder extends SubprotocolEncoder {
   import JsWriter.ops._
   import JsReader.ops._
 
-  override def readFrame(request: String): RpcRequestEnvelope =
-    JsParser(request).as[RpcRequestEnvelope]
+  override def readFrame(
+    request: String
+  ): Either[RpcRequestInvalid, RpcRequestEnvelope] =
+    JsParser(request).as[RpcRequestEnvelope] match {
+      case Right(x)  => Right(x)
+      case Left(err) => Left(RpcRequestInvalid(err.msg))
+    }
   override def writeFrame(response: RpcResponseEnvelope): String =
     PrettyPrinter(response.toJson)
 }
@@ -121,8 +126,10 @@ object SwankySubprotocolEncoder extends SubprotocolEncoder {
   import SexpReader.ops._
   import SexpWriter.ops._
 
-  override def readFrame(request: String): RpcRequestEnvelope =
-    SexpParser(request).as[RpcRequestEnvelope]
+  override def readFrame(
+    request: String
+  ): Either[RpcRequestInvalid, RpcRequestEnvelope] =
+    Right(SexpParser(request).as[RpcRequestEnvelope])
   override def writeFrame(response: RpcResponseEnvelope): String =
     SexpPrettyPrinter(response.toSexp)
 }

@@ -9,7 +9,6 @@ import org.scalatest.Matchers._
 import spray.json._
 
 import scala.collection.immutable.Seq
-import scala.reflect.ClassTag
 
 class JsonRpcMessageSpec extends FreeSpec {
 

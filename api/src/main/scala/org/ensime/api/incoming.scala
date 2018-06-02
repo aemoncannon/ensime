@@ -16,6 +16,9 @@ import org.ensime.io.Canon
 import org.ensime.sexp.{ SexpReader, SexpWriter }
 
 @deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
+final case class RpcRequestInvalid(error: String)
+
+@deriving(JsReader, JsWriter, SexpReader, SexpWriter, Canon)
 final case class RpcRequestEnvelope(req: RpcRequest, callId: Int)
 
 /**

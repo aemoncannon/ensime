@@ -63,7 +63,7 @@ class ServerActor(
         context.actorOf(ConnectionHandler(project, broadcaster, delegate))
 
       { req =>
-        inHandler ! req
+        req.fold(err => inHandler ! err, msg => inHandler ! msg)
       }
     }
 
