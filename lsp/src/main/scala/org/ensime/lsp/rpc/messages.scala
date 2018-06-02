@@ -252,13 +252,13 @@ object JsonRpcResponseErrorMessages {
     id
   )
 
-  def invalidRequest(exception: Throwable,
+  def invalidRequest(exception: DeserializationException,
                      id: CorrelationId): JsonRpcResponseErrorMessage =
     rpcError(
       InvalidRequestCode,
       message = "Invalid Request",
       meaning = "The JSON sent is not a valid Request object.",
-      error = Some(JsString(exception.getMessage)),
+      error = Some(JsString(exception.msg)),
       id
     )
 

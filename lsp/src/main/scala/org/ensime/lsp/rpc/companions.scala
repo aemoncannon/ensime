@@ -40,7 +40,7 @@ trait CommandCompanion[A] {
     def readObj(command: RpcCommand[_ <: A],
                 obj: JsObject): Either[RpcCompanionError, _ <: A] =
       command.R.read(obj) match {
-        case Left(invalid) => Left(RpcCompanionError(invalid.getMessage))
+        case Left(invalid) => Left(RpcCompanionError(invalid.msg))
         case Right(valid)  => Right(valid)
       }
 
@@ -78,7 +78,7 @@ object RpcResponse {
     jsonRpcResponseSuccessMessage: JsonRpcResponseSuccessMessage
   )(implicit format: JsReader[A]): Either[RpcCompanionError, A] =
     format.read(jsonRpcResponseSuccessMessage.result) match {
-      case Left(invalid) => Left(RpcCompanionError(invalid.getMessage))
+      case Left(invalid) => Left(RpcCompanionError(invalid.msg))
       case Right(valid)  => Right(valid)
     }
 
@@ -107,7 +107,7 @@ trait NotificationCompanion[A] {
     def readObj(command: RpcNotification[_ <: A],
                 obj: JsObject): Either[RpcCompanionError, _ <: A] =
       command.R.read(obj) match {
-        case Left(invalid) => Left(RpcCompanionError(invalid.getMessage))
+        case Left(invalid) => Left(RpcCompanionError(invalid.msg))
         case Right(valid)  => Right(valid)
       }
 
