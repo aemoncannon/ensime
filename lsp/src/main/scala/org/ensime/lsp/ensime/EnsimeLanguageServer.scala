@@ -141,7 +141,10 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
       val serverConfig: EnsimeServerConfig = parseServerConfig(config)
       val ensimeConfig = EnsimeConfigProtocol.parse(
         serverConfig.config.file.readString()(MessageReader.Utf8Charset)
-      )
+      ) match {
+        case Right(c)  => c
+        case Left(err) => throw new IllegalArgumentException(err.toString)
+      }
       (ensimeConfig, serverConfig)
     }
 

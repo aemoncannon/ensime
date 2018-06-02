@@ -129,7 +129,10 @@ object SwankySubprotocolEncoder extends SubprotocolEncoder {
   override def readFrame(
     request: String
   ): Either[RpcRequestInvalid, RpcRequestEnvelope] =
-    Right(SexpParser(request).as[RpcRequestEnvelope])
+    SexpParser(request).as[RpcRequestEnvelope] match {
+      case Right(x)  => Right(x)
+      case Left(err) => Left(RpcRequestInvalid(err.toString))
+    }
   override def writeFrame(response: RpcResponseEnvelope): String =
     SexpPrettyPrinter(response.toSexp)
 }

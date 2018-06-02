@@ -17,10 +17,8 @@ import SexpReader.ops._
 object EnsimeConfigProtocol {
   private def log = Logger(this.getClass.getName)
 
-  def parse(config: String): EnsimeConfig = {
-    val raw = SexpParser(config).as[EnsimeConfig]
-    validated(raw)
-  }
+  def parse(config: String): Either[DeserializationException, EnsimeConfig] =
+    SexpParser(config).as[EnsimeConfig].map(validated)
 
   def validated(c: EnsimeConfig): EnsimeConfig = {
     // scalaz.Validation would be a cleaner way to do this

@@ -34,7 +34,9 @@ class BasicFormatsSpec extends FormatSpec {
     SexpWriter[Float].write(Float.NaN) should matchPattern {
       case SexpFloat(f) if f.isNaN =>
     }
-    SexpReader[Float].read(SexpFloat(Double.NaN)).isNaN shouldBe true
+    SexpReader[Float].read(SexpFloat(Double.NaN)).map(_.isNaN) shouldBe Right(
+      true
+    )
   }
 
   it should "support Double" in {
@@ -50,7 +52,9 @@ class BasicFormatsSpec extends FormatSpec {
     SexpWriter[Double].write(Double.NaN) should matchPattern {
       case SexpFloat(f) if f.isNaN =>
     }
-    SexpReader[Double].read(SexpFloat(Double.NaN)).isNaN shouldBe true
+    SexpReader[Double].read(SexpFloat(Double.NaN)).map(_.isNaN) shouldBe Right(
+      true
+    )
   }
 
   it should "support Boolean" in {

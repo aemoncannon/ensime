@@ -3,4 +3,4 @@
 
 package org.ensime.sexp
 
-class DeserializationException(got: Sexp) extends RuntimeException(got.toString)
+case class DeserializationException(got: Sexp)

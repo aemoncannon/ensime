@@ -78,7 +78,7 @@ object EnsimeFile {
     case a: ArchiveFile => SexpString(a.uriString)
   }
   implicit val sexpReader: SexpReader[EnsimeFile] = SexpReader.instance {
-    case SexpString(uri) => EnsimeFile(uri)
+    case SexpString(uri) => Right(EnsimeFile(uri))
   }
 
 }

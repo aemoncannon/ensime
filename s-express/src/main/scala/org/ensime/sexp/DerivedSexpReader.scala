@@ -9,7 +9,9 @@ import shapeless.{ :: => :*:, _ }
 import shapeless.labelled._
 
 trait DerivedSexpReader[Base, A] {
-  def readFields(t: ListMap[SexpSymbol, Sexp]): A
+  def readFields(
+    t: ListMap[SexpSymbol, Sexp]
+  ): Either[DeserializationException, A]
 }
 object DerivedSexpReader {
 
@@ -20,12 +22,12 @@ object DerivedSexpReader {
     CR: Cached[Strict[DerivedSexpReader[A, Repr]]]
   ): SexpReader[A] = {
     case (s: SexpSymbol) =>
-      G.from(CR.value.value.readFields(ListMap(s -> SexpNil)))
-    case SexpData(m) => G.from(CR.value.value.readFields(m))
-    case x           => throw new DeserializationException(x)
+      CR.value.value.readFields(ListMap(s -> SexpNil)).map(G.from)
+    case SexpData(m) => CR.value.value.readFields(m).map(G.from)
+    case x           => Left(DeserializationException(x))
   }
 
-  implicit def hnil[A]: DerivedSexpReader[A, HNil] = (_ => HNil)
+  implicit def hnil[A]: DerivedSexpReader[A, HNil] = (_ => Right(HNil))
   implicit def hcons[A, Key <: Symbol, Value, Remaining <: HList](
     implicit
     C: SexpConfig[A],
@@ -33,13 +35,15 @@ object DerivedSexpReader {
     LV: Lazy[SexpReader[Value]],
     DR: DerivedSexpReader[A, Remaining]
   ): DerivedSexpReader[A, FieldType[Key, Value] :*: Remaining] = { m =>
-    val key  = C.hint(Key.value.name)
-    val read = LV.value.read(m.getOrElse(key, SexpNil))
-    field[Key](read) :: DR.readFields(m)
+    val key = C.hint(Key.value.name)
+    for {
+      head <- LV.value.read(m.getOrElse(key, SexpNil))
+      tail <- DR.readFields(m)
+    } yield field[Key](head) :: tail
   }
 
   implicit def cnil[A]: DerivedSexpReader[A, CNil] =
-    (_ => throw new DeserializationException(SexpNil))
+    (_ => Left(DeserializationException(SexpNil)))
   implicit def ccons[A, Name <: Symbol, Instance, Remaining <: Coproduct](
     implicit
     C: SexpConfig[A],
@@ -49,8 +53,8 @@ object DerivedSexpReader {
   ): DerivedSexpReader[A, FieldType[Name, Instance] :+: Remaining] = { obj =>
     val key = Name.value.name
     obj.get(C.hint(key)) match {
-      case None        => Inr(DR.readFields(obj))
-      case Some(value) => Inl(field[Name](LI.value.read(value)))
+      case None        => DR.readFields(obj).map(Inr.apply)
+      case Some(value) => LI.value.read(value).map(v => Inl(field(v)))
     }
   }
 
