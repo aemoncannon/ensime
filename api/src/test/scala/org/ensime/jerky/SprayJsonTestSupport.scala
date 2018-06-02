@@ -27,7 +27,7 @@ trait SprayJsonTestSupport {
     }
 
     val recovered = json.as[T]
-    recovered shouldBe value
+    recovered shouldBe Right(value)
   }
 
   def roundtrip[T: JsReader: JsWriter](value: T, via: String)(
