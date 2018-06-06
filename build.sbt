@@ -83,6 +83,7 @@ lazy val core = project
       "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
       "org.ow2.asm"       % "asm-commons"             % "5.2",
       "org.ow2.asm"       % "asm-util"                % "5.2",
+      "org.scalameta" %% "lsp4s" % "0.1.0+5-de927af3-SNAPSHOT",
       "org.scala-lang"    % "scalap"                  % scalaVersion.value,
       "com.typesafe.akka" %% "akka-actor"             % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion, {
@@ -220,3 +221,11 @@ addCommandAlias("fix", "all compile:scalafixCli test:scalafixCli")
 addCommandAlias("tests", "all test it:test")
 // not really what is used in CI, but close enough...
 addCommandAlias("ci", ";check ;prep ;cpl ;doc ;tests")
+// private val slf4jVersion = "1.7.25"
+//   val logback = Seq(
+//     "ch.qos.logback" % "logback-classic"  % "1.2.3",
+//     "org.slf4j"      % "slf4j-api"        % slf4jVersion,
+//     "org.slf4j"      % "jul-to-slf4j"     % slf4jVersion,
+//     "org.slf4j"      % "jcl-over-slf4j"   % slf4jVersion,
+//     "org.slf4j"      % "log4j-over-slf4j" % slf4jVersion
+//   )

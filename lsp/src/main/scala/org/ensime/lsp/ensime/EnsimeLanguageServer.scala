@@ -14,19 +14,25 @@ import org.ensime.api._
 import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.config.richconfig._
 import org.ensime.core._
+import org.ensime.lsp.core.TextDocumentManager
 import org.ensime.lsp.api.commands._
 import org.ensime.lsp.api.types._
 import org.ensime.lsp.core.{ LanguageServer, MessageReader, TextDocument }
 import org.ensime.util.file._
 import org.ensime.util.path._
+import monix.eval.Task
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
+import scala.meta.jsonrpc.{Services, Response}
+import scala.meta.lsp.{Lifecycle, InitializeResult, ServerCapabilities, CompletionOptions}
+import scribe.Logger
 
 object EnsimeLanguageServer {
-  private val KeywordToKind = Map(
+
+  val KeywordToKind = Map(
     "class"   -> SymbolKind.Class,
     "trait"   -> SymbolKind.Interface,
     "type"    -> SymbolKind.Interface,
@@ -36,7 +42,7 @@ object EnsimeLanguageServer {
     "var"     -> SymbolKind.Field
   )
 
-  private def toSourceFileInfo(
+  def toSourceFileInfo(
     uri: String,
     contents: Option[String] = None
   ): SourceFileInfo = {
@@ -44,7 +50,7 @@ object EnsimeLanguageServer {
     SourceFileInfo(RawFile(f.toPath), contents)
   }
 
-  private def toCompletion(completionInfo: CompletionInfo) = {
+  def toCompletion(completionInfo: CompletionInfo) = {
     def symKind: Option[Int] = completionInfo.typeInfo map { info =>
       info.declaredAs match {
         case DeclaredAs.Method => CompletionItemKind.Method
@@ -64,7 +70,7 @@ object EnsimeLanguageServer {
     )
   }
 
-  private def toDiagnostic(note: Note): Diagnostic = {
+  def toDiagnostic(note: Note): Diagnostic = {
     val start  = note.beg
     val end    = note.end
     val length = end - start
@@ -87,6 +93,169 @@ object EnsimeLanguageServer {
   }
 }
 
+
+class EnsimeLanguageServerLsp4S(log: Logger) {
+  private var system: ActorSystem      = _
+  private var fileStore: TempFileStore = _
+  private var projectPath: String      = _
+  // these fields will eventually become constructor params
+
+  // Ensime root actor
+  private var ensimeActor: ActorRef = _
+
+  protected val documentManager = new TextDocumentManager
+  implicit val timeout: Timeout     = Timeout(5 seconds)
+
+  def start(): Unit = {
+    // if we got here it means the connection was closed
+    // cleanup and exit
+    shutdown()
+  }
+
+
+  def services: Services = Services.empty(log)
+  .requestAsync(Lifecycle.initialize)(initializeService)
+
+  def initializeService(params: scala.meta.lsp.InitializeParams
+  ): Task[Either[Response.Error, InitializeResult]] = {
+
+    Task {
+      log.info(s"Initializing with ${params.processId}, ${params.rootPath}, ${params.capabilities}")
+
+      val rootFile = new File(params.rootPath)
+      val cacheDir = new File(rootFile, ".ensime_cache")
+      cacheDir.mkdir()
+
+      initializeEnsime(params.rootPath)
+
+      log.info(s"Initialized with ${params.processId}, ${params.rootPath}, ${params.capabilities}")
+
+      Right(InitializeResult(ServerCapabilities(
+        completionProvider = Some(CompletionOptions(false, Seq("."))),
+        definitionProvider = true,
+        hoverProvider = true,
+        documentSymbolProvider = true
+      )))
+    }
+  }
+
+  def initialize(
+    pid: Long,
+    rootPath: String,
+    capabilities: ClientCapabilities
+  ): org.ensime.lsp.api.commands.ServerCapabilities = {
+    log.info(s"Initialized with $pid, $rootPath, $capabilities")
+
+    val rootFile = new File(rootPath)
+    val cacheDir = new File(rootFile, ".ensime_cache")
+    cacheDir.mkdir()
+
+    initializeEnsime(rootPath)
+
+    org.ensime.lsp.api.commands.ServerCapabilities(
+      completionProvider = Some(org.ensime.lsp.api.commands.CompletionOptions(false, Seq("."))),
+      definitionProvider = true,
+      hoverProvider = true,
+      documentSymbolProvider = true
+    )
+  }
+
+  def loadConfig(ensimeFile: File): Config = {
+    val config   = s"""ensime.config = "${ensimeFile.toString}" """
+    val fallback = ConfigFactory.parseString(config)
+    ConfigFactory.load().withFallback(fallback)
+  }
+
+  private def initializeEnsime(rootPath: String): Try[EnsimeConfig] = { // rewrite initialization
+    val ensimeFile = new File(s"$rootPath/.ensime")
+
+    val configT = Try {
+      val config = loadConfig(ensimeFile)
+      system = ActorSystem("ENSIME", config)
+      val serverConfig: EnsimeServerConfig = parseServerConfig(config)
+      val ensimeConfig = EnsimeConfigProtocol.parse(
+        serverConfig.config.file.readString()(MessageReader.Utf8Charset)
+      )
+      (ensimeConfig, serverConfig)
+    }
+
+    configT match {
+      case Failure(e) =>
+        log.error(s"initializeEnsime Error: ${e.getMessage}")
+        e.printStackTrace()
+
+        if (ensimeFile.exists) {
+          // TODO
+          // connection.showMessage(MessageType.Error,
+          //                        s"Error parsing .ensime: ${e.getMessage}")
+        } else {
+          // TODO
+          // connection.showMessage(
+          //   MessageType.Error,
+          //   s"No .ensime file in directory. Run `sbt ensimeConfig` to create one."
+          // )
+        }
+      case Success((config, serverConfig)) =>
+        log.info(s"Using configuration: $config")
+        val t = Try {
+          fileStore = new TempFileStore(config.cacheDir.file.toString)
+          ensimeActor = system.actorOf(
+            Props(classOf[EnsimeActor], this, config, serverConfig),
+            "server"
+          )
+          projectPath = rootPath
+        }
+        t.recover {
+          case e =>
+            log.error(s"initializeEnsime: ${e.getMessage}")
+            e.printStackTrace()
+            // TODO
+            // connection.showMessage(MessageType.Error,
+            //                        s"Error creating storage: ${e.getMessage}")
+        }
+        // we don't give a damn about them, but Ensime expects it
+        ensimeActor ! ConnectionInfoReq
+    }
+    configT.map(_._1)
+  }
+
+  def onChangeWatchedFiles(changes: Seq[FileEvent]): Unit = ???
+
+  def onOpenTextDocument(td: TextDocumentItem): Unit = ???
+
+  def onChangeTextDocument(
+    td: VersionedTextDocumentIdentifier,
+    changes: Seq[TextDocumentContentChangeEvent]
+  ): Unit = ???
+
+  def onSaveTextDocument(td: TextDocumentIdentifier): Unit = ???
+
+  def onCloseTextDocument(td: TextDocumentIdentifier): Unit = ???
+
+  def publishDiagnostics(diagnostics: List[Note]): Unit = ???
+
+  def shutdown(): Unit = {
+    log.info("Shutdown request")
+    system.terminate()
+    log.info("Shutting down actor system.")
+    Await.result(system.whenTerminated, Duration.Inf)
+    log.info("Actor system down.")
+  }
+
+  def completionRequest(textDocument: TextDocumentIdentifier,
+                                 position: Position): CompletionList = ???
+
+  def gotoDefinitionRequest(textDocument: TextDocumentIdentifier,
+                                     position: Position): DefinitionResult = ???
+
+  def hoverRequest(textDocument: TextDocumentIdentifier,
+                            position: Position): Hover = ???
+
+  def documentSymbols(
+    tdi: TextDocumentIdentifier
+  ): Seq[SymbolInformation] =  ???
+}
+
 class EnsimeLanguageServer(in: InputStream, out: OutputStream)
     extends LanguageServer(in, out) {
   private var system: ActorSystem      = _
@@ -105,11 +274,36 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
     shutdown()
   }
 
+
+  def services(logger: Logger): Services = Services.empty(logger)
+  .requestAsync(Lifecycle.initialize)(initializeService)
+
+  def initializeService(params: scala.meta.lsp.InitializeParams
+  ): Task[Either[Response.Error, InitializeResult]] = {
+
+    Task {
+      log.info(s"Initialized with ${params.processId}, ${params.rootPath}, ${params.capabilities}")
+
+      val rootFile = new File(params.rootPath)
+      val cacheDir = new File(rootFile, ".ensime_cache")
+      cacheDir.mkdir()
+
+      initializeEnsime(params.rootPath)
+
+      Right(InitializeResult(ServerCapabilities(
+        completionProvider = Some(CompletionOptions(false, Seq("."))),
+        definitionProvider = true,
+        hoverProvider = true,
+        documentSymbolProvider = true
+      )))
+    }
+  }
+
   override def initialize(
     pid: Long,
     rootPath: String,
     capabilities: ClientCapabilities
-  ): ServerCapabilities = {
+  ): org.ensime.lsp.api.commands.ServerCapabilities = {
     log.info(s"Initialized with $pid, $rootPath, $capabilities")
 
     val rootFile = new File(rootPath)
@@ -118,8 +312,8 @@ class EnsimeLanguageServer(in: InputStream, out: OutputStream)
 
     initializeEnsime(rootPath)
 
-    ServerCapabilities(
-      completionProvider = Some(CompletionOptions(false, Seq("."))),
+    org.ensime.lsp.api.commands.ServerCapabilities(
+      completionProvider = Some(org.ensime.lsp.api.commands.CompletionOptions(false, Seq("."))),
       definitionProvider = true,
       hoverProvider = true,
       documentSymbolProvider = true

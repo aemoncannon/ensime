@@ -10,9 +10,26 @@
       <pattern>%d{HH:mm:ss.SSS} %-5level %X{akkaSource:-None} %logger{10} - %.-250msg%n</pattern>
     </encoder>
   </appender>
-  <root level="INFO">
-    <appender-ref ref="STDOUT" />
+
+  
+  <!-- log to a file for testing -->
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <file>/home/zainab/ensime-server-log.log</file>
+    <append>true</append>
+    <!-- set immediateFlush to false for much higher logging throughput -->
+    <immediateFlush>true</immediateFlush>
+    <!-- encoders are assigned the type
+         ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+    <encoder>
+      <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
+    </encoder>
+  </appender>
+        
+  <root level="DEBUG">
+    <appender-ref ref="FILE" />
+    <!-- <appender-ref ref="STDOUT" /> -->
   </root>
+
   <logger name="org.ensime" level="DEBUG" />
   <logger name="akka" level="DEBUG" />
   <logger name="scala.tools" level="WARN" />
