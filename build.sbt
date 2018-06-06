@@ -83,6 +83,7 @@ lazy val core = project
       "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
       "org.ow2.asm"       % "asm-commons"             % "5.2",
       "org.ow2.asm"       % "asm-util"                % "5.2",
+      // TODO remove the locally built snapshot in favour of a release
       "org.scalameta" %% "lsp4s" % "0.1.0+5-de927af3-SNAPSHOT",
       "org.scala-lang"    % "scalap"                  % scalaVersion.value,
       "com.typesafe.akka" %% "akka-actor"             % akkaVersion,
@@ -221,6 +222,7 @@ addCommandAlias("fix", "all compile:scalafixCli test:scalafixCli")
 addCommandAlias("tests", "all test it:test")
 // not really what is used in CI, but close enough...
 addCommandAlias("ci", ";check ;prep ;cpl ;doc ;tests")
+// TODO The logging between lsp4s (scribe) conflicts with this
 // private val slf4jVersion = "1.7.25"
 //   val logback = Seq(
 //     "ch.qos.logback" % "logback-classic"  % "1.2.3",
