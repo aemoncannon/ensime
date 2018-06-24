@@ -211,10 +211,7 @@ trait RichCompilerControl
   def usesOfSym(
     sym: Symbol
   )(implicit ec: ExecutionContext): Future[SCISet[RawFile]] = {
-    val noReverseLookups = search.noReverseLookups
-    if (noReverseLookups) {
-      Future.successful(Set.empty)
-    } else {
+    {
       val symbolFqn = askSymbolFqn(sym)
       symbolFqn.fold(Future.successful(Set.empty[RawFile])) { fqn =>
         val usages = search.findUsages(fqn.fqnString)
@@ -531,10 +528,7 @@ class RichPresentationCompiler(
           val global = RichPresentationCompiler.this
           val sym    = s.asInstanceOf[global.Symbol]
           val cuIndexes = this.global.unitOfFile.collect {
-            case (file, unit)
-                if search.noReverseLookups || files.contains(
-                  file.file.toPath
-                ) =>
+            case (file, unit) if files.contains(file.file.toPath) =>
               CompilationUnitIndex(unit.body)
           }
           val index = GlobalIndex(cuIndexes.toList)

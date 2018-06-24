@@ -76,16 +76,8 @@ lazy val core = project
   .enableIntegrationTests
   .settings(
     libraryDependencies ++= Seq(
-      "com.orientechnologies" % "orientdb-graphdb" % orientVersion
-        exclude ("commons-collections", "commons-collections")
-        exclude ("commons-beanutils", "commons-beanutils"),
-      "org.apache.lucene" % "lucene-core"             % luceneVersion,
-      "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
-      "org.ow2.asm"       % "asm-commons"             % "5.2",
-      "org.ow2.asm"       % "asm-util"                % "5.2",
-      "org.scala-lang"    % "scalap"                  % scalaVersion.value,
-      "com.typesafe.akka" %% "akka-actor"             % akkaVersion,
-      "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion, {
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion, {
         // see notes in https://github.com/ensime/ensime-server/pull/1446
         val suffix = CrossVersion.partialVersion(scalaVersion.value) match {
           case Some((2, 11)) => "2.11.8"

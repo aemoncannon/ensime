@@ -3,7 +3,7 @@
 package org.ensime.core
 
 import org.ensime.fixture._
-import org.ensime.indexer.FullyQualifiedName
+import org.ensime.indexer._
 import org.ensime.util.EnsimeSpec
 
 class FqnToSymbolSpec
@@ -117,7 +117,7 @@ class FqnToSymbolSpec
         method(Seq("java", "lang"),
                "String",
                "startsWith",
-               "(Ljava/lang/String;)Z"),
+               List("java.lang.String"), "boolean"),
         "java.lang.String.startsWith"
       )
 
@@ -126,7 +126,7 @@ class FqnToSymbolSpec
         method(Seq("java", "lang"),
                "String",
                "valueOf",
-               "(Ljava/lang/Object;)Ljava/lang/String;"),
+               List("java.lang.Object"), "java.lang.String"),
         "java.lang.String.valueOf"
       )
   }

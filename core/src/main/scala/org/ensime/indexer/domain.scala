@@ -3,7 +3,6 @@
 package org.ensime.indexer
 
 import org.ensime.api.DeclaredAs
-import org.objectweb.asm.Opcodes._
 
 import scala.collection.Set
 import scala.collection.immutable.Queue
@@ -13,14 +12,6 @@ case object Public    extends Access
 case object Default   extends Access
 case object Protected extends Access
 case object Private   extends Access
-
-object Access {
-  def apply(code: Int): Access =
-    if ((ACC_PUBLIC & code) > 0) Public
-    else if ((ACC_PROTECTED & code) > 0) Protected
-    else if ((ACC_PRIVATE & code) > 0) Private
-    else Default
-}
 
 final case class FullyQualifiedReference(fqn: FullyQualifiedName,
                                          line: Option[Int])
@@ -96,22 +87,25 @@ object ClassName {
   val PrimitiveDouble  = Primitive("double")
   val PrimitiveVoid    = Primitive("void")
 
-  // must be a single type descriptor
-  // strips array reification
-  def fromDescriptor(desc: String): ClassName =
-    DescriptorParser.parseType(desc) match {
-      case c: ClassName       => c
-      case a: ArrayDescriptor => a.reifier
-    }
-
   // internal name is effectively the FQN with / instead of dots
   def fromInternal(internal: String): ClassName = fromFqn(internal, '/')
 
-  def fromFqn(internal: String, splitter: Char = '.'): ClassName = {
-    val parts           = internal.split(splitter)
-    val (before, after) = parts.splitAt(parts.length - 1)
-    ClassName(PackageName(before.toList), after(0))
-  }
+  def fromFqn(internal: String, splitter: Char = '.'): ClassName =
+    internal match {
+      case "boolean" => PrimitiveBoolean
+      case "byte"    => PrimitiveByte
+      case "char"    => PrimitiveChar
+      case "short"   => PrimitiveShort
+      case "int"     => PrimitiveInt
+      case "long"    => PrimitiveLong
+      case "float"   => PrimitiveFloat
+      case "double"  => PrimitiveDouble
+      case "void"    => PrimitiveVoid
+      case _ =>
+        val parts           = internal.split(splitter)
+        val (before, after) = parts.splitAt(parts.length - 1)
+        ClassName(PackageName(before.toList), after(0))
+    }
 
 }
 

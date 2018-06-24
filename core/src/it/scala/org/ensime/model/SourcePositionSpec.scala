@@ -4,8 +4,7 @@ package org.ensime.model
 
 import org.ensime.api._
 import org.ensime.fixture._
-import org.ensime.indexer.Default
-import org.ensime.indexer.graph.ClassDef
+import org.ensime.indexer._
 import org.ensime.util.EnsimeSpec
 import org.ensime.util.file._
 import org.ensime.vfs._
@@ -68,7 +67,7 @@ class SourcePositionSpec
 
   def lookup(uri: String, line: Option[Int] = None) =
     withVFS { implicit vfs: EnsimeVFS =>
-      val sym = ClassDef("", "", "", Some(uri), line, Default, None, None, None)
+      val sym = FqnSymbol("", line, Some(uri), DeclaredAs.Nil)
       LineSourcePositionHelper.fromFqnSymbol(sym)
     }
 }

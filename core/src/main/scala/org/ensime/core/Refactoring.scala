@@ -129,8 +129,7 @@ trait RefactoringImpl {
         val global = RefactoringImpl.this
         val cuIndexes: List[CompilationUnitIndex] =
           this.global.unitOfFile.collect {
-            case (f, unit)
-                if search.noReverseLookups || files.contains(f.file.getPath) =>
+            case (f, unit) if files.contains(f.file.getPath) =>
               CompilationUnitIndex(unit.body)
           }(collection.breakOut)
         val index = GlobalIndex(cuIndexes)
