@@ -52,8 +52,9 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
     EnsimeFile(url) shouldBe RawFile(Paths.get(file))
   }
 
-  "RichRawFile" should "support isScala" in {
+  "RichRawFile" should "support isJava / isScala" in {
     RawFile(Paths.get("/foo/bar/baz.scala")).isScala shouldBe true
+    RawFile(Paths.get("/foo/bar/baz.java")).isJava shouldBe true
   }
 
   it should "check for file existence with exists()" in {
@@ -65,9 +66,10 @@ class EnsimeFileSpec extends FlatSpec with Matchers {
     EnsimeFile("../LICENSE").readStringDirect().contains("GPL") shouldBe true
   }
 
-  "RichArchiveFile" should "support isScala" in {
+  "RichArchiveFile" should "support isJava / isScala" in {
     val jar = Paths.get("/foo/bar/baz.jar")
     ArchiveFile(jar, "/foo.scala").isScala shouldBe true
+    ArchiveFile(jar, "/foo.java").isJava shouldBe true
   }
 
   it should "check for jar and entry existence with exists()" in {
