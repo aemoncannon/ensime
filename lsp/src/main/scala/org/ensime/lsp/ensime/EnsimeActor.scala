@@ -14,7 +14,7 @@ import scala.concurrent.duration._
  *
  * It catches `ActorInitializationError` and tries to restart it.
  */
-class EnsimeActor(langServer: EnsimeLanguageServer,
+class EnsimeActor(langServer: EnsimeLanguageServerLsp4s,
                   config: EnsimeConfig,
                   ensimeServerConfig: EnsimeServerConfig)
     extends Actor
@@ -26,8 +26,9 @@ class EnsimeActor(langServer: EnsimeLanguageServer,
     OneForOneStrategy(5, 1 minute) {
       case e @ ActorInitializationException(actor, message, cause) =>
         log.error(s"Actor failed to initialize", e)
-        langServer.connection.logMessage(MessageType.Error,
-                                         s"Error starting ensime: $message")
+        // TODO
+        // langServer.connection.logMessage(MessageType.Error,
+        //                                  s"Error starting ensime: $message")
         SupervisorStrategy.Restart
       case e =>
         log.error(s"Actor crashed: ", e)

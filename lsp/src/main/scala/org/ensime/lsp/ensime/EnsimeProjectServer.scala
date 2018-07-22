@@ -9,7 +9,7 @@ import org.ensime.core.{ Broadcaster, Project }
 
 import scala.collection.mutable.ListBuffer
 
-class EnsimeProjectServer(langServer: EnsimeLanguageServer,
+class EnsimeProjectServer(langServer: EnsimeLanguageServerLsp4s,
                           implicit val config: EnsimeConfig,
                           implicit val ensimeServerConfig: EnsimeServerConfig)
     extends Actor
@@ -41,6 +41,6 @@ class EnsimeProjectServer(langServer: EnsimeLanguageServer,
 
   private def publishDiagnostics(): Unit = {
     log.debug(s"Scala notes: ${compilerDiagnostics.mkString("\n")}")
-    langServer.publishDiagnostics(compilerDiagnostics.toList)
+    //langServer.publishDiagnostics(compilerDiagnostics.toList)
   }
 }

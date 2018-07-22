@@ -81,7 +81,7 @@ abstract class LanguageServer(inStream: InputStream, outStream: OutputStream)
   val connection: Connection = new Connection(
     inStream,
     outStream,
-    Seq(documentManager.notificationHandler, notificationHandler),
+    Seq(notificationHandler),
     (method, command, id) =>
       LanguageServer.ResponseHandler
         .buildHandler(this)

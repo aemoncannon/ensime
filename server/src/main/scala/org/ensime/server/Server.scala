@@ -24,7 +24,7 @@ import org.ensime.api._
 import org.ensime.config._
 import org.ensime.config.richconfig._
 import org.ensime.core._
-import org.ensime.lsp.ensime.EnsimeLanguageServerLsp4S
+import org.ensime.lsp.ensime.EnsimeLanguageServerLsp4s
 import org.ensime.util.Slf4jSetup
 import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.path._
@@ -135,7 +135,10 @@ object Server {
 
   val log = LoggerFactory.getLogger("Server")
 
-  val logger = scribe.Logger(Some("Server")).withHandler(writer = FileWriter.single(prefix = "ensime-server-log"))
+  val logger = scribe.Logger
+    .root
+    .clearHandlers()
+    .withHandler(writer = FileWriter.single(prefix = "ensime-server-log"))
 
   // Config is loaded in this order:
   //
@@ -184,7 +187,9 @@ object Server {
 
     // Use lsp4s language server instead
     val server = new LanguageServer(messages, client,
-      (new EnsimeLanguageServerLsp4S(logger)).services, requestScheduler, logger)
+      (new EnsimeLanguageServerLsp4s(logger)).services, requestScheduler, logger)
+
+
 
     // route System.out somewhere else. The presentation compiler may spit out text
     // and that confuses VScode, since stdout is used for the language server protocol
@@ -196,6 +201,7 @@ object Server {
       System.setErr(
         new PrintStream(new FileOutputStream(s"$cwd/pc.stdout.log"))
       )
+
       logger.info("This file contains stdout from the presentation compiler.")
       logger.info(s"Starting server in $cwd")
       logger.info(s"Classpath: ${Properties.javaClassPath}")
