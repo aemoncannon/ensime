@@ -196,7 +196,8 @@ object EnsimeBuild {
         "com.orientechnologies" % "orientdb-graphdb" % orientVersion
           exclude ("commons-collections", "commons-collections")
           exclude ("commons-beanutils", "commons-beanutils")
-          exclude ("commons-logging", "commons-logging"),
+          exclude ("commons-logging", "commons-logging")
+          exclude ("stax", "stax-api"),
         "org.apache.lucene" % "lucene-core" % luceneVersion,
         "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
         "org.ow2.asm" % "asm-commons" % "6.1.1",
@@ -259,6 +260,7 @@ object EnsimeBuild {
       resources in Compile := Nil,
       aggregate in assembly := false,
       assemblyMergeStrategy in assembly := {
+        case PathList(xs @ _*) if xs.last == "module-info.class" => MergeStrategy.discard
         case PathList("org", "apache", "commons", "vfs2", xs @ _*) => MergeStrategy.first // assumes our classpath is setup correctly
         case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.concat // assumes our classpath is setup correctly
         case PathList("LICENSE") => MergeStrategy.concat // WORKAROUND https://github.com/sbt/sbt-assembly/issues/224
