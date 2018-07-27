@@ -24,7 +24,7 @@ pipeline:
 
 matrix:
   SCALA_VERSION:
-    - 2.12.4
+    - 2.12.6
 
 branches:
   include: [ 1.0, 2.0, 3.0 ]

@@ -21,15 +21,14 @@ object CommonPlugin extends AutoPlugin {
   override def trigger  = allRequirements
 
   override def buildSettings = Seq(
-    scalaVersion := "2.12.4",
+    scalaVersion := "2.12.6",
     organization := "org.ensime",
     ensimeIgnoreMissingDirectories := true,
     ensimeJavaFlags += "-Xmx4g",
     sonatypeGithost := (Github, "ensime", "ensime-server"),
     licenses := Seq(GPL3),
     startYear := Some(2010),
-    concurrentRestrictions += Tags.limit(Scalafix, 2),
-    scalafixParallel := true
+    concurrentRestrictions += Tags.limit(Scalafix, 2)
   )
 
   override def projectSettings = Seq(

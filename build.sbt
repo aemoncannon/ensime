@@ -21,7 +21,7 @@ lazy val `s-express` = project
     licenses := Seq(LGPL3),
     libraryDependencies ++= Seq(
       "com.chuusai"    %% "shapeless"  % shapelessVersion,
-      "com.lihaoyi"    %% "fastparse"  % "0.4.4",
+      "com.lihaoyi"    %% "fastparse"  % "1.0.0",
       "org.scalacheck" %% "scalacheck" % "1.13.5" % Test
     )
   )
@@ -81,8 +81,8 @@ lazy val core = project
         exclude ("commons-beanutils", "commons-beanutils"),
       "org.apache.lucene" % "lucene-core"             % luceneVersion,
       "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
-      "org.ow2.asm"       % "asm-commons"             % "5.2",
-      "org.ow2.asm"       % "asm-util"                % "5.2",
+      "org.ow2.asm"       % "asm-commons"             % "6.1.1",
+      "org.ow2.asm"       % "asm-util"                % "6.1.1",
       "org.scala-lang"    % "scalap"                  % scalaVersion.value,
       "com.typesafe.akka" %% "akka-actor"             % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion, {
@@ -161,6 +161,7 @@ publish := {}
 test in assembly := {}
 aggregate in assembly := false
 assemblyMergeStrategy in assembly := {
+  case PathList(xs @ _*) if xs.last == "module-info.class" => MergeStrategy.discard
   case PathList("META-INF", "semanticdb.semanticidx") => MergeStrategy.discard
   case PathList("META-INF", "semanticdb", _*)         => MergeStrategy.discard
   case PathList("org", "apache", "commons", "vfs2", xs @ _*) =>

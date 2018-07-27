@@ -21,7 +21,7 @@ install:
   - cmd: SET AKKA_TEST_TIMEFACTOR=5
   - cmd: SET SBT_TASK_LIMIT=4
   - cmd: SET GC_LOGGING=true
-  - cmd: SET SCALA_VERSION=2.12.4
+  - cmd: SET SCALA_VERSION=2.12.6
   - cmd: git config core.symlinks true
   - cmd: git reset --hard
 build_script:
