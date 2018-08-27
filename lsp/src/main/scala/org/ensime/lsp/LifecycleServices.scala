@@ -1,16 +1,15 @@
 // Copyright: 2010 - 2017 https://github.com/ensime/ensime-server/graphs _ =>
 // License: http://www.gnu.org/licenses/gpl-3.0.en.html
-package org.ensime.lsp.ensime
+package org.ensime.lsp
 
 import java.io.File
+import java.nio.charset.Charset
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
 import com.typesafe.config._
 import org.ensime.api._
 import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.config.richconfig._
-import org.ensime.lsp.api.commands._
-import org.ensime.lsp.core.MessageReader
 import org.ensime.util.file._
 import org.ensime.util.path._
 import monix.eval.Task
@@ -21,6 +20,8 @@ import scala.meta.lsp.InitializeParams
 import scribe.Logger
 
 object LifecycleServices {
+
+  private[lsp] val Utf8Charset: Charset  = Charset.forName("UTF-8")
 
   /**
     * Initializes the ensime actor system using the .ensime config file.
@@ -48,7 +49,7 @@ object LifecycleServices {
         val ensimeConfigAttempt = Try {
           val serverConfig: EnsimeServerConfig = parseServerConfig(config)
           val ensimeConfig = EnsimeConfigProtocol.parse(
-            serverConfig.config.file.readString()(MessageReader.Utf8Charset)
+            serverConfig.config.file.readString()(Utf8Charset)
           )
           (ensimeConfig, serverConfig)
         }

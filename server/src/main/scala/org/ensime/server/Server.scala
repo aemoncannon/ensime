@@ -24,7 +24,7 @@ import org.ensime.api._
 import org.ensime.config._
 import org.ensime.config.richconfig._
 import org.ensime.core._
-import org.ensime.lsp.ensime.EnsimeLanguageServerLsp4s
+import org.ensime.lsp.EnsimeLanguageServerLsp4s
 import org.ensime.util.Slf4jSetup
 import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.path._
@@ -186,8 +186,9 @@ object Server {
         .executeOn(lspScheduler)
 
     // Use lsp4s language server instead
+    import monix.execution.Scheduler.Implicits.global
     val server = new LanguageServer(messages, client,
-      (new EnsimeLanguageServerLsp4s(logger)).services, requestScheduler, logger)
+      (Await.result(EnsimeLanguageServerLsp4s(logger).runAsync, Duration.Inf)).services, requestScheduler, logger)
 
 
 
