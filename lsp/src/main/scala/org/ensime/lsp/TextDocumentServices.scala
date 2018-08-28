@@ -57,19 +57,19 @@ object OptionalRef {
 
 object Uninitialized
 
-final case class TextDocumentServices(initialState: OptionalRef[(ActorRef, TempFileStore)], documentMap: DocumentMap, log: Logger) {
+final case class TextDocumentServices(initialState: OptionalRef[(EnsimeProjectWrapper, EnsimeCache)], documentMap: DocumentMap, log: Logger) {
 
   /**
     * Called when the client closes a text document.
     *
     * The document uri is removed from the documentManager and the file is removed from Ensime.
     */
-  def didClose(params: DidCloseTextDocumentParams): Task[Unit] = withEnsime { ensimeActor =>
+  def didClose(params: DidCloseTextDocumentParams): Task[Unit] = withEnsime { ensime =>
 
     Task(log.info(s"Removing ${params.textDocument.uri} from Ensime.")).flatMap { _ =>
       documentMap.contains(params.textDocument.uri).map { contains =>
         if (contains) {
-          ensimeActor ! RemoveFileReq(new File(URI.create(params.textDocument.uri)))
+          ensime.removeFile(params.textDocument.uri)
         } else {
           log.error(s"Attempted to close document ${params.textDocument.uri}, but it wasn't in an open state")
         }
@@ -84,7 +84,7 @@ final case class TextDocumentServices(initialState: OptionalRef[(ActorRef, TempF
     *
     * The document uri is registered as being open in the documentManager and the file is sent to ensime for typechecking.
     */
-  def didOpen(params: DidOpenTextDocumentParams): Task[Unit] = withInitialState { case (ensimeActor, fileStore) =>
+  def didOpen(params: DidOpenTextDocumentParams): Task[Unit] = withInitialState { case (ensime, ensimeCache) =>
 
     Task(log.info(s"Got didOpen (${params.textDocument.uri})")).flatMap { _ =>
       // Store the file in the document map
@@ -92,14 +92,12 @@ final case class TextDocumentServices(initialState: OptionalRef[(ActorRef, TempF
         val uri = new URI(params.textDocument.uri)
         if (uri.getScheme == "file") {
           val f = new File(uri)
-          if (f.getAbsolutePath.startsWith(fileStore.path)) {
+          if (f.getAbsolutePath.startsWith(ensimeCache.path)) {
             // The file belongs to the ensime cache.  There's no point registering it with ensime
             log.debug(s"Not adding temporary file $f to Ensime")
           } else {
             log.debug(s"Adding file $f to Ensime")
-            ensimeActor ! TypecheckFileReq(
-              SourceFileInfo(RawFile(f.toPath), Some(params.textDocument.text))
-            )
+            ensime.typecheckFile(f.toPath, params.textDocument.text)
           }
         } else {
           log.info(s"Non-file URI in openTextDocument: ${params.textDocument.uri}")
@@ -109,31 +107,15 @@ final case class TextDocumentServices(initialState: OptionalRef[(ActorRef, TempF
   }.map(_ => ())
 
 
-  def hover(params: TextDocumentPositionParams)(implicit T: Timeout): Task[Either[Response.Error, Hover]] = withEnsime { ensimeActor =>
+  def hover(params: TextDocumentPositionParams)(implicit T: Timeout): Task[Either[Response.Error, Hover]] = withEnsime { ensime =>
 
     Task(log.info(s"Got hover request at (${params.position.line}, ${params.position.character}).")).flatMap { _ =>
       documentMap.get(params.textDocument.uri).flatMap(_.map { doc =>
 
-//   def toSourceFileInfo(
-//     uri: String,
-//     contents: Option[String] = None
-//   ): SourceFileInfo = {
-//     val f = new File(new URI(uri))
-//     SourceFileInfo(RawFile(f.toPath), contents)
-//   }
-
-        val docUriAtPoint = Task.fromFuture(ensimeActor ? DocUriAtPointReq(
-          Right(
-            SourceFileInfo(RawFile((new File(new URI(params.textDocument.uri))).toPath), Option(doc.text))
-          ),
-          // FIXME: The returned position doesn't always correspond to the file text
-          OffsetRange(TextDocumentServices.positionToOffset(doc.text.toArray, params.position, params.textDocument.uri))
-        ))
-
+        val docUriAtPoint = ensime.getDocUriAtPoint(params.textDocument.uri, doc.text, params.position)
         docUriAtPoint.map {
-          case pair@Some(DocSigPair(DocSig(_, scalaSig), DocSig(_, javaSig))) =>
-            val sig = scalaSig.orElse(javaSig).getOrElse("")
-            log.info(s"Retrieved $pair for position (${params.position.line}, ${params.position.character})")
+          case Some(sig) =>
+            log.info(s"Retrieved $sig for position (${params.position.line}, ${params.position.character})")
             Hover(Seq(RawMarkedString("scala", sig)),
               // TODO: This range should be the start and end of the text to highlight on hover
               Some(Range(params.position, params.position)))
@@ -175,37 +157,18 @@ final case class TextDocumentServices(initialState: OptionalRef[(ActorRef, TempF
       assert(change.rangeLength.isEmpty)
     }
 
-    assertCorrectChanges.flatMap { _ => withEnsime { ensimeActor =>
+    assertCorrectChanges.flatMap { _ => withEnsime { ensime =>
       // TODO: Don't we need to update the document manager here?
       val change = changes.head
-      Task {
-        ensimeActor ! TypecheckFileReq(
-          TextDocumentServices.toSourceFileInfo(params.textDocument.uri, Some(change.text))
-        )
-      }
+      ensime.typecheckFile(params.textDocument.uri, change.text)
     }}.map(_ => ())
   }
 
   def completion(params: TextDocumentPositionParams)(implicit T: Timeout): Task[Either[Response.Error, CompletionList]] = {
-    withEnsime { ensimeActor =>
+    withEnsime { ensime =>
       documentMap.get(params.textDocument.uri).flatMap { docOpt =>
         docOpt.map { doc =>
-          Task.fromFuture(ensimeActor ? CompletionsReq(
-            TextDocumentServices.toSourceFileInfo(params.textDocument.uri,
-              Some(new String(doc.text.toArray))),
-            TextDocumentServices.positionToOffset(doc.text.toArray, params.position, params.textDocument.uri),
-            100,
-            caseSens = false,
-            reload = false
-          )).map {
-            case CompletionInfoList(prefix, completions) =>
-              log.info(s"Received ${completions.size} completions: ${completions.take(10).map(_.name)}")
-              val completionList = completions
-                .sortBy(-_.relevance)
-                .map(TextDocumentServices.toCompletion)
-
-              CompletionList(false, completionList.toSeq)
-          }
+          ensime.getCompletions(params.textDocument.uri, doc.text, params.position).map(CompletionList(false, _))
         }.getOrElse { Task {
           log.error(s"Document ${params.textDocument.uri} is not in an open state")
           (CompletionList(false, Nil))
@@ -216,18 +179,11 @@ final case class TextDocumentServices(initialState: OptionalRef[(ActorRef, TempF
   }
 
   def documentSymbol(params: DocumentSymbolParams)(implicit T: Timeout): Task[Either[Response.Error, List[SymbolInformation]]] = {
-    withEnsime { ensimeActor =>
+    withEnsime { ensime =>
       documentMap.get(params.textDocument.uri).flatMap { docOpt =>
         docOpt.map { doc =>
           log.info(s"Document Symbols request for ${params.textDocument.uri}")
-          val task = Task.fromFuture(ensimeActor ? StructureViewReq(
-            TextDocumentServices.toSourceFileInfo(params.textDocument.uri, Some(doc.text))
-          ))
-          task.map {
-            case StructureView(members) =>
-              log.debug(s"got back $members")
-              members.flatMap(TextDocumentServices.toSymbolInformation(params.textDocument.uri, doc.text, _, log))
-          }
+          ensime.getSymbolInformation(params.textDocument.uri, doc.text)
         }.getOrElse {
           Task {
             log.error(s"Document ${params.textDocument.uri} is not in an open state")
@@ -239,24 +195,17 @@ final case class TextDocumentServices(initialState: OptionalRef[(ActorRef, TempF
   }
 
   def definition(params: TextDocumentPositionParams)(implicit T: Timeout): Task[Either[Response.Error, List[Location]]] = withInitialState {
-    case (ensimeActor, fileStore) =>
+    case (ensime, ensimeCache) =>
     log.info(s"Got goto definition request at (${params.position.line}, ${params.position.character}).")
     documentMap.get(params.textDocument.uri).flatMap { docOpt =>
       docOpt.map { doc =>
-        Task.fromFuture(ensimeActor ? SymbolAtPointReq(
-          Right(
-            TextDocumentServices.toSourceFileInfo(
-              params.textDocument.uri,
-              Some(doc.text)
-            )
-          ),
-          TextDocumentServices.positionToOffset(doc.text.toArray, params.position, params.textDocument.uri)
-        )).map {
+        ensime.getSymbolAtPoint(params.textDocument.uri, doc.text, params.position)
+        .map {
           case SymbolInfo(name, localName, declPos, typeInfo) =>
             declPos.toList.flatMap {
               // Why would this be an ensime file? The file containing the symbol, and its offset
               case OffsetSourcePosition(ensimeFile, offset) =>
-                  fileStore
+                  ensimeCache
                     .getFile(ensimeFile)
                     .map(path => {
                       val file = path.toFile
@@ -294,13 +243,13 @@ final case class TextDocumentServices(initialState: OptionalRef[(ActorRef, TempF
   def signatureHelp(params: TextDocumentPositionParams): Task[SignatureHelp] = ???
 
 
-  private def withEnsime[A](f: ActorRef => Task[A]): Task[Either[Response.Error, A]] =
+  private def withEnsime[A](f: EnsimeProjectWrapper => Task[A]): Task[Either[Response.Error, A]] =
     initialState.get.flatMap {
       case Left(_) => Task(Left(Response.internalError("Ensime not initialized yet")))
       case Right((ref, _)) => f(ref).map(Right(_))
     }
 
-  private def withInitialState[A](f: ((ActorRef, TempFileStore)) => Task[A]): Task[Either[Response.Error, A]] =
+  private def withInitialState[A](f: ((EnsimeProjectWrapper, EnsimeCache)) => Task[A]): Task[Either[Response.Error, A]] =
     initialState.get.flatMap {
       case Left(_) => Task(Left(Response.internalError("Ensime not initialized yet")))
       case Right(state) => f(state).map(Right(_))
@@ -313,7 +262,7 @@ object TextDocumentServices {
   // Move this
   private[lsp] val Utf8Charset: Charset  = Charset.forName("UTF-8")
 
-  def apply(initialState: OptionalRef[(ActorRef, TempFileStore)], log: Logger): Task[TextDocumentServices] =
+  def apply(initialState: OptionalRef[(EnsimeProjectWrapper, EnsimeCache)], log: Logger): Task[TextDocumentServices] =
     DocumentMap.empty.map(TextDocumentServices(initialState, _, log))
 
   /** Map of keywords to [[SymbolKind]] used to convert symbol information */

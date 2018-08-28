@@ -9,18 +9,12 @@ import akka.event.slf4j.SLF4JLogging
 import org.ensime.api._
 
 import scala.util.{ Success, Try }
+import monix.eval.Task
 
 /**
- * A place to unzip files from archives
- */
-class TempFileStore(val path: String) extends SLF4JLogging {
-  val rootPath: Path = FileSystems.getDefault.getPath(path)
-
-  if (!Files.exists(rootPath)) {
-    Files.createDirectory(rootPath)
-  }
-
-  assert(Files.isDirectory(rootPath), s"File store $path is not a directory")
+  * A place to unzip files from archives
+  */
+final case class EnsimeCache(path: Path) extends SLF4JLogging {
 
   def getFile(path: EnsimeFile): Try[Path] = path match {
     case RawFile(p) => Success(p)
@@ -37,11 +31,33 @@ class TempFileStore(val path: String) extends SLF4JLogging {
         try {
           Files.createDirectories(extractedPath.getParent)
           Files.copy(zipFilePath,
-                     extractedPath,
-                     StandardCopyOption.REPLACE_EXISTING)
+            extractedPath,
+            StandardCopyOption.REPLACE_EXISTING)
         } finally zipFile.close()
 
         extractedPath
       }
+  }
+}
+
+object EnsimeCache {
+
+  final case class PathIsNotDirectory(path: Path) {
+    def toIllegalArgumentException: IllegalArgumentException =
+      new IllegalArgumentException(s"Ensime cache $path is not a directory")
+  }
+
+  def fromPath(path: String): Either[PathIsNotDirectory, Task[EnsimeCache]] = {
+    val rootPath: Path = FileSystems.getDefault.getPath(path)
+    if (Files.exists(rootPath)) {
+      if (!Files.isDirectory(rootPath)) {
+        Left(PathIsNotDirectory(rootPath))
+      } else Right(Task(EnsimeCache(rootPath)))
+    } else {
+      Right(Task.eval {
+        Files.createDirectory(rootPath)
+        EnsimeCache(rootPath)
+      })
+    }
   }
 }

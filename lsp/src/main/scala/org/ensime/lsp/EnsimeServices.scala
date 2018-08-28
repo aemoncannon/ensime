@@ -16,20 +16,13 @@ import monix.eval.{Task, MVar}
 import io.circe.{Json, JsonObject}
 import io.circe.syntax._
 
-object EnsimeLanguageServerLsp4s {
-  def apply(log: Logger): Task[EnsimeLanguageServerLsp4s] = {
-    for {
-      initialState <- OptionalRef.empty[(ActorRef, TempFileStore)]
-      system <- OptionalRef.empty[ActorSystem]
-      textDocumentServices <- TextDocumentServices(initialState, log)
-    } yield {
-      new EnsimeLanguageServerLsp4s(log, textDocumentServices, initialState, system)
-    }
-  }
-}
-
-class EnsimeLanguageServerLsp4s(log: Logger, documentServices: TextDocumentServices,
-  initialState: OptionalRef[(ActorRef, TempFileStore)], system: OptionalRef[ActorSystem]) {
+/**
+  * Provides the [[Services]] for a [[scala.meta.jsonrpc.LanguageServer]].
+  *
+  * On receiving an [[Lifecycle.initialize]] message an EnsimeActor is created.  This actor is communicated with when processing all subsequent messages.
+  */
+final class EnsimeServices(log: Logger, documentServices: TextDocumentServices,
+  initialState: OptionalRef[(EnsimeProjectWrapper, EnsimeCache)], system: OptionalRef[ActorSystem]) {
 
   implicit val timeout: Timeout     = Timeout(5 seconds)
 
@@ -47,7 +40,7 @@ class EnsimeLanguageServerLsp4s(log: Logger, documentServices: TextDocumentServi
     .requestAsync(TextDocument.completion)(documentServices.completion)
     .requestAsync(TextDocument.documentSymbol)(documentServices.documentSymbol)
     .requestAsync(TextDocument.definition)(documentServices.definition)
-    .notificationAsync(Workspace.didChangeWatchedFiles)(???)
+    // .notificationAsync(Workspace.didChangeWatchedFiles)(???)
 
   /** Initializes the Ensime lsp server */
   private def initializeService(params: InitializeParams
@@ -58,10 +51,10 @@ class EnsimeLanguageServerLsp4s(log: Logger, documentServices: TextDocumentServi
     }.flatMap { _ =>
       LifecycleServices.initialize(params, this, log)
     }.flatMap {
-       case Right( (actorSystem, tempFileStore, actor) ) =>
+       case Right( (actorSystem, ensimeCache, actor) ) =>
         log.info(s"Initialized with ${params.processId}, ${params.rootPath}, ${params.capabilities}")
 
-        initialState.put((actor, tempFileStore))
+        initialState.put((EnsimeProjectWrapper(actor), ensimeCache))
           .flatMap { _ => system.put(actorSystem)}
           .map { _ =>
 
@@ -94,4 +87,17 @@ class EnsimeLanguageServerLsp4s(log: Logger, documentServices: TextDocumentServi
   }
   // TODO: This is sent from the server to the client, so how does it hook in?
   def publishDiagnosticsService(diagnostics: PublishDiagnostics): Task[Either[Response.Error, Unit]] = ???
+}
+
+object EnsimeServices {
+
+  def apply(log: Logger): Task[EnsimeServices] = {
+    for {
+      initialState <- OptionalRef.empty[(EnsimeProjectWrapper, EnsimeCache)]
+      system <- OptionalRef.empty[ActorSystem]
+      textDocumentServices <- TextDocumentServices(initialState, log)
+    } yield {
+      new EnsimeServices(log, textDocumentServices, initialState, system)
+    }
+  }
 }

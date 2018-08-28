@@ -10,6 +10,7 @@ import com.typesafe.config._
 import org.ensime.api._
 import org.ensime.config.EnsimeConfigProtocol
 import org.ensime.config.richconfig._
+import org.ensime.core.{ Broadcaster, Project }
 import org.ensime.util.file._
 import org.ensime.util.path._
 import monix.eval.Task
@@ -30,7 +31,7 @@ object LifecycleServices {
     * not exist.  If this is the case, we want the user to generate it with sbt.
     * We might be unable to parse the .ensime config file.
     */
-  def initialize(params: InitializeParams, languageServer: EnsimeLanguageServerLsp4s, log: Logger): Task[Either[Response.Error, (ActorSystem, TempFileStore, ActorRef)]] = Task {
+  def initialize(params: InitializeParams, languageServer: EnsimeServices, log: Logger): Task[Either[Response.Error, (ActorSystem, EnsimeCache, ActorRef)]] = Task {
 
     val rootFile = new File(params.rootPath)
 
@@ -65,12 +66,14 @@ object LifecycleServices {
         case (ensimeConfig, serverConfig, config) =>
           val t = Try {
             val system = ActorSystem("ENSIME", config)
-            val fileStore = new TempFileStore(ensimeConfig.cacheDir.file.toString)
-            val ensimeActor = system.actorOf(
-              Props(classOf[EnsimeActor], languageServer, ensimeConfig, serverConfig),
-              "server"
-            )
-            (system, fileStore, ensimeActor)
+            // This is a task
+            val fileStore =fromEither(EnsimeCache
+              .fromPath(ensimeConfig.cacheDir.file.toString)
+              .left.map(_.toIllegalArgumentException))
+              .flatMap(identity)
+            val broadcaster = system.actorOf(Broadcaster(), "broadcaster")
+            val project = system.actorOf(Project(broadcaster)(ensimeConfig, serverConfig), "project")
+            (system, fileStore, project)
           }
 
           t match {
@@ -87,6 +90,14 @@ object LifecycleServices {
     } else {
       Left(Response.internalError("No .ensime file in directory. Run `sbt ensimeConfig` to create one."))
     }
+  }
+
+  /**
+    * Convers an [[Either]] into a [[Task]].  This should be included in the most recent version of Monix
+    */
+  private def fromEither[A](either: Either[Throwable, A]): Task[A] = either match {
+    case Left(err) => Task.raiseError(err)
+    case Right(a) => Task(a)
   }
 
 
