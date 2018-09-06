@@ -7,16 +7,7 @@ import java.net.URI
 import java.nio.charset.Charset
 
 import akka.util.Timeout
-import org.ensime.api.{
-  CompletionInfo,
-  DeclaredAs,
-  LineSourcePosition,
-  OffsetSourcePosition,
-  RawFile,
-  SourceFileInfo,
-  StructureViewMember,
-  SymbolInfo
-}
+import org.ensime.api.{ OffsetSourcePosition, SymbolInfo }
 import monix.eval.Task
 import org.ensime.util.file._
 
@@ -139,6 +130,7 @@ final case class TextDocumentServices(
                   log.info(
                     s"Retrieved $sig for position (${params.position.line}, ${params.position.character})"
                   )
+                  // TODO: Does this assume scala sources?
                   Hover(
                     Seq(RawMarkedString("scala", sig)),
                     // TODO: This range should be the start and end of the text to highlight on hover
@@ -186,18 +178,17 @@ final case class TextDocumentServices(
         Task(log.info(s"Document did change (${params.contentChanges})"))
       )
       .flatMap[TextDocumentServices.Error, Unit] { _ =>
-        val changes = params.contentChanges
-
-        // we assume full text sync
-        // for full text sync, we should only have a single change with no range
-        EitherTask.fromEither(validateFullTextSync(changes.toList))
+        // validate that the client is sending complete documents as changes (i.e. not incremental changes).  We've configured it to send full documents on initialization.  @see [[LifecycleServices.initialize]]
+        EitherTask.fromEither(
+          validateFullTextSync(params.contentChanges.toList)
+        )
       }
       .flatMap[TextDocumentServices.Error, EnsimeProjectWrapper] { _ =>
         getState.map(_.project).leftMap(identity)
       }
       .flatMapTask { project =>
-        val change = params.contentChanges.head
-        project.typecheckFile(params.textDocument.uri, change.text)
+        project.typecheckFile(params.textDocument.uri,
+                              params.contentChanges.head.text)
       }
       .raiseError(_.toThrowable)
 
@@ -212,8 +203,8 @@ final case class TextDocumentServices(
         getOpenDocument(params.textDocument.uri).flatMapTask { doc =>
           project
             .getCompletions(params.textDocument.uri, doc.text, params.position)
-            // What does this flag  do?
-            .map(CompletionList(false, _))
+            // We return practically all completions, so the completion list is complete
+            .map(CompletionList(isIncomplete = false, _))
         }.leftMap(identity)
       }
       .leftMap(_.toResponseError)
@@ -259,21 +250,22 @@ final case class TextDocumentServices(
                       case OffsetSourcePosition(sourceFile, offset) =>
                         Task.fromTry(state.cache.getFile(sourceFile)).flatMap {
                           path =>
+                            val file = path.toFile
+                            val uri  = file.toURI.toString
                             Task.eval {
-                              val file = path.toFile
-                              val uri  = file.toURI.toString
-                              // and what if we can't read the file?
-                              val start = TextDocumentServices.offsetToPosition(
+                              file
+                                .readString()(
+                                  TextDocumentServices.Utf8Charset
+                                )
+                                .toCharArray
+                            }.map { text =>
+                              val start = EnsimeToLspAdapter.offsetToPosition(
                                 uri,
-                                file
-                                  .readString()(
-                                    TextDocumentServices.Utf8Charset
-                                  )
-                                  .toCharArray,
+                                text,
                                 offset
                               )
                               val end = start.copy(
-                                character = start.character + localName.length()
+                                character = start.character + localName.length
                               )
 
                               log.info(
@@ -348,6 +340,8 @@ final case class TextDocumentServices(
 
 object TextDocumentServices {
 
+  // TODO: Move most of these to the project wrapper / conversion stage
+
   // Move this
   private[lsp] val Utf8Charset: Charset = Charset.forName("UTF-8")
 
@@ -357,166 +351,8 @@ object TextDocumentServices {
       TextDocumentServices(ensimeState, _, log)
     )
 
-  /** Map of keywords to [[SymbolKind]] used to convert symbol information */
-  private val KeywordToKind = Map(
-    "class"   -> SymbolKind.Class,
-    "trait"   -> SymbolKind.Interface,
-    "type"    -> SymbolKind.Interface,
-    "package" -> SymbolKind.Package,
-    "def"     -> SymbolKind.Method,
-    "val"     -> SymbolKind.Constant,
-    "var"     -> SymbolKind.Field
-  )
-
-  /**
-   * Converts an ensime [[StructureViewMember]] into an LSP [[SymbolInformation]].
-   *
-   * The member is traversed recursively, with each child being converted.
-   */
-  def toSymbolInformation(
-    uri: String,
-    text: String,
-    structure: StructureViewMember,
-    log: Logger
-  ): Seq[SymbolInformation] = {
-
-    // recurse over the members
-    def go(member: StructureViewMember,
-           outer: Option[String]): Seq[SymbolInformation] = {
-      // Why do we default to field?
-      val kind = KeywordToKind.getOrElse(member.keyword, SymbolKind.Field)
-      val rest = member.members.flatMap(go(_, Some(member.name)))
-      val position = member.position match {
-        case OffsetSourcePosition(_, offset) =>
-          TextDocumentServices.offsetToPosition(uri, text.toArray, offset)
-        case LineSourcePosition(_, line) => Position(line, 0)
-        case _ =>
-          log.error(s"Unknown position for ${member.name}: ${member.position}")
-          Position(0, 0)
-      }
-
-      SymbolInformation(
-        member.name,
-        kind,
-        Location(uri,
-                 Range(position,
-                       position.copy(
-                         character = position.character + member.name.length
-                       ))),
-        outer
-      ) +: rest
-    }
-
-    go(structure, None)
-  }
-
-  /**
-   * Converts an ensime [[CompletionInfo]] into an LSP [[CompletionItem]]
-   */
-  def toCompletion(completionInfo: CompletionInfo): CompletionItem = {
-    val kind: Option[CompletionItemKind] = completionInfo.typeInfo.map { info =>
-      info.declaredAs match {
-        case DeclaredAs.Method => CompletionItemKind.Method
-        case DeclaredAs.Class  => CompletionItemKind.Class
-        case DeclaredAs.Field  => CompletionItemKind.Field
-        case DeclaredAs.Interface | DeclaredAs.Trait =>
-          CompletionItemKind.Interface
-        case DeclaredAs.Object => CompletionItemKind.Module
-        // Why do we map everything with a nil type to a value?  Shouldn't this be a None?
-        case DeclaredAs.Nil => CompletionItemKind.Value
-      }
-    }
-
-    CompletionItem(
-      label = completionInfo.name,
-      kind = kind,
-      detail = completionInfo.typeInfo.map(_.fullName)
-    )
-  }
-
-  def toSourceFileInfo(
-    uri: String,
-    contents: Option[String] = None
-  ): SourceFileInfo = {
-    val f = new File(new URI(uri))
-    SourceFileInfo(RawFile(f.toPath), contents)
-  }
-
   import scala.concurrent.duration._
   implicit val timeout: Timeout = Timeout(5 seconds)
-
-  def positionToOffset(contents: Array[Char],
-                       pos: scala.meta.lsp.Position,
-                       uri: String): Int = {
-    val line = pos.line
-    val col  = pos.character
-
-    var i = 0
-    var l = 0
-
-    while (i < contents.length && l < line) {
-      contents(i) match {
-        case '\r' =>
-          l += 1
-          if (peek(i + 1, contents) == '\n') i += 1
-
-        case '\n' =>
-          l += 1
-
-        case _ =>
-      }
-      i += 1
-    }
-
-    if (l < line)
-      throw new IllegalArgumentException(
-        s"$uri: Can't find position $pos in contents of only $l lines long."
-      )
-    if (i + col < contents.length)
-      i + col
-    else
-      throw new IllegalArgumentException(
-        s"$uri: Invalid column. Position $pos in line '${contents.slice(i, contents.length).mkString}'"
-      )
-  }
-
-  /**
-   * Return the corresponding position in this text document as 0-based line and column.
-   */
-  def offsetToPosition(uri: String,
-                       contents: Array[Char],
-                       offset: Int): scala.meta.lsp.Position = {
-    if (offset >= contents.length)
-      throw new IndexOutOfBoundsException(
-        s"$uri: asked position at offset $offset, but contents is only ${contents.length} characters long."
-      )
-
-    var i    = 0
-    var line = 0
-    var col  = 0
-
-    while (i < offset) {
-      contents(i) match {
-        case '\r' =>
-          line += 1
-          col = 0
-          if (peek(i + 1, contents) == '\n') i += 1
-
-        case '\n' =>
-          line += 1
-          col = 0
-
-        case _ =>
-          col += 1
-      }
-      i += 1
-    }
-
-    scala.meta.lsp.Position(line, col)
-  }
-
-  private[this] def peek(idx: Int, contents: Array[Char]): Int =
-    if (idx < contents.length) contents(idx).toInt else -1
 
   sealed trait Error {
     def message: String = this match {

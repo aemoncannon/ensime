@@ -12,15 +12,7 @@ import akka.pattern.ask
 import org.ensime.api._
 import org.ensime.core.{ DocSig, DocSigPair }
 import monix.eval.Task
-import scala.meta.lsp.{
-  CompletionItem,
-  CompletionItemKind,
-  Location,
-  Position,
-  Range,
-  SymbolInformation,
-  SymbolKind
-}
+import scala.meta.lsp.{ CompletionItem, Position, SymbolInformation }
 
 /**
  * Wraps requests to the Ensime project actor in [[Task]].  These can then be lifted into a larger [[Task]] sequence, and ultimately into an LSP service.
@@ -42,7 +34,7 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
    * @param text The text content of the document.  This may not be the text content that is saved on the filesystem as the document may be being edited by the user.
    */
   def typecheckFile(uri: String, text: String): Task[Unit] =
-    toSourceFileInfo(uri, text).map { sourceFileInfo =>
+    LspToEnsimeAdapter.toSourceFileInfo(uri, text).map { sourceFileInfo =>
       project ! TypecheckFileReq(sourceFileInfo)
     }
 
@@ -60,9 +52,11 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
     implicit T: Timeout
   ): Task[Option[String]] =
     for {
-      sourceFileInfo <- toSourceFileInfo(uri, text)
+      sourceFileInfo <- LspToEnsimeAdapter.toSourceFileInfo(uri, text)
       offset <- fromEither(
-                 positionToOffset(uri, text, position).left
+                 LspToEnsimeAdapter
+                   .positionToOffset(uri, text, position)
+                   .left
                    .map(_.toIllegalArgumentException)
                )
       offsetRange = OffsetRange(offset)
@@ -88,9 +82,11 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
     implicit T: Timeout
   ): Task[List[CompletionItem]] =
     for {
-      sourceFileInfo <- toSourceFileInfo(uri, text)
+      sourceFileInfo <- LspToEnsimeAdapter.toSourceFileInfo(uri, text)
       offset <- fromEither(
-                 positionToOffset(uri, text, position).left
+                 LspToEnsimeAdapter
+                   .positionToOffset(uri, text, position)
+                   .left
                    .map(_.toIllegalArgumentException)
                )
       result <- Task.fromFuture(
@@ -109,7 +105,7 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
           // Shouldn't these already be sorted?  After all, we're imposing a cap on the maximum allowed results
           completions
             .sortBy(-_.relevance)
-            .map(TextDocumentServices.toCompletion)
+            .map(EnsimeToLspAdapter.completionInfoToCompletionItem)
       }
 
   /**
@@ -122,12 +118,18 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
   def getSymbolInformation(uri: String, text: String)(
     implicit T: Timeout
   ): Task[List[SymbolInformation]] =
-    toSourceFileInfo(uri, text).flatMap { sourceFileInfo =>
-      Task.fromFuture(project ? StructureViewReq(sourceFileInfo))
-    }.map {
-      case StructureView(members) =>
-        members.flatMap(EnsimeProjectWrapper.toSymbolInformation(uri, text, _))
-    }
+    LspToEnsimeAdapter
+      .toSourceFileInfo(uri, text)
+      .flatMap { sourceFileInfo =>
+        Task.fromFuture(project ? StructureViewReq(sourceFileInfo))
+      }
+      .map {
+        case StructureView(members) =>
+          members.flatMap(
+            EnsimeToLspAdapter
+              .structureViewMemberToSymbolInformation(uri, text, _)
+          )
+      }
 
   /**
    * Gets the Ensime [[SymbolInfo]] of a thing at a point.
@@ -141,9 +143,11 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
     implicit T: Timeout
   ): Task[SymbolInfo] =
     for {
-      sourceFileInfo <- toSourceFileInfo(uri, text)
+      sourceFileInfo <- LspToEnsimeAdapter.toSourceFileInfo(uri, text)
       offset <- fromEither(
-                 positionToOffset(uri, text, position).left
+                 LspToEnsimeAdapter
+                   .positionToOffset(uri, text, position)
+                   .left
                    .map(_.toIllegalArgumentException)
                )
       result <- Task.fromFuture(
@@ -159,166 +163,4 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
       case Left(err) => Task.raiseError(err)
       case Right(a)  => Task(a)
     }
-
-  /**
-   * Creates a [[SourceFileInfo]] from a document.
-   *
-   * @param uri  The URI string corresponding to the document's location.
-   * @param text The text content of the document.
-   * @return     The [[SourceFileInfo]] corresponding to the document
-   */
-  private def toSourceFileInfo(
-    uri: String,
-    text: String
-  ): Task[SourceFileInfo] =
-    // Catch whatever exceptions may occur when resolving the uri
-    Task
-      .eval((new File(new URI(uri))).toPath)
-      .map(filepath => SourceFileInfo(RawFile(filepath), Some(text)))
-
-  /**
-   * Calculates the index of a character from its [[Position]]
-   *
-   * @param uri  The uri corresponding to the document's location.  This is used for logging only.
-   * @param text The text content of the document containing the character.
-   * @param position  The position of the character within the document.  The position must be contained within the lines and columns of the document.
-   * @return An integer index corresponding to the index of the character within the text, or an [[InvalidPosition]] if the position does not exist within the document
-   */
-  private def positionToOffset(
-    uri: String,
-    text: String,
-    position: Position
-  ): Either[EnsimeProjectWrapper.InvalidPosition, Int] =
-    Right(TextDocumentServices.positionToOffset(text.toArray, position, uri))
-  // val contents = text.toArray
-  // val line = position.line
-  // val lineNumber = line + 1
-  // val col = position.character
-  // val columnNumber = col + 1
-
-  // // Could use a negative look behind to split the string while retaining delimiter
-  // val lineSeparatorRegex = "\r\n"
-  // val lines = text.split(s"(?<=$lineSeparatorRegex)")
-  // if(lineNumber > lines.length) {
-  //   // The line number doesn't exist in the file
-  //   Left(EnsimeProjectWrapper.PositionExceedsNumberOfLines(uri, position, lines.length))
-  // } else {
-  //   val linesIncludingPosition = lines.take(lineNumber)
-  //   val targetLine = linesIncludingPosition.last
-
-  //   if(columnNumber > targetLine.length) {
-  //     // The column doesn't exist in the file
-  //     Left(EnsimeProjectWrapper.PositionExceedsNumberOfCharacters(uri, position, targetLine))
-  //   } else {
-  //     val charactersIncludingPosition = targetLine.take(columnNumber)
-  //     val textIncludingPosition = linesIncludingPosition.dropRight(1).mkString("") + charactersIncludingPosition
-  //     Right(textIncludingPosition.length - 1)
-  //   }
-  // }
-}
-
-object EnsimeProjectWrapper {
-  sealed trait InvalidPosition {
-    def toIllegalArgumentException: IllegalArgumentException = this match {
-      case PositionExceedsNumberOfLines(uri, position, numberOfLines) =>
-        new IllegalArgumentException(
-          s"$uri: Can't find position $position in contents of only $numberOfLines lines long."
-        )
-      case PositionExceedsNumberOfCharacters(uri, position, line) =>
-        new IllegalArgumentException(
-          s"$uri: Invalid column. Position $position in line '$line'"
-        )
-    }
-  }
-  case class PositionExceedsNumberOfLines(uri: String,
-                                          position: Position,
-                                          numberOfLines: Int)
-      extends InvalidPosition
-  case class PositionExceedsNumberOfCharacters(uri: String,
-                                               position: Position,
-                                               line: String)
-      extends InvalidPosition
-
-  /**
-   * Converts an ensime [[CompletionInfo]] into an LSP [[CompletionItem]].
-   *
-   * LSP completion items are language generic, so some detail is lost here.
-   */
-  def toCompletion(completionInfo: CompletionInfo): CompletionItem = {
-    val kind: Option[CompletionItemKind] = completionInfo.typeInfo.map { info =>
-      info.declaredAs match {
-        case DeclaredAs.Method => CompletionItemKind.Method
-        case DeclaredAs.Class  => CompletionItemKind.Class
-        case DeclaredAs.Field  => CompletionItemKind.Field
-        case DeclaredAs.Interface | DeclaredAs.Trait =>
-          CompletionItemKind.Interface
-        case DeclaredAs.Object => CompletionItemKind.Module
-        // Why do we map everything with a nil type to a value?
-        case DeclaredAs.Nil => CompletionItemKind.Value
-      }
-    }
-
-    CompletionItem(
-      label = completionInfo.name,
-      kind = kind,
-      detail = completionInfo.typeInfo.map(_.fullName)
-    )
-  }
-
-  /** Map of keywords to [[SymbolKind]] used to convert symbol information */
-  private val KeywordToKind: Map[String, SymbolKind] = Map(
-    "class"   -> SymbolKind.Class,
-    "trait"   -> SymbolKind.Interface,
-    "type"    -> SymbolKind.Interface,
-    "package" -> SymbolKind.Package,
-    "def"     -> SymbolKind.Method,
-    "val"     -> SymbolKind.Constant,
-    "var"     -> SymbolKind.Field
-  )
-
-  /**
-   * Converts an ensime [[StructureViewMember]] into an LSP [[SymbolInformation]].
-   *
-   * The member is traversed recursively, with each child member being converted into a [[SymbolInformation]].
-   *
-   * @param uri The uri corresponding to the document containing the member
-   * @param text The text of the document containing the member
-   * @param structure The member to extract [[SymbolInformation]] from
-   * @return a flat list of the [[SymbolInformation]] of the member and all of its child members.
-   */
-  def toSymbolInformation(
-    uri: String,
-    text: String,
-    structure: StructureViewMember
-  ): List[SymbolInformation] = {
-
-    // recurse over the child members of the member
-    def go(member: StructureViewMember,
-           outer: Option[String]): List[SymbolInformation] = {
-      // Why do we default to field?
-      val kind = KeywordToKind.getOrElse(member.keyword, SymbolKind.Field)
-      val rest = member.members.flatMap(go(_, Some(member.name)))
-      val position = member.position match {
-        case OffsetSourcePosition(_, offset) =>
-          TextDocumentServices.offsetToPosition(uri, text.toArray, offset)
-        case LineSourcePosition(_, line) => Position(line, 0)
-        case EmptySourcePosition()       =>
-          // The source is empty.  What does this mean?
-          Position(0, 0)
-      }
-
-      SymbolInformation(
-        member.name,
-        kind,
-        Location(uri,
-                 Range(position,
-                       position.copy(
-                         character = position.character + member.name.length
-                       ))),
-        outer
-      ) :: rest
-    }
-
-    go(structure, None)
-  }
 }
