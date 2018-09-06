@@ -12,9 +12,9 @@ import scala.util.{ Success, Try }
 import monix.eval.Task
 
 /**
-  * A place to unzip files from archives
-  */
-final case class EnsimeCache(path: Path) extends SLF4JLogging {
+ * A place to unzip files from archives
+ */
+final case class EnsimeCache(rootPath: Path) extends SLF4JLogging {
 
   def getFile(path: EnsimeFile): Try[Path] = path match {
     case RawFile(p) => Success(p)
@@ -31,8 +31,8 @@ final case class EnsimeCache(path: Path) extends SLF4JLogging {
         try {
           Files.createDirectories(extractedPath.getParent)
           Files.copy(zipFilePath,
-            extractedPath,
-            StandardCopyOption.REPLACE_EXISTING)
+                     extractedPath,
+                     StandardCopyOption.REPLACE_EXISTING)
         } finally zipFile.close()
 
         extractedPath

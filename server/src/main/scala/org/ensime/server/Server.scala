@@ -5,7 +5,11 @@ package org.ensime.server
 import java.io.{ FileOutputStream, PrintStream }
 import java.net.InetSocketAddress
 import java.nio.file.Paths
-import scala.meta.jsonrpc.{LanguageServer, LanguageClient, BaseProtocolMessage}
+import scala.meta.jsonrpc.{
+  BaseProtocolMessage,
+  LanguageClient,
+  LanguageServer
+}
 
 import scribe.Logger
 import scribe.writer.FileWriter
@@ -135,8 +139,7 @@ object Server {
 
   val log = LoggerFactory.getLogger("Server")
 
-  val logger = scribe.Logger
-    .root
+  val logger = scribe.Logger.root
     .clearHandlers()
     .withHandler(writer = FileWriter.single(prefix = "ensime-server-log"))
 
@@ -175,22 +178,25 @@ object Server {
   }
 
   def startLspServer(): Unit = {
-    val cwd    = Option(System.getProperty("lsp.workspace")).getOrElse(".")
+    val cwd = Option(System.getProperty("lsp.workspace")).getOrElse(".")
 
-    val lspScheduler = Scheduler(Executors.newFixedThreadPool(1))
+    val lspScheduler     = Scheduler(Executors.newFixedThreadPool(1))
     val requestScheduler = Scheduler(Executors.newFixedThreadPool(4))
 
-      val client = new LanguageClient(System.out, logger)
-      val messages = BaseProtocolMessage
-        .fromInputStream(System.in, logger)
-        .executeOn(lspScheduler)
+    val client = new LanguageClient(System.out, logger)
+    val messages = BaseProtocolMessage
+      .fromInputStream(System.in, logger)
+      .executeOn(lspScheduler)
 
     // Use lsp4s language server instead
     import monix.execution.Scheduler.Implicits.global
-    val server = new LanguageServer(messages, client,
-      (Await.result(EnsimeServices(logger).runAsync, Duration.Inf)).services, requestScheduler, logger)
-
-
+    val server = new LanguageServer(
+      messages,
+      client,
+      (Await.result(EnsimeServices(logger).runAsync, Duration.Inf)).services,
+      requestScheduler,
+      logger
+    )
 
     // route System.out somewhere else. The presentation compiler may spit out text
     // and that confuses VScode, since stdout is used for the language server protocol
