@@ -4,7 +4,7 @@ import org.scalatest._
 
 import scala.meta.lsp.Position
 
-final class PositionToOffsetSpec extends FlatSpec with EitherValues with Matchers {
+final class PositionSpec extends FlatSpec with EitherValues with Matchers {
 
   val uri = "file:///test/file.scala"
 
@@ -13,6 +13,7 @@ final class PositionToOffsetSpec extends FlatSpec with EitherValues with Matcher
     val position = Position(line = 0, character = 0)
     val offset = LspToEnsimeAdapter.positionToOffset(uri, text, position)
 
+    offset shouldBe 'right
     offset.right.value shouldBe 0
   }
 
@@ -21,6 +22,7 @@ final class PositionToOffsetSpec extends FlatSpec with EitherValues with Matcher
     val position = Position(line = 1, character = 0)
     val offset = LspToEnsimeAdapter.positionToOffset(uri, text, position)
 
+    offset shouldBe 'right
     offset.right.value shouldBe 4
   }
 
@@ -29,6 +31,7 @@ final class PositionToOffsetSpec extends FlatSpec with EitherValues with Matcher
     val position = Position(line = 1, character = 0)
     val offset = LspToEnsimeAdapter.positionToOffset(uri, text, position)
 
+    offset shouldBe 'right
     offset.right.value shouldBe 5
   }
 
@@ -46,5 +49,33 @@ final class PositionToOffsetSpec extends FlatSpec with EitherValues with Matcher
     val offset = LspToEnsimeAdapter.positionToOffset(uri, text, position)
 
     offset shouldBe 'left
+  }
+
+  "offsetToPosition" should "convert offsets to positions in a text document with a single line" in {
+    val text = "Foo"
+    val offset = 2
+    val position = EnsimeToLspAdapter.offsetToPosition(uri, text, offset)
+
+    position shouldBe 'right
+    position.right.value shouldBe Position(line = 0, character = 2)
+  }
+
+  it should "convert offsets to positions in a text document with multiple lines" in {
+    val text = "Foo\nBar"
+    val offset = 4
+    val position = EnsimeToLspAdapter.offsetToPosition(uri, text, offset)
+
+    position shouldBe 'right
+    position.right.value shouldBe Position(line = 1, character = 0)
+  }
+
+  it should "convert offsets to positions for newline characters" in {
+    // Surely positions of newline characters are nonsensical
+    val text = "Foo\nBar"
+    val offset = 3
+    val position = EnsimeToLspAdapter.offsetToPosition(uri, text, offset)
+
+    position shouldBe 'right
+    position.right.value shouldBe Position(line = 0, character = 3)
   }
 }

@@ -57,7 +57,11 @@ object EnsimeToLspAdapter {
       val rest = member.members.flatMap(go(_, Some(member.name)))
       val position = member.position match {
         case OffsetSourcePosition(_, offset) =>
-          EnsimeToLspAdapter.offsetToPosition(uri, text.toArray, offset)
+          // TODO: This should be an error
+          EnsimeToLspAdapter
+            .offsetToPosition(uri, text, offset)
+            .toOption
+            .getOrElse(Position(0, 0))
         case LineSourcePosition(_, line) => Position(line, 0)
         case EmptySourcePosition()       =>
           // The source is empty.  What does this mean?
@@ -111,39 +115,40 @@ object EnsimeToLspAdapter {
    * Return the corresponding position in this text document as 0-based line and column.
    */
   def offsetToPosition(uri: String,
-                       contents: Array[Char],
-                       offset: Int): scala.meta.lsp.Position = {
-    if (offset >= contents.length)
-      throw new IndexOutOfBoundsException(
-        s"$uri: asked position at offset $offset, but contents is only ${contents.length} characters long."
-      )
+                       text: String,
+                       offset: Int): Either[InvalidOffset, Position] = {
 
-    var i    = 0
-    var line = 0
-    var col  = 0
+    // A positive lookbehind, as in positionToOffset
+    val lineSeparatorRegex = "(?<=\r?\n)"
 
-    while (i < offset) {
-      contents(i) match {
-        case '\r' =>
-          line += 1
-          col = 0
-          if (peek(i + 1, contents) == '\n') i += 1
+    // Validate that the text is non-empty
+    if (text.length == 0) {
+      Left(InvalidOffset.EmptyText(uri))
 
-        case '\n' =>
-          line += 1
-          col = 0
+      // Validate that the offset falls within the text
+    } else if (offset >= text.length) {
+      Left(InvalidOffset.OffsetOutsideText(uri, offset))
+    } else {
 
-        case _ =>
-          col += 1
-      }
-      i += 1
+      val textIncludingCharacter = text.take(offset + 1)
+
+      val lines = textIncludingCharacter.split(lineSeparatorRegex)
+
+      // There will always be at least one line from a split operation, so the lineIndex is always positive
+      val lineIndex = lines.length - 1
+
+      // There should always be one character on the last line from a split operation as the original text was non-empty
+      val characterIndex = lines.last.length - 1
+      Right(Position(line = lineIndex, character = characterIndex))
     }
-
-    scala.meta.lsp.Position(line, col)
   }
 
-  private[this] def peek(idx: Int, contents: Array[Char]): Int =
-    if (idx < contents.length) contents(idx).toInt else -1
+  sealed trait InvalidOffset
+  object InvalidOffset {
+    final case class EmptyText(uri: String) extends InvalidOffset
+    final case class OffsetOutsideText(uri: String, offset: Int)
+        extends InvalidOffset
+  }
 }
 
 object LspToEnsimeAdapter {
@@ -162,27 +167,25 @@ object LspToEnsimeAdapter {
     position: scala.meta.lsp.Position
   ): Either[InvalidPosition, Int] = {
 
+    // Splits lines by the separators \r\n and \n.  The positive lookbehind "?<=" performs a split on any character preceeded by a newline separator.  Using a lookbehind ensures that the separator character is kept in the preceeding line.  So splitting "foo\nbar" would result in lines "foo\n" and "bar".  The newline character still contributes to the character count.
     val newlineRegex = "(?<=\r?\n)"
-    val lines = text.split(newlineRegex)
+    val lines        = text.split(newlineRegex)
 
     if (lines.length <= position.line) {
       Left(PositionExceedsNumberOfLines(uri, position, lines.length))
     } else {
       val line = lines(position.line)
 
-      if(line.length <= position.character) {
+      if (line.length <= position.character) {
         Left(PositionExceedsNumberOfCharacters(uri, position, line))
       } else {
-        val previousLinesCharacterCount = lines.take(position.line).map(_.length).sum
+        val previousLinesCharacterCount =
+          lines.take(position.line).map(_.length).sum
         val currentLineCharacterCount = position.character
         Right(previousLinesCharacterCount + currentLineCharacterCount)
       }
     }
   }
-
-
-  private[this] def peek(idx: Int, contents: Array[Char]): Int =
-    if (idx < contents.length) contents(idx).toInt else -1
 
   /**
    * Creates a [[SourceFileInfo]] from a document.

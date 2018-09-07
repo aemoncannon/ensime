@@ -257,13 +257,16 @@ final case class TextDocumentServices(
                                 .readString()(
                                   TextDocumentServices.Utf8Charset
                                 )
-                                .toCharArray
                             }.map { text =>
-                              val start = EnsimeToLspAdapter.offsetToPosition(
-                                uri,
-                                text,
-                                offset
-                              )
+                              // TODO: This should be an error
+                              val start = EnsimeToLspAdapter
+                                .offsetToPosition(
+                                  uri,
+                                  text,
+                                  offset
+                                )
+                                .toOption
+                                .getOrElse(Position(0, 0))
                               val end = start.copy(
                                 character = start.character + localName.length
                               )
@@ -274,6 +277,7 @@ final case class TextDocumentServices(
                               List(Location(uri, Range(start, end)))
                             }
                         }
+                      // TODO: What other possibilities are there?
                       case _ => Task(Nil)
                     }
                   val sequencedLocations: Task[List[Location]] =
