@@ -50,7 +50,7 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
    */
   def getDocUriAtPoint(uri: String, text: String, position: Position)(
     implicit T: Timeout
-  ): Task[Option[String]] =
+  ): Task[Signature] =
     for {
       sourceFileInfo <- LspToEnsimeAdapter.toSourceFileInfo(uri, text)
       offset <- fromEither(
@@ -66,8 +66,8 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
     } yield
       result match {
         case pair @ Some(DocSigPair(DocSig(_, scalaSig), DocSig(_, javaSig))) =>
-          Some(scalaSig.orElse(javaSig).getOrElse(""))
-        case None => None
+          Signature(scalaSig, javaSig)
+        case None => Signature(None, None)
       }
 
   /**

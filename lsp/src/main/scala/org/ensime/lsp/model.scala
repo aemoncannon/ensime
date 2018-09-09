@@ -36,3 +36,8 @@ object Uninitialized {
   def toIllegalArgumentException: IllegalArgumentException =
     new IllegalArgumentException("Ensime is uninitialized")
 }
+
+/**
+  * Represents the scala and / or java signatures
+  */
+final case class Signature(scala: Option[String], java: Option[String])

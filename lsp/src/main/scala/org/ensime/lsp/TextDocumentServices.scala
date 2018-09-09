@@ -4,7 +4,6 @@ package org.ensime.lsp
 
 import java.io.File
 import java.net.URI
-import java.nio.charset.Charset
 
 import akka.util.Timeout
 import org.ensime.api.{ OffsetSourcePosition, SymbolInfo }
@@ -16,9 +15,12 @@ import scala.meta.jsonrpc.Response
 import scribe.Logger
 
 /**
- * Services for operating on text documents such as opening, closing and saving.
+  * Services for operating on text documents such as opening, closing and saving.
+  *
+  * @param ensimeState  The Ensime actors.  This is uninitialized until an initialize request is received from the LSP client
+  * @param documentMap  A cache of all open documents
  */
-final case class TextDocumentServices(
+final class TextDocumentServices(
   ensimeState: Task[Either[Uninitialized.type, EnsimeState]],
   documentMap: DocumentMap,
   log: Logger
@@ -80,11 +82,10 @@ final case class TextDocumentServices(
             .flatMap[TextDocumentServices.Error, Unit] { _ =>
               val uri = new URI(params.textDocument.uri)
 
-              if (uri.getScheme == "file") {
+              if (uri.getScheme == TextDocumentServices.fileScheme) {
                 val f = new File(uri)
                 val task =
-                  if (f.getAbsolutePath
-                        .startsWith(state.cache.rootPath.toString)) {
+                  if (state.cache.contains(f)) {
                     // The file belongs to the ensime cache.  There's no point registering it with ensime
                     Task(log.debug(s"Not adding temporary file $f to Ensime"))
                   } else {
@@ -94,6 +95,7 @@ final case class TextDocumentServices(
                   }
                 EitherTask.fromTask(task)
               } else {
+                // Whatever the user has client has opened isn't a file. This probably isn't particularly likely, but we were checking for it before.
                 EitherTask.fromLeft(
                   TextDocumentServices.UriIsNotAFile(params.textDocument.uri)
                 )
@@ -103,7 +105,7 @@ final case class TextDocumentServices(
     }.raiseError(_.toThrowable)
 
   /**
-   * Called when a client hovers over a position and wants symbol information.
+   * Called when a client hovers over a position and wants symbol information.  At most one signature is returned
    */
   def hover(params: TextDocumentPositionParams)(
     implicit T: Timeout
@@ -126,21 +128,18 @@ final case class TextDocumentServices(
                                          doc.text,
                                          params.position)
               val hover = docUriAtPoint.map {
-                case Some(sig) =>
+                case Signature(scala, java) =>
                   log.info(
-                    s"Retrieved $sig for position (${params.position.line}, ${params.position.character})"
+                    s"Retrieved $scala and $java for position (${params.position.line}, ${params.position.character})"
                   )
-                  // TODO: Does this assume scala sources?
-                  Hover(
-                    Seq(RawMarkedString("scala", sig)),
-                    // TODO: This range should be the start and end of the text to highlight on hover
-                    Some(Range(params.position, params.position))
-                  )
-                case None =>
-                  log.info(
-                    s"No signature for position (${params.position.line}, ${params.position.character})"
-                  )
-                  Hover(Seq.empty, None)
+
+                  // Return the scala or java signature
+                  val signature = scala.map(RawMarkedString("scala", _)).orElse(java.map(RawMarkedString("java", _)))
+
+                    // The range should be the start and end of the text to highlight on hover.  I think we may be able to get this information by calling [[getSymbolAtPoint]], but for now we return a range of zero length around the position.
+                  val range = Range(params.position, params.position)
+                  signature.map(s => Hover(Seq(s), Some(range)))
+                  .getOrElse(Hover(Seq.empty, None))
               }
               EitherTask.fromTask[TextDocumentServices.Error, Hover](hover)
             }
@@ -210,7 +209,7 @@ final case class TextDocumentServices(
       .leftMap(_.toResponseError)
       .value
 
-  /** Called when the client requests symbol information */
+  /** Called when the client requests symbol information of a document.  The symbol information is a structure view of an entire document. */
   def documentSymbol(params: DocumentSymbolParams)(
     implicit T: Timeout
   ): Task[Either[Response.Error, List[SymbolInformation]]] =
@@ -224,7 +223,11 @@ final case class TextDocumentServices(
       .leftMap(_.toResponseError)
       .value
 
-  /** Called when the client requests the location of the definition of the symbol at a position */
+  /**
+   * Called when the client requests the location of a symbol's definition
+   *
+   * @return A list of at most one location
+   * */
   def definition(params: TextDocumentPositionParams)(
     implicit T: Timeout
   ): Task[Either[Response.Error, List[Location]]] =
@@ -245,49 +248,43 @@ final case class TextDocumentServices(
                                 params.position)
               .flatMap {
                 case SymbolInfo(name, localName, declPos, typeInfo) =>
-                  val locationsTask: List[Task[List[Location]]] =
-                    declPos.toList.map {
+                  val offsetSourcePosition: Option[OffsetSourcePosition] =
+                    declPos.collect {
+                      case o: OffsetSourcePosition =>
+                        // We only care about these. [[EmptySourcePosition]] implies that Ensime can't find the position
+                        // [[getSymbolAtPoint]] should never return a [[LineSourcePosition]] (those are only used when finding usages)
+                        o
+                    }
+                  val locationOption: Option[Task[Location]] =
+                    offsetSourcePosition.map {
                       case OffsetSourcePosition(sourceFile, offset) =>
-                        Task.fromTry(state.cache.getFile(sourceFile)).flatMap {
-                          path =>
-                            val file = path.toFile
-                            val uri  = file.toURI.toString
-                            Task.eval {
-                              file
-                                .readString()(
-                                  TextDocumentServices.Utf8Charset
-                                )
-                            }.map { text =>
-                              // TODO: This should be an error
-                              val start = EnsimeToLspAdapter
-                                .offsetToPosition(
-                                  uri,
-                                  text,
-                                  offset
-                                )
-                                .toOption
-                                .getOrElse(Position(0, 0))
-                              val end = start.copy(
-                                character = start.character + localName.length
+                        state.cache.path(sourceFile).flatMap { path =>
+                          EnsimeCache.fileText(path).map { text =>
+                            val uri = path.toFile.toURI.toString
+                            val startPositionEither = EnsimeToLspAdapter
+                              .offsetToPosition(
+                                uri,
+                                text,
+                                offset
                               )
 
-                              log.info(
-                                s"Found definition at $uri, line: ${start.line}"
-                              )
-                              List(Location(uri, Range(start, end)))
-                            }
+                            // We can find the source document, but cannot convert the symbol's offset to a valid position.  Return a position at the start of the document so that the user knows roughly where the symbol is.
+                            val start = startPositionEither.toOption
+                              .getOrElse(Position(0, 0))
+                            val range =
+                              TextDocumentServices.rangeFrom(start,
+                                                             localName.length)
+                            log.info(
+                              s"Found definition at $uri, line: ${start.line}"
+                            )
+                            Location(uri, range)
+                          }
                         }
-                      // TODO: What other possibilities are there?
-                      case _ => Task(Nil)
                     }
-                  val sequencedLocations: Task[List[Location]] =
-                    locationsTask.foldLeft(Task(List.empty[Location]))(
-                      (prev, cur) =>
-                        prev.flatMap { ls =>
-                          cur.map(_ ++ ls)
-                      }
-                    )
-                  sequencedLocations
+                  // Return a list of at most one location
+                  locationOption
+                    .map(_.map(List(_)))
+                    .getOrElse(Task(List.empty[Location]))
               }
           }.leftMap(identity)
         }
@@ -344,19 +341,23 @@ final case class TextDocumentServices(
 
 object TextDocumentServices {
 
-  // TODO: Move most of these to the project wrapper / conversion stage
-
-  // Move this
-  private[lsp] val Utf8Charset: Charset = Charset.forName("UTF-8")
+  private [lsp] val fileScheme: String = "file"
 
   def apply(ensimeState: Task[Either[Uninitialized.type, EnsimeState]],
             log: Logger): Task[TextDocumentServices] =
     DocumentMap.empty.map(
-      TextDocumentServices(ensimeState, _, log)
+      new TextDocumentServices(ensimeState, _, log)
     )
 
-  import scala.concurrent.duration._
-  implicit val timeout: Timeout = Timeout(5 seconds)
+  /**
+   * Creates a [[Range]] from a start [[Position]] and offset.
+   *
+   * The end position is on the same line as the start, but offset by [[offset]] characters.
+   */
+  private[lsp] def rangeFrom(start: Position, offset: Int): Range = {
+    val end = start.copy(character = start.character + offset)
+    Range(start, end)
+  }
 
   sealed trait Error {
     def message: String = this match {
@@ -373,6 +374,7 @@ object TextDocumentServices {
     def toThrowable: Throwable          = new IllegalArgumentException(message)
     def toResponseError: Response.Error = Response.internalError(message)
   }
+
   case object EnsimeSystemUninitialized         extends Error
   final case class DocumentNotOpen(uri: String) extends Error
   final case class UriIsNotAFile(uri: String)   extends Error

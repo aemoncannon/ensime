@@ -3,12 +3,14 @@
 package org.ensime.lsp
 
 import java.net.URI
+import java.nio.charset.Charset
 import java.nio.file._
 
 import akka.event.slf4j.SLF4JLogging
 import org.ensime.api._
+import org.ensime.util.file._
 
-import scala.util.{ Success, Try }
+import scala.util.Try
 import monix.eval.Task
 
 /**
@@ -16,31 +18,49 @@ import monix.eval.Task
  */
 final case class EnsimeCache(rootPath: Path) extends SLF4JLogging {
 
-  def getFile(path: EnsimeFile): Try[Path] = path match {
-    case RawFile(p) => Success(p)
+  /**
+    * Gets the path to an [[EnsimeFile]].
+    *
+    * If the file is a raw file e.g. a source file within the project, returns the source file path
+    * If the file is an entry within a jar, the jar is unzipped into the .ensime_cache directory and the path of the file within the .ensime_cache is returned.
+    */
+  def path(ensimeFile: EnsimeFile): Task[Path] = ensimeFile match {
+    case RawFile(p) => Task(p)
     case ArchiveFile(jar, entry) =>
-      Try {
-        log.info(s"Extracting $jar!$entry to $rootPath")
-        val uri = URI.create(s"jar:${jar.toFile.toURI.toString}")
-        val zipFile =
-          FileSystems.newFileSystem(uri, new java.util.HashMap[String, String])
-        val zipFilePath   = zipFile.getPath(entry)
-        val targetPath    = if (entry.startsWith("/")) entry.drop(1) else entry
-        val extractedPath = rootPath.resolve(targetPath)
+      Task.fromTry {
+        Try {
+          log.info(s"Extracting $jar!$entry to $rootPath")
+          val uri = URI.create(s"jar:${jar.toFile.toURI.toString}")
+          val zipFile =
+            FileSystems.newFileSystem(uri,
+                                      new java.util.HashMap[String, String])
+          val zipFilePath   = zipFile.getPath(entry)
+          val targetPath    = if (entry.startsWith("/")) entry.drop(1) else entry
+          val extractedPath = rootPath.resolve(targetPath)
 
-        try {
-          Files.createDirectories(extractedPath.getParent)
-          Files.copy(zipFilePath,
-                     extractedPath,
-                     StandardCopyOption.REPLACE_EXISTING)
-        } finally zipFile.close()
+          try {
+            Files.createDirectories(extractedPath.getParent)
+            Files.copy(zipFilePath,
+                       extractedPath,
+                       StandardCopyOption.REPLACE_EXISTING)
+          } finally zipFile.close()
 
-        extractedPath
+          extractedPath
+        }
       }
+  }
+
+  /** Determines if a file is located within the ensime cache directory */
+  def contains(file: File): Boolean = {
+    file.getAbsolutePath.startsWith(rootPath.toString)
   }
 }
 
+
+
 object EnsimeCache {
+
+  private[lsp] val Utf8Charset: Charset = Charset.forName("UTF-8")
 
   final case class PathIsNotDirectory(path: Path) {
     def toIllegalArgumentException: IllegalArgumentException =
@@ -60,4 +80,13 @@ object EnsimeCache {
       })
     }
   }
+
+  def fileText(path: Path): Task[String] =
+    Task.eval {
+      path.toFile
+        .readString()(
+          EnsimeCache.Utf8Charset
+        )
+    }
+
 }
