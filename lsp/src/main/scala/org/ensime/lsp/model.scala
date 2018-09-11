@@ -6,8 +6,8 @@ import monix.eval.{ MVar, Task }
 /**
  * Represents the full mutable state of the ensime system
  *
- * @param actorSystem The ensime actor system.  This should be shut down on termination.
- * @param cache       A representation of the .ensimeCache directory.  This is used to store unzipped archives.
+ * @param actorSystem The ensime actor system
+ * @param cache       A representation of the .ensimeCache directory
  * @param project     A wrapper for the [[org.ensime.core.Project]] actor
  */
 final case class EnsimeState(actorSystem: ActorSystem,
@@ -38,6 +38,11 @@ object Uninitialized {
 }
 
 /**
-  * Represents the scala and / or java signatures
-  */
-final case class Signature(scala: Option[String], java: Option[String])
+ * Represents a scala or java signature
+ */
+sealed trait Signature
+
+object Signature {
+  final case class Scala(signature: String) extends Signature
+  final case class Java(signature: String)  extends Signature
+}

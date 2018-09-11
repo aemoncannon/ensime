@@ -15,12 +15,14 @@ import monix.eval.Task
 import scala.meta.lsp.{ CompletionItem, Position, SymbolInformation }
 
 /**
- * Wraps requests to the Ensime project actor in [[Task]].  These can then be lifted into a larger [[Task]] sequence, and ultimately into an LSP service.
+ * Wraps requests to the Ensime project actor in [[Task]].  These can then be
+ * lifted into a larger [[Task]] sequence, and ultimately into an LSP service.
  */
 final case class EnsimeProjectWrapper(project: ActorRef) {
 
   /**
-   * Tell the ensime project actor to remove a document from its internal state.  This is called when the user closes a document.
+   * Tell the ensime project actor to remove a document from its internal state.
+   * This is called when the user closes a document.
    */
   def removeFile(uri: String): Task[Unit] =
     Task.eval(new File(new URI(uri))).map { file =>
@@ -28,10 +30,11 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
     }
 
   /**
-   * Tell the ensime project actor to typecheck a document.  This is called whenever a document is modified.
+   * Tell the ensime project actor to typecheck a document.  This is called
+   * whenever a document is modified.
    *
    * @param uri  The uri corresponding to the document's location
-   * @param text The text content of the document.  This may not be the text content that is saved on the filesystem as the document may be being edited by the user.
+   * @param text The text content of the document
    */
   def typecheckFile(uri: String, text: String): Task[Unit] =
     LspToEnsimeAdapter.toSourceFileInfo(uri, text).map { sourceFileInfo =>
@@ -42,15 +45,17 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
     Task(project ! TypecheckFileReq(SourceFileInfo(RawFile(path), Some(text))))
 
   /**
-   * Ask the ensime project actor for the signature of the thing at the specified position.  This is called whenever a user hovers over a thing with the intent to view its signature.
+   * Ask the ensime project actor for the signature of the thing at the
+   * specified position.  This is called whenever a user hovers over a thing
+   * with the intent to view its signature.
    *
-   * @param uri  The uri corresponding to the document containing the thing.
-   * @param text The text content of the document containing the thing.
+   * @param uri       The uri corresponding to the document containing the thing
+   * @param text      The text content of the document containing the thing.
    * @param position  The position of the thing within the text
    */
-  def getDocUriAtPoint(uri: String, text: String, position: Position)(
+  def getSignatureAtPoint(uri: String, text: String, position: Position)(
     implicit T: Timeout
-  ): Task[Signature] =
+  ): Task[Option[Signature]] =
     for {
       sourceFileInfo <- LspToEnsimeAdapter.toSourceFileInfo(uri, text)
       offset <- fromEither(
@@ -66,17 +71,19 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
     } yield
       result match {
         case pair @ Some(DocSigPair(DocSig(_, scalaSig), DocSig(_, javaSig))) =>
-          Signature(scalaSig, javaSig)
-        case None => Signature(None, None)
+          scalaSig.map(Signature.Scala).orElse(javaSig.map(Signature.Java))
+        case None => None
       }
 
   /**
-   * Ask the ensime project actor for code completions of the thing at the specified position.
+   * Ask the ensime project actor for code completions of the thing at the
+   * specified position.
    *
-   * @param uri The uri corresponding to the location of the document containing the thing.
-   * @param text The text content of the document containing the thing.
-   * @param position The position of the thing within the text
-   * @return A list of possible completions of the thing.  At most 100 results are returned. Completions are case-insensitive.
+   * @param uri       The uri corresponding to the document containing the thing
+   * @param text      The text content of the document containing the thing.
+   * @param position  The position of the thing within the text
+   * @return          A list of possible completions of the thing.  At most 100
+   *                  results are returned. Completions are case-insensitive.
    */
   def getCompletions(uri: String, text: String, position: Position)(
     implicit T: Timeout
@@ -95,25 +102,27 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
                    offset,
                    maxResults = 100,
                    caseSens = false,
-                   // I'm not sure what this does - the value of "reload" is unimportant to the project (see [[Analyzer.allTheThings]])
+                   // I'm not sure what this does - the value of "reload" is
+                   // unimportant to the project (see [[Analyzer.allTheThings]])
                    reload = false
                  )
                )
     } yield
       result match {
         case CompletionInfoList(prefix, completions) =>
-          // Shouldn't these already be sorted?  After all, we're imposing a cap on the maximum allowed results
           completions
-            .sortBy(-_.relevance)
             .map(EnsimeToLspAdapter.completionInfoToCompletionItem)
       }
 
   /**
-   * Asks the ensime project actor for the structure view of a document.  The structure view members are converted into a flat list of [[SymbolInformation]].
+   * Asks the ensime project actor for the structure view of a document.
+   * The structure view members are converted into a flat list of
+   * [[SymbolInformation]].
    *
    * @param uri  The uri corresponding to the document's location
    * @param text The text corresponding to the document
-   * @return A flat list of all [[SymbolInformation]] in the document's structure.
+   * @return     A flat list of all [[SymbolInformation]] in the document's
+   *             structure.
    */
   def getSymbolInformation(uri: String, text: String)(
     implicit T: Timeout
@@ -134,10 +143,10 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
   /**
    * Gets the Ensime [[SymbolInfo]] of a thing at a point.
    *
-   * @param uri The uri of the document containing the thing
-   * @param text The text of the document containing the thing
-   * @param position The position of the thing
-   * @return The [[SymbolInfo]] of the thing.
+   * @param uri       The uri corresponding to the document containing the thing
+   * @param text      The text content of the document containing the thing.
+   * @param position  The position of the thing within the text
+   * @return          The [[SymbolInfo]] of the thing.
    */
   def getSymbolAtPoint(uri: String, text: String, position: Position)(
     implicit T: Timeout
@@ -156,7 +165,8 @@ final case class EnsimeProjectWrapper(project: ActorRef) {
     } yield result.asInstanceOf[SymbolInfo]
 
   /**
-   * Convers an [[Either]] into a [[Task]].  This should be included in the most recent version of Monix
+   * Convers an [[Either]] into a [[Task]].  This should be included in the
+   * most recent version of Monix
    */
   private def fromEither[A](either: Either[Throwable, A]): Task[A] =
     either match {

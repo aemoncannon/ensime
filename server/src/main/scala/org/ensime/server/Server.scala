@@ -11,7 +11,7 @@ import scala.meta.jsonrpc.{
   LanguageServer
 }
 
-import scribe.Logger
+import scribe._
 import scribe.writer.FileWriter
 
 import monix.execution.Scheduler
@@ -141,7 +141,7 @@ object Server {
 
   val logger = scribe.Logger.root
     .clearHandlers()
-    .withHandler(writer = FileWriter.single(prefix = "ensime-server-log"))
+    .withHandler(writer = FileWriter.simple(fileName = "ensime-server.log"))
 
   // Config is loaded in this order:
   //

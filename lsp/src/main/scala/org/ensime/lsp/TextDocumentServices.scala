@@ -15,10 +15,10 @@ import scala.meta.jsonrpc.Response
 import scribe.Logger
 
 /**
-  * Services for operating on text documents such as opening, closing and saving.
-  *
-  * @param ensimeState  The Ensime actors.  This is uninitialized until an initialize request is received from the LSP client
-  * @param documentMap  A cache of all open documents
+ * Services for operating on text documents such as opening, closing and saving
+ *
+ * @param ensimeState  The Ensime actors
+ * @param documentMap  A cache of all open documents
  */
 final class TextDocumentServices(
   ensimeState: Task[Either[Uninitialized.type, EnsimeState]],
@@ -29,7 +29,8 @@ final class TextDocumentServices(
   /**
    * Called when the client closes a text document.
    *
-   * The document is removed from the [[DocumentMap]] and the file is removed from Ensime.
+   * The document is removed from the [[DocumentMap]] and the file is removed
+   * from Ensime.
    */
   def didClose(params: DidCloseTextDocumentParams): Task[Unit] =
     getState
@@ -68,7 +69,8 @@ final class TextDocumentServices(
   /**
    * Called when the client opens a text document.
    *
-   * The document is stored in the [[DocumentMap]] and the file is sent to ensime for typechecking.
+   * The document is stored in the [[DocumentMap]] and the file is sent to
+   * ensime for typechecking.
    */
   def didOpen(params: DidOpenTextDocumentParams): Task[Unit] =
     getState.flatMap { state =>
@@ -86,7 +88,8 @@ final class TextDocumentServices(
                 val f = new File(uri)
                 val task =
                   if (state.cache.contains(f)) {
-                    // The file belongs to the ensime cache.  There's no point registering it with ensime
+                    // The file belongs to the ensime cache.  There's no point
+                    // registering it with ensime
                     Task(log.debug(s"Not adding temporary file $f to Ensime"))
                   } else {
                     log.debug(s"Adding file $f to Ensime")
@@ -95,7 +98,8 @@ final class TextDocumentServices(
                   }
                 EitherTask.fromTask(task)
               } else {
-                // Whatever the user has client has opened isn't a file. This probably isn't particularly likely, but we were checking for it before.
+                // Whatever the client has opened isn't a file. This probably
+                // isn't particularly likely, but we were checking for it before.
                 EitherTask.fromLeft(
                   TextDocumentServices.UriIsNotAFile(params.textDocument.uri)
                 )
@@ -105,7 +109,8 @@ final class TextDocumentServices(
     }.raiseError(_.toThrowable)
 
   /**
-   * Called when a client hovers over a position and wants symbol information.  At most one signature is returned
+   * Called when a client hovers over a position and wants symbol information.
+   *  At most one signature is returned
    */
   def hover(params: TextDocumentPositionParams)(
     implicit T: Timeout
@@ -123,24 +128,24 @@ final class TextDocumentServices(
           )
           .flatMap { _ =>
             getOpenDocument(params.textDocument.uri).flatMap { doc =>
-              val docUriAtPoint =
-                project.getDocUriAtPoint(params.textDocument.uri,
-                                         doc.text,
-                                         params.position)
-              val hover = docUriAtPoint.map {
-                case Signature(scala, java) =>
-                  log.info(
-                    s"Retrieved $scala and $java for position (${params.position.line}, ${params.position.character})"
-                  )
-
-                  // Return the scala or java signature
-                  val signature = scala.map(RawMarkedString("scala", _)).orElse(java.map(RawMarkedString("java", _)))
-
-                    // The range should be the start and end of the text to highlight on hover.  I think we may be able to get this information by calling [[getSymbolAtPoint]], but for now we return a range of zero length around the position.
-                  val range = Range(params.position, params.position)
-                  signature.map(s => Hover(Seq(s), Some(range)))
-                  .getOrElse(Hover(Seq.empty, None))
-              }
+              val signature =
+                project.getSignatureAtPoint(params.textDocument.uri,
+                                            doc.text,
+                                            params.position)
+              val hover: Task[Hover] = signature.map(_.map {
+                case Signature.Scala(sig) => RawMarkedString("scala", sig)
+                case Signature.Java(sig)  => RawMarkedString("java", sig)
+              }.map { sig =>
+                log.info(
+                  s"Retrieved ${sig.language} signature ${sig.value} for position (${params.position.line}, ${params.position.character})"
+                )
+                // The range should be the start and end of the text to
+                // highlight on hover.  I think we may be able to get this
+                // information by calling [[getSymbolAtPoint]], but for now we
+                // return a range of zero length around the position.
+                val range = Range(params.position, params.position)
+                Hover(Seq(sig), Some(range))
+              }.getOrElse(Hover(Seq.empty, None)))
               EitherTask.fromTask[TextDocumentServices.Error, Hover](hover)
             }
           }
@@ -148,17 +153,14 @@ final class TextDocumentServices(
       .leftMap(_.toResponseError)
       .value
 
-  /** Called when the client has saved a document */
   def didSave(params: DidSaveTextDocumentParams): Task[Unit] = Task {
     log.info("Document was saved")
   }
 
-  /** Called when the client is about to save a document */
   def willSave(params: WillSaveTextDocumentParams): Task[Unit] = Task {
     log.info("Document will be saved")
   }
 
-  // Not sure what this does
   def willSaveWaitUntil(
     params: WillSaveTextDocumentParams
   ): Task[Either[Response.Error, List[TextEdit]]] = Task {
@@ -166,18 +168,15 @@ final class TextDocumentServices(
     Right(Nil)
   }
 
-  /**
-   * Called when a document was edited
-   *
-   * Ensime cannot process incremental edits (it requires full text sync).  We validate that full text sync is taking place before sending the changes to the ensime project to typecheck the file.
-   */
   def didChange(params: DidChangeTextDocumentParams): Task[Unit] =
     EitherTask
       .fromTask[TextDocumentServices.Error, Unit](
         Task(log.info(s"Document did change (${params.contentChanges})"))
       )
       .flatMap[TextDocumentServices.Error, Unit] { _ =>
-        // validate that the client is sending complete documents as changes (i.e. not incremental changes).  We've configured it to send full documents on initialization.  @see [[LifecycleServices.initialize]]
+        // validate that the client is sending complete documents as changes
+        // (i.e. not incremental changes).  We've configured it to send full
+        // documents on initialization.  @see [[LifecycleServices.initialize]]
         EitherTask.fromEither(
           validateFullTextSync(params.contentChanges.toList)
         )
@@ -191,8 +190,7 @@ final class TextDocumentServices(
       }
       .raiseError(_.toThrowable)
 
-  /** Called when the client requests symbol completion information
-   */
+  /** Called when the client requests symbol completion information */
   def completion(
     params: TextDocumentPositionParams
   )(implicit T: Timeout): Task[Either[Response.Error, CompletionList]] =
@@ -202,14 +200,15 @@ final class TextDocumentServices(
         getOpenDocument(params.textDocument.uri).flatMapTask { doc =>
           project
             .getCompletions(params.textDocument.uri, doc.text, params.position)
-            // We return practically all completions, so the completion list is complete
+            // We return practically all completions, so the completion list is
+            // complete
             .map(CompletionList(isIncomplete = false, _))
         }.leftMap(identity)
       }
       .leftMap(_.toResponseError)
       .value
 
-  /** Called when the client requests symbol information of a document.  The symbol information is a structure view of an entire document. */
+  /** Called when the client requests the structure view of a document. */
   def documentSymbol(params: DocumentSymbolParams)(
     implicit T: Timeout
   ): Task[Either[Response.Error, List[SymbolInformation]]] =
@@ -251,8 +250,12 @@ final class TextDocumentServices(
                   val offsetSourcePosition: Option[OffsetSourcePosition] =
                     declPos.collect {
                       case o: OffsetSourcePosition =>
-                        // We only care about these. [[EmptySourcePosition]] implies that Ensime can't find the position
-                        // [[getSymbolAtPoint]] should never return a [[LineSourcePosition]] (those are only used when finding usages)
+                        // We only care about these.
+                        // [[EmptySourcePosition]] implies that Ensime can't
+                        // find the position
+                        // [[getSymbolAtPoint]] should never return a
+                        // [[LineSourcePosition]] (those are only used when
+                        // finding usages)
                         o
                     }
                   val locationOption: Option[Task[Location]] =
@@ -268,7 +271,10 @@ final class TextDocumentServices(
                                 offset
                               )
 
-                            // We can find the source document, but cannot convert the symbol's offset to a valid position.  Return a position at the start of the document so that the user knows roughly where the symbol is.
+                            // We can find the source document, but cannot
+                            // convert the symbol's offset to a valid position.
+                            // Return a position at the start of the document so
+                            // that the user knows roughly where the symbol is.
                             val start = startPositionEither.toOption
                               .getOrElse(Position(0, 0))
                             val range =
@@ -281,7 +287,6 @@ final class TextDocumentServices(
                           }
                         }
                     }
-                  // Return a list of at most one location
                   locationOption
                     .map(_.map(List(_)))
                     .getOrElse(Task(List.empty[Location]))
@@ -321,6 +326,12 @@ final class TextDocumentServices(
         .map(_.toRight(TextDocumentServices.DocumentNotOpen(uri)))
     )
 
+  /**
+   * Validates that the client is sending whole documents as changesets
+   *
+   * According the the LSP specification, the client should send a single
+   * change with a range and range length of zero.
+   */
   private def validateFullTextSync(
     changes: List[TextDocumentContentChangeEvent]
   ): Either[TextDocumentServices.TextDocumentSyncConfigError, Unit] =
@@ -341,7 +352,7 @@ final class TextDocumentServices(
 
 object TextDocumentServices {
 
-  private [lsp] val fileScheme: String = "file"
+  private[lsp] val fileScheme: String = "file"
 
   def apply(ensimeState: Task[Either[Uninitialized.type, EnsimeState]],
             log: Logger): Task[TextDocumentServices] =
@@ -352,7 +363,8 @@ object TextDocumentServices {
   /**
    * Creates a [[Range]] from a start [[Position]] and offset.
    *
-   * The end position is on the same line as the start, but offset by [[offset]] characters.
+   * The end position is on the same line as the start, but offset by
+   * [[offset]] characters.
    */
   private[lsp] def rangeFrom(start: Position, offset: Int): Range = {
     val end = start.copy(character = start.character + offset)

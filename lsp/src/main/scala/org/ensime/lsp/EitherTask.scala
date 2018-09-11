@@ -2,6 +2,11 @@ package org.ensime.lsp
 
 import monix.eval.Task
 
+/**
+ * An EitherT specifically of Task
+ *
+ * This should be provided by a functional library
+ */
 final case class EitherTask[L, A](value: Task[Either[L, A]]) {
 
   def flatMap[LL >: L, B](f: A => EitherTask[LL, B]): EitherTask[LL, B] =

@@ -41,7 +41,6 @@ final class EnsimeServices(log: Logger,
         documentServices.documentSymbol
       )
       .requestAsync(TextDocument.definition)(documentServices.definition)
-  // .notificationAsync(Workspace.didChangeWatchedFiles)(???)
 
   // TODO: This is sent from the server to the client, so how does it hook in?
   def publishDiagnosticsService(
@@ -52,7 +51,8 @@ final class EnsimeServices(log: Logger,
 object EnsimeServices {
 
   /**
-   * Creates the [[EnsimeServices]].   The initial ensime state is empty as the ensime system only created when an "initialize" request is received.
+   * Creates the [[EnsimeServices]].   The initial ensime state is empty as the
+   * ensime system only created when an "initialize" request is received.
    */
   def apply(log: Logger): Task[EnsimeServices] =
     for {

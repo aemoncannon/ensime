@@ -14,7 +14,8 @@ final class DocumentMap(state: MVar[Map[String, TextDocumentItem]]) {
   /**
    * Gets the [[TextDocumentItem]] for a uri
    * @param uri The location of the text document
-   * @return The [[TextDocumentItem]] or [[None]] if no document is present in the cache
+   * @return The [[TextDocumentItem]] or [[None]] if no document is present in
+   *         the cache
    */
   def get(uri: String): Task[Option[TextDocumentItem]] =
     state.read.map(_.get(uri))

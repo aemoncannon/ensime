@@ -19,11 +19,13 @@ import monix.eval.Task
 final case class EnsimeCache(rootPath: Path) extends SLF4JLogging {
 
   /**
-    * Gets the path to an [[EnsimeFile]].
-    *
-    * If the file is a raw file e.g. a source file within the project, returns the source file path
-    * If the file is an entry within a jar, the jar is unzipped into the .ensime_cache directory and the path of the file within the .ensime_cache is returned.
-    */
+   * Gets the path to an [[EnsimeFile]].
+   *
+   * If the file is a raw file e.g. a source file within the project, returns
+   * the source file path. If the file is an entry within a jar, the jar is
+   * unzipped into the .ensime_cache directory and the path of the file within
+   * the .ensime_cache is returned.
+   */
   def path(ensimeFile: EnsimeFile): Task[Path] = ensimeFile match {
     case RawFile(p) => Task(p)
     case ArchiveFile(jar, entry) =>
@@ -51,12 +53,9 @@ final case class EnsimeCache(rootPath: Path) extends SLF4JLogging {
   }
 
   /** Determines if a file is located within the ensime cache directory */
-  def contains(file: File): Boolean = {
+  def contains(file: File): Boolean =
     file.getAbsolutePath.startsWith(rootPath.toString)
-  }
 }
-
-
 
 object EnsimeCache {
 

@@ -83,9 +83,8 @@ lazy val core = project
       "org.apache.lucene" % "lucene-analyzers-common" % luceneVersion,
       "org.ow2.asm"       % "asm-commons"             % "5.2",
       "org.ow2.asm"       % "asm-util"                % "5.2",
-      // TODO remove the locally built snapshot in favour of a release
-      "org.scalameta" %% "lsp4s" % "0.1.0+5-de927af3-SNAPSHOT",
       "org.scala-lang"    % "scalap"                  % scalaVersion.value,
+      "org.scalameta"     %% "lsp4s"                  % "0.2.0",
       "com.typesafe.akka" %% "akka-actor"             % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion, {
         // see notes in https://github.com/ensime/ensime-server/pull/1446

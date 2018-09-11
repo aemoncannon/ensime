@@ -31,15 +31,22 @@ import scribe.Logger
 /**
  * Services for the initialization and termination of the ensime state
  *
- * @param ref  A mutable reference to the [[EnsimeState]].  The state is set on initialization.  Other services may access the state, but the [[LifecycleServices]] are responsible for mutating it.
+ * @param ref  A mutable reference to the [[EnsimeState]].  The state is set on
+ *             initialization.  Other services may access the state, but the
+ *             [[LifecycleServices]] are responsible for mutating it.
  */
 final class LifecycleServices(ref: OptionalRef[EnsimeState], log: Logger) {
 
   /**
    * Initializes the ensime actor system using the .ensime config file.
    *
-   * @param params The root path and client capabilities.  The root path is used to locate the .ensime file.  The client capabilities are currently unused, but should probably be inspected to verify that the client can handle the server's responses.
-   * @return an [[InitializeResult]] on successful initialization or a [[Response.Error]] on failure.  See [[LifecycleServices.InitializationError]] for the specific errors that may occur
+   * @param params The root path and client capabilities.  The root path is used
+   *               to locate the .ensime file.  The client capabilities are
+   *               currently unused, but should probably be inspected to verify
+   *               that the client can handle the server's responses.
+   * @return       An [[InitializeResult]] on successful initialization or a
+   *              [[Response.Error]] on failure.  See
+   *              [[LifecycleServices.InitializationError]]
    */
   def initialize(
     params: InitializeParams
@@ -85,7 +92,10 @@ final class LifecycleServices(ref: OptionalRef[EnsimeState], log: Logger) {
   /**
    * Shuts down the actor system
    *
-   * @return An empty json object on successful shutdown or a [[Response.Error]].  Shutdown will fail if the system isn't initialized in the first place or if the actor system fails to terminate.
+   * Shutdown will fail if the system isn't initialized in the first place or
+   * if the actor system fails to terminate.
+   *
+   * @return An empty json object on successful shutdown or a [[Response.Error]]
    */
   def shutdown: Task[Either[Response.Error, Json]] =
     EitherTask
@@ -116,11 +126,14 @@ final class LifecycleServices(ref: OptionalRef[EnsimeState], log: Logger) {
       .onErrorHandle(t => Left(Response.internalError(t.getMessage)))
 
   /**
-   * Creates the .ensime_cache directory.  This contains a cache of unzipped source jar files.
+   * Creates the .ensime_cache directory.  This contains a cache of unzipped
+   * source jar files.
    *
-   * The .ensime_cache directory is created in the root of the project if it doesn't already exist.
+   * The .ensime_cache directory is created in the root of the project if it
+   * doesn't already exist.
    *
-   * @param rootFile  The root of the project that the LSP client is being used in.
+   * @param rootFile  The root of the project that the LSP client is being used
+   *                  in
    */
   private def createCache(
     rootFile: File
@@ -166,8 +179,12 @@ final class LifecycleServices(ref: OptionalRef[EnsimeState], log: Logger) {
   /**
    * Loads the ensime server config and ensime config
    *
-   * The [[EnsimeServerConfig]] is loaded from typesafe config alone, while the [[EnsimeConfig]] is loaded from the .ensime file.
-   * @param config  The typesafe config object. This is used to create the [[EnsimeserverConfig]].  It contains the location of the .ensime file used to create the [[EnsimeConfig]].
+   * The [[EnsimeServerConfig]] is loaded from typesafe config alone, while the
+   * [[EnsimeConfig]] is loaded from the .ensime file.
+   *
+   * @param config  The typesafe config object. This is used to create the
+   *                [[EnsimeserverConfig]].  It contains the location of the
+   *                .ensime file used to create the [[EnsimeConfig]].
    *
    */
   private def loadEnsimeConfig(
@@ -187,9 +204,10 @@ final class LifecycleServices(ref: OptionalRef[EnsimeState], log: Logger) {
   /**
    * Creates the Ensime actor system and project actor
    *
-   * @param config The typesafe config
+   * @param config       The typesafe config
    * @param ensimeConfig The .ensime config of the target project
-   * @param serverConfig The Ensime server config loaded from the typesafe config
+   * @param serverConfig The Ensime server config loaded from the typesafe
+   *                     config
    */
   private def createActorSystem(
     config: Config,
