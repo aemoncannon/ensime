@@ -4,7 +4,7 @@ lazy val api = project
     licenses := Seq(LGPL3),
     resourcesOnCompilerCp(Compile),
     libraryDependencies ++= Seq(
-      "org.scalaz" %% "scalaz-ioeffect" % "1.0.0"
+      "org.scalaz" %% "scalaz-ioeffect" % "2.5.0",
     )
   )
 

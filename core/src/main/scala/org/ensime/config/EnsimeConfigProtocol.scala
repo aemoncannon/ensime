@@ -13,14 +13,13 @@ import org.ensime.io.Canon.ops._
 
 import org.ensime.api._
 import SexpReader.ops._
+import scalaz.ioeffect.RTS
 
-object EnsimeConfigProtocol {
+object EnsimeConfigProtocol extends RTS {
   private def log = Logger(this.getClass.getName)
 
-  def parse(config: String): EnsimeConfig = {
-    val raw = SexpParser(config).as[EnsimeConfig]
-    validated(raw)
-  }
+  def parse(config: String): Either[DeserializationException, EnsimeConfig] =
+    SexpParser(config).as[EnsimeConfig].map(validated)
 
   def validated(c: EnsimeConfig): EnsimeConfig = {
     // scalaz.Validation would be a cleaner way to do this
@@ -54,6 +53,6 @@ object EnsimeConfigProtocol {
         dir.file.mkdirs()
       }
     }
-    p.canon.unsafePerformIO()
+    unsafePerformIO(p.canon)
   }
 }

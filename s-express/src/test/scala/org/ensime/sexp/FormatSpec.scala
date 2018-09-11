@@ -13,6 +13,6 @@ trait FormatSpec extends SexpSpec {
     val sexp = SexpWriter[T].write(start)
     assert(sexp === expect,
            s"${SexpCompactPrinter(sexp)} was not ${SexpCompactPrinter(expect)}")
-    SexpReader[T].read(sexp) should be(start)
+    SexpReader[T].read(sexp) should be(Right(start))
   }
 }

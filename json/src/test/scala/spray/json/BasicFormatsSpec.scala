@@ -16,7 +16,7 @@ class BasicFormatsSpec extends WordSpec {
       42.toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to an Int" in {
-      JsNumber(42).as[Int] shouldEqual 42
+      JsNumber(42).as[Int] shouldEqual Right(42)
     }
   }
 
@@ -26,7 +26,7 @@ class BasicFormatsSpec extends WordSpec {
     }
     "convert a JsNumber to a Long" in {
       JsNumber(7563661897011259335L)
-        .as[Long] shouldEqual 7563661897011259335L
+        .as[Long] shouldEqual Right(7563661897011259335L)
     }
   }
 
@@ -35,7 +35,7 @@ class BasicFormatsSpec extends WordSpec {
       4.2f.toJson shouldEqual JsNumber(4.2f)
     }
     "convert a JsNumber to a Float" in {
-      JsNumber(4.2f).as[Float] shouldEqual 4.2f
+      JsNumber(4.2f).as[Float] shouldEqual Right(4.2f)
     }
   }
 
@@ -44,7 +44,7 @@ class BasicFormatsSpec extends WordSpec {
       4.2.toJson shouldEqual JsNumber(4.2)
     }
     "convert a JsNumber to a Double" in {
-      JsNumber(4.2).as[Double] shouldEqual 4.2
+      JsNumber(4.2).as[Double] shouldEqual Right(4.2)
     }
   }
 
@@ -53,7 +53,7 @@ class BasicFormatsSpec extends WordSpec {
       42.asInstanceOf[Byte].toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to a Byte" in {
-      JsNumber(42).as[Byte] shouldEqual 42
+      JsNumber(42).as[Byte] shouldEqual Right(42)
     }
   }
 
@@ -62,7 +62,7 @@ class BasicFormatsSpec extends WordSpec {
       42.asInstanceOf[Short].toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to a Short" in {
-      JsNumber(42).as[Short] shouldEqual 42
+      JsNumber(42).as[Short] shouldEqual Right(42)
     }
   }
 
@@ -71,11 +71,11 @@ class BasicFormatsSpec extends WordSpec {
       BigDecimal(42).toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to a BigDecimal" in {
-      JsNumber(42).as[BigDecimal] shouldEqual BigDecimal(42)
+      JsNumber(42).as[BigDecimal] shouldEqual Right(BigDecimal(42))
     }
     """convert a JsString to a BigDecimal (to allow the quoted-large-numbers pattern)""" in {
       JsString("9223372036854775809")
-        .as[BigDecimal] shouldEqual BigDecimal("9223372036854775809")
+        .as[BigDecimal] shouldEqual Right(BigDecimal("9223372036854775809"))
     }
   }
 
@@ -84,11 +84,13 @@ class BasicFormatsSpec extends WordSpec {
       BigInt(42).toJson shouldEqual JsNumber(42)
     }
     "convert a JsNumber to a BigInt" in {
-      JsNumber(42).as[BigInt] shouldEqual BigInt(42)
+      JsNumber(42).as[BigInt] shouldEqual Right(BigInt(42))
     }
     """convert a JsString to a BigInt (to allow the quoted-large-numbers pattern)""" in {
-      JsString("9223372036854775809").as[BigInt] shouldEqual BigInt(
-        "9223372036854775809"
+      JsString("9223372036854775809").as[BigInt] shouldEqual Right(
+        BigInt(
+          "9223372036854775809"
+        )
       )
     }
   }
@@ -98,7 +100,7 @@ class BasicFormatsSpec extends WordSpec {
       ().toJson shouldEqual JsNumber(1)
     }
     "convert a JsNumber to Unit" in {
-      JsNumber(1).as[Unit] shouldEqual (())
+      JsNumber(1).as[Unit] shouldEqual Right(())
     }
   }
 
@@ -110,10 +112,10 @@ class BasicFormatsSpec extends WordSpec {
       false.toJson shouldEqual JsBoolean.False
     }
     "convert a JsBoolean.True to true" in {
-      JsBoolean.True.as[Boolean] shouldEqual true
+      JsBoolean.True.as[Boolean] shouldEqual Right(true)
     }
     "convert a JsBoolean.False to false" in {
-      JsBoolean.False.as[Boolean] shouldEqual false
+      JsBoolean.False.as[Boolean] shouldEqual Right(false)
     }
   }
 
@@ -122,7 +124,7 @@ class BasicFormatsSpec extends WordSpec {
       'c'.toJson shouldEqual JsString("c")
     }
     "convert a JsString to a Char" in {
-      JsString("c").as[Char] shouldEqual 'c'
+      JsString("c").as[Char] shouldEqual Right('c')
     }
   }
 
@@ -131,7 +133,7 @@ class BasicFormatsSpec extends WordSpec {
       "Hello".toJson shouldEqual JsString("Hello")
     }
     "convert a JsString to a String" in {
-      JsString("Hello").as[String] shouldEqual "Hello"
+      JsString("Hello").as[String] shouldEqual Right("Hello")
     }
   }
 
@@ -140,7 +142,7 @@ class BasicFormatsSpec extends WordSpec {
       'Hello.toJson shouldEqual JsString("Hello")
     }
     "convert a JsString to a Symbol" in {
-      JsString("Hello").as[Symbol] shouldEqual 'Hello
+      JsString("Hello").as[Symbol] shouldEqual Right('Hello)
     }
   }
 

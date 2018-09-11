@@ -7,7 +7,7 @@ import shapeless.{ :: => :*:, _ }
 import scalaz.ioeffect.IO
 
 trait DerivedCanon[Repr] {
-  def canon(a: Repr): IO[Repr]
+  def canon(a: Repr): IO[Throwable, Repr]
 }
 object DerivedCanon {
   def gen[A, Repr](

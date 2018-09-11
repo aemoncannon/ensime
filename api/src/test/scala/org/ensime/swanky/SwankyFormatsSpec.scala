@@ -30,7 +30,7 @@ class SwankyFormatsSpec extends FlatSpec with Matchers {
       converted,
       s"\n${SexpCompactPrinter(sexp)}\nwas not\n${SexpCompactPrinter(expect)}"
     )
-    expect.as[T] should be(start)
+    expect.as[T] should be(Right(start))
   }
 
   def roundtrip(value: RpcRequest, via: String)(implicit p: Position): Unit = {

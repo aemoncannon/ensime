@@ -74,7 +74,7 @@ class ServerActor(
         context.actorOf(ConnectionHandler(project, broadcaster, delegate))
 
       { req =>
-        inHandler ! req
+        req.fold(err => inHandler ! err, msg => inHandler ! msg)
       }
     }
 
@@ -169,12 +169,15 @@ object Server {
   def startRegularServer(): Unit = {
     val config                                    = loadConfig()
     implicit val serverConfig: EnsimeServerConfig = parseServerConfig(config)
-    implicit val ensimeConfig: EnsimeConfig =
-      EnsimeConfigProtocol.parse(serverConfig.config.file.readString())
 
-    ActorSystem
-      .create("ENSIME", config)
-      .actorOf(ServerActor.props(), "ensime-main")
+    EnsimeConfigProtocol.parse(serverConfig.config.file.readString()) match {
+      case Right(cfg) =>
+        implicit val ensimeConfig: EnsimeConfig = cfg
+        ActorSystem
+          .create("ENSIME", config)
+          .actorOf(ServerActor.props(), "ensime-main")
+      case Left(err) => System.err.println(s"Failed to parse .ensime $err")
+    }
   }
 
   def startLspServer(): Unit = {

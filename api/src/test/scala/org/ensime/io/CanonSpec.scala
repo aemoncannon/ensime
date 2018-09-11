@@ -9,6 +9,7 @@ import java.nio.file._
 import scala.util.Properties.jdkHome
 
 import scalaz.std.list._
+import scalaz.ioeffect.RTS
 
 import org.scalatest._
 import org.scalatest.Matchers._
@@ -17,12 +18,12 @@ import org.ensime.api._
 
 import Canon.ops._
 
-class CanonSpec extends FlatSpec {
+class CanonSpec extends FlatSpec with RTS {
 
   lazy val file  = new File(".")
-  lazy val canon = file.canon.unsafePerformIO()
+  lazy val canon = Canonised(file)
 
-  def Canonised[A: Canon](a: A): A = a.canon.unsafePerformIO()
+  def Canonised[A: Canon](a: A): A = unsafePerformIO(a.canon)
 
   "Canon" should "canon File" in {
     Canonised(file) shouldBe canon
@@ -72,7 +73,7 @@ class CanonSpec extends FlatSpec {
 
     val entry = EnsimeFile(s"$src!/java/lang/String.java")
     val expected =
-      ArchiveFile(src.canon.unsafePerformIO, "/java/lang/String.java")
+      ArchiveFile(Canonised(src), "/java/lang/String.java")
 
     Canonised(List(entry)) shouldBe List(expected)
   }

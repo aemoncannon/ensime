@@ -21,8 +21,8 @@ class DefaultSexpProtocolSpec extends FormatSpec {
     //assertFormat(list, SexpList(SexpList(SexpString("boo"))))
     assertFormat(list, SexpList(SexpString("boo")))
 
-    SexpReader[Option[List[String]]].read(SexpNil) shouldBe None
-    SexpReader[List[Option[String]]].read(SexpNil) shouldBe Nil
+    SexpReader[Option[List[String]]].read(SexpNil) shouldBe Right(None)
+    SexpReader[List[Option[String]]].read(SexpNil) shouldBe Right(Nil)
   }
 
 }

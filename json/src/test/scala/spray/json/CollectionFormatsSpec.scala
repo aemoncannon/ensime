@@ -18,7 +18,7 @@ class CollectionFormatsSpec extends WordSpec {
       list.toJson shouldEqual json
     }
     "convert a JsArray of JsNumbers to a List[Int]" in {
-      json.as[List[Int]] shouldEqual list
+      json.as[List[Int]] shouldEqual Right(list)
     }
   }
 
@@ -43,7 +43,7 @@ class CollectionFormatsSpec extends WordSpec {
       map.toJson shouldEqual json
     }
     "be able to convert a JsObject to a Map[String, Long]" in {
-      json.as[Map[String, Long]] shouldEqual map
+      json.as[Map[String, Long]] shouldEqual Right(map)
     }
   }
 
@@ -54,7 +54,7 @@ class CollectionFormatsSpec extends WordSpec {
       set.toJson shouldEqual json
     }
     "convert a JsArray of JsNumbers to a Set[Int]" in {
-      json.as[Set[Int]] shouldEqual set
+      json.as[Set[Int]] shouldEqual Right(set)
     }
   }
 
@@ -65,7 +65,7 @@ class CollectionFormatsSpec extends WordSpec {
       seq.toJson shouldEqual json
     }
     "convert a JsArray of JsNumbers to a IndexedSeq[Int]" in {
-      json.as[collection.IndexedSeq[Int]] shouldEqual seq
+      json.as[collection.IndexedSeq[Int]] shouldEqual Right(seq)
     }
   }
 

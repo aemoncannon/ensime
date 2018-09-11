@@ -7,6 +7,7 @@ import akka.event.LoggingReceive
 import org.ensime.api._
 import org.ensime.core._
 import org.ensime.io.Canon.ops._
+import scalaz.ioeffect.RTS
 
 /**
  * Accepts RpcRequestEnvelope and responds with an RpcResponseEnvelope to target.
@@ -18,7 +19,8 @@ class ConnectionHandler(
   broadcaster: ActorRef,
   target: ActorRef
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with RTS {
 
   override def preStart(): Unit =
     broadcaster ! Broadcaster.Register
@@ -33,16 +35,16 @@ class ConnectionHandler(
 
   def receiveRpc: Receive = {
     case req: RpcRequestEnvelope =>
-      val handler = RequestHandler(req.canon.unsafePerformIO(), project, self)
+      val handler = RequestHandler(unsafePerformIO(req.canon), project, self)
       context.actorOf(handler, s"${req.callId}")
 
     case outgoing: RpcResponseEnvelope =>
-      target forward outgoing.canon.unsafePerformIO()
+      target forward unsafePerformIO(outgoing.canon)
   }
 
   def receiveEvents: Receive = {
     case outgoing: EnsimeEvent =>
-      target forward RpcResponseEnvelope(None, outgoing.canon.unsafePerformIO())
+      target forward RpcResponseEnvelope(None, unsafePerformIO(outgoing.canon))
   }
 
 }

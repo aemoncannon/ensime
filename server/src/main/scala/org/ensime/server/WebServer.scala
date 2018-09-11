@@ -20,12 +20,16 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler
 import io.netty.handler.codec.http.{ HttpObjectAggregator, HttpServerCodec }
 import io.netty.handler.logging.LoggingHandler;
 
-import org.ensime.api.{ RpcRequestEnvelope, RpcResponseEnvelope }
+import org.ensime.api.{
+  RpcRequestEnvelope,
+  RpcRequestInvalid,
+  RpcResponseEnvelope
+}
 import org.ensime.core.DocJarReading
 
 object WebServer {
 
-  type IncomingHandler = RpcRequestEnvelope => Unit
+  type IncomingHandler = Either[RpcRequestInvalid, RpcRequestEnvelope] => Unit
   type OutgoingHandler = RpcResponseEnvelope => Unit
   type HookHandlers    = OutgoingHandler => IncomingHandler
 

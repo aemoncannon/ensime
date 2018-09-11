@@ -13,33 +13,36 @@ class DerivedSexpReaderTest extends FlatSpec {
   import examples._
 
   implicit class Helper(s: String) {
-    def parseAs[A: SexpReader]: A = SexpParser(s).as[A]
+    def parseAs[A: SexpReader]: Either[DeserializationException, A] =
+      SexpParser(s).as[A]
   }
 
   "DerivedSexpWriter" should "support anyval" in {
-    SexpString("hello").as[Optimal] shouldBe Optimal("hello")
+    SexpString("hello").as[Optimal] shouldBe Right(Optimal("hello"))
   }
 
   it should "support generic products" in {
-    """(:s "hello")""".parseAs[Foo] shouldBe Foo("hello")
-    "nil".parseAs[Baz.type] shouldBe Baz
-    """(:o "hello")""".parseAs[Faz] shouldBe Faz(Some("hello"))
+    """(:s "hello")""".parseAs[Foo] shouldBe Right(Foo("hello"))
+    "nil".parseAs[Baz.type] shouldBe Right(Baz)
+    """(:o "hello")""".parseAs[Faz] shouldBe Right(Faz(Some("hello")))
   }
 
   it should "support generic coproducts" in {
-    """(:foo (:s "hello"))""".parseAs[SimpleTrait] shouldBe Foo("hello")
-    """:baz""".parseAs[SimpleTrait] shouldBe Baz
+    """(:foo (:s "hello"))""".parseAs[SimpleTrait] shouldBe Right(Foo("hello"))
+    """:baz""".parseAs[SimpleTrait] shouldBe Right(Baz)
 
-    """:WIBBLE""".parseAs[AbstractThing] shouldBe Wibble
-    """(:WOBBLE (:ID "hello"))""".parseAs[AbstractThing] shouldBe Wobble(
-      "hello"
+    """:WIBBLE""".parseAs[AbstractThing] shouldBe Right(Wibble)
+    """(:WOBBLE (:ID "hello"))""".parseAs[AbstractThing] shouldBe Right(
+      Wobble(
+        "hello"
+      )
     )
 
   }
 
   it should "support generic recursive ADTs" in {
     """(:h "hello" :t (:h "goodbye"))""".parseAs[Recursive] shouldBe
-      Recursive("hello", Some(Recursive("goodbye")))
+      Right(Recursive("hello", Some(Recursive("goodbye"))))
   }
 
 }

@@ -12,21 +12,17 @@ import shapeless._
 final case class DeserializationException(msg: String,
                                           cause: Throwable = null,
                                           fieldNames: List[String] = Nil)
-    extends RuntimeException(msg, cause)
 object DeserializationException {
-  def deserializationError(msg: String,
-                           cause: Throwable = null,
-                           fieldNames: List[String] = Nil) =
-    throw new DeserializationException(msg, cause, fieldNames)
   @inline
-  def deserError[T: Typeable](msg: String, cause: Throwable = null): Nothing =
-    throw new DeserializationException(
-      s"deserialising ${Typeable[T].describe}: $msg",
-      cause
-    )
+  def deserError[T: Typeable](
+    msg: String,
+    cause: Throwable = null
+  ): DeserializationException =
+    DeserializationException(s"deserialising ${Typeable[T].describe}: $msg",
+                             cause)
 
   @inline
-  def unexpectedJson[T: Typeable](got: JsValue): Nothing =
-    deserializationError(s"unexpected $got")
+  def unexpectedJson[T: Typeable](got: JsValue): DeserializationException =
+    DeserializationException(s"unexpected $got")
 
 }

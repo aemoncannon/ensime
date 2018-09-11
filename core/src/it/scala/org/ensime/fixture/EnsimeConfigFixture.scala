@@ -78,7 +78,7 @@ object EnsimeConfigFixture {
 
   private implicit def charset = Charset.defaultCharset()
   lazy val EnsimeTestProject =
-    EnsimeConfigProtocol.parse(dotEnsime.readString())
+    EnsimeConfigProtocol.parse(dotEnsime.readString()).right.get
 
   lazy val EnsimeCacheProject = {
     val config = File("../testing/cache/.ensime").canon
@@ -88,7 +88,7 @@ object EnsimeConfigFixture {
       )
       None
     } else {
-      Some(EnsimeConfigProtocol.parse(config.readString()))
+      Some(EnsimeConfigProtocol.parse(config.readString()).right.get)
     }
   }
 

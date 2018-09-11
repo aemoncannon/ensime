@@ -18,7 +18,7 @@ import Scalaz._
  * but those that do not must perform IO.
  */
 @typeclass trait Canon[A] { self =>
-  def canon(a: A): IO[A]
+  def canon(a: A): IO[Throwable, A]
 
   final def xmap[B](f: A => B, g: B => A): Canon[B] =
     b => self.canon(g(b)).map(f)
@@ -26,7 +26,9 @@ import Scalaz._
 object Canon extends LowPriorityCanon {
 
   implicit val file: Canon[File] =
-    f => IO.sync(f.getCanonicalFile).catchAll(_ => IO.sync(f.getAbsoluteFile))
+    f =>
+      IO.syncThrowable(f.getCanonicalFile)
+        .catchAll(_ => IO.syncThrowable(f.getAbsoluteFile))
 
   implicit val path: Canon[Path] =
     p =>
