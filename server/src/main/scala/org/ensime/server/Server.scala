@@ -196,7 +196,7 @@ object Server {
     val server = new LanguageServer(
       messages,
       client,
-      (Await.result(EnsimeServices(logger).runAsync, Duration.Inf)).services,
+      (Await.result(EnsimeServices(client, logger).runAsync, Duration.Inf)).services,
       requestScheduler,
       logger
     )

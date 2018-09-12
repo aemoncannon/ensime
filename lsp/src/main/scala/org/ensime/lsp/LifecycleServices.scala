@@ -191,15 +191,12 @@ final class LifecycleServices(ref: OptionalRef[EnsimeState], log: Logger) {
     config: Config
   ): EitherTask[LifecycleServices.FailedToLoadEnsimeConfig.type,
                 (EnsimeConfig, EnsimeServerConfig)] =
-    EitherTask
-      .fromTask(Task.eval {
-        val serverConfig = parseServerConfig(config)
-        val ensimeConfig = EnsimeConfigProtocol.parse(
+    EitherTask.fromTask(Task.eval(parseServerConfig(config))).flatMap { serverConfig =>
+      EitherTask.fromEither(EnsimeConfigProtocol.parse(
           serverConfig.config.file.readString()(LifecycleServices.Utf8Charset)
-        )
-        (ensimeConfig, serverConfig)
-      })
-      .onErrorHandle(_ => LifecycleServices.FailedToLoadEnsimeConfig)
+      ).left.map(_ => LifecycleServices.FailedToLoadEnsimeConfig))
+      .map(ensimeConfig => (ensimeConfig, serverConfig))
+    }.onErrorHandle(_ => LifecycleServices.FailedToLoadEnsimeConfig)
 
   /**
    * Creates the Ensime actor system and project actor

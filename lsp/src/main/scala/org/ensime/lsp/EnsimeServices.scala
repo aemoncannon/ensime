@@ -7,7 +7,7 @@ import monix.eval.Task
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.meta.jsonrpc.{ Response, Services }
+import scala.meta.jsonrpc.{ Response, Services, LanguageClient }
 import scala.meta.lsp.{ Lifecycle, PublishDiagnostics, TextDocument }
 import scribe.Logger
 import monix.eval.Task
@@ -15,7 +15,8 @@ import monix.eval.Task
 /**
  * Provides the [[Services]] for a [[scala.meta.jsonrpc.LanguageServer]].
  */
-final class EnsimeServices(log: Logger,
+final class EnsimeServices(languageClient: LanguageClient,
+                           log: Logger,
                            lifecycleServices: LifecycleServices,
                            documentServices: TextDocumentServices) {
 
@@ -54,12 +55,12 @@ object EnsimeServices {
    * Creates the [[EnsimeServices]].   The initial ensime state is empty as the
    * ensime system only created when an "initialize" request is received.
    */
-  def apply(log: Logger): Task[EnsimeServices] =
+  def apply(languageClient: LanguageClient, log: Logger): Task[EnsimeServices] =
     for {
       initialState         <- OptionalRef.empty[EnsimeState]
       textDocumentServices <- TextDocumentServices(initialState.get, log)
     } yield {
       val lifecycleServices = new LifecycleServices(initialState, log)
-      new EnsimeServices(log, lifecycleServices, textDocumentServices)
+      new EnsimeServices(languageClient, log, lifecycleServices, textDocumentServices)
     }
 }
