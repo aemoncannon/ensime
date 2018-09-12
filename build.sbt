@@ -84,6 +84,7 @@ lazy val core = project
       "org.ow2.asm"       % "asm-commons"             % "5.2",
       "org.ow2.asm"       % "asm-util"                % "5.2",
       "org.scala-lang"    % "scalap"                  % scalaVersion.value,
+      "org.scalameta"     %% "lsp4s"                  % "0.2.0",
       "com.typesafe.akka" %% "akka-actor"             % akkaVersion,
       "com.typesafe.akka" %% "akka-slf4j"             % akkaVersion, {
         // see notes in https://github.com/ensime/ensime-server/pull/1446
@@ -220,3 +221,12 @@ addCommandAlias("fix", "all compile:scalafixCli test:scalafixCli")
 addCommandAlias("tests", "all test it:test")
 // not really what is used in CI, but close enough...
 addCommandAlias("ci", ";check ;prep ;cpl ;doc ;tests")
+// TODO The logging between lsp4s (scribe) conflicts with this
+// private val slf4jVersion = "1.7.25"
+//   val logback = Seq(
+//     "ch.qos.logback" % "logback-classic"  % "1.2.3",
+//     "org.slf4j"      % "slf4j-api"        % slf4jVersion,
+//     "org.slf4j"      % "jul-to-slf4j"     % slf4jVersion,
+//     "org.slf4j"      % "jcl-over-slf4j"   % slf4jVersion,
+//     "org.slf4j"      % "log4j-over-slf4j" % slf4jVersion
+//   )

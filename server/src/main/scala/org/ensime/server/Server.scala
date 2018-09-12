@@ -5,6 +5,17 @@ package org.ensime.server
 import java.io.{ FileOutputStream, PrintStream }
 import java.net.InetSocketAddress
 import java.nio.file.Paths
+import scala.meta.jsonrpc.{
+  BaseProtocolMessage,
+  LanguageClient,
+  LanguageServer
+}
+
+import scribe._
+import scribe.writer.FileWriter
+
+import monix.execution.Scheduler
+import java.util.concurrent.Executors
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -17,7 +28,7 @@ import org.ensime.api._
 import org.ensime.config._
 import org.ensime.config.richconfig._
 import org.ensime.core._
-import org.ensime.lsp.ensime.EnsimeLanguageServer
+import org.ensime.lsp.EnsimeServices
 import org.ensime.util.Slf4jSetup
 import org.ensime.api.EnsimeFile.Implicits.DefaultCharset
 import org.ensime.util.path._
@@ -128,6 +139,10 @@ object Server {
 
   val log = LoggerFactory.getLogger("Server")
 
+  val logger = scribe.Logger.root
+    .clearHandlers()
+    .withHandler(writer = FileWriter.simple(fileName = "ensime-server.log"))
+
   // Config is loaded in this order:
   //
   //   1. system properties
@@ -166,8 +181,25 @@ object Server {
   }
 
   def startLspServer(): Unit = {
-    val cwd    = Option(System.getProperty("lsp.workspace")).getOrElse(".")
-    val server = new EnsimeLanguageServer(System.in, System.out)
+    val cwd = Option(System.getProperty("lsp.workspace")).getOrElse(".")
+
+    val lspScheduler     = Scheduler(Executors.newFixedThreadPool(1))
+    val requestScheduler = Scheduler(Executors.newFixedThreadPool(4))
+
+    val client = new LanguageClient(System.out, logger)
+    val messages = BaseProtocolMessage
+      .fromInputStream(System.in, logger)
+      .executeOn(lspScheduler)
+
+    // Use lsp4s language server instead
+    import monix.execution.Scheduler.Implicits.global
+    val server = new LanguageServer(
+      messages,
+      client,
+      (Await.result(EnsimeServices(client, logger).runAsync, Duration.Inf)).services,
+      requestScheduler,
+      logger
+    )
 
     // route System.out somewhere else. The presentation compiler may spit out text
     // and that confuses VScode, since stdout is used for the language server protocol
@@ -179,11 +211,13 @@ object Server {
       System.setErr(
         new PrintStream(new FileOutputStream(s"$cwd/pc.stdout.log"))
       )
-      log.info("This file contains stdout from the presentation compiler.")
-      log.info(s"Starting server in $cwd")
-      log.info(s"Classpath: ${Properties.javaClassPath}")
-      server.start()
+
+      logger.info("This file contains stdout from the presentation compiler.")
+      logger.info(s"Starting server in $cwd")
+      logger.info(s"Classpath: ${Properties.javaClassPath}")
+      server.listen()
     } finally {
+      logger.info("Finished")
       System.setOut(origOut)
     }
 
