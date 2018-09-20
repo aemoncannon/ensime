@@ -92,7 +92,7 @@ object ProjectPluginKeys {
   val luceneVersion    = "6.4.2" // 6.6 deprecates index time boosting
   val nettyVersion     = "4.1.22.Final"
   val akkaVersion      = "2.5.11"
-  val orientVersion    = "2.2.33"
+  val orientVersion    = "3.0.7"
   val shapelessVersion = "2.3.3"
   val derivingVersion  = "0.13.1"
 
