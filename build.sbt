@@ -202,12 +202,15 @@ TaskKey[Unit](
 
 addCommandAlias("fmt",
                 "all scalafmtSbt compile:scalafmt test:scalafmt it:scalafmt")
-addCommandAlias("lint", "all compile:scalafixCli test:scalafixCli")
+
+addCommandAlias(
+  "lint",
+  ";compile ;test:compile; all compile:scalafix test:scalafix --auto-classpath --scalac-options \"-Ywarn-unused\" --check"
+)
 
 addCommandAlias(
   "check",
   ";scalafmtSbtCheck ;compile:scalafmtCheck ;test:scalafmtCheck ;it:scalafmtCheck"
-    + " ;compile:scalafixCli --test ;test:scalafixCli --test"
 )
 addCommandAlias("prep", ";ensimeConfig ;assembly ;prewarm")
 addCommandAlias("cpl", "all compile test:compile it:compile")
@@ -215,8 +218,10 @@ addCommandAlias(
   "check",
   "all scalafmtSbtCheck compile:scalafmtCheck test:scalafmtCheck it:scalafmtCheck"
 )
-addCommandAlias("lint", ";compile:scalafixTest ;test:scalafixTest")
-addCommandAlias("fix", "all compile:scalafixCli test:scalafixCli")
+addCommandAlias(
+  "fix",
+  ";compile ;test:compile ;all compile:scalafix test:scalafix --auto-classpath --scalac-options \"-Ywarn-unused\""
+)
 addCommandAlias("tests", "all test it:test")
 // not really what is used in CI, but close enough...
 addCommandAlias("ci", ";check ;prep ;cpl ;doc ;tests")
