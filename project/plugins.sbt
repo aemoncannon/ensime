@@ -9,5 +9,5 @@ addSbtPlugin("org.ensime" % "sbt-ensime" % "2.5.2")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly"  % "0.14.6")
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.8.0")
 
-addSbtPlugin("com.geirsson"  % "sbt-scalafmt" % "1.4.0")
+addSbtPlugin("com.geirsson"  % "sbt-scalafmt" % "1.5.1")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.6.0-M5")
